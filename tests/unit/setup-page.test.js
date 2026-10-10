@@ -95,3 +95,60 @@ describe('A-5b owner-only Stripe setup page',()=>{
     expect(locked.headers['Retry-After']).toBe('900');
   });
 });
+
+describe('B-2b owner-only two-step LIVE page (fake database only)', () => {
+  async function intentPage({allow=false,connected=true, clock=()=>Date.now()}={}) {
+    const account='acct_FAKE_LIVE_PAGE';
+    const db=createFakeDb({accounts:[{id:account,label:'Fixture business',
+      live_connected:connected,live_enabled:false}],clock});
+    const id='L'.repeat(32);
+    await db.createLiveEnableIntent({id,account,expiresAt:new Date(clock()+600000)});
+    const handler=createSetupHandler({db,keyStore:null,oneTimeStore:null,
+      env:{...env,LIVE_MODE_OWNER_APPROVED:allow?'true':'false'}});
+    const p=await page(handler,{liveEnable:id});
+    return {account,db,id,handler,p,c:cookiePage(p)};
+  }
+  const payload=(id,consent='yes',password=env.ADMIN_PASSPHRASE)=>({
+    action:'enable-live',id,ownerLiveConsent:consent,passphrase:password
+  });
+  it('does not activate from GET or with the owner approval environment gate OFF', async()=>{
+    const x=await intentPage();
+    expect(x.p.body).toContain('Fixture business');
+    expect(x.p.body).toContain('LIVE');
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+    const response=await submit(x.handler,x.c,payload(x.id));
+    expect(response.statusCode).toBe(403);
+    expect((await x.db.getLiveEnableIntent(x.id))).not.toBeNull();
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+  });
+  it('rejects wrong password, missing owner consent, wrong origin and absent CSRF',async()=>{
+    const x=await intentPage({allow:true});
+    expect((await submit(x.handler,x.c,payload(x.id),'https://invalid.test')).statusCode).toBe(403);
+    expect((await submit(x.handler,{cookie:x.c.cookie,csrf:'bad'},payload(x.id))).statusCode).toBe(403);
+    expect((await submit(x.handler,x.c,payload(x.id,'yes','bad'))).statusCode).toBe(401);
+    expect((await submit(x.handler,x.c,payload(x.id,'no'))).statusCode).toBe(400);
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+  });
+  it('consumes only the exact intent once, after owner reauthentication and explicit consent',async()=>{
+    const x=await intentPage({allow:true});
+    const response=await submit(x.handler,x.c,payload(x.id));
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('LIVE mode enabled');
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(true);
+    expect((await submit(x.handler,x.c,payload(x.id))).statusCode).toBe(410);
+    expect((await x.db.listAuditForTest()).filter(r=>r.tool==='stripe_enable_live')).toHaveLength(1);
+  });
+  it('fails closed if a LIVE key is not verified, even with owner consent',async()=>{
+    const x=await intentPage({allow:true,connected:false});
+    expect((await submit(x.handler,x.c,payload(x.id))).statusCode).toBe(409);
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+  });
+  it('refuses an expired live intent',async()=>{
+    let now=Date.UTC(2026,9,10,12);
+    const x=await intentPage({allow:true,clock:()=>now});
+    now+=600001;
+    expect(await x.db.getLiveEnableIntent(x.id)).toBeNull();
+    expect((await submit(x.handler,x.c,payload(x.id))).statusCode).toBe(410);
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+  });
+});

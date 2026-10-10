@@ -90,3 +90,23 @@ describe('B-2 server-owned LIVE write boundary (fake Stripe only)', () => {
     expect(calls.writes).toBe(0);
   });
 });
+
+describe('B-2b live activation intent, fake provider only', () => {
+  it('needs confirmed first-step intent from FULL TEST connection; cannot directly activate', async () => {
+    const { requestLiveEnableIntent } = await import('../../src/tools/live-guard.js');
+    const { createFakeDb } = await import('../../test/helpers/fake-db.js');
+    const db=createFakeDb({accounts:[{id:'acct_FAKE_LIVE',label:'Fake',live_connected:true}]});
+    const connection={stripeAccount:'acct_FAKE_LIVE',mode:'test',profile:'full'};
+    expect((await requestLiveEnableIntent({db,connection,confirm:false})).accepted).toBe(false);
+    expect((await requestLiveEnableIntent({db,connection:{...connection,profile:'read_only'},confirm:true})).accepted).toBe(false);
+    expect((await requestLiveEnableIntent({db,connection:{...connection,mode:'live'},confirm:true})).accepted).toBe(false);
+    const intent=await requestLiveEnableIntent({db,connection,confirm:true});
+    expect(intent.accepted).toBe(true);
+    expect(intent.liveEnabled).toBe(false);
+    expect(intent.id).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect((await db.getLiveEnableIntent(intent.id)).stripe_account).toBe(connection.stripeAccount);
+    expect((await db.getStripeAccount(connection.stripeAccount)).live_enabled).not.toBe(true);
+    expect(await db.consumeLiveEnableIntent({id:intent.id,allowActivation:false})).toBe(false);
+    expect((await db.getStripeAccount(connection.stripeAccount)).live_enabled).not.toBe(true);
+  });
+});
