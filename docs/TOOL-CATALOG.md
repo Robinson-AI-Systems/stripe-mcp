@@ -1,5 +1,7 @@
 # Tool catalog
 
+**Implementation status (A-1, PR #9):** The registry and checks are installed but intentionally register zero Stripe tools. Every listed operation remains planned; A-5 introduces the first real handlers.
+
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
 running the account. The implementing model builds exactly these;

@@ -8,24 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  lock:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      # The first implementation PR creates the lockfile once, uploads it for review,
-      # and commits it before merge. A-2 and later use npm ci directly.
-      - run: npm install --package-lock-only --ignore-scripts --no-audit
-      - uses: actions/upload-artifact@v4
-        with:
-          name: npm-lock
-          path: package-lock.json
-          if-no-files-found: error
-
   check:
-    needs: [lock]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,30 +17,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
-        with:
-          name: npm-lock
       - run: npm ci --ignore-scripts --no-audit
       - run: npm run check
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
   unit:
-    needs: [lock]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
-        with:
-          name: npm-lock
       - run: npm ci --ignore-scripts --no-audit
       - run: npm test
 
   db:
-    needs: [lock]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -77,16 +52,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
-        with:
-          name: npm-lock
       - run: npm ci --ignore-scripts --no-audit
       - run: npm run test:db -- tests/db/contract.test.js
         env:
           TEST_DATABASE_URL: postgresql://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
 
   mock:
-    needs: [lock]
     runs-on: ubuntu-latest
     services:
       stripe-mock:
@@ -97,9 +68,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
-        with:
-          name: npm-lock
       - run: npm ci --ignore-scripts --no-audit
       - run: npm run test:mock -- tests/mock/ping.test.js
         env:
@@ -107,18 +75,16 @@ jobs:
 
   ci:
     if: always()
-    needs: [lock, check, unit, db, mock]
+    needs: [check, unit, db, mock]
     runs-on: ubuntu-latest
     steps:
       - name: Require every verification job
         env:
-          LOCK: ${{ needs.lock.result }}
           CHECK: ${{ needs.check.result }}
           UNIT: ${{ needs.unit.result }}
           DB: ${{ needs.db.result }}
           MOCK: ${{ needs.mock.result }}
         run: |
-          test "$LOCK" = success
           test "$CHECK" = success
           test "$UNIT" = success
           test "$DB" = success
