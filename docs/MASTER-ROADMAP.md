@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Next:** A-3 (A-1 and A-2 merged as PRs #9/#10; IN-02/03/04 remain future setup gates).
+**Next:** A-4 (A-3a #11 and A-3b #12; IN-02/03/04 remain future setup gates).
 
 ## Order and why
 
@@ -37,7 +37,7 @@ the approved design; write the card when its predecessor is real.
 
 | Batch | Cards | Card status |
 |---|---|---|
-| A Foundation | A-1 repo, CI, checks · A-2 schema · A-3 login · A-4 Stripe client + OpenAPI index · A-5 key store, setup page, one-time secrets · A-6 DEPLOY.md | A-1 merged (#9), A-2 merged (#10); rest JIT |
+| A Foundation | A-1 repo, CI, checks · A-2 schema · A-3 login · A-4 Stripe client + OpenAPI index · A-5 key store, setup page, one-time secrets · A-6 DEPLOY.md | A-1 merged (#9), A-2 merged (#10), A-3a (#11) and A-3b (#12); rest JIT |
 | B Trust | B-1 safety + money · B-2 live guard · B-3 app guard · B-4 errors · B-5 shaping · B-6 profiles · B-7 check-writes · B-8 server tools | JIT |
 | C Context | C-1 small results · C-2 listing modes + budgets | JIT |
 | D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | JIT |

@@ -2,7 +2,7 @@
 import { SCHEMA_TABLES, connectionSettings } from '../../src/db.js';
 import { hashToken } from '../../src/core/oauth.js';
 
-export function createFakeDb({ clock = () => Date.now() } = {}) {
+export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const rows = new Map();
   const createdTables = new Set();
   const clients = new Map();
@@ -34,7 +34,7 @@ export function createFakeDb({ clock = () => Date.now() } = {}) {
         Object.entries(row).filter(([name]) => name !== 'expires_at'))) : null;
     },
     async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
-      mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 2592000 }) {
+      mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 3600 }) {
       tokens.set(hashToken(accessToken), { token_hash: hashToken(accessToken),
         refresh_hash: refreshToken ? hashToken(refreshToken) : null, client_id: clientId,
         stripe_account: stripeAccount, mode, profile, listing, kind: 'connector',
@@ -49,13 +49,13 @@ export function createFakeDb({ clock = () => Date.now() } = {}) {
     async getTokenByRefreshToken(refreshToken) {
       const key = hashToken(refreshToken);
       const row = [...tokens.values()].find((item) => item.refresh_hash === key &&
-        !item.revoked_at && item.expires_at > clock());
+        !item.revoked_at);
       return row ? { client_id: row.client_id, ...connectionSettings(row) } : null;
     },
     async rotateRefreshToken({ refreshToken, clientId, accessToken, newRefreshToken,
-      ttlSeconds = 2592000 }) {
+      ttlSeconds = 3600 }) {
       const row = [...tokens.values()].find((item) => item.refresh_hash === hashToken(refreshToken) &&
-        item.client_id === clientId && !item.revoked_at && item.expires_at > clock());
+        item.client_id === clientId && !item.revoked_at);
       if (!row) return null;
       tokens.delete(row.token_hash);
       row.token_hash = hashToken(accessToken);
@@ -82,8 +82,8 @@ export function createFakeDb({ clock = () => Date.now() } = {}) {
     async countRecentFailedLogins(ip, minutes) {
       return attempts.filter((a) => a.ip === ip && !a.success && a.at > clock() - minutes * 60000).length;
     },
-    async listStripeAccounts() { return []; },
-    async getStripeAccount() { return null; },
+    async listStripeAccounts() { return structuredClone(accounts); },
+    async getStripeAccount(id) { return structuredClone(accounts.find(a => a.id === id) || null); },
     async tokenRowsForTest() { return structuredClone([...tokens.values()]); }
   };
 }

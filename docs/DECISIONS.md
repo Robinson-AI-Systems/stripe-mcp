@@ -72,3 +72,5 @@ MCP plan (its PR #28) found two gaps that apply here too: (1) an OAuth refresh m
 (account, mode, profile, listing) from the issuing token, or a refreshed connection silently falls back to defaults —
 added to A-3; (2) a per-pass rate limit kept in memory does nothing on Vercel, where each instance counts separately —
 R-2 now uses a Postgres `rate_limits` table with an atomic upsert. Both are in AI-PR-READ-FIRST item 12.
+
+**2026-10-10 — Owner-only set-once authentication.** Chris instructed that this service is exclusively for his projects and should not repeatedly demand authorizations or manually generated tokens. A-3b uses one-hour access credentials with automatically rotated, hashed refresh credentials that remain valid until revoked (or the account/connector is deliberately disconnected); expiry of the access credential does not terminate refresh authorization. No persistent plaintext key; Stripe API keys remain encrypted in the separate A-5 key store. This is a personal-use security/usability tradeoff, not a blanket authorization for live or money-moving operations. The hosting MCP client controls whether it supports seamless background refresh.

@@ -56,7 +56,7 @@ export function createDb(sql = getProductionSql()) {
       return row ? { client_id: row.client_id, ...row.data, ...connectionSettings(row) } : null;
     },
     async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
-      mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 2592000 }) {
+      mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 3600 }) {
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
       await sql`INSERT INTO oauth_tokens
         (token_hash, refresh_hash, client_id, stripe_account, mode, profile, listing, expires_at)
@@ -74,11 +74,11 @@ export function createDb(sql = getProductionSql()) {
       if (typeof refreshToken !== 'string' || !refreshToken) return null;
       const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing
         FROM oauth_tokens WHERE refresh_hash = ${hashToken(refreshToken)}
-        AND expires_at > now() AND revoked_at IS NULL AND kind = 'connector'`;
+        AND revoked_at IS NULL AND kind = 'connector'`;
       return rows[0] || null;
     },
     async rotateRefreshToken({ refreshToken, clientId, accessToken, newRefreshToken,
-      ttlSeconds = 2592000 }) {
+      ttlSeconds = 3600 }) {
       // Single atomic update consumes a refresh credential only once, even with concurrent requests.
       // All connection columns remain in this very row: no copying from a default connection.
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
@@ -86,7 +86,7 @@ export function createDb(sql = getProductionSql()) {
         token_hash = ${hashToken(accessToken)}, refresh_hash = ${hashToken(newRefreshToken)},
         expires_at = ${expiresAt}, last_used_at = NULL
         WHERE refresh_hash = ${hashToken(refreshToken)} AND client_id = ${clientId}
-          AND revoked_at IS NULL AND expires_at > now() AND kind = 'connector'
+          AND revoked_at IS NULL AND kind = 'connector'
         RETURNING client_id, stripe_account, mode, profile, listing`;
       return rows[0] || null;
     },

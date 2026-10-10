@@ -38,7 +38,7 @@ Six additive indexes support code/token expiry, login lockout, changes and secre
 
 ## Endpoints
 
-None yet (A-3a is internal-only; A-3b adds OAuth/MCP HTTP routes).
+A-3b provides `/api/oauth/register`, `/api/oauth/authorize`, `/api/oauth/token`, `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource`, `/api/mcp`, `/api` (status). OAuth access credentials expire after one hour; hashed refresh credentials persist until revocation and rotate on use. The MCP bearer token is not used with Stripe.
 
 ## Stripe API version
 
