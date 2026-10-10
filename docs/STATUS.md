@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-8a safe read tools completed (#28); B-8b owner management next:** selected-account change summaries, connection metadata, daily shared budget usage and dashboard guidance. Owner-only mutations and LIVE remain disabled.
+
 - **B-7 completed (#27), next B-8 owner/server tools:** strict tool write declarations, guarded contract and provider-derived money safety metadata validation; no new money/live capabilities available.
 
 - **B-6 completed (PR #26); next B-7 write-declaration validator:** profile-specific tool exposure and call authorization, hidden-tool name denial, and home-page counts. B-5 result shaping is merged; external writes remain disabled pending B-8.

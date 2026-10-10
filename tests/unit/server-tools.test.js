@@ -15,7 +15,8 @@ describe('MCP metadata-tool safety boundary',()=>{
     const info=JSON.parse(who.content[0].text);
     expect(info).toMatchObject({account:'acct_FAKESETUP',label:'My Project',
       profile:'read_only',keyType:'restricted',keyLast4:'FAKE'});
-    expect(info.moneyUsedTodayCents).toBeNull();
+    expect(info.moneyUsedTodayCents).toBe(0);
+    expect(info.moneyTrackingStatus).toMatch(/Shared account-wide/);
     expect(JSON.stringify(info)).not.toContain('cipher-only');
     const list=await read(db,'stripe_list_accounts');
     expect(JSON.parse(list.content[0].text).accounts).toEqual([{

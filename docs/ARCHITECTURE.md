@@ -100,3 +100,7 @@ Every profile's tool discovery and direct name-call gate checks the same declare
 ### B-7 tool safety declarations (staged)
 
 Every registered tool has an explicit writes:boolean declaration. Money-out risk requires an attached provider-derived money spec and a guarded write contract, enforced by the shared CI write checker. The checker does not infer write status from names.
+
+### B-8a account-scoped read tools (in review)
+
+Change summaries and AI connection metadata are scoped to the authenticated Stripe account, without token hashes or raw snapshots; reads are bounded. Account status reports actual shared daily budget usage. Dashboard guidance is informational and does not change settings. No new money or LIVE permission is exposed.
