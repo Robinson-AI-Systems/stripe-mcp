@@ -447,7 +447,7 @@ the result where Stripe lets it read the setting back.
 
 ## Totals
 
-301 hand-built tools plus the 4 universal `api_*` tools (305 in all; 321 with Connect), plus guided settings for
+302 hand-built tools plus the 4 universal `api_*` tools (306 in all; 322 with Connect), plus guided settings for
 every dashboard-only owner setting. The universal tools reach every other Stripe operation. The `everyday` profile
 has about 125; `read_only` about 115 (B-6 prints the exact numbers). In compact mode (`docs/designs/BATCH-C.md`)
 an agent loads only about 20 of them up front and reaches the rest through
