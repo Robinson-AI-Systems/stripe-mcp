@@ -6,7 +6,7 @@ const PROFILES = ['read_only', 'everyday', 'full'];
 const LISTINGS = ['catalog', 'compact'];
 const MODES = ['test']; // Explicit Batch B activation is required before live can be enabled.
 const tokenResponse = (access, refresh) => ({
-  access_token: access, token_type: 'Bearer', expires_in: 2592000, refresh_token: refresh
+  access_token: access, token_type: 'Bearer', expires_in: 3600, refresh_token: refresh
 });
 const bad = (res, status, code, description) => send(res, status, { error: code, error_description: description });
 const str = (x) => typeof x === 'string' ? x : '';
