@@ -98,7 +98,11 @@ describe('C-1 paged handles isolated to a verified OAuth connection',()=>{
     }
     const restored=JSON.parse(pieces.join(''));
     expect(JSON.stringify(restored)).not.toContain('FAKESECRET');
-    expect(restored.content[0].text).toContain('[hidden]');
-    expect(restored.content[0].text).toContain('item_219');
+    expect(restored.secret).toBe('[hidden]');
+    expect(restored.rows.at(-1).id).toBe('item_219');
+    const projection=await dispatchReadOnlyTool({registry,name:'stripe_get_result',
+      args:{handle:preview.handle,fields:'customer,missingField'},connection,db});
+    const projected=JSON.parse(projection.content[0].text);
+    expect(projected.unavailableFields).toEqual(['missingField']);
   });
 });
