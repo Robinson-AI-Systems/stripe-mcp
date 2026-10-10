@@ -14,9 +14,14 @@ describe('tool registry', () => {
       'customer_create','customer_update','customer_delete',
       'customer_remove_payment_method','customer_set_default_payment_method',
       'customer_add_balance_credit','customer_add_tax_id','customer_delete_tax_id',
-      'customer_remove_discount'
+      'customer_remove_discount',
+      'payment_list','payment_get','payment_search','charge_list','charge_get',
+      'charge_search','payment_list_refunds','payment_get_refund','setup_list','setup_get',
+      'payment_charge_saved_method','payment_capture','payment_cancel',
+      'payment_update','charge_update','payment_create_refund',
+      'payment_update_refund','payment_cancel_refund','setup_cancel'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(9);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(18);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
