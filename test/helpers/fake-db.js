@@ -18,6 +18,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const liveIntents = [];
   const revokeIntents = [];
   const disableIntents = [];
+  const defaultIntents = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -158,6 +159,38 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       account.live_enabled=true;
       audit.push({stripe_account:row.account,mode:'live',tool:'stripe_enable_live',
         summary:'Owner independently approved LIVE mode for this account',dry_run:false});
+      return true;
+    },
+    async requestDefaultAccountIntent({id,account,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime()))
+        throw new TypeError('Invalid default-account intent');
+      if (!accountRows.has(account)||!encryptedTestKeys.has(account)||
+          accountRows.get(account).is_default===true) return false;
+      const previous=[...accountRows.values()].find(a=>a.is_default===true)?.id??null;
+      defaultIntents.push({id,account,expectedDefault:previous,
+        expiresAt:expiresAt.getTime(),consumedAt:null});
+      return true;
+    },
+    async getDefaultAccountIntent(id) {
+      const r=defaultIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      return r?{id:r.id,stripe_account:r.account,
+        expected_default:r.expectedDefault,
+        label:accountRows.get(r.account)?.label??r.account,
+        expires_at:new Date(r.expiresAt)}:null;
+    },
+    async consumeDefaultAccountIntent(id) {
+      const r=defaultIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      if(!r)return false;
+      const nowDefault=[...accountRows.values()].find(a=>a.is_default===true)?.id??null;
+      if(nowDefault!==r.expectedDefault || !encryptedTestKeys.has(r.account))return false;
+      r.consumedAt=clock();
+      for(const a of accountRows.values())a.is_default=(a.id===r.account);
+      audit.push({id:audit.length+1,stripe_account:r.account,mode:'test',
+        tool:'stripe_set_default_account',target:r.account,
+        summary:'Owner selected this account as default on the private setup page',
+        dry_run:false,at:new Date(clock())});
       return true;
     },
     async requestDisableLiveIntent({id,account,expiresAt}) {

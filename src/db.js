@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents'
 ]);
 
 let productionSql;
@@ -201,6 +201,36 @@ export function createDb(sql = getProductionSql()) {
             'Owner independently approved LIVE mode for this account', FALSE
           FROM activated RETURNING id`;
       return rows.length === 1;
+    },
+    async requestDefaultAccountIntent({id,account,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime())) {
+        throw new TypeError('Valid owner default-account intent required');
+      }
+      const rows=await sql`INSERT INTO owner_default_account_intents
+        (id,stripe_account,expected_default,expires_at)
+        SELECT ${id},a.id,
+          (SELECT id FROM stripe_accounts WHERE is_default=TRUE ORDER BY id LIMIT 1),
+          ${expiresAt}
+        FROM stripe_accounts a
+        WHERE a.id=${account} AND a.test_key_enc IS NOT NULL
+          AND a.is_default=FALSE
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getDefaultAccountIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
+      const rows=await sql`SELECT i.id,i.stripe_account,i.expected_default,
+        i.expires_at,a.label FROM owner_default_account_intents i
+        JOIN stripe_accounts a ON a.id=i.stripe_account
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()`;
+      return rows[0] || null;
+    },
+    async consumeDefaultAccountIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return false;
+      const rows=await sql`SELECT apply_owner_default_account_intent(${id}) AS applied`;
+      return rows[0]?.applied===true;
     },
     async requestDisableLiveIntent({id,account,expiresAt}) {
       if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
@@ -527,6 +557,49 @@ export function createDb(sql = getProductionSql()) {
         ON money_reservations (stripe_account, request_key)`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
         ON money_reservations (stripe_account, local_day)`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_default_account_intents (
+        id TEXT PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        expected_default TEXT,
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_default_account_intents_expiry_idx
+        ON owner_default_account_intents (expires_at)`;
+      await sql`CREATE OR REPLACE FUNCTION apply_owner_default_account_intent(p_id TEXT)
+      RETURNS BOOLEAN LANGUAGE plpgsql AS $fn$
+      DECLARE
+        v_intent RECORD;
+        v_current TEXT;
+      BEGIN
+        -- A single transaction-scoped lock serializes changes across instances.
+        PERFORM pg_advisory_xact_lock(27491,18032);
+        SELECT i.id,i.stripe_account,i.expected_default
+          INTO v_intent FROM owner_default_account_intents i
+          WHERE i.id=p_id AND i.consumed_at IS NULL AND i.expires_at>now()
+          FOR UPDATE;
+        IF NOT FOUND THEN RETURN FALSE; END IF;
+        SELECT id INTO v_current FROM stripe_accounts
+          WHERE is_default=TRUE ORDER BY id LIMIT 1;
+        IF v_current IS DISTINCT FROM v_intent.expected_default THEN
+          RETURN FALSE;
+        END IF;
+        PERFORM 1 FROM stripe_accounts
+          WHERE id=v_intent.stripe_account AND test_key_enc IS NOT NULL;
+        IF NOT FOUND THEN RETURN FALSE; END IF;
+        UPDATE stripe_accounts SET is_default=FALSE WHERE is_default=TRUE;
+        UPDATE stripe_accounts SET is_default=TRUE
+          WHERE id=v_intent.stripe_account;
+        UPDATE owner_default_account_intents SET consumed_at=now()
+          WHERE id=v_intent.id;
+        INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run)
+          VALUES (v_intent.stripe_account,'test','stripe_set_default_account',
+            v_intent.stripe_account,
+            'Owner selected this account as default on the private setup page',FALSE);
+        RETURN TRUE;
+      END;
+      $fn$`;
       await sql`CREATE TABLE IF NOT EXISTS owner_disable_live_intents (
         id TEXT PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),

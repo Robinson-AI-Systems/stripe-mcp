@@ -16,6 +16,7 @@ it does not work yet. This file is updated as features ship.
 | "Which AI connections exist for this Stripe account?" | Lists account-scoped connection metadata, not credentials | B-8a |
 | "Disconnect this specific AI connection." | After the owner-only server is deployed, use its private setup page to preview and explicitly confirm revocation of that account/client ID; not an AI-action tool yet | B-8b2a |
 | "Immediately block LIVE connections for this Stripe account." | When the server is deployed, the private owner setup page can preview and independently confirm emergency LIVE disable. This cannot enable LIVE or send payments | B-8b2b1 |
+| "Make this my default Stripe account for new connections." | The private owner setup page previews the change and requires independent confirmation. Existing AI connection scopes do not change | B-8b2b2 |
 | "Where do I set up Stripe receipt emails?" | Gives guided Dashboard steps, never pretends to change a setting | B-8a |
 | "Check my TEST Stripe key permissions again." | Safely re-probes restricted TEST-key read permissions only after a key is configured; credentials are never shown | B-8b1 / #29 |
 | "How's the money looking this month?" | Balance, payouts coming, money in and out, monthly recurring revenue, failed payments, disputes | W |

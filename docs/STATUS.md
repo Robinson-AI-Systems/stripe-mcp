@@ -5,24 +5,22 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **Current PR #31 (B-8b2b1):** private owner-only emergency LIVE disable,
-  branch `ai/gpt6/b-8b2b-safe-live-disable`, pending exact-head CI,
-  security self-review and merge. Authenticated two-step OFF-only browser flow,
-  one-use intent, account-specific atomic audit, fake and PostgreSQL tests.
-  No LIVE key has been used or enabled.
-- **Last merged #30 (B-8b2a):** protected owner-only AI connection revocation,
-  exact-account/client one-use confirmation and durable audit; CI green at merge.
-  #29 TEST key permissions, #28 account read tools and B-1–B-7 are merged.
-- **Next:** B-8b2b2 default-account selection and separately owner-authorized
-  daily-limit settings, then B-8c authenticated, single-transaction money-out
-  approval UI. B-8 remains **IN_PROGRESS**, C-1 must wait.
-- **IN-05 is approved:** $500 USD per Stripe account per America/Denver day,
-  pooled across AI connections; every AI money-out needs a separate authenticated
-  owner approval; over-limit transactions need an additional explicit override.
-  No AI tool or `confirm` parameter can issue either approval.
-- **IN-06 remains OFF:** No real money movement, live-key activation,
-  AI-callable Stripe write tools or production deployment. IN-02/03/04
-  provisioning and test-key setup are still unapproved/unconfigured.
+- **B-8b2b2 current implementation:** owner-only default-account selection,
+  branch `ai/gpt6/b-8b2b2-default-account`. New AI connections are shown
+  the selected TEST-connected account by default; existing connections do not
+  change. Private page requires two independently authenticated steps. Atomic
+  PostgreSQL advisory lock, expected-prior-default verification and one-time
+  intent prevent stale requests overriding a newer choice. PR/CI review pending.
+- **Last merged #31:** emergency owner-only LIVE disable (`d3be459`),
+  CI green. #30 private connection revoke; #29 TEST key verification,
+  #28 read tools; B-1–B-7 merged.
+- **Remaining B-8:** owner-controlled money-limit settings (keep the
+  $500 USD per-account standard), then B-8c independent owner authorization
+  for EVERY AI-initiated money-out and an extra override above the daily cap.
+  No public AI write or money tool is enabled.
+- **Hard gates:** IN-06 LIVE enabling OFF. No real Stripe money movement,
+  live key, purchased infrastructure or operational deployment.
+  IN-02/03/04 still require owner permission.
 - **Ordered batches:** A → B → C → D → V → G → H → P → W → U → R → E → X.
 
 ## Environment

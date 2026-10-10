@@ -7,7 +7,7 @@ function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
@@ -72,6 +72,24 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<label><input type="checkbox" name="ownerDisableConsent" value="yes" required> I personally authorize disabling LIVE access for this exact account.</label>' +
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<button type="submit">Disable LIVE access</button></form>' : '') +
+    '<h2>Choose default account for new AI connections (owner only)</h2>' +
+    '<p>Existing AI connections remain on their original accounts. Only the initial selection shown to new connections changes.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="request-default-account">' +
+    '<label>Stripe account ID<input name="account" maxlength="80" required autocomplete="off"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Preview new default account</button></form>' +
+    (defaultIntent ? '<h2>Final owner confirmation: default account</h2>' +
+      '<p>New default: <strong>' + escapeHtml(defaultIntent.label || defaultIntent.stripe_account) +
+      '</strong> (' + escapeHtml(defaultIntent.stripe_account) +
+      '). Prior default: ' + escapeHtml(defaultIntent.expected_default || '(none)') +
+      '. Existing connections will not be moved. An intervening change cancels this request.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-default-account">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(defaultIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerDefaultConsent" value="yes" required> I personally approve this exact default-account selection.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Set default account</button></form>' : '') +
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.env }) {
@@ -170,6 +188,34 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
       return send(res, revoked ? 200 : 409, htmlPage({csrf:cookie,result:revoked ?
         'Connection removed for account '+intent.stripe_account+', client '+intent.client_id+'.' :
         'The connection was already removed or changed. No removal performed.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'request-default-account') {
+      const id=randomBytes(24).toString('base64url');
+      let staged=false;
+      try { staged=await db.requestDefaultAccountIntent({
+        id,account:p.account,expiresAt:new Date(Date.now()+10*60*1000)
+      }); } catch { staged=false; }
+      if (!staged) return send(res,404,htmlPage({csrf:cookie,result:
+        'No eligible TEST-connected Stripe account matches, or it is already the default.'}),
+        'text/html; charset=utf-8');
+      const defaultIntent=await db.getDefaultAccountIntent(id);
+      return send(res,200,htmlPage({csrf:cookie,defaultIntent,result:
+        'Preview only. The default account is unchanged until you confirm.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'confirm-default-account') {
+      if (p.ownerDefaultConsent!=='yes') return send(res,400,htmlPage({csrf:cookie,result:
+        'A separate owner acknowledgement is required.'}),
+        'text/html; charset=utf-8');
+      const intent=await db.getDefaultAccountIntent(p.id);
+      if (!intent) return send(res,410,htmlPage({csrf:cookie,result:
+        'This default-account request expired or was already used.'}),
+        'text/html; charset=utf-8');
+      const changed=await db.consumeDefaultAccountIntent(p.id);
+      return send(res,changed?200:409,htmlPage({csrf:cookie,result:changed ?
+        'Default for new connections changed to '+intent.stripe_account+'.' :
+        'Another setting changed or the request is stale. No change made.'}),
         'text/html; charset=utf-8');
     }
     if (p.action === 'request-disable-live') {
