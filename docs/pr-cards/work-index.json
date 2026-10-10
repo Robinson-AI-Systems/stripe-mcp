@@ -140,7 +140,9 @@
         "B-1"
       ],
       "readiness": "IN_PROGRESS",
-      "ownerInputs": []
+      "ownerInputs": [
+        "IN-05"
+      ]
     },
     {
       "id": "B-2",
