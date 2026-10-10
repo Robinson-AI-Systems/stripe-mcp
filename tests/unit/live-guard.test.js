@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { authorizeLiveWrite, isRecentOwnerVerification, LIVE_REAUTH_WINDOW_MS } from
+import { isRecentOwnerVerification, LIVE_REAUTH_WINDOW_MS } from
   '../../src/tools/live-guard.js';
 import { defineWrite } from '../../src/tools/write.js';
 
