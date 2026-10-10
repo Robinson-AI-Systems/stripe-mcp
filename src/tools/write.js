@@ -3,9 +3,24 @@ import { defineWrite as defineCoreWrite } from '../core/write.js';
 import { idempotencyKey, classifyStripeWriteError } from '../stripe/client.js';
 import { prepareMoney, reserveMoneyBeforeWrite, settleMoneyAfterWrite } from '../money.js';
 import { authorizeLiveWrite } from './live-guard.js';
+import { protectAppOwnedTarget, appRefundPreviewSuffix } from './app-guard.js';
 export function defineWrite(spec) {
   if (spec?.money && typeof spec.money !== 'function') throw new TypeError('Money spec must be a function');
-  return defineCoreWrite({ ...spec, idempotency: idempotencyKey,
+  if (spec?.appOwnedRefundAllowed === true && typeof spec.money !== 'function') {
+    throw new TypeError('App-owned refund exception requires the guarded money contract');
+  }
+  const targetGuard = async (args, ctx, before) => {
+    const appDecision = await protectAppOwnedTarget(args, ctx, before,
+      { refundException:spec?.appOwnedRefundAllowed === true });
+    if (appDecision !== true) return appDecision;
+    return typeof spec?.targetGuard === 'function' ? spec.targetGuard(args, ctx, before) : true;
+  };
+  const summarize = async (before, args, ctx) => {
+    const original = await spec.summarize(before,args,ctx);
+    return spec?.appOwnedRefundAllowed === true
+      ? original + await appRefundPreviewSuffix(before,ctx) : original;
+  };
+  return defineCoreWrite({ ...spec, summarize, targetGuard, idempotency: idempotencyKey,
     classifyError: classifyStripeWriteError,
     modeGuard: (args, ctx) => authorizeLiveWrite({ args, ctx }),
     prepare: spec?.money ? async (args, ctx, before) =>
