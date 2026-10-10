@@ -79,13 +79,13 @@
         "A-3"
       ],
       "card": "docs/pr-cards/A-4.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 350,
       "units": [
         "A-4"
       ],
-      "readiness": "IN_PROGRESS",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
