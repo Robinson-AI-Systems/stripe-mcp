@@ -5,9 +5,9 @@ Cards D-1 … D-5. Depends on Batches B and C. Tool list: `docs/TOOL-CATALOG.md`
 Checkout, payment links and the customer portal; Subscriptions; Invoices, credit notes and quotes (invoices and credit
 notes here; quotes in Batch E).
 
-"Port" means: take the matching tool in `Robinson-AI-Systems/robinsons-toolkit-mcp` `handlers/stripe.js` only as a
-reminder of which Stripe call it makes; rebuild with the official library through `src/stripe/client.js`. Never copy its
-`encode()` or `fetch` wrapper.
+Build current, native Stripe MCP capabilities directly from the pinned official Stripe
+API and `docs/TOOL-CATALOG.md`. Old agent names, aliases, adapters and legacy
+systems are **not** implementation dependencies or acceptance requirements.
 
 ## 0. Verify before starting
 
@@ -37,12 +37,15 @@ explicitly in requests (as the Appliance Desk app does) so an account default ca
 **D5. Invoices:** `invoice_mark_paid_outside_stripe` uses `paid_out_of_band`; on an app-owned invoice the app guard refuses
 and names the app's own "Record payment" screen.
 
-**D6. Old-name map.** D-1 adds `docs/TOOLKIT-NAME-MAP.md`: every old toolkit Stripe tool name → new name, or "removed,
-because …" (from the audit). Agents used to the toolkit can find their way.
+**D6. Current native tools only (owner clarification, 2026-10-10).**
+Build every approved current Stripe MCP operation, with canonical tool names;
+do **not** build legacy aliases, compatibility layers, old-agent integration or
+`docs/TOOLKIT-NAME-MAP.md`. This supersedes the previous old-name map
+deliverable; it does **not** remove any modern tool or reduce functional scope.
 
 ## 4. Work units (each: unit tests, write-contract for every write, stripe-mock for every call, TOOL-CATALOG marks)
 
-### D-1 — Customers (M) — includes `customer_find` (plain search that picks Stripe's search syntax) and the name map
+### D-1 — Customers (M) — includes `customer_find` (plain search that picks Stripe's search syntax); no legacy map
 ### D-2 — Payments, charges, refunds, setup intents (M, medium effort)
 ### D-3 — Checkout, payment links, portal (M)
 Extra: no result contains a `client_secret`; setup links offer card and US bank account.
