@@ -15,6 +15,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const audit = [];
   const reservations = [];
   const approvals = [];
+  const liveIntents = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -89,7 +90,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return attempts.filter((a) => a.ip === ip && !a.success && a.at > clock() - minutes * 60000).length;
     },
     async listStripeAccounts() { return structuredClone([...accountRows.values()].map(a => ({
-      ...a, test_connected: encryptedTestKeys.has(a.id), live_connected: false
+      ...a, test_connected: encryptedTestKeys.has(a.id), live_connected: !!a.live_connected
     }))); },
     async getStripeAccount(id) {
       const account = accountRows.get(id);
@@ -97,7 +98,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const saved = encryptedTestKeys.get(id);
       return structuredClone({ ...account, test_key_kind: saved?.kind || null,
         test_key_last4: saved?.last4 || null, key_permissions: saved?.permissions || {},
-        money_limit_cents: 50000, test_connected: !!saved, live_connected: false });
+        money_limit_cents: account.money_limit_cents ?? 50000, test_connected: !!saved,
+        live_connected: !!account.live_connected });
     },
     async saveTestKey({ account, label, ciphertext, kind, last4, permissions = {} }) {
       const before = accountRows.get(account) || { id: account, is_default: accountRows.size === 0,
@@ -119,6 +121,30 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       oneTimeSecrets.delete(id);
       return row && row.expires_at > clock() ? structuredClone(Object.fromEntries(
         Object.entries(row).filter(([name]) => name !== 'expires_at'))) : null;
+    },
+    async createLiveEnableIntent({ id, account, expiresAt }) {
+      if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          !accountRows.has(account) || !(expiresAt instanceof Date)) throw new TypeError('Invalid live intent');
+      liveIntents.push({ id, account, expiresAt:expiresAt.getTime(), consumedAt:null });
+      return true;
+    },
+    async getLiveEnableIntent(id) {
+      const row=liveIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      const account=row?accountRows.get(row.account):null;
+      return row ? {id:row.id,stripe_account:row.account,label:account.label,
+        expires_at:new Date(row.expiresAt)} : null;
+    },
+    async consumeLiveEnableIntent({id,allowActivation=false}) {
+      if (allowActivation!==true) return false;
+      const row=liveIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      if (!row) return false;
+      row.consumedAt=clock();
+      const account=accountRows.get(row.account);
+      if (!account?.live_connected) return false;
+      account.live_enabled=true;
+      audit.push({stripe_account:row.account,mode:'live',tool:'stripe_enable_live',
+        summary:'Owner independently approved LIVE mode for this account',dry_run:false});
+      return true;
     },
     async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {
       if (![account,idempotencyKey,tool,description].every(x => typeof x === 'string' && x) ||

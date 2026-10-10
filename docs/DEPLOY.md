@@ -126,3 +126,14 @@ Run these checks in order; do not claim completion from a green GitHub CI check 
 | AI reconnect request after ~1 hour | Confirm the client actually supports refresh tokens and advertises/requests the necessary offline access; connector compatibility has to be tested live. |
 
 **Live mode is a separate, later owner-controlled decision (IN-06).** Never turn it on merely because this setup works.
+
+## IN-06 gate: LIVE activation remains disabled
+
+The optional server variable `LIVE_MODE_OWNER_APPROVED` must **not** be set to
+`true` until Chris separately approves using live Stripe accounts (IN-06).
+Its absence denies owner live-activation POSTs. The first step only creates a
+ten-minute pending request; the final step is the protected setup page with
+passphrase, origin check, CSRF, explicit per-account consent and a valid live key.
+No live key can be uploaded through the current TEST-only setup page. B-8 must
+later wire the first-step tool and live credential onboarding. Do not enter any
+live key, activate this flag or run real money tests without separate approval.

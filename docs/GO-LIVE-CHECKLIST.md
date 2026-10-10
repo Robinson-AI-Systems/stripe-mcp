@@ -64,3 +64,16 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
 - [ ] Verify cross-connection concurrency, expiry, uncertain provider outcomes,
       confirmed rejections, one-use grants, and replay resistance.
 - [ ] Live money movement remains DISABLED until IN-06 is separately approved.
+
+## Live enable two-step gate (B-2b, IN-06)
+
+- [ ] Obtain separate, explicit IN-06 approval before using any live Stripe key
+      or setting `LIVE_MODE_OWNER_APPROVED=true`.
+- [ ] Confirm the account has a verified, encrypted LIVE restricted key through
+      the future owner-only key entry flow (not provided by current setup).
+- [ ] Request a one-time live-enable intent as a FULL-profile confirmed action;
+      it expires in ten minutes and cannot activate the account by itself.
+- [ ] In the owner setup page re-enter the admin passphrase and affirm the exact
+      Stripe account, behind origin, CSRF and rate-limit protections.
+- [ ] Verify the intent was consumed once and live mode was audited; never infer
+      authorization solely from a tool argument or a successful HTTP response.

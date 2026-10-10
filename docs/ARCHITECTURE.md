@@ -68,3 +68,15 @@ same Stripe account; the owner's approval must be valid and is consumed inside
 the reservation procedure. No public or agent-side method can approve a request.
 The owner-authenticated approval interface belongs to B-8 and remains unavailable
 until independently tested; therefore no real money movement is enabled.
+
+### B-2b owner LIVE confirmation intent (IN-06 OFF)
+
+`live_enable_intents` stores a random 32-character server-issued identifier,
+account ID, expiration (10 minutes) and consumption. Creating a pending intent
+**never enables live mode**. The owner setup route displays that account and
+requires the existing protected origin/CSRF/passphrase checks plus an explicit
+owner LIVE consent. Even then, `LIVE_MODE_OWNER_APPROVED` defaults OFF. Atomic
+PostgreSQL consumption enables `stripe_accounts.live_enabled` only when that
+additional IN-06 gate is on and the account has an encrypted live credential;
+the same SQL statement records the security change in `change_log`. The MCP
+dispatcher still exposes only TEST/read-only tools and cannot approve an intent.

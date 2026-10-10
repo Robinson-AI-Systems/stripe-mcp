@@ -1,8 +1,8 @@
 # B-2b — two-step owner reauthentication for live activation
 
-Status: **READY FOR IMPLEMENTATION**, IN-06 live activation remains OFF.
+Status: **MERGED (#22)**. Internal ten-minute activation intent, independent owner confirmation and atomic audit are implemented and tested. IN-06 remains OFF.
 Dependency: B-1 PR #20 merged; B-2a guarded write engine PR #21 merged.
-Baseline: main after #21. Design: `docs/designs/BATCH-B.md` §1 B4, §3 case 6 and §4 B-2.
+Baseline inspected: main `8ac36b8` after #21. Design: `docs/designs/BATCH-B.md` §1 B4, §3 case 6 and §4 B-2.
 Risk area: activation security and owner consent; migration budget: at most one additive intent table.
 
 ## Read only these
