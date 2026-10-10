@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **In progress B-1:** B-1a (#18) merged. B-1b1 (#19) adds an internal, concurrent-safe PostgreSQL daily money reservation ledger; no money-changing tool is enabled. B-1b2 must integrate authoritative Stripe amounts, seven write-contract checks and the owner-selected IN-05 money-out default before B-1 can close. No live or owner database is touched.
+- **In progress B-1b2 (PR #20):** B-1a (#18) and B-1b1 (#19) merged. B-1b2 connects the USD-only dollar preview, owner-approved money-out reservation hook and seven-case contract fixture to an **internal-only** write path. **IN-05 is unanswered**: the requested default daily limit must be owner-approved before B-1 may close; no Stripe write tool is available in MCP.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
