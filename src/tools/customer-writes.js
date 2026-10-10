@@ -5,12 +5,16 @@ const profiles=['everyday','full'],full=['full'];
 const id={type:'string',pattern:'^cus_[A-Za-z0-9]{2,100}$'};
 const txt=(max=200)=>({type:'string',minLength:1,maxLength:max});
 const common={customerId:id,outsideApp:{type:'boolean'}};
+const addressFields=['line1','line2','city','state','postal_code','country'];
+const address={type:'object',properties:Object.fromEntries(addressFields.map(k=>[
+  k,txt(k==='country'?2:k==='postal_code'?40:200)])),additionalProperties:false};
+const balanceCents={type:'integer',minimum:1,maximum:100000000};
 const plans=[
   {name:'customer_create',description:'Create a TEST customer with verified fields and read-back.',
     props:{name:txt(),email:txt(512),phone:txt(),description:txt(500),
       metadata:{type:'object',additionalProperties:{type:'string'}}},required:[]},
   {name:'customer_update',description:'Update an existing TEST customer after ownership and field checks.',
-    props:{...common,name:txt(),email:txt(512),phone:txt(),description:txt(500),
+    props:{...common,name:txt(),email:txt(512),phone:txt(),description:txt(500),address,
       metadata:{type:'object',additionalProperties:{type:'string'}}},required:['customerId']},
   {name:'customer_delete',description:'Delete a TEST customer after final confirmation; irreversible.',
     props:common,required:['customerId'],full:true,destructive:true},
@@ -21,8 +25,8 @@ const plans=[
     props:{...common,paymentMethodId:{type:'string',pattern:'^pm_[A-Za-z0-9]{2,100}$'}},
     required:['customerId','paymentMethodId']},
   {name:'customer_add_balance_credit',description:'Credit a TEST customer balance with an independently owner-approved USD amount.',
-    props:{...common,creditCents:{type:'integer',minimum:1,maximum:100000000},
-      description:txt(150)},required:['customerId','creditCents','description'],money:true},
+    props:{...common,creditCents:balanceCents,debitCents:balanceCents,
+      description:txt(150)},required:['customerId','description'],money:true},
   {name:'customer_add_tax_id',description:'Add a TEST customer tax ID after reviewing its tax type.',
     props:{...common,type:txt(30),value:txt(100)},required:['customerId','type','value']},
   {name:'customer_delete_tax_id',description:'Delete a TEST customer tax ID after review.',
@@ -60,6 +64,17 @@ function permittedArgs(def,args){
         typeof v[key]!=='string'||v[key].length>200)))
       throw new TypeError('Invalid customer metadata');
   }
+  if(args.address){
+    if(Object.keys(args.address).length===0||
+      Object.keys(args.address).some(k=>!addressFields.includes(k))||
+      (args.address.country!==undefined&&!/^[A-Z]{2}$/.test(args.address.country)))
+      throw new TypeError('Invalid bounded Stripe customer address');
+  }
+  if(def.money&&(!!args.creditCents===!!args.debitCents))
+    throw new TypeError('Choose exactly one creditCents or debitCents amount');
+  if(args.requestKey!==undefined&&(typeof args.requestKey!=='string'||
+    args.requestKey.length<1||args.requestKey.length>128))
+    throw new TypeError('Invalid idempotency request key');
   if(args.metadata&&Object.keys(args.metadata).some(k=>APP_METADATA_KEYS.includes(k)))
     throw new TypeError('App-owned metadata cannot be created or overwritten by the general connector');
   if(def.name==='customer_create'&&!['name','email','phone'].some(k=>args[k]))
@@ -67,7 +82,8 @@ function permittedArgs(def,args){
   if(args.customerId&&!safeId(args.customerId,'cus'))throw new TypeError('Valid customer ID required');
 }
 const changed=(obj,args,keys)=>keys.every(k=>args[k]===undefined||
-  (k==='metadata'?Object.entries(args.metadata).every(([p,v])=>obj.metadata?.[p]===v)
+  (['metadata','address'].includes(k)
+    ? Object.entries(args[k]).every(([p,v])=>obj[k]?.[p]===v)
     :obj[k]===args[k]));
 function build(def){
   let created=null;
@@ -93,8 +109,8 @@ function build(def){
       '; verify before/after; no LIVE operation permitted.'+
       (def.destructive?' WARNING: destructive action may not be reversible.':''),
     money:def.money?async(a,_ctx,b)=>({
-      amountCents:a.creditCents,currency:'usd',direction:'out',targetId:b.id,
-      description:'Customer credit: '+a.description}):undefined,
+      amountCents:a.creditCents??a.debitCents,currency:'usd',direction:'out',targetId:b.id,
+      description:(a.creditCents?'Customer credit: ':'Customer debit: ')+a.description}):undefined,
     targetGuard:(a,_ctx,b)=>{
       if(b.deleted)return 'Deleted customer cannot be modified';
       if(def.name==='customer_delete_tax_id'&&b._taxId?.deleted)return 'Tax ID already deleted';
@@ -103,7 +119,7 @@ function build(def){
     apply:async(a,ctx,{idempotencyKey})=>{
       const s=await getClient(ctx),opts={idempotencyKey};
       const n=def.name;
-      const payload=Object.fromEntries(['name','email','phone','description','metadata']
+      const payload=Object.fromEntries(['name','email','phone','description','metadata','address']
         .filter(k=>a[k]!==undefined).map(k=>[k,a[k]]));
       if(n==='customer_create')created=await s.customers.create(payload,opts);
       if(n==='customer_update')await s.customers.update(a.customerId,payload,opts);
@@ -115,7 +131,7 @@ function build(def){
           invoice_settings:{default_payment_method:a.paymentMethodId}},opts);
       if(n==='customer_add_balance_credit')
         created=await s.customers.createBalanceTransaction(a.customerId,{
-          amount:-a.creditCents,currency:'usd',description:a.description},opts);
+          amount:a.creditCents?-a.creditCents:a.debitCents,currency:'usd',description:a.description},opts);
       if(n==='customer_add_tax_id')
         created=await s.customers.createTaxId(a.customerId,{type:a.type,value:a.value},opts);
       if(n==='customer_delete_tax_id')
@@ -138,14 +154,14 @@ function build(def){
       if(!after)return false;
       const n=def.name;
       if(n==='customer_create')return after.id===created?.id&&
-        changed(after,a,['name','email','phone','description','metadata']);
+        changed(after,a,['name','email','phone','description','metadata','address']);
       if(n==='customer_update')return changed(after,a,['name','email','phone','description','metadata']);
       if(n==='customer_delete'||n==='customer_delete_tax_id')return after.deleted===true;
       if(n==='customer_remove_payment_method')return after.customer===null;
       if(n==='customer_set_default_payment_method')
         return after.invoice_settings?.default_payment_method===a.paymentMethodId;
       if(n==='customer_add_balance_credit')
-        return after.id===created?.id&&after.amount===-a.creditCents;
+        return after.id===created?.id&&after.amount===(a.creditCents?-a.creditCents:a.debitCents);
       if(n==='customer_add_tax_id')return after.id===created?.id&&
         after.type===a.type&&after.value===a.value;
       if(n==='customer_remove_discount')return after.discount==null;
