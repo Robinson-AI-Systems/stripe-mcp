@@ -9,9 +9,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - **Last merged:** #33 money-cap owner management (`91236b8`), #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
-- **Next:** B-8c2 independent owner-authenticated approval for **each**
-  AI money-out and separate over-limit confirmation for the SAME target,
-  amount, account, tool and request. B-8 remains IN_PROGRESS; C-1 waits.
+- **Next after B-8c2 merge:** C-1 result summaries, field metadata and handles. Batch B-8 remains IN_PROGRESS until B-8c2 exact-head green merge and Batch B drift-C closeout; C-1 cannot merge ahead of its prerequisite.
 - **IN-05:** $500 USD/account/Colorado day shared across AI connections,
   all money-out separately owner-approved, above limit a second override.
   **IN-06 remains OFF.** No live credentials, provider money movement,
