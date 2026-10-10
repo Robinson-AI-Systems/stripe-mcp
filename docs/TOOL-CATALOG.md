@@ -458,3 +458,11 @@ an agent loads only about 20 of them up front and reaches the rest through
 ## Implementation notes — B-2 (draft #21)
 
 The LIVE authorization helper is internal only. It does **not** register or expose a tool, enable a live connection, accept a live key, or change the planned 302-tool catalog. Until the owner-controlled activation flow exists, all external write doors remain disabled.
+
+## Implementation note — B-2b internal owner live-intent flow (#22)
+
+This slice adds **no publicly listed Stripe tool**. The random ten-minute LIVE
+enable intent and separately authenticated owner setup confirmation are internal
+primitives, default-denied by `LIVE_MODE_OWNER_APPROVED` while IN-06 is not
+authorized. `stripe_enable_live` is still an unbuilt/ungated B-8 catalog item;
+no model call can reach these internals. Live keys remain unavailable.
