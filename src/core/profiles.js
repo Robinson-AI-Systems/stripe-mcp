@@ -17,5 +17,19 @@ export function profileCounts(registry,options={}) {
 }
 export function publicToolInfo(tool) {
   const {writes:_writes,profiles:_profiles,...rest}=tool;
-  return rest;
+  const schema=rest.inputSchema||{type:'object',properties:{},additionalProperties:false};
+  const properties={...schema.properties};
+  // Keep legacy specialist shapes unchanged. Generic read tools gain the
+  // standard detail and dotted-field controls without hand-editing each tool.
+  if(tool.writes===false){
+    if(!Object.hasOwn(properties,'detail'))properties.detail={
+      type:'string',enum:['summary','full'],description:'Summary by default; full retains all safe fields'};
+    if(!Object.hasOwn(properties,'fields'))properties.fields={
+      type:'string',maxLength:600,description:'Up to 12 comma-separated dotted field paths'};
+  }
+  return {...rest,inputSchema:{...schema,properties},
+    annotations:{...rest.annotations,readOnlyHint:tool.writes===false,
+      destructiveHint:tool.writes===true&&!rest.annotations?.destructiveHint===false,
+      idempotentHint:tool.writes===false,
+      openWorldHint:true}};
 }
