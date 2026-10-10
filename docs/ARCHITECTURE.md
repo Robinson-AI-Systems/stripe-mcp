@@ -22,7 +22,7 @@ here with its environments when A-5 ships. Never record values.
 
 ## Database tables
 
-A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **thirteen tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
+A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **fourteen tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
 
 | Table | Purpose |
 |---|---|
@@ -39,6 +39,7 @@ A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, 
 | `owner_revoke_intents` | One-time private owner intent bound to a specific Stripe account and AI connection, expiring after ten minutes; consumed with atomic token revocation and audit (B-8b2a) |
 | `owner_disable_live_intents` | Ten-minute owner-only emergency LIVE-disable intent, consumed atomically with a one-way account disable and audit; cannot enable LIVE (B-8b2b1) |
 | `owner_default_account_intents` | Ten-minute owner-only account-default choice with expected prior default and one-use confirmation; SQL advisory-locked atomic update and audit (B-8b2b2) |
+| `owner_money_limit_intents` | Owner-only exact account cap change with old/new cents, 10-minute expiry, row-locked single-use application and audited before/after; no money grant (B-8b2b3) |
 
 Additive indexes support token expiry, lockout, audits, reservations, approvals and live intents. A-5a adds `src/core/crypto.js` AES-256-GCM authenticated encryption (random nonce, additional authenticated context and no plaintext fallback); `src/keys.js` stores and retrieves test-only Stripe keys server-side in encrypted form, and `src/core/one-time-secrets.js` uses atomic database deletion on reveal. A-5b adds the private owner-only `/api/stripe/setup` endpoint with strict origin/CSRF checks, passphrase lockout, account-verification and permission probes; no real owner key has been entered. Read-only `stripe_whoami` and `stripe_list_accounts` are dispatched through the MCP bearer guard. Writes remain denied until Batch B. `TOKEN_ENCRYPTION_KEY` is required only when these functions execute; it is not configured in any deployment. A-3a added hashed client registration, authorization code consumption, access/refresh rotation, revocation, login lockout and account selection methods. A-3b adds HTTP OAuth endpoints and the connector door; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
 
@@ -154,3 +155,17 @@ the present value, updates all default flags and audits exactly once.
 Existing OAuth token scopes and issued connections are unaffected.
 The authorization page reads accounts in default-first order.
 No public MCP write is enabled, and no money or LIVE policy is changed.
+
+### B-8b2b3 owner-controlled daily cap (in review)
+
+The owner setup page alone can stage and confirm an account-specific USD
+daily-money limit change. It shows verified existing limit, requested limit
+and current shared usage as dollar amounts. Requests use exact integer cents,
+bound to account and expected previous cap; the database function locks the
+same `stripe_accounts` row used by B-1 money reservations and atomically
+updates the cap, consumes the intent and audits both amounts. The SQL default
+remains 50000 cents ($500). This setting **does not** approve a transfer,
+refund or payout: each AI money-out still requires an independently
+authenticated owner grant and, above the then-applicable cap, a separate
+exact-transaction owner override. B-8c's actual browser approval interface
+is still not built. Neither MCP nor HTTPS exposes a money-out or cap-write tool.

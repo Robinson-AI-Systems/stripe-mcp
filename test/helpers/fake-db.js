@@ -19,6 +19,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const revokeIntents = [];
   const disableIntents = [];
   const defaultIntents = [];
+  const limitIntents = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -159,6 +160,41 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       account.live_enabled=true;
       audit.push({stripe_account:row.account,mode:'live',tool:'stripe_enable_live',
         summary:'Owner independently approved LIVE mode for this account',dry_run:false});
+      return true;
+    },
+    async requestMoneyLimitIntent({id,account,newLimitCents,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !Number.isSafeInteger(newLimitCents) || newLimitCents<0 ||
+          newLimitCents>2147483647 || !(expiresAt instanceof Date) ||
+          !Number.isFinite(expiresAt.getTime()))
+        throw new TypeError('Invalid owner money-limit intent');
+      if (!accountRows.has(account)||!encryptedTestKeys.has(account)) return false;
+      const current=accountRows.get(account).money_limit_cents??50000;
+      if(current===newLimitCents)return false;
+      limitIntents.push({id,account,expected:current,newLimitCents,
+        expiresAt:expiresAt.getTime(),consumedAt:null});
+      return true;
+    },
+    async getMoneyLimitIntent(id) {
+      const r=limitIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      return r?{id:r.id,stripe_account:r.account,
+        label:accountRows.get(r.account)?.label??r.account,
+        expected_limit_cents:r.expected,new_limit_cents:r.newLimitCents,
+        expires_at:new Date(r.expiresAt)}:null;
+    },
+    async consumeMoneyLimitIntent(id) {
+      const r=limitIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      if(!r || !encryptedTestKeys.has(r.account))return false;
+      const current=accountRows.get(r.account).money_limit_cents??50000;
+      if(current!==r.expected)return false;
+      r.consumedAt=clock();
+      accountRows.get(r.account).money_limit_cents=r.newLimitCents;
+      audit.push({id:audit.length+1,stripe_account:r.account,mode:'test',
+        tool:'stripe_set_money_limit',target:r.account,
+        summary:'Owner changed the daily USD money-out account limit from the private setup page',
+        before:{limit_cents:current},after:{limit_cents:r.newLimitCents},
+        dry_run:false,at:new Date(clock())});
       return true;
     },
     async requestDefaultAccountIntent({id,account,expiresAt}) {

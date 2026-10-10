@@ -5,22 +5,22 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8b2b2 current implementation:** owner-only default-account selection,
-  branch `ai/gpt6/b-8b2b2-default-account`. New AI connections are shown
-  the selected TEST-connected account by default; existing connections do not
-  change. Private page requires two independently authenticated steps. Atomic
-  PostgreSQL advisory lock, expected-prior-default verification and one-time
-  intent prevent stale requests overriding a newer choice. PR/CI review pending.
-- **Last merged #31:** emergency owner-only LIVE disable (`d3be459`),
-  CI green. #30 private connection revoke; #29 TEST key verification,
-  #28 read tools; B-1–B-7 merged.
-- **Remaining B-8:** owner-controlled money-limit settings (keep the
-  $500 USD per-account standard), then B-8c independent owner authorization
-  for EVERY AI-initiated money-out and an extra override above the daily cap.
-  No public AI write or money tool is enabled.
-- **Hard gates:** IN-06 LIVE enabling OFF. No real Stripe money movement,
-  live key, purchased infrastructure or operational deployment.
-  IN-02/03/04 still require owner permission.
+- **B-8b2b3 in review:** private owner-only account daily money-limit changes,
+  PR #33, branch `ai/gpt6/b-8b2b3-owner-money-limit`. The standard remains
+  $500 USD/account/Colorado day. Protected two-stage owner confirmation,
+  exact USD cents, existing/current spending preview, expected-old-cap check,
+  account-row locking and one-use atomic audit. Fake and isolated PostgreSQL
+  tests must pass before merge.
+- **Last merged:** B-8b2b2 default-account selection #32 (`713836f`).
+  #31 emergency LIVE disable, #30 private connection revoke, #29 TEST
+  permission re-probe and #28 read-only owner tools; B-1–B-7 merged.
+- **Next:** B-8c independent, owner-authenticated approval for **EVERY**
+  AI-initiated money-out, with separate exact-transaction approval above the
+  configured daily cap. B-8 stays **IN_PROGRESS** until verified end to end.
+- **Hard gates:** IN-05 approved $500 standard, but this does **not**
+  activate payments. IN-06 LIVE still OFF. No AI-write doors, real funds,
+  live credentials or paid infrastructure. IN-02/03/04 deployment inputs
+  remain unapproved/unconfigured.
 - **Ordered batches:** A → B → C → D → V → G → H → P → W → U → R → E → X.
 
 ## Environment

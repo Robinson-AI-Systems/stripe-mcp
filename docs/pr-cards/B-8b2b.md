@@ -51,3 +51,12 @@ new connections, with expected-prior-default compare-and-set and a serialized
 one-use audit. No MCP write tool. Owner daily money-limit administration
 remains a later slice; the standing $500 cap and separate owner approval
 are unchanged. B-8c transaction-specific owner approval remains unbuilt.
+
+## B-8b2b3 cap-setting flow (#33)
+
+Private, independently owner-authenticated USD per-account daily cap setting
+with a verified shared-day usage preview. It cannot grant a money transfer,
+remove the B-1 one-use owner approval requirement, or change the $500 schema
+default. All private administrative slices B-8b2a/B-8b2b1/B-8b2b2/B-8b2b3
+are documented; B-8c remains the independently authenticated owner money
+approval browser interface, and LIVE enabling remains off.
