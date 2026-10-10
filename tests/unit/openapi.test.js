@@ -17,6 +17,14 @@ describe('immutable pinned Stripe API operation catalog', () => {
     expect(subscription.some(r=>r.method==='POST' && r.path==='/v1/subscriptions')).toBe(true);
     expect(searchOperations(source.spec,'')).toEqual([]);
   });
+  it('never echoes unexpected secret-like search inputs or their newlines', () => {
+    const supplied = 'private-sensitive-fixture-text\\nsecond-secret-line';
+    const output = execFileSync(process.execPath, ['scripts/openapi-find.mjs', supplied],
+      { encoding: 'utf8', maxBuffer: 128000 });
+    expect(output.trim()).toBe('No matching operation.');
+    expect(output).not.toContain('private-sensitive-fixture-text');
+    expect(output).not.toContain('second-secret-line');
+  });
   it('limits output to twenty matching operations and does not dump the spec', () => {
     const results = searchOperations(source.spec,'post',999);
     expect(results.length).toBeLessThanOrEqual(20);

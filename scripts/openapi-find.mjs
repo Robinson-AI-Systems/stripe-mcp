@@ -14,6 +14,6 @@ if (process.argv[2] === '--verify') {
       console.log(row.method + ' ' + row.path + ' — ' + row.summary.slice(0,100) +
         (row.operationId ? ' (' + row.operationId.slice(0,55) + ')' : ''));
     }
-    if (!results.length) console.log('No matching operation for: ' + terms);
+    if (!results.length) console.log('No matching operation.');
   }
 }
