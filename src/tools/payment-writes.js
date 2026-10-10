@@ -112,8 +112,11 @@ async function target(def,a,s){
       return {...ch,_refundableCents:remaining};
     }
     case 'payment_update_refund':
-    case 'payment_cancel_refund':
-      return s.refunds.retrieve(a.refundId);
+    case 'payment_cancel_refund':{
+      const refund=await s.refunds.retrieve(a.refundId);
+      const charge=await s.charges.retrieve(refund.charge);
+      return {...refund,customer:charge.customer};
+    }
     case 'setup_cancel':
       return s.setupIntents.retrieve(a.setupId);
     default:throw new TypeError('Unknown payment operation');
