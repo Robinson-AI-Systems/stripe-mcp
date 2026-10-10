@@ -105,7 +105,7 @@ describe('B-8c2 owner-only exact money authorization (TEST)',()=>{
     expect((await f.db.listMoneyApprovalsForTest())[0].approvedAt).toBeNull();
     expect((await f.post(f.owner('request-money-decision',{
       account,requestKey:'missing',kind:'approve'}))).statusCode).toBe(409);
-    expect((await f.db.requestMoneyApproval({account,idempotencyKey:'bound',
+    expect(await f.db.requestMoneyApproval({account,idempotencyKey:'bound',
       tool:'stripe_test_refund',description:'Test provider refund',
       target:'ch_CHANGED123',amountCents:123,currency:'usd',mode:'test'})).toBe(false);
     const read=await f.post(f.owner('view-money-requests',{account}));
