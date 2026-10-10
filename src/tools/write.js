@@ -39,52 +39,10 @@ export function defineWrite(spec) {
       prepareMoney(await spec.money(args, ctx, before), ctx?.connection?.mode) : null,
     beforeApply: spec?.money ? reserveMoneyBeforeWrite : null,
     afterApply: spec?.money ? settleMoneyAfterWrite : null });
-  // These metadata values reflect the validated, installed money hook above.
-  // No tool may claim '
-    try { return shapeToolResult(await guarded.handler(args,ctx), {mode:ctx?.connection?.mode}); }
-    catch (error) {
-      const formatted=toStripeToolError(error,{
-        mode:ctx?.connection?.mode, requiredPermission:spec?.requiredPermission
-      });
-      if (formatted) return formatted;
-      throw error;
-    }
-  }});
-}
-export function gone(reason = 'Operation unavailable') {
-  return { isError: true, content: [{ type: 'text',
-    text: JSON.stringify({ done: false, error: reason }) }] };
-}
-export const safetyNote = 'Every Stripe write requires a preview, confirmation, retry key and read-back; money out also needs the owner-approved daily limit.';
-export function guard(connection) {
-  return !!connection?.stripeAccount && connection.mode === 'test' &&
-    ['everyday', 'full'].includes(connection.profile);
-}
- while omitting a provider-derived money specification.
-  const declaredTool=Object.freeze({...guarded.tool,
-    safety:spec.money ? '
-    try { return shapeToolResult(await guarded.handler(args,ctx), {mode:ctx?.connection?.mode}); }
-    catch (error) {
-      const formatted=toStripeToolError(error,{
-        mode:ctx?.connection?.mode, requiredPermission:spec?.requiredPermission
-      });
-      if (formatted) return formatted;
-      throw error;
-    }
-  }});
-}
-export function gone(reason = 'Operation unavailable') {
-  return { isError: true, content: [{ type: 'text',
-    text: JSON.stringify({ done: false, error: reason }) }] };
-}
-export const safetyNote = 'Every Stripe write requires a preview, confirmation, retry key and read-back; money out also needs the owner-approved daily limit.';
-export function guard(connection) {
-  return !!connection?.stripeAccount && connection.mode === 'test' &&
-    ['everyday', 'full'].includes(connection.profile);
-}
- : 'P',
-    moneySpec:spec.money ? 'provider-derived' : null});
-  return Object.freeze({...guarded,tool:declaredTool, async handler(args,ctx) {
+  const declaredTool = Object.freeze({...guarded.tool,
+    safety: spec.money ? '$' : 'P',
+    moneySpec: spec.money ? 'provider-derived' : null});
+  return Object.freeze({...guarded, tool:declaredTool, async handler(args,ctx) {
     try { return shapeToolResult(await guarded.handler(args,ctx), {mode:ctx?.connection?.mode}); }
     catch (error) {
       const formatted=toStripeToolError(error,{
