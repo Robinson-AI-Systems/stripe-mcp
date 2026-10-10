@@ -132,6 +132,18 @@ export function createDb(sql = getProductionSql()) {
           test_key_last4 = EXCLUDED.test_key_last4, key_permissions = EXCLUDED.key_permissions,
           key_checked_at = now()`;
     },
+    async updateKeyPermissions({account,permissions,expectedCiphertext}) {
+      if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !permissions || typeof permissions!=='object' || Array.isArray(permissions) ||
+          !Object.values(permissions).every(v=>v==='ok'||v==='denied')) {
+        throw new TypeError('Verified permission result and account required');
+      }
+      const rows=await sql`UPDATE stripe_accounts SET
+        key_permissions=${JSON.stringify(permissions)}::jsonb, key_checked_at=now()
+        WHERE id=${account} AND test_key_enc = ${expectedCiphertext} RETURNING id`;
+      return rows.length===1;
+    },
     async getEncryptedKey({ account, mode }) {
       if (mode !== 'test') return null;
       const rows = await sql`SELECT test_key_enc AS ciphertext FROM stripe_accounts

@@ -26,9 +26,9 @@ next bounded implementation.
 
 ## Batch B — Trust layer (`designs/BATCH-B.md`)
 - [x] `defineWrite` with money spec, dollar preview, always-confirm money out, daily limit, read-back/verify, inverse (internal B-1 #18–#20; owner grant UI and live tools remain gated).
-- [ ] Live guard (two-step enable), app-owned guard (with refund exception), plain-English errors, result shaping, profiles.
-- [ ] `check-writes` fails on undeclared writes, missing `dryRun`, missing money spec.
-- [ ] Server tools (change log, connections, money limit, live enable/disable, key permissions, where-is-setting).
+- [x] Live guard (internal two-step owner intent, no activation), app-owned guard (refund exception), plain-English errors, result shaping and profiles (#21–#26). IN-06 stays OFF.
+- [x] `check-writes` fails on undeclared writes, missing `dryRun`, missing money spec (#27).
+- [ ] Server tools: read-only account-scoped history, connections, actual shared money usage and guided settings done (#28); TEST key permission recheck in #29; owner-only limit/default/revoke, live disable/enable and authenticated money-approval workflow **not yet built/exposed** (B-8b2/B-8c).
 
 ## Batch C — Cheap on context (`designs/BATCH-C.md`)
 - [ ] Summaries, `fields`, `detail`, handles, annotations, structured output.

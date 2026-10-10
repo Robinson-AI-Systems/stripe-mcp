@@ -5,24 +5,29 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8a safe read tools completed (#28); B-8b owner management next:** selected-account change summaries, connection metadata, daily shared budget usage and dashboard guidance. Owner-only mutations and LIVE remain disabled.
-
-- **B-7 completed (#27), next B-8 owner/server tools:** strict tool write declarations, guarded contract and provider-derived money safety metadata validation; no new money/live capabilities available.
-
-- **B-6 completed (PR #26); next B-7 write-declaration validator:** profile-specific tool exposure and call authorization, hidden-tool name denial, and home-page counts. B-5 result shaping is merged; external writes remain disabled pending B-8.
-
-- **B-5 completed (PR #25); next B-6 profiles:** currency displays, Colorado-local dates, nested credential redaction and LIVE output banner integrated into shared tool result boundaries; reviewed B-4 errors now merged in #24. No live or payment tools activated.
-
-- **B-4 completed (PR #24); next B-5 result formatting:** plain-English Stripe errors integrated with the read-only MCP and guarded write adapter, retaining all B-3 ownership fixes. B-4 uses safe and human-readable Stripe SDK errors without exposing raw provider secrets. No new external money/live operations.
-
-- **B-3 completed in PR #23:** app-owned Stripe object guard is staged on `ai/gpt6/b-3-app-owned-record-guard` after B-2 (#21/#22). It denies changes to Appliance Desk-owned records unless explicitly overridden and allows the documented refund exception only through mandatory owner money consent. No tools registered or live money enabled. Next: B-4 plain-English errors (draft PR #24).
-
-- **B-2b delivered (#22); next B-3 app-owned record guard (IN-06 still OFF):** durable ten-minute intent, authenticated owner setup confirmation, and atomic PostgreSQL audit; no live key, public write tool or actual activation. B-8 must later wire the protected enable tool, and IN-06 must be expressly approved before any live operation.
-- **B-2a and B-2b merged:** default-deny LIVE write guard, owner-only account state verification, ten-minute reauthentication predicate and fake-provider tests. Neither live activation nor Stripe money tools are exposed. Continue B-2 owner activation design without enabling it (IN-06 remains OFF). **B-1/#20 is MERGED**, IN-05 is approved.
-- **B-1 merged (#20):** Internal money safety foundation shipped. Owner IN-05 is approved: $500 USD per Stripe account per Colorado day, pooled across connections; an authenticated owner decision is mandatory for every AI money-out, plus a separate exact-transaction override above the budget. Owner approval browser UI is NOT active, so spending stays disabled. B-2a PR #21 is merged; B-2b owner-intent control is next. No Stripe account/deployment/live mode configured.
-- **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
-  implementer self-reviews every diff (AGENTS "Review").
-- **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
+- **Current implementation: B-8b1 TEST permission re-probe — PR #29.** Branch
+  `ai/gpt6/b-8b1-permission-probes`. TEST-only server-side read permission checks
+  and account-scoped results; CI was green before this documentation reconciliation.
+  Card `docs/pr-cards/B-8b1.md` is written as MERGED in accordance with
+  DRIFT checklist B; merge still requires green CI at the final head.
+- **Next in order:** B-8b2 independently authenticated owner-only administrative
+  actions (no AI authority to approve itself), then B-8c authenticated per-transaction
+  money-out approvals, then B-8 completion reconciliation and C-1.
+  B-8 is **IN_PROGRESS**, not fully delivered.
+- **Last merged:** #28 B-8a account-scoped read tools (`ee9011b`).
+  Previously merged: #27 B-7, #26 B-6, #25 B-5, #24 B-4, #23 B-3,
+  #22/#21 B-2, #20 B-1. Batch A #9–#17 complete.
+- **Owner-approved policy IN-05:** $500 USD per Stripe account per
+  America/Denver calendar day, shared across AI connections. Every AI money-out
+  needs a separate authenticated owner authorization even below the cap;
+  crossing the cap needs another explicit single-transaction override.
+  No AI argument or `confirm:true` can supply these authorizations.
+- **Hard gates unchanged:** IN-06 LIVE OFF. No public money-moving write tool,
+  owner money-approval page, live Stripe key or operational server deployment.
+  IN-02/03/04 remain unanswered; no approval to provision infrastructure,
+  use live credentials or move money.
+- **Ordered batches:** A → B → C → D → V → G → H → P → W → U → R → E → X.
+  `MASTER-ROADMAP.md` and `docs/pr-cards/work-index.json` retain coverage.
 
 ## Environment
 
@@ -31,6 +36,32 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — B-8b1 TEST-only permission re-probe (PR #29, pending final merge):**
+ server-owned lazy encrypted TEST-key use, safe Stripe read list probes, stored
+ verified permission results; no credential disclosure or LIVE access.
+
+**2026-10-10 — B-8a read-only account tools (#28):** scoped audit and
+ connection summaries, daily shared budget status and Dashboard guidance;
+ 8 KB response ceiling and paged result tests verified.
+
+**2026-10-10 — B-7 write declarations (#27):** CI checks explicit read/write
+ classification, confirmations and provider-derived money-spec metadata.
+
+**2026-10-10 — B-6 profiles (#26):** filtered discovery and direct-call
+ authorization; read_only and all current exposed tools remain non-writable.
+
+**2026-10-10 — B-5 result shaping (#25):** additive dollar/currency formatting,
+ Denver-local timestamps, redaction and explicit LIVE labeling.
+
+**2026-10-10 — B-4 readable errors (#24):** safe Stripe SDK error explanations.
+
+**2026-10-10 — B-3 app record guard (#23):** metadata ownership, missing parent
+ records fail closed, refund exception does not bypass monetary owner approval.
+
+**2026-10-10 — B-2b/B-2a LIVE guard (#22/#21):** default-deny LIVE boundary,
+ expiring owner intent, protected setup form, atomic audit; live mode remains OFF.
+
 
 **2026-10-10 — B-1b2 owner-approved policy and guarded write foundation (PR #20):** internal seven-case write contract and Stripe-derived USD preview; account-wide, cross-connection $500 cap; owner-approved one-use request required for every money-out; separate auditable over-limit owner action; atomic PostgreSQL reservation; rejected-versus-uncertain outcomes. Exact-head CI verified; no money-moving tool exposed. Owner browser approval B-8 and live enable IN-06 remain off.
 
@@ -82,4 +113,4 @@ is archived in `docs/archive/plan-v1/`.
 
 ## Blocked
 
-Nothing in engineering. Owner inputs open: IN-02 … IN-12 (`OWNER-INPUTS.md`); none blocks A-1 … A-4.
+Engineering can continue B-8b2/B-8c with TEST fixtures. Deployment needs IN-02–IN-04; live activation IN-06 is not approved. The owner-approved money policy IN-05 does not activate money movement. Other owner inputs remain scheduled for their applicable batches.

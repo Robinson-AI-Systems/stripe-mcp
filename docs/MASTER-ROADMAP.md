@@ -4,7 +4,14 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Next:** B-1b2 (PR #20) safety-contract verification and owner IN-05 approval; B-1a (#18), B-1b1 (#19) already merged. Money-out remains disabled until the default daily limit is approved. B-2 follows only after B-1 closes.
+**Now:** B-8 in progress. B-8a owner read tools merged (#28). B-8b1
+TEST-only restricted key permission recheck is PR #29, then B-8b2 owner-only
+administration, B-8c authenticated per-transaction money-out approval,
+then B-8 closeout. Do **not** begin C-1 until B-8's required acceptance is
+complete and verified. B-1 through B-7 are merged (#18–#27).
+IN-05 is approved: $500 per Stripe account per Colorado day and independent
+owner approval for every AI money-out; extra approval above the cap.
+IN-06 live activation is still OFF. The owner approval page is not active.
 
 ## Order and why
 
@@ -38,7 +45,7 @@ the approved design; write the card when its predecessor is real.
 | Batch | Cards | Card status |
 |---|---|---|
 | A Foundation | A-1 repo, CI, checks · A-2 schema · A-3 login · A-4 Stripe client + OpenAPI index · A-5 key store, setup page, one-time secrets · A-6 DEPLOY.md | A-1 (#9), A-2 (#10), A-3 (#11/#12), A-4 (#13/#14), A-5 (#15/#16), A-6 (#17): complete |
-| B Trust | B-1 safety + money · B-2 live guard · B-3 app guard · B-4 errors · B-5 shaping · B-6 profiles · B-7 check-writes · B-8 server tools | JIT |
+| B Trust | B-1 safety + money · B-2 live guard · B-3 app guard · B-4 errors · B-5 shaping · B-6 profiles · B-7 check-writes · B-8 server tools | B-1–B-7 merged (#18–#27); B-8a merged #28; B-8b1 #29 in review; B-8b2/B-8c remain |
 | C Context | C-1 small results · C-2 listing modes + budgets | JIT |
 | D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | JIT |
 | V Developer tools | V-1 seed + runs · V-2 cleanup · V-3 trigger events · V-4 event forwarding · V-5 test clocks, simulation, test cards | JIT |

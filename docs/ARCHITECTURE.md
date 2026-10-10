@@ -3,7 +3,7 @@
 This file describes what **exists**, and is updated in the same PR that ships it (DRIFT-PROTOCOL checklist B). What the
 system is designed to become is in `docs/designs/`; do not copy design text here before it is built.
 
-As of 2026-10-10: foundation A-1 through A-4 and A-5a server-only encrypted key and one-time-secret storage primitives are built. No deployed server, remote database, operational Stripe key store or Stripe tool exists.
+As of 2026-10-10: Batch A and B-1–B-7 are merged, B-8a read tools merged (#28), and B-8b1 TEST permission re-probe is in PR #29. No server, Neon database, live key or Stripe account has been provisioned for production. No public write tool is enabled; account administration and independent owner money approvals remain unbuilt.
 
 ## Infrastructure
 
@@ -22,7 +22,7 @@ here with its environments when A-5 ships. Never record values.
 
 ## Database tables
 
-A-2 defined seven tables; B-1b1 adds an eighth, `money_reservations`. All eight tables, created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
+A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **ten tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
 
 | Table | Purpose |
 |---|---|
@@ -33,9 +33,11 @@ A-2 defined seven tables; B-1b1 adds an eighth, `money_reservations`. All eight 
 | `login_attempts` | Auditable sign-in attempts and future lockout |
 | `change_log` | Preview/confirm/read-back audit history and future undo links |
 | `one_time_secrets` | Only ciphertext, expiry and single-view record |
-| `money_reservations` | Durable per-connection money-out reservation, UTC timestamp, Denver day, idempotency and conservative spend status (B-1b1) |
+| `money_reservations` | Durable, per-account aggregate money-out reservation across ALL AI connections, Denver day, idempotency and conservative spend status (B-1) |
+| `money_approvals` | Single-use authenticated owner grant per money-out request, with separate above-limit owner override (B-1) |
+| `live_enable_intents` | Expiring, atomic owner live-enable intent, not usable while IN-06 is OFF (B-2) |
 
-Six additive indexes support code/token expiry, login lockout, changes and secret expiry. A-5a adds `src/core/crypto.js` AES-256-GCM authenticated encryption (random nonce, additional authenticated context and no plaintext fallback); `src/keys.js` stores and retrieves test-only Stripe keys server-side in encrypted form, and `src/core/one-time-secrets.js` uses atomic database deletion on reveal. A-5b adds the private owner-only `/api/stripe/setup` endpoint with strict origin/CSRF checks, passphrase lockout, account-verification and permission probes; no real owner key has been entered. Read-only `stripe_whoami` and `stripe_list_accounts` are dispatched through the MCP bearer guard. Writes remain denied until Batch B. `TOKEN_ENCRYPTION_KEY` is required only when these functions execute; it is not configured in any deployment. A-3a added hashed client registration, authorization code consumption, access/refresh rotation, revocation, login lockout and account selection methods. A-3b adds HTTP OAuth endpoints and the connector door; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
+Additive indexes support token expiry, lockout, audits, reservations, approvals and live intents. A-5a adds `src/core/crypto.js` AES-256-GCM authenticated encryption (random nonce, additional authenticated context and no plaintext fallback); `src/keys.js` stores and retrieves test-only Stripe keys server-side in encrypted form, and `src/core/one-time-secrets.js` uses atomic database deletion on reveal. A-5b adds the private owner-only `/api/stripe/setup` endpoint with strict origin/CSRF checks, passphrase lockout, account-verification and permission probes; no real owner key has been entered. Read-only `stripe_whoami` and `stripe_list_accounts` are dispatched through the MCP bearer guard. Writes remain denied until Batch B. `TOKEN_ENCRYPTION_KEY` is required only when these functions execute; it is not configured in any deployment. A-3a added hashed client registration, authorization code consumption, access/refresh rotation, revocation, login lockout and account selection methods. A-3b adds HTTP OAuth endpoints and the connector door; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
 
 ## Endpoints
 
@@ -45,10 +47,10 @@ A-3b provides `/api/oauth/register`, `/api/oauth/authorize`, `/api/oauth/token`,
 
 ## Safety (Batch B in progress)
 
-B-1b2 (PR #20) wires the generic `defineWrite` lifecycle to trusted monetary descriptions, integer USD cents, the atomic daily reservation ledger, confirmation, independent read-back and conservative settlement. Its seven-case contract tests use fake provider records and accept each real write tool's handler/fixtures directly. Confirmed Stripe invalid requests, access denials and card declines release rejected money reservations without replay; unknown/network outcomes retain reserved capacity. The schema's state constraint upgrades once, without dropping records. A missing `moneyPolicyApproved` server-side context is a hard deny for money out; no public MCP write tools are registered. Actual live/app-ownership guards and real Stripe operations still require B-2/B-3 and later batches.
+B-1b2 (PR #20) wires the generic `defineWrite` lifecycle to trusted monetary descriptions, integer USD cents, the atomic daily reservation ledger, confirmation, independent read-back and conservative settlement. Its seven-case contract tests use fake provider records and accept each real write tool's handler/fixtures directly. Confirmed Stripe invalid requests, access denials and card declines release rejected money reservations without replay; unknown/network outcomes retain reserved capacity. The schema's state constraint upgrades once, without dropping records. No AI-controlled approval flag is trusted; every money-out requires a separately authenticated database owner grant. LIVE/app-ownership guards were implemented in B-2/B-3; no money write tool is publicly registered.
 
 
-B-1b1 adds `money_reservations`, an account-row-locked PostgreSQL function `reserve_money_out_guarded`, and the server-only `reserveMoneyOut`, `getMoneyUsage`, `settleMoneyReservation` database methods. Same request key is never reserved twice, concurrent requests cannot jointly overspend their connection limit, and uncertain outcomes never silently return capacity. The accounting cap is USD cents and non-USD attempts return `currency_unsupported` (conservative protection until a verified conversion policy exists). Test fixtures use the existing unapproved $500 schema default, but **no money write tool is enabled**. B-1b2 owns the actual money spec, daily enforcement integration and IN-05 decision.
+B-1b1 adds `money_reservations`, an account-row-locked PostgreSQL function `reserve_money_out_guarded`, and the server-only `reserveMoneyOut`, `getMoneyUsage`, `settleMoneyReservation` database methods. Same request key is never reserved twice, concurrent requests cannot jointly overspend the shared Stripe-account daily limit, and uncertain outcomes never silently return capacity. The accounting cap is USD cents and non-USD attempts return `currency_unsupported` (conservative protection until a verified conversion policy exists). Test fixtures use the owner-approved $500 USD per-account default, but **no money write tool is enabled**. B-1b2 owns the actual money spec, daily enforcement integration and IN-05 decision.
 
 
 B-1a adds `src/core/write.js` and `src/tools/write.js` for an internal-only TEST-mode preview→confirmation→idempotency→read-back lifecycle and `src/db.js.recordChange` for existing `change_log` audit persistence. **No write tool is registered in the MCP yet; all money operations still fail closed.** B-1b owns daily money-out enforcement; B-2/B-3 add live/app ownership guards before any public write tools.
@@ -104,3 +106,17 @@ Every registered tool has an explicit writes:boolean declaration. Money-out risk
 ### B-8a account-scoped read tools (in review)
 
 Change summaries and AI connection metadata are scoped to the authenticated Stripe account, without token hashes or raw snapshots; reads are bounded. Account status reports actual shared daily budget usage. Dashboard guidance is informational and does not change settings. No new money or LIVE permission is exposed.
+
+### B-8b1 TEST read-permission checks (in progress)
+
+The server injects a lazy permission probe into the MCP read dispatcher, loading only the selected account's TEST key after a call. It refreshes verified per-account read-permission status and never exposes/decrypts LIVE credentials. Missing keys fail this tool, not the server startup.
+
+### B-8b1 reviewed key rotation and dispatcher boundaries
+
+MCP core takes a generic server-provided services object. The Stripe-only
+TEST permission recheck is assembled at the external API boundary, never
+accepted as an agent argument. The encrypted TEST-key snapshot is loaded once
+for the call; the database persists verified permission results only if the
+account's encrypted key still matches that snapshot (compare-and-set).
+Rotated keys fail closed. The read tool supports `fields` and
+`detail=compact|full`, with no credentials in either presentation.

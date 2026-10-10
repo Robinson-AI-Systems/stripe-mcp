@@ -51,12 +51,45 @@ export function createKeyStore({ db, makeClient = makeStripeClient,
       await db.saveTestKey({ account, label: safeLabel, ciphertext, kind, last4, permissions });
       return { account, label: safeLabel, mode: 'test', kind, last4 };
     },
-    async loadKey({ account, mode = 'test' }) {
+    async loadKeySnapshot({ account, mode = 'test' }) {
       if (mode !== 'test') throw new Error('Live Stripe access is not enabled');
       const record = await db.getEncryptedKey({ account, mode });
       if (!record?.ciphertext) throw new Error('No test key is configured for this Stripe account');
-      return decryptSecret(record.ciphertext,
-        { aad: 'stripe-account/' + account + '/test', key: encryptionKey });
+      return {
+        key:decryptSecret(record.ciphertext,
+          { aad: 'stripe-account/' + account + '/test', key: encryptionKey }),
+        expectedCiphertext:record.ciphertext
+      };
+    },
+    async loadKey(options) {
+      return (await this.loadKeySnapshot(options)).key;
     }
+  };
+}
+
+export function createPermissionReprobe({db, keyStoreFactory=createKeyStore,
+  makeClient=makeStripeClient, probe=probeKeyPermissions}) {
+  return async ({account,mode}) => {
+    if (typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+        mode!=='test' || typeof db?.updateKeyPermissions!=='function') {
+      throw new Error('A configured TEST account is required for permission checks');
+    }
+    // Server-only lazy credential decryption. Nothing is returned to the AI.
+    const keyStore=keyStoreFactory({db});
+    const snapshot=await keyStore.loadKeySnapshot({account,mode:'test'});
+    if (typeof snapshot?.key!=='string' || typeof snapshot.expectedCiphertext!=='string' ||
+        !snapshot.expectedCiphertext) {
+      throw new Error('TEST key snapshot unavailable: permission update refused');
+    }
+    const permissions=await probe(makeClient({key:snapshot.key,mode:'test'}));
+    if (!permissions || typeof permissions!=='object' || Array.isArray(permissions)) {
+      throw new Error('Stripe permission probes did not return a verified result');
+    }
+    if (!await db.updateKeyPermissions({
+      account,permissions,expectedCiphertext:snapshot.expectedCiphertext
+    })) {
+      throw new Error('The selected TEST key could not be updated');
+    }
+    return {account,mode:'test',permissions,checkedAt:new Date().toISOString()};
   };
 }

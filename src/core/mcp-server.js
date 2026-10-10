@@ -7,7 +7,7 @@ import { toStripeToolError } from '../tools/errors.js';
 import { shapeToolResult } from '../tools/util.js';
 import { isToolAllowed, visibleTools, publicToolInfo } from './profiles.js';
 
-export async function dispatchReadOnlyTool({ registry, name, args, connection, db }) {
+export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} }) {
   const item = registry.tools.find(t => t.name === name);
   if (!isToolAllowed(item,connection?.profile)) {
     return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};
@@ -17,7 +17,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
   try {
-    const result=shapeToolResult(await handler(args || {},{connection,db}), {mode:connection.mode});
+    const result=shapeToolResult(await handler(args || {},{connection,db,services}), {mode:connection.mode});
     if (Buffer.byteLength(JSON.stringify(result),'utf8')>8192) {
       return {isError:true,content:[{type:'text',text:
         'Result exceeds 8 KB; narrow the fields or page size. Nothing was silently truncated.'}]};
@@ -29,7 +29,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
       {isError:true,content:[{type:'text',text:'Could not read account details; check server setup'}]};
   }
 }
-export function createMcpHandler({ db, registry, env = process.env }) {
+export function createMcpHandler({ db, registry, services={}, env = process.env }) {
   return async function mcp(req, res) {
     const connection = await requireMcpToken(req,res,db,env);
     if (!connection) return;
@@ -39,7 +39,7 @@ export function createMcpHandler({ db, registry, env = process.env }) {
       tools:visibleTools(registry,connection.profile).map(publicToolInfo)
     }));
     server.setRequestHandler(CallToolRequestSchema,async request=>
-      dispatchReadOnlyTool({registry,name:request.params?.name,args:request.params?.arguments,connection,db}));
+      dispatchReadOnlyTool({registry,name:request.params?.name,args:request.params?.arguments,connection,db,services}));
     const transport = new StreamableHTTPServerTransport({sessionIdGenerator:undefined});
     res.on?.('close',()=>{transport.close();server.close();});
     try {
