@@ -44,10 +44,16 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
         'Result exceeds 8 KB and cannot be securely stored for this connection.'}]};
     }
     const handle='res_'+randomBytes(18).toString('base64url');
-    const body=splitResult(result);
+    // Save the redacted JSON value, not the MCP transport wrapper, so owner
+    // field selectors on stripe_get_result address actual provider fields.
+    let safeValue=result;
+    if(result.content.length===1&&result.content[0].type==='text') {
+      try{safeValue=JSON.parse(result.content[0].text);}catch{/* save shaped wrapper */}
+    }
+    const body=splitResult(safeValue);
     let records=0;
     try{
-      const value=JSON.parse(result.content[0]?.text||'null');
+      const value=safeValue;
       records=Array.isArray(value)?value.length:
         Array.isArray(value?.data)?value.data.length:
           Array.isArray(value?.accounts)?value.accounts.length:1;
