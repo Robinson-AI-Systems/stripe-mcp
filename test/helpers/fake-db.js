@@ -14,6 +14,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const oneTimeSecrets = new Map();
   const audit = [];
   const reservations = [];
+  const approvals = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -119,6 +120,38 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return row && row.expires_at > clock() ? structuredClone(Object.fromEntries(
         Object.entries(row).filter(([name]) => name !== 'expires_at'))) : null;
     },
+    async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {
+      if (![account,idempotencyKey,tool,description].every(x => typeof x === 'string' && x) ||
+          !Number.isSafeInteger(amountCents) || amountCents <= 0 || currency !== 'usd' ||
+          description.length > 240) throw new TypeError('Invalid owner approval request');
+      if (!accountRows.has(account)) return false;
+      let row = approvals.find(a => a.account === account && a.key === idempotencyKey);
+      if (!row) {
+        row = { account, key:idempotencyKey, tool, description, amountCents, currency,
+          expiresAt:clock()+86400000, approvedAt:null, allowOverLimit:false, overrideApprovedAt:null, consumedAt:null };
+        approvals.push(row);
+      }
+      return row.tool === tool && row.description === description && row.amountCents === amountCents &&
+        row.currency === currency && row.consumedAt === null && row.expiresAt > clock();
+    },
+    // Simulates authenticated owner action. Never expose this as an AI operation.
+    async approveMoneyRequest({ account, idempotencyKey, allowOverLimit = false }) {
+      if (allowOverLimit !== false) throw new TypeError('Separate owner override action required');
+      const row=approvals.find(a => a.account === account && a.key === idempotencyKey &&
+        a.consumedAt === null && a.expiresAt > clock());
+      if (!row) return false;
+      row.approvedAt=clock();
+      return true;
+    },
+    async approveMoneyOverride({ account, idempotencyKey }) {
+      const row=approvals.find(a => a.account === account && a.key === idempotencyKey &&
+        a.approvedAt !== null && a.approvedAt >= clock() - 600000 &&
+        a.consumedAt === null && a.expiresAt > clock());
+      if (!row) return false;
+      row.allowOverLimit=true; row.overrideApprovedAt=clock();
+      return true;
+    },
+    async listMoneyApprovalsForTest() { return structuredClone(approvals); },
     async reserveMoneyOut({ account, connection, idempotencyKey, amountCents, currency }) {
       if (![account, connection, idempotencyKey].every(x => typeof x === 'string' && x) ||
           !Number.isSafeInteger(amountCents) || amountCents <= 0 || !/^[a-z]{3}$/.test(currency)) {
@@ -130,36 +163,44 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       if (!row) return { decision: 'account_missing', used_cents: 0, limit_cents: 0 };
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
         year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(clock()));
-      const existing = reservations.find(r => r.account === account && r.connection === connection &&
-        r.key === idempotencyKey);
+      const existing = reservations.find(r => r.account === account && r.key === idempotencyKey);
       const limit_cents = row.money_limit_cents ?? 50000;
-      const used_cents = reservations.filter(r => r.account === account && r.connection === connection &&
-        r.day === day).reduce((sum, r) => sum + r.amountCents, 0);
+      const used_cents = reservations.filter(r => r.account === account &&
+        r.day === day && r.state !== 'rejected').reduce((sum, r) => sum + r.amountCents, 0);
       if (existing) return { decision: existing.amountCents !== amountCents ||
         existing.currency !== currency ? 'request_conflict' :
           existing.day !== day ? 'previous_day' : 'already_' + existing.state,
         used_cents, limit_cents };
-      if (used_cents > limit_cents - amountCents) return { decision: 'limit_exceeded',
-        used_cents, limit_cents };
+      const approval = approvals.find(a => a.account === account && a.key === idempotencyKey);
+      if (!approval || approval.amountCents !== amountCents || approval.currency !== currency ||
+          approval.approvedAt === null || approval.consumedAt !== null ||
+          approval.expiresAt <= clock() || approval.approvedAt < clock() - 600000) {
+        return { decision:'owner_approval_required', used_cents, limit_cents };
+      }
+      if (used_cents > limit_cents - amountCents &&
+          (!approval.allowOverLimit || approval.overrideApprovedAt === null)) {
+        return { decision:'limit_exceeded_override_required', used_cents, limit_cents };
+      }
+      approval.consumedAt=clock();
       reservations.push({ account, connection, key: idempotencyKey, amountCents, currency,
         day, state: 'reserved' });
       return { decision: 'reserved', used_cents: used_cents + amountCents, limit_cents };
     },
     async settleMoneyReservation({ account, connection, idempotencyKey, state }) {
-      if (!['confirmed', 'uncertain'].includes(state)) throw new TypeError('Invalid reservation state');
+      if (!['confirmed', 'uncertain', 'rejected'].includes(state)) throw new TypeError('Invalid reservation state');
       const row = reservations.find(r => r.account === account && r.connection === connection &&
         r.key === idempotencyKey && r.state === 'reserved');
       if (!row) return false;
       row.state = state;
       return true;
     },
-    async getMoneyUsage({ account, connection }) {
+    async getMoneyUsage({ account, connection: _connection }) {
       const row = accountRows.get(account);
       if (!row) return null;
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
         year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(clock()));
       return { used_cents: reservations.filter(r => r.account === account &&
-        r.connection === connection && r.day === day).reduce((sum, r) => sum + r.amountCents,0),
+        r.day === day && r.state !== 'rejected').reduce((sum, r) => sum + r.amountCents,0),
         limit_cents: row.money_limit_cents ?? 50000 };
     },
     async recordChange({ account = null, mode = 'test', connection = null,

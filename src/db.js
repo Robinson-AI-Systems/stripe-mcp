@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals'
 ]);
 
 let productionSql;
@@ -150,6 +150,48 @@ export function createDb(sql = getProductionSql()) {
         RETURNING stripe_account, mode, kind, ciphertext`;
       return rows[0] || null;
     },
+    async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {
+      if (![account,idempotencyKey,tool,description].every(v => typeof v === 'string' && v.length > 0) ||
+          description.length > 240 || !Number.isSafeInteger(amountCents) || amountCents <= 0 ||
+          currency !== 'usd') throw new TypeError('Valid Stripe-derived money approval request required');
+      await sql`INSERT INTO money_approvals
+        (stripe_account, request_key, tool, description, amount_cents, currency, expires_at)
+        VALUES (${account}, ${idempotencyKey}, ${tool}, ${description}, ${amountCents},
+          ${currency}, now() + interval '24 hours')
+        ON CONFLICT (stripe_account, request_key) DO NOTHING`;
+      const rows = await sql`SELECT tool, amount_cents, currency, description, consumed_at, expires_at
+        FROM money_approvals WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}`;
+      const row = rows[0];
+      return !!row && row.tool === tool && Number(row.amount_cents) === amountCents &&
+        row.currency === currency && row.description === description &&
+        row.consumed_at === null && new Date(row.expires_at).getTime() > Date.now();
+    },
+    // SERVER-SIDE ONLY: B-8 owner-authenticated setup page is the sole intended caller.
+    // Never register this method as an MCP/HTTPS agent operation.
+    async approveMoneyRequest({ account, idempotencyKey, allowOverLimit = false }) {
+      if (![account,idempotencyKey].every(v => typeof v === 'string' && v) ||
+          allowOverLimit !== false) throw new TypeError('General approval cannot authorize over-limit spending');
+      const rows = await sql`UPDATE money_approvals
+        SET approved_at = now()
+        WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}
+          AND consumed_at IS NULL AND expires_at > now()
+        RETURNING request_key`;
+      return rows.length === 1;
+    },
+    // Separate owner-authenticated action: can only elevate an already approved
+    // exact transaction, never the account's standing $500 budget.
+    async approveMoneyOverride({ account, idempotencyKey }) {
+      if (![account,idempotencyKey].every(v => typeof v === 'string' && v)) {
+        throw new TypeError('Valid owner override required');
+      }
+      const rows = await sql`UPDATE money_approvals
+        SET allow_over_limit = TRUE, override_approved_at = now()
+        WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}
+          AND approved_at IS NOT NULL AND approved_at > now() - interval '10 minutes'
+          AND consumed_at IS NULL AND expires_at > now()
+        RETURNING request_key`;
+      return rows.length === 1;
+    },
     async reserveMoneyOut({ account, connection, idempotencyKey, amountCents, currency }) {
       if (![account, connection, idempotencyKey].every(x => typeof x === 'string' && x) ||
           !Number.isSafeInteger(amountCents) || amountCents <= 0 ||
@@ -162,9 +204,9 @@ export function createDb(sql = getProductionSql()) {
       return rows[0];
     },
     async settleMoneyReservation({ account, connection, idempotencyKey, state }) {
-      if (!['confirmed', 'uncertain'].includes(state) ||
+      if (!['confirmed', 'uncertain', 'rejected'].includes(state) ||
           ![account, connection, idempotencyKey].every(x => typeof x === 'string' && x)) {
-        throw new TypeError('Only confirmed or uncertain money reservations can be settled');
+        throw new TypeError('Only confirmed, rejected or uncertain money reservations can be settled');
       }
       const rows = await sql`UPDATE money_reservations SET state = ${state}
         WHERE stripe_account = ${account} AND connection = ${connection}
@@ -180,8 +222,8 @@ export function createDb(sql = getProductionSql()) {
         COALESCE(SUM(r.amount_cents),0)::BIGINT AS used_cents,
         a.money_limit_cents::BIGINT AS limit_cents
         FROM stripe_accounts a LEFT JOIN money_reservations r
-          ON r.stripe_account = a.id AND r.connection = ${connection}
-            AND r.local_day = (now() AT TIME ZONE 'America/Denver')::date
+          ON r.stripe_account = a.id AND r.local_day = (now() AT TIME ZONE 'America/Denver')::date
+            AND r.state <> 'rejected'
         WHERE a.id = ${account} GROUP BY a.money_limit_cents`;
       return rows[0] || null;
     },
@@ -293,12 +335,48 @@ export function createDb(sql = getProductionSql()) {
         amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
         currency TEXT NOT NULL,
         state TEXT NOT NULL DEFAULT 'reserved'
-          CHECK (state IN ('reserved', 'confirmed', 'uncertain')),
+          CHECK (state IN ('reserved', 'confirmed', 'uncertain', 'rejected')),
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         UNIQUE (stripe_account, connection, request_key)
       )`;
+      // Existing installations have a three-state CHECK. Upgrade once,
+      // not by locking and rebuilding the constraint on every request.
+      await sql`DO $upgrade$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'money_reservations'::regclass
+            AND conname = 'money_reservations_state_check'
+            AND pg_get_constraintdef(oid) NOT LIKE '%rejected%'
+        ) THEN
+          ALTER TABLE money_reservations DROP CONSTRAINT money_reservations_state_check;
+          ALTER TABLE money_reservations ADD CONSTRAINT money_reservations_state_check
+            CHECK (state IN ('reserved', 'confirmed', 'uncertain', 'rejected'));
+        END IF;
+      END
+      $upgrade$`;
+      await sql`CREATE UNIQUE INDEX IF NOT EXISTS money_reservations_account_key_idx
+        ON money_reservations (stripe_account, request_key)`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
-        ON money_reservations (stripe_account, connection, local_day)`;
+        ON money_reservations (stripe_account, local_day)`;
+      await sql`CREATE TABLE IF NOT EXISTS money_approvals (
+        id BIGSERIAL PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        request_key TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
+        currency TEXT NOT NULL CHECK (currency = 'usd'),
+        approved_at TIMESTAMPTZ,
+        allow_over_limit BOOLEAN NOT NULL DEFAULT FALSE,
+        override_approved_at TIMESTAMPTZ,
+        consumed_at TIMESTAMPTZ,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (stripe_account, request_key)
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS money_approvals_pending_idx
+        ON money_approvals (stripe_account, expires_at) WHERE consumed_at IS NULL`;
       await sql`CREATE OR REPLACE FUNCTION reserve_money_out_guarded(
         p_account TEXT, p_connection TEXT, p_key TEXT, p_cents BIGINT, p_currency TEXT)
       RETURNS TABLE(decision TEXT, used_cents BIGINT, limit_cents BIGINT)
@@ -309,6 +387,7 @@ export function createDb(sql = getProductionSql()) {
         v_used BIGINT;
         v_previous RECORD;
         v_duplicate BOOLEAN;
+        v_approval RECORD;
       BEGIN
         IF p_account IS NULL OR p_account = '' OR p_connection IS NULL OR p_connection = ''
           OR p_key IS NULL OR p_key = '' OR p_cents IS NULL OR p_cents <= 0
@@ -331,12 +410,12 @@ export function createDb(sql = getProductionSql()) {
         END IF;
         SELECT amount_cents, currency, state, local_day INTO v_previous
           FROM money_reservations
-          WHERE stripe_account = p_account AND connection = p_connection
-            AND request_key = p_key;
+          WHERE stripe_account = p_account AND request_key = p_key;
         v_duplicate := FOUND;
         SELECT COALESCE(SUM(amount_cents), 0)::BIGINT INTO v_used
           FROM money_reservations
-          WHERE stripe_account = p_account AND connection = p_connection AND local_day = v_day;
+          WHERE stripe_account = p_account AND local_day = v_day
+            AND state <> 'rejected';
         used_cents := v_used;
         limit_cents := GREATEST(v_limit, 0);
         IF v_duplicate THEN
@@ -349,10 +428,25 @@ export function createDb(sql = getProductionSql()) {
           END IF;
           RETURN NEXT; RETURN;
         END IF;
-        IF v_used > limit_cents - p_cents THEN
-          decision := 'limit_exceeded';
+        -- The approval is tied to this account, idempotency key and the exact
+        -- provider-derived amount, then consumed atomically with the reservation.
+        SELECT amount_cents, currency, approved_at, allow_over_limit, override_approved_at, consumed_at, expires_at
+          INTO v_approval FROM money_approvals
+          WHERE stripe_account = p_account AND request_key = p_key FOR UPDATE;
+        IF NOT FOUND OR v_approval.amount_cents <> p_cents OR v_approval.currency <> p_currency
+          OR v_approval.approved_at IS NULL OR v_approval.consumed_at IS NOT NULL
+          OR v_approval.expires_at <= now()
+          OR v_approval.approved_at < now() - interval '10 minutes' THEN
+          decision := 'owner_approval_required';
           RETURN NEXT; RETURN;
         END IF;
+        IF v_used > limit_cents - p_cents AND (v_approval.allow_over_limit IS NOT TRUE
+          OR v_approval.override_approved_at IS NULL) THEN
+          decision := 'limit_exceeded_override_required';
+          RETURN NEXT; RETURN;
+        END IF;
+        UPDATE money_approvals SET consumed_at = now()
+          WHERE stripe_account = p_account AND request_key = p_key;
         INSERT INTO money_reservations
           (stripe_account, connection, request_key, local_day, amount_cents, currency)
         VALUES (p_account, p_connection, p_key, v_day, p_cents, p_currency);

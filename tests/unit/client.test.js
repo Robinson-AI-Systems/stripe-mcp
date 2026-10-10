@@ -28,6 +28,8 @@ describe('Stripe client safety and idempotency', () => {
     expect(idempotencyKey(ctx,'stripe_update',{amount:100,requestKey:'retry-name'},{now:now+86400000})).toBe(persistent);
     expect(persistent).not.toContain('retry-name');
     expect(idempotencyKey(ctx,'stripe_update',{amount:100,requestKey:'different'},{now})).not.toBe(persistent);
+    expect(idempotencyKey(ctx,'stripe_update',{amount:100,requestKey:'retry-name',target:'A'},{now}))
+      .not.toBe(idempotencyKey(ctx,'stripe_update',{amount:100,requestKey:'retry-name',target:'B'},{now}));
   });
   it('uses true cursor paging and reports when capped', async () => {
     const seen = [];

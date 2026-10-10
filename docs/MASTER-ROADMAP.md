@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Next:** B-1b2 authoritative money-spec/write-contract integration after B-1b1's atomic reservation table (#19). B-1a (#18) was merged. IN-05 still requires the owner's daily money-out amount; no writes exposed.
+**Next:** B-1b2 (PR #20) safety-contract verification and owner IN-05 approval; B-1a (#18), B-1b1 (#19) already merged. Money-out remains disabled until the default daily limit is approved. B-2 follows only after B-1 closes.
 
 ## Order and why
 

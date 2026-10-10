@@ -25,7 +25,7 @@ next bounded implementation.
 - [ ] `docs/DEPLOY.md` followable by Chris.
 
 ## Batch B — Trust layer (`designs/BATCH-B.md`)
-- [ ] `defineWrite` with money spec, dollar preview, always-confirm money out, daily limit, read-back/verify, inverse.
+- [x] `defineWrite` with money spec, dollar preview, always-confirm money out, daily limit, read-back/verify, inverse (internal B-1 #18–#20; owner grant UI and live tools remain gated).
 - [ ] Live guard (two-step enable), app-owned guard (with refund exception), plain-English errors, result shaping, profiles.
 - [ ] `check-writes` fails on undeclared writes, missing `dryRun`, missing money spec.
 - [ ] Server tools (change log, connections, money limit, live enable/disable, key permissions, where-is-setting).

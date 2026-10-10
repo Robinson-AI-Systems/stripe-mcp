@@ -24,8 +24,10 @@ export function idempotencyKey(ctx, tool, args = {}, { now = Date.now() } = {}) 
   if (requestKey !== undefined && (typeof requestKey !== 'string' || !requestKey || requestKey.length > 128)) {
     throw new TypeError('requestKey must be 1 to 128 characters');
   }
-  const selected = requestKey ? ['request',requestKey] : ['args',canonical(Object.fromEntries(
-    Object.entries(args).filter(([k]) => !OMIT.has(k)))),Math.floor(now / 600000)];
+  const payload = canonical(Object.fromEntries(Object.entries(args).filter(([k]) => !OMIT.has(k))));
+  // An explicit requestKey stabilizes retries, but cannot authorize a different
+  // customer, target, destination or amount with the same owner's approval.
+  const selected = requestKey ? ['request',requestKey,payload] : ['args',payload,Math.floor(now / 600000)];
   return 'rmcp_' + tool + '_' + digest([account,ctx.mode,tool,...selected]);
 }
 export function makeStripeClient({ key, mode }, testOptions = {}) {
@@ -58,4 +60,18 @@ export async function listAll(listFn, params = {}, { max = 1000 } = {}) {
     cursor = page.data.at(-1).id;
   }
   return { items, capped };
+}
+
+// Only official Stripe SDK error subclasses with definitive rejection status
+// codes are safe to treat as an operation that never moved money. Any unknown,
+// interrupted, idempotency-conflict or rate-limit response remains uncertain.
+export function classifyStripeWriteError(error) {
+  const e = Stripe.errors;
+  if ((error instanceof e.StripeInvalidRequestError && [400, 404].includes(error.statusCode)) ||
+      (error instanceof e.StripeAuthenticationError && error.statusCode === 401) ||
+      (error instanceof e.StripePermissionError && error.statusCode === 403) ||
+      (error instanceof e.StripeCardError && error.statusCode === 402)) {
+    return 'rejected';
+  }
+  return 'uncertain';
 }

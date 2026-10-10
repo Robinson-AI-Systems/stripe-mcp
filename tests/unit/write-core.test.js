@@ -35,7 +35,7 @@ describe('B-1a fail-closed write lifecycle (fake provider only)', () => {
   it('never writes until user explicitly confirms, and refuses fabricated flags', async () => {
     const { op, ctx, calls } = make();
     expect(parse(await op.handler({}, ctx)).needsConfirmation).toBe(true);
-    expect(parse(await op.handler({ confirm: 'yes' }, ctx)).error).toMatch(/booleans/);
+    expect(parse(await op.handler({ confirm: 'yes' }, ctx)).error).toMatch(/confirmation flags/);
     expect(calls.write).toEqual([]);
     expect(calls.log).toEqual([]);
   });
@@ -72,7 +72,7 @@ describe('B-1a fail-closed write lifecycle (fake provider only)', () => {
     expect(calls.write).toEqual([]);
   });
   it('fails closed on unsupported money procedures and missing preview, not a no-op stub', async () => {
-    expect(() => defineWrite({ name: 'stripe_money', money: async () => 100 })).toThrow(/not enabled/);
+    expect(() => defineWrite({ name: 'stripe_money', money: 100 })).toThrow(/Money spec must be a function/);
     expect(() => defineWrite({ name: 'stripe_example', read: async () => ({}) })).toThrow(/must be a function/);
     const { op, ctx } = make();
     expect(op.tool.writes).toBe(true);
@@ -82,7 +82,9 @@ describe('B-1a fail-closed write lifecycle (fake provider only)', () => {
   it('never calls provider when the audit-intent write fails', async () => {
     const { op, ctx, calls } = make();
     const broken = { recordChange: async () => { throw new Error('DB unavailable'); } };
-    await expect(op.handler({ confirm: true }, { ...ctx, db: broken })).rejects.toThrow(/DB unavailable/);
+    const answer = parse(await op.handler({ confirm: true }, { ...ctx, db: broken }));
+    expect(answer.done).toBe(false);
+    expect(answer.error).toMatch(/record intent/);
     expect(calls.write).toHaveLength(0);
   });
 });
