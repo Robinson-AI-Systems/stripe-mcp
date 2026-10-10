@@ -60,3 +60,24 @@ export function createKeyStore({ db, makeClient = makeStripeClient,
     }
   };
 }
+
+export function createPermissionReprobe({db, keyStoreFactory=createKeyStore,
+  makeClient=makeStripeClient, probe=probeKeyPermissions}) {
+  return async ({account,mode}) => {
+    if (typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+        mode!=='test' || typeof db?.updateKeyPermissions!=='function') {
+      throw new Error('A configured TEST account is required for permission checks');
+    }
+    // Server-only lazy credential decryption. Nothing is returned to the AI.
+    const keyStore=keyStoreFactory({db});
+    const key=await keyStore.loadKey({account,mode:'test'});
+    const permissions=await probe(makeClient({key,mode:'test'}));
+    if (!permissions || typeof permissions!=='object' || Array.isArray(permissions)) {
+      throw new Error('Stripe permission probes did not return a verified result');
+    }
+    if (!await db.updateKeyPermissions({account,permissions})) {
+      throw new Error('The selected TEST key could not be updated');
+    }
+    return {account,mode:'test',permissions,checkedAt:new Date().toISOString()};
+  };
+}
