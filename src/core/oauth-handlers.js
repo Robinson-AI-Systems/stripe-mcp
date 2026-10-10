@@ -71,7 +71,12 @@ export function createOAuthHandlers({ db, env = process.env }) {
       return bad(res, 400, 'invalid_request', 'Authorization code, S256 PKCE, and exact MCP resource are required');
     }
     const accounts = await db.listStripeAccounts();
-    if (req.method === 'GET') return send(res, 200, authorizePage(p, accounts), 'text/html; charset=utf-8');
+    if (req.method === 'GET') {
+      // Claude's tool-search client defaults to catalog; other clients use
+      // compact, with an explicit owner choice taking precedence.
+      const listing=p.listing||(/claude/i.test(client.client_name||'')?'catalog':'compact');
+      return send(res,200,authorizePage({...p,listing},accounts),'text/html; charset=utf-8');
+    }
     if (!env.ADMIN_PASSPHRASE) return bad(res, 503, 'server_not_configured', 'Admin passphrase is not configured');
     const verdict = await evaluateLogin({ ip: clientIp(req), supplied: p.passphrase,
       expected: env.ADMIN_PASSPHRASE, store: db });

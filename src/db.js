@@ -674,7 +674,7 @@ export function createDb(sql = getProductionSql()) {
         revoked_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
-      -- Older OAuth connections receive one stable, opaque result scope.
+      // Older OAuth connections receive one stable, opaque result scope.
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS
         result_scope TEXT NOT NULL DEFAULT gen_random_uuid()::text`;
       await sql`CREATE TABLE IF NOT EXISTS result_store (

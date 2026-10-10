@@ -5,7 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { requireMcpToken } from './mcp-auth.js';
 import { toStripeToolError } from '../tools/errors.js';
 import { shapeToolResult } from '../tools/util.js';
-import { isToolAllowed, visibleTools, publicToolInfo } from './profiles.js';
+import { isToolAllowed, publicToolInfo, listingForConnection } from './profiles.js';
 import { randomBytes } from 'node:crypto';
 import { readDetail,splitResult,resultPage } from '../tools/result-rules.js';
 
@@ -19,7 +19,9 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
   try {
-    const raw=shapeToolResult(await handler(args || {},{connection,db,services}),
+    const raw=shapeToolResult(await handler(args || {},{connection,db,services,registry,
+      runRead:(toolName,toolArgs)=>dispatchReadOnlyTool({registry,
+        name:toolName,args:toolArgs,connection,db,services})}),
       {mode:connection.mode});
     if(raw?.isError)return raw;
     const requested=args||{};
@@ -79,7 +81,7 @@ export function createMcpHandler({ db, registry, services={}, env = process.env 
     const server = new Server({name:'robinson-stripe-mcp',version:'0.1.0'},
       {capabilities:{tools:{}}});
     server.setRequestHandler(ListToolsRequestSchema,async()=>({
-      tools:visibleTools(registry,connection.profile).map(publicToolInfo)
+      tools:listingForConnection(registry,connection,req.query?.listing).map(publicToolInfo)
     }));
     server.setRequestHandler(CallToolRequestSchema,async request=>
       dispatchReadOnlyTool({registry,name:request.params?.name,args:request.params?.arguments,connection,db,services}));
