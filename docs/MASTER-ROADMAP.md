@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Next:** A-5 encrypted Stripe key store and owner-only setup page (A-4a #13 and A-4b #14 complete). IN-02/03/04 are future deployment gates.
+**Next:** A-5b owner-only setup page and provider permission probe (A-5a encryption #15 complete). IN-02/03/04 are future deployment gates.
 
 ## Order and why
 
@@ -37,7 +37,7 @@ the approved design; write the card when its predecessor is real.
 
 | Batch | Cards | Card status |
 |---|---|---|
-| A Foundation | A-1 repo, CI, checks · A-2 schema · A-3 login · A-4 Stripe client + OpenAPI index · A-5 key store, setup page, one-time secrets · A-6 DEPLOY.md | A-1 (#9), A-2 (#10), A-3 (#11/#12), A-4 (#13/#14); A-5 onward JIT |
+| A Foundation | A-1 repo, CI, checks · A-2 schema · A-3 login · A-4 Stripe client + OpenAPI index · A-5 key store, setup page, one-time secrets · A-6 DEPLOY.md | A-1 (#9), A-2 (#10), A-3 (#11/#12), A-4 (#13/#14), A-5a (#15); A-5b onward JIT |
 | B Trust | B-1 safety + money · B-2 live guard · B-3 app guard · B-4 errors · B-5 shaping · B-6 profiles · B-7 check-writes · B-8 server tools | JIT |
 | C Context | C-1 small results · C-2 listing modes + budgets | JIT |
 | D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | JIT |

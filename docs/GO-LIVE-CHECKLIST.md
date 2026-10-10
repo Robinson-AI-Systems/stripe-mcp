@@ -19,6 +19,8 @@ Legend: **Owner** = only Chris · **Agent** = Claude can do it once you say go.
 
 **Developer safeguard (A-4a):** Any preview, staging or local deployment refuses live Stripe keys at the client constructor. This safeguard does not itself enable live use; Batch B's two-step owner approval is still required.
 
+**Encryption storage reminder (A-5a):** The base64-encoded 32-byte `TOKEN_ENCRYPTION_KEY` must remain stable across deployments. Replacing it without migrating previously encrypted keys would require reconnecting the affected accounts. No key value is stored in the repository.
+
 ## 2. Live mode, per Stripe account
 
 | Done | Item | Where / how | Today | How you know it worked |
