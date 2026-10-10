@@ -50,3 +50,7 @@ server therefore follows the Robinson Tool Contract (RTC 1, in the hub repo), ke
 leaves the CLI, code SDK, local MCP, GitHub relay and agent recipes to the hub. Contract-generic code lives in
 `src/core/` so the hub can extract it into `robinson-mcp-core` (Batch A amendment). First Batch R archived in
 `docs/archive/batch-r-v1/`.
+
+**2026-10-10 — Standalone first (Chris).** "I still need to be able to use the individual tool sets before the hub is
+built." This server never depends on the hub: conformance joins CI only when available, and agents reach it through its
+own connector and HTTPS API, or through `rtool`/the relay talking to it directly.
