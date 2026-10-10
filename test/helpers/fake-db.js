@@ -107,14 +107,15 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       accountRows.set(account, { ...before, label });
       encryptedTestKeys.set(account, { ciphertext, kind, last4, permissions: structuredClone(permissions) });
     },
-    async updateKeyPermissions({account,permissions}) {
-      if (typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+    async updateKeyPermissions({account,permissions,expectedCiphertext}) {
+      if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
           !permissions || typeof permissions!=='object' || Array.isArray(permissions) ||
           !Object.values(permissions).every(v=>v==='ok'||v==='denied')) {
         throw new TypeError('Invalid verified permissions');
       }
       const stored=encryptedTestKeys.get(account);
-      if (!stored) return false;
+      if (!stored || stored.ciphertext!==expectedCiphertext) return false;
       stored.permissions=structuredClone(permissions);
       return true;
     },
