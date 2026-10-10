@@ -26,7 +26,7 @@ describe('C-2 progressive tool disclosure and wrapped execution',()=>{
     expect(described.safety).toBe('READ ONLY');
     expect(described.inputSchema.properties.detail.enum).toEqual(['summary','full']);
     const via=parse(await call('stripe_call',{name:'stripe_list_accounts',args:{}}));
-    expect(via).toEqual({accounts:[]});
+    expect(via).toMatchObject({accounts:[],hasMore:false,nextOffset:null});
     const batch=parse(await call('stripe_batch',{calls:[
       {name:'stripe_list_accounts',args:{}},
       {name:'stripe_list_accounts',args:{}}
