@@ -245,13 +245,13 @@
         "B-6"
       ],
       "card": "docs/pr-cards/B-7.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 150,
       "units": [
         "B-7"
       ],
-      "readiness": "STACKED_ON_B-6",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
