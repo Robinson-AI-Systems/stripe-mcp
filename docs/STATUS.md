@@ -5,8 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-2b in progress (stacked after merged #21; IN-06 still OFF):** durable ten-minute intent, authenticated owner setup confirmation, and atomic PostgreSQL audit; no live key, public write tool or actual activation. B-8 must later wire the protected enable tool, and IN-06 must be expressly approved before any live operation.
-- **B-2a live guard delivered in PR #21; two-step activation now under development:** default-deny LIVE write guard, owner-only account state verification, ten-minute reauthentication predicate and fake-provider tests. Neither live activation nor Stripe money tools are exposed. Continue B-2 owner activation design without enabling it (IN-06 remains OFF). **B-1/#20 is MERGED**, IN-05 is approved.
+- **B-2b delivered (#22); next B-3 app-owned record guard (IN-06 still OFF):** durable ten-minute intent, authenticated owner setup confirmation, and atomic PostgreSQL audit; no live key, public write tool or actual activation. B-8 must later wire the protected enable tool, and IN-06 must be expressly approved before any live operation.
+- **B-2a and B-2b merged:** default-deny LIVE write guard, owner-only account state verification, ten-minute reauthentication predicate and fake-provider tests. Neither live activation nor Stripe money tools are exposed. Continue B-2 owner activation design without enabling it (IN-06 remains OFF). **B-1/#20 is MERGED**, IN-05 is approved.
 - **B-1 merged (#20):** Internal money safety foundation shipped. Owner IN-05 is approved: $500 USD per Stripe account per Colorado day, pooled across connections; an authenticated owner decision is mandatory for every AI money-out, plus a separate exact-transaction override above the budget. Owner approval browser UI is NOT active, so spending stays disabled. B-2a PR #21 is merged; B-2b owner-intent control is next. No Stripe account/deployment/live mode configured.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
