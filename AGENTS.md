@@ -35,10 +35,12 @@ sections below when a step names them.
 
 **Robinson Stripe MCP** is a hosted MCP server (Vercel + Neon) that lets Chris's AI agents operate his Stripe accounts
 safely: customers, payments, refunds, subscriptions, invoices, branding, payouts, disputes, webhooks, account settings,
-and — through universal tools — every other Stripe API operation. It is a **general, powerful development tool**: any
-agent should be able to use it freely on whatever Chris is working on — building a new app, a prototype, another toolset,
-or running a business system. It covers both **building with Stripe** (test data, cleanup, test events, event
-forwarding into an app under development, time travel — Batch V) and **operating Stripe** (everything else). An app that
+and — through universal tools — every other Stripe API operation. It is a **general, powerful tool for developers and
+account owners alike**: any agent should be able to use it freely on whatever Chris is working on — building for a
+client, building for himself, or setting up and running his own Stripe account. It covers **building with Stripe**
+(test data, cleanup, test events, event forwarding, time travel — Batch V), **owning and administering the account**
+(admin overview, verification, team, security, fees, every dashboard setting through real tools or guided settings —
+G-6, H) and **day-to-day operation** (everything else). An app that
 runs its own Stripe billing can optionally get a **project profile** (Batch P) so the server never fights it. Real
 projects such as Appliance Desk are used only as **completeness checks** ("can it do everything this needed?"), never
 to narrow the design. It is reached

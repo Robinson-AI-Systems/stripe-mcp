@@ -49,6 +49,7 @@ next bounded implementation.
 - [ ] Every listed tool built; Radar-rules question answered from Stripe's description.
 - [ ] Webhook signing secrets only via the one-time page.
 - [ ] Account settings: by API where Stripe allows (trial recorded), otherwise guided with read-back.
+- [ ] Owner side complete: admin overview, requirements, security review, fees; every dashboard settings page in the map as structured guided steps (contract §11).
 
 ## Batch H — Branding and setup (`designs/BATCH-H.md`)
 - [ ] Brand kit applied to every page this server creates; never to pages a profiled app creates.

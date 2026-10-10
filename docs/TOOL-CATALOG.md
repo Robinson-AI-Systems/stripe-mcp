@@ -1,6 +1,8 @@
 # Tool catalog
 
-Every tool this server will have, by area — the product scope. The implementing model builds exactly these;
+Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
+Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
+running the account. The implementing model builds exactly these;
 anything else goes in `docs/ROADMAP.md` and the PR report. Which batch builds each area: Server tools B-8/C-2/R-1/X-1,
 Customers…Invoices D, Catalog/Tax/Usage/quotes E, Developer tools and test clocks V, Money out…Reports G, Branding H, Universal U,
 Project profiles P, Workflows W. When a tool merges, its Origin cell gains `built #<PR>`.
@@ -37,7 +39,7 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 | `stripe_batch` | Up to 10 read calls in one round trip | — | N | R |
 | `stripe_get_result` | Page through a big result kept on the server behind a handle | — | N | R |
 | `stripe_create_pass` | Make a short-lived pass for the HTTPS API and Robinson's Toolkit (shown once on the setup page; test, read-only, 24 h, $0 by default; RTC §2) | C | N | F |
-| `stripe_where_is_setting` | Dashboard link and clicks for things Stripe has no API for (team members, two-step login, Radar rules, statement emails, resending a webhook) | — | N | R |
+| `stripe_where_is_setting` | Structured steps (link, numbered actions, expected result, read-back check) for any dashboard-only setting (team members, two-step login, Radar rules, statement emails, resending a webhook) | — | N | R |
 
 ## Customers (`customer_*`) — 17
 
@@ -275,6 +277,30 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `account_list_payment_method_settings` / `account_update_payment_method_settings` | Which payment methods Checkout offers (for example turning ACH on) | — / C | N | F |
 | `account_list_apple_pay_domains` / `account_add_apple_pay_domain` | Apple Pay domains | — / P | N | F |
 
+## Owner and administration (`admin_*`, guided settings) — 6 tools + guided settings (`docs/designs/BATCH-G.md` G-6)
+
+For the account owner, not only developers (Chris, 2026-10-10). Everything owner-side in Stripe is covered: settings
+with an API by real tools (here and in Branding and setup, Money out, Tax, Checkout/portal, Webhooks), and every
+dashboard-only setting by a **guided setting** — structured steps a person or a browser-capable agent follows while Chris
+watches, then checked by read-back where Stripe exposes the value (Robinson Tool Contract §11).
+
+| Tool | What it does | Safety | Origin | Profile |
+| --- | --- | --- | --- | --- |
+| `stripe_admin_overview` | The whole account in one view: business details and verification, what Stripe still needs and by when, capabilities, payouts and bank (last 4), branding and descriptor, payment methods, tax registrations, webhooks, portal, plus every guided setting's state (ok / needs attention / can't read) | — | N | R |
+| `admin_list_requirements` | What Stripe needs from the business (documents, details) and the deadlines, in plain words, with the link to provide each | — | N | R |
+| `admin_list_guided_settings` | Every dashboard-only setting the map covers, by section | — | N | R |
+| `admin_check_setting` | Read back a guided setting's value where Stripe exposes it (e.g. after Chris changes it) | — | N | R |
+| `admin_review_security` | What can be read about security (key kind and age as stored here, restricted-key permissions, webhook endpoints, connections and passes to this server) plus guided checks for two-step login, team roles and API keys | — | N | R |
+| `admin_fees_and_billing` | What Stripe charges this account: fees by type for a period (from balance transactions), Stripe Billing/Tax/Radar fees, and links to Stripe's own invoices | — | N | R |
+
+**Guided settings covered (dashboard-only; full list in `src/data/dashboard-map.js`, every settings page of the
+dashboard):** team members, invitations and roles; two-step login and account security; API keys (create, roll,
+restrict) — the steps never show a key to the agent; business details and verification documents; bank accounts for
+payouts; customer emails (receipts, failed payments, renewals, card expiry); Billing revenue recovery (Smart Retries,
+what happens after all retries fail); invoice numbering and defaults the API can't set; Radar rules; custom Checkout
+domain (a purchase — always asks); notifications to the owner; connected apps and integrations; tax settings the API
+can't set; deleting test data; closing the account (never automated — steps only).
+
 ## Branding and setup (`brand_*`, `setup_*`) — 16
 
 How customers see the business on every Stripe page (Checkout, payment links,
@@ -421,7 +447,8 @@ the result where Stripe lets it read the setting back.
 
 ## Totals
 
-296 hand-built tools plus the 4 universal `api_*` tools (300 in all; 316 with Connect). The universal tools reach every other Stripe operation. The `everyday` profile
+301 hand-built tools plus the 4 universal `api_*` tools (305 in all; 321 with Connect), plus guided settings for
+every dashboard-only owner setting. The universal tools reach every other Stripe operation. The `everyday` profile
 has about 125; `read_only` about 115 (B-6 prints the exact numbers). In compact mode (`docs/designs/BATCH-C.md`)
 an agent loads only about 20 of them up front and reaches the rest through
 `stripe_search_tools` / `stripe_call`.
