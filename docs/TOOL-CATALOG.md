@@ -7,8 +7,7 @@ are currently TEST/read-only. Six server tools are implemented by B-8b1
 `stripe_check_key_permissions` in #29). The other catalog rows are
 planned until their own cards merge. Guarded write internals exist but
 **no AI-accessible Stripe write or live money operation is enabled**.
-B-8b2/B-8c owner administration and individually authenticated money
-approvals are still pending; LIVE remains OFF (IN-06).
+B-8b2 owner management is private-browser-only, while B-8c1 adds a private read-only pending-money inbox. B-8c2's separately authenticated individual money approvals remain pending; LIVE OFF (IN-06).
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner

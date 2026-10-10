@@ -10,7 +10,7 @@ describe('B-8a server-side read-only operations, fake database',()=>{
   it('shows actual shared-account dollar usage without one budget per AI connection',async()=>{
     const db=createFakeDb({accounts:[{id:'acct_owner',label:'Fixture',money_limit_cents:50000}]});
     await db.requestMoneyApproval({account:'acct_owner',idempotencyKey:'request-one',
-      tool:'test_payout',description:'Fake payout',amountCents:12500,currency:'usd'});
+      tool:'test_payout',target:'ch_FAKE1234',description:'Fake payout',amountCents:12500,currency:'usd'});
     await db.approveMoneyRequest({account:'acct_owner',idempotencyKey:'request-one'});
     await db.reserveMoneyOut({account:'acct_owner',connection:'agent-A',
       idempotencyKey:'request-one',amountCents:12500,currency:'usd'});

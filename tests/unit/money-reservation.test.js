@@ -6,7 +6,7 @@ describe('fake budget ledger mirrors fail-closed DB behavior', () => {
     const args = { account: 'acct_budget', connection: 'agent', currency: 'usd' };
     const ownerApprove=async (key, cents, override=false) => {
       expect(await db.requestMoneyApproval({ account:args.account, idempotencyKey:key,
-        tool:'stripe_fixture', description:'Owner-reviewed payout', amountCents:cents,
+        tool:'stripe_fixture', target:'ch_FAKE1234', description:'Owner-reviewed payout', amountCents:cents,
         currency:'usd' })).toBe(true);
       expect(await db.approveMoneyRequest({account:args.account,idempotencyKey:key}))
         .toBe(true);

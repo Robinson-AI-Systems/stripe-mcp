@@ -55,7 +55,7 @@ describe('B-8b2b3 actual account-row serialization, budget and grants',()=>{
       amountCents,currency:'usd'};
     expect((await db.reserveMoneyOut(args)).decision).toBe('owner_approval_required');
     expect(await db.requestMoneyApproval({account,idempotencyKey:args.idempotencyKey,
-      amountCents,currency:'usd',description:'Fake money-out safety test',
+      amountCents,currency:'usd',target:'ch_FAKE1234',description:'Fake money-out safety test',
       tool:'stripe_fake_payout'})).toBe(true);
     expect((await db.reserveMoneyOut(args)).decision).toBe('owner_approval_required');
     expect(await db.approveMoneyRequest({account,idempotencyKey:args.idempotencyKey})).toBe(true);

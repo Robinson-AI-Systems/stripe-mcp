@@ -26,8 +26,8 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
     }
     const provider = { writes: [], afterCalls: 0 };
     const db = createFakeDb({ accounts: [{
-      id: 'acct_safe_fixture', label: 'Fixture', money_limit_cents: limitCents }] });
-    const connection = { stripeAccount: 'acct_safe_fixture', mode: 'test', profile: 'full' };
+      id: 'acct_safefixture', label: 'Fixture', money_limit_cents: limitCents }] });
+    const connection = { stripeAccount: 'acct_safefixture', mode: 'test', profile: 'full' };
     const ctx = { connection, connectionId: 'owner-client-fixture',
       moneyPolicyApproved: approved, db };
     const op = defineWrite({
@@ -35,7 +35,7 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
       read: async () => ({ refundableCents: moneyCents, appOwned, status: 'before' }),
       summarize: async () => 'Customer-approved fixture update. TEST MODE.',
       money: withMoney ? async (_args, _ctx, before) => ({
-        amountCents: before.refundableCents, currency: 'usd', direction: 'out',
+        amountCents: before.refundableCents, currency: 'usd', targetId:'ch_FAKE1234', direction: 'out',
         description: 'Refund verified customer balance'
       }) : undefined,
       targetGuard: (args, _ctx, before) => !before.appOwned || args.outsideApp === true,

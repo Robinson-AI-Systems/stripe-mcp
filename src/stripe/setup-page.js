@@ -16,7 +16,7 @@ function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
@@ -120,6 +120,27 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<label><input type="checkbox" name="ownerLimitConsent" value="yes" required> I personally authorize changing the daily limit for this exact account.</label>' +
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<button type="submit">Set this account limit</button></form>' : '') +
+    '<h2>Pending money-out requests (owner review only)</h2>' +
+    '<p>This secure inbox does NOT approve, execute, refund or transfer money. It shows at most ten TEST-only verified requests. Each transaction will require an independently authenticated owner action in a later release.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="view-money-requests">' +
+    '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Privately view pending TEST requests</button></form>' +
+    (moneyInbox ? '<h2>Verified pending requests</h2>' +
+      '<p>Stripe account: <strong>' + escapeHtml(moneyInbox.account) +
+      '</strong>. Shared Colorado-day usage: ' + escapeHtml(usd(moneyInbox.usedCents)) +
+      '. Daily limit: ' + escapeHtml(usd(moneyInbox.limitCents)) + '.</p>' +
+      (moneyInbox.rows.length ? '<ol>' + moneyInbox.rows.map(item =>
+        '<li>Operation: ' + escapeHtml(item.tool) +
+        '; target: ' + escapeHtml(item.target) +
+        '; amount: ' + escapeHtml(usd(Number(item.amount_cents))) +
+        '; TEST mode; request key: ' + escapeHtml(item.request_key) +
+        '; note: ' + escapeHtml(item.description) +
+        '; expires: ' + escapeHtml(item.expiresLocal) +
+        '; status: ' + escapeHtml(item.approved_at ? 'Approved, not consumed' : 'Awaiting owner approval') +
+        '</li>').join('') + '</ol>' : '<p>No verified pending requests.</p>') +
+      '<p>VIEW ONLY. No approval control is provided. B-8c2 will add an independently authenticated, transaction-specific approval.</p>' : '') +
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.env }) {
@@ -219,6 +240,48 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
         'Connection removed for account '+intent.stripe_account+', client '+intent.client_id+'.' :
         'The connection was already removed or changed. No removal performed.'}),
         'text/html; charset=utf-8');
+    }
+    if (p.action === 'view-money-requests') {
+      if(typeof p.account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(p.account))
+        return send(res,400,htmlPage({csrf:cookie,result:'Select a valid Stripe account.'}),
+          'text/html; charset=utf-8');
+      try {
+        const account=await db.getStripeAccount(p.account);
+        if(!account?.test_connected) return send(res,404,htmlPage({csrf:cookie,result:
+          'A verified TEST-connected Stripe account is required.'}),
+          'text/html; charset=utf-8');
+        const [rows,usage]=await Promise.all([
+          db.listPendingMoneyApprovals({account:p.account,limit:10}),
+          db.getMoneyUsage({account:p.account,connection:'owner-inbox'})
+        ]);
+        const usedCents=Number(usage?.used_cents);
+        const limitCents=Number(usage?.limit_cents);
+        if(!Number.isSafeInteger(usedCents)||usedCents<0||
+            !Number.isSafeInteger(limitCents)||limitCents<0||
+            !Array.isArray(rows)||rows.length>10) throw Error('Unverified inbox');
+        const formatter=new Intl.DateTimeFormat('en-US',{
+          timeZone:'America/Denver',year:'numeric',month:'short',day:'numeric',
+          hour:'numeric',minute:'2-digit',timeZoneName:'short'
+        });
+        const verified=rows.map(row=>{
+          const amount=Number(row.amount_cents);
+          const expires=new Date(row.expires_at);
+          if(row.mode!=='test'||!Number.isSafeInteger(amount)||amount<=0||
+              row.currency!=='usd'||!Number.isFinite(expires.getTime())||
+              typeof row.target!=='string'||!row.target||
+              typeof row.tool!=='string'||typeof row.request_key!=='string')
+            throw Error('Invalid pending record');
+          return {...row,amount_cents:amount,expiresLocal:formatter.format(expires)};
+        });
+        res.setHeader('Cache-Control','no-store');
+        return send(res,200,htmlPage({csrf:cookie,
+          moneyInbox:{account:p.account,usedCents,limitCents,rows:verified}}),
+          'text/html; charset=utf-8');
+      } catch {
+        return send(res,503,htmlPage({csrf:cookie,result:
+          'Could not verify private pending money requests. No operation authorized.'}),
+          'text/html; charset=utf-8');
+      }
     }
     if (p.action === 'request-money-limit') {
       const newLimitCents=parseUsdCents(p.newLimitUsd);

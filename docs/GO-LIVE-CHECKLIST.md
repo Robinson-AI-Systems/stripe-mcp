@@ -120,3 +120,14 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
       verified. Each AI refund, payout or transfer needs a distinct owner
       approval even below the account cap, and crossing the cap requires a
       separate owner override for that same request. IN-06 LIVE stays OFF.
+
+## Money-out pending request review only (B-8c1)
+
+- [ ] Owner can independently authenticate through the private POST to inspect
+      a selected TEST Stripe account's target-bound pending requests and
+      current dollar cap/usage, without revealing any information on GET.
+- [ ] Legacy requests without a verified provider target, expired requests,
+      other-account entries and changed-target replays are never approvable.
+- [ ] **No approval or outgoing money operation exists in this slice.**
+      B-8c2 must verify owner-specific exact transaction approval and the
+      distinct above-limit override before any public money write can run.
