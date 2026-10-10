@@ -1,4 +1,8 @@
 import { neon } from '@neondatabase/serverless';
+import { hashToken } from './core/oauth.js';
+
+export const CONNECTION_FIELDS = Object.freeze(['stripe_account', 'mode', 'profile', 'listing']);
+export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.map((field) => [field, row[field]]));
 
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
@@ -20,6 +24,58 @@ function getProductionSql() {
 export function createDb(sql = getProductionSql()) {
   if (typeof sql !== 'function') throw new TypeError('A SQL tagged-template function is required');
   return {
+    async createOAuthClient({ clientId, clientSecret, redirectUris, clientName }) {
+      if (!clientId || !clientSecret || !Array.isArray(redirectUris) || !redirectUris.length) {
+        throw new TypeError('Missing OAuth client registration fields');
+      }
+      const data = JSON.stringify({
+        client_secret_hash: hashToken(clientSecret), redirect_uris: redirectUris,
+        client_name: clientName || null
+      });
+      await sql`INSERT INTO oauth_clients (client_id, data) VALUES (${clientId}, ${data}::jsonb)`;
+    },
+    async getOAuthClient(clientId) {
+      const rows = await sql`SELECT client_id, data FROM oauth_clients WHERE client_id = ${clientId}`;
+      return rows[0] ? { client_id: rows[0].client_id, ...rows[0].data } : null;
+    },
+    async createAuthCode({ code, clientId, redirectUri, codeChallenge, codeChallengeMethod = 'S256',
+      stripeAccount = null, mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 600 }) {
+      const data = JSON.stringify({
+        redirect_uri: redirectUri, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod
+      });
+      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+      await sql`INSERT INTO oauth_codes (code, client_id, data, stripe_account, mode, profile, listing, expires_at)
+        VALUES (${hashToken(code)}, ${clientId}, ${data}::jsonb, ${stripeAccount},
+          ${mode}, ${profile}, ${listing}, ${expiresAt})`;
+    },
+    async consumeAuthCode(code) {
+      if (typeof code !== 'string' || !code) return null;
+      const rows = await sql`DELETE FROM oauth_codes WHERE code = ${hashToken(code)}
+        AND expires_at > now() RETURNING client_id, data, stripe_account, mode, profile, listing`;
+      const row = rows[0];
+      return row ? { client_id: row.client_id, ...row.data, ...connectionSettings(row) } : null;
+    },
+    async recordLoginAttempt(ip) {
+      const rows = await sql`INSERT INTO login_attempts (ip, success) VALUES (${ip}, FALSE) RETURNING id`;
+      return rows[0].id;
+    },
+    async markLoginAttemptSucceeded(id) {
+      await sql`UPDATE login_attempts SET success = TRUE WHERE id = ${id}`;
+    },
+    async countRecentFailedLogins(ip, minutes = 15) {
+      const rows = await sql`SELECT count(*)::integer AS count FROM login_attempts
+        WHERE ip = ${ip} AND success = FALSE
+          AND attempted_at > now() - ${minutes} * interval '1 minute'`;
+      return rows[0].count;
+    },
+    async listStripeAccounts() {
+      return await sql`SELECT id, label, live_enabled, is_default
+        FROM stripe_accounts ORDER BY is_default DESC, added_at ASC`;
+    },
+    async getStripeAccount(accountId) {
+      const rows = await sql`SELECT id, label, live_enabled FROM stripe_accounts WHERE id = ${accountId}`;
+      return rows[0] || null;
+    },
     async initSchema() {
       await sql`CREATE TABLE IF NOT EXISTS stripe_accounts (
         id TEXT PRIMARY KEY,
