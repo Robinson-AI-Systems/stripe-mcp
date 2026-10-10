@@ -22,7 +22,7 @@ REQUIRED_UNITS = set("""
 A-1 A-2 A-3 A-4 A-5 A-6 B-1 B-2 B-3 B-4 B-5 B-6 B-7 B-8 C-1 C-2
 D-1 D-2 D-3 D-4 D-5 V-1 V-2 V-3 V-4 V-5 G-1 G-2 G-3 G-4 G-5 G-6 H-1 P-1 P-2 P-3 P-4
 W-1 W-2 W-3 W-4 W-5 W-6 W-7 W-8 W-9 W-10 U-1 R-1 R-2 R-3
-E-1 E-2 E-3 E-4 X-1 X-2 X-3
+E-1 E-2 E-3 E-4 X-1 X-2
 """.split())
 
 if len(BY_ID) != len(CARDS):

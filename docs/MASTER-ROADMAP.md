@@ -4,14 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Now:** B-8 in progress. B-8a owner read tools merged (#28). B-8b1
-TEST-only restricted key permission recheck is PR #29, then B-8b2 owner-only
-administration, B-8c authenticated per-transaction money-out approval,
-then B-8 closeout. Do **not** begin C-1 until B-8's required acceptance is
-complete and verified. B-1 through B-7 are merged (#18–#27).
-IN-05 is approved: $500 per Stripe account per Colorado day and independent
-owner approval for every AI money-out; extra approval above the cap.
-IN-06 live activation is still OFF. The owner approval page is not active.
+**Now:** Batch B owner approvals (#35), complete Batch C (#36), and D-1's 17 native TEST customer tools (#37) are merged. **Next:** D-2 payments and refunds. Keep ~500 production lines per coherent PR and require all safety/CI gates. IN-05 maintains $500 per Stripe account per Colorado day, separately authenticated approval for each money-out, and a second approval over cap. IN-06 LIVE activation remains OFF.
 
 ## Order and why
 
@@ -22,7 +15,7 @@ IN-06 live activation is still OFF. The owner approval page is not active.
 | 3 Everyday money and building | D → V → G → H | The everyday Stripe jobs, then the developer tools that make building any project with Stripe fast (test data, cleanup, test events, forwarding, time travel); G and H cover account settings and branding | — |
 | 4 Projects | P → W | Optional project profiles and readiness for any app you build (Appliance Desk is the first example), and the one-sentence jobs | IN-08, IN-09, IN-10 (only for using the Appliance Desk profile for real) |
 | 5 Everything else | U → R | Universal access; the contract doors Robinson's Toolkit (the hub) uses to reach this server | — |
-| 6 Later | E → X | Catalog, Stripe Tax, usage billing and quotes (the universal tools reach them meanwhile); undo and smoke test close out | IN-12 (toolkit decision) |
+| 6 Later | E → X | Catalog, Stripe Tax, usage billing and quotes (the universal tools reach them meanwhile); undo and smoke test close out | — (IN-12 answered: no legacy compatibility) |
 | Live | GO-LIVE-CHECKLIST | Only after Chris authorizes live per account | IN-06 |
 
 ## Implementing agent — paste this
@@ -45,9 +38,9 @@ the approved design; write the card when its predecessor is real.
 | Batch | Cards | Card status |
 |---|---|---|
 | A Foundation | A-1 repo, CI, checks · A-2 schema · A-3 login · A-4 Stripe client + OpenAPI index · A-5 key store, setup page, one-time secrets · A-6 DEPLOY.md | A-1 (#9), A-2 (#10), A-3 (#11/#12), A-4 (#13/#14), A-5 (#15/#16), A-6 (#17): complete |
-| B Trust | B-1 safety + money · B-2 live guard · B-3 app guard · B-4 errors · B-5 shaping · B-6 profiles · B-7 check-writes · B-8 server tools | B-1–B-7 merged (#18–#27); B-8a merged #28; B-8b1 #29 in review; B-8b2/B-8c remain |
-| C Context | C-1 small results · C-2 listing modes + budgets | JIT |
-| D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | JIT |
+| B Trust | B-1 safety + money · B-2 live guard · B-3 app guard · B-4 errors · B-5 shaping · B-6 profiles · B-7 check-writes · B-8 server tools | Complete through #35; LIVE gate remains OFF |
+| C Context | C-1 small results · C-2 listing modes + budgets | Both merged in #36 |
+| D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | D-1 #37 merged; D-2 next |
 | V Developer tools | V-1 seed + runs · V-2 cleanup · V-3 trigger events · V-4 event forwarding · V-5 test clocks, simulation, test cards | JIT |
 | G Money out & account | G-1 balance/payouts/reports · G-2 disputes · G-3 Radar/Identity · G-4 events/webhooks · G-5 account settings · G-6 owner and administration | JIT |
 | H Branding | H-1 branding and setup | JIT |
@@ -56,4 +49,4 @@ the approved design; write the card when its predecessor is real.
 | U Universal | U-1 | JIT |
 | R Hub-ready doors (RTC 1) | R-1 passes · R-2 HTTPS API, manifest, OpenAPI · R-3 conformance in CI | JIT |
 | E Catalog etc. | E-1 … E-4 | JIT |
-| X Close-out | X-1 undo · X-2 smoke test · X-3 toolkit note | JIT |
+| X Close-out | X-1 undo · X-2 smoke test | JIT |

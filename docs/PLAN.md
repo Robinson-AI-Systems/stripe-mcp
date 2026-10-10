@@ -28,17 +28,17 @@ next bounded implementation.
 - [x] `defineWrite` with money spec, dollar preview, always-confirm money out, daily limit, read-back/verify, inverse (internal B-1 #18–#20; owner grant UI and live tools remain gated).
 - [x] Live guard (internal two-step owner intent, no activation), app-owned guard (refund exception), plain-English errors, result shaping and profiles (#21–#26). IN-06 stays OFF.
 - [x] `check-writes` fails on undeclared writes, missing `dryRun`, missing money spec (#27).
-- [ ] Server tools: read-only account-scoped history, connections, actual shared money usage and guided settings done (#28); TEST key permission recheck in #29; owner-only limit/default/revoke, live disable/enable and authenticated money-approval workflow **not yet built/exposed** (B-8b2/B-8c).
+- [x] Server tools through #35: scoped reads, key re-probe, owner limit/default/revoke, LIVE disable and authenticated TEST money approval; LIVE activation still off (IN-06).
 
 ## Batch C — Cheap on context (`designs/BATCH-C.md`)
-- [ ] Summaries, `fields`, `detail`, handles, annotations, structured output.
-- [ ] Catalog and compact listing; meta-tools route through the wrapped handlers.
-- [ ] Budgets enforced in CI: compact <5,000 tokens, everyday catalog <20,000, descriptions ≤160 characters, results ≤8 KB or a handle.
+- [x] Summaries, `fields`, `detail`, handles, annotations, structured output (#36).
+- [x] Catalog and compact listing; meta-tools route through guarded handlers (#36).
+- [x] Budgets enforced in CI: compact <5,000 tokens, everyday catalog <20,000, descriptions ≤160 characters, results ≤8 KB or a handle (#36).
 
 ## Batch D — Everyday money (`designs/BATCH-D.md`)
-- [ ] Every Customers, Payments, Checkout/portal, Subscriptions, Invoices/credit-notes tool in TOOL-CATALOG built and marked.
+- [ ] Customers: all 17 current native tools complete (#37). Remaining D-2 payments/refunds, D-3 checkout/portal, D-4 subscriptions and D-5 invoices/credit notes.
 - [ ] No `client_secret` in any result; setup via hosted Checkout.
-- [ ] Regression tests for audit bugs 1, 3, 4, 5. `docs/TOOLKIT-NAME-MAP.md` complete.
+- [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
 - [ ] Seed scenarios with every created object recorded; cleanup touches only recorded objects.
@@ -75,5 +75,5 @@ next bounded implementation.
 ## Batch E — Catalog, Stripe Tax, usage, quotes (`designs/BATCH-E.md`)
 - [ ] Every listed tool built; profiled apps' catalogs never touched; no legacy usage records.
 
-## Batch X — Undo, smoke test, toolkit decision (`designs/BATCH-X.md`)
-- [ ] Undo for every clean opposite; read-only smoke report on test mode; toolkit decision note delivered.
+## Batch X — Undo and smoke test (`designs/BATCH-X.md`)
+- [ ] Undo for every clean opposite; read-only smoke report on test mode. No toolkit compatibility or retirement decision.

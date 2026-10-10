@@ -1,13 +1,15 @@
 # Tool catalog
 
-**Implementation status (Batch B, 2026-10-10):** Registered server tools
-are currently TEST/read-only. Six server tools are implemented by B-8b1
-(`stripe_whoami`, `stripe_list_accounts`, `stripe_recent_changes`,
-`stripe_list_connections`, `stripe_where_is_setting`, and
-`stripe_check_key_permissions` in #29). The other catalog rows are
-planned until their own cards merge. Guarded write internals exist but
-**no AI-accessible Stripe write or live money operation is enabled**.
-B-8 private owner TEST money approvals shipped in #35; all Stripe provider write doors and LIVE remain disabled (IN-06 OFF). Batch C ships summaries, compact/catalog listing, scoped result handles and the four safe discovery tools in #36. No provider write surface is enabled.
+**Current implementation (2026-10-10):** Protected account tools and
+private owner money consent completed through #35; complete Batch C result
+handles and compact discovery merged #36; all 17 native TEST customer tools
+merged #37 (eight reads, nine `defineWrite-v1` guarded writes). Mutations
+require explicit confirmation, app-owned protection, idempotency, audit and
+read-back. Customer balance credits and debits require separately authenticated
+exact owner approval, even for $0.01. **LIVE remains OFF (IN-06)**. No Stripe
+account, hosted production infrastructure or real provider money action has
+been activated. Remaining catalog rows are planned; legacy compatibility is
+not required.
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
@@ -16,17 +18,15 @@ anything else goes in `docs/ROADMAP.md` and the PR report. Which batch builds ea
 Customers…Invoices D, Catalog/Tax/Usage/quotes E, Developer tools and test clocks V, Money out…Reports G, Branding H, Universal U,
 Project profiles P, Workflows W. When a tool merges, its Origin cell gains `built #<PR>`.
 
-**Origin:** `C` carried over from the toolkit (port to the new conventions),
-`F` carried over and **fixed** (`docs/audits/2026-10-10-existing-stripe-code.md`), `R` restored from the older
-TypeScript versions, `N` new.
+**Origin:** `C`, `F`, and `R` record where a capability was first identified in the historical
+completeness audit (`docs/audits/2026-10-10-existing-stripe-code.md`); `F` also flags a known defect to avoid.
+`N` is newly identified. Origins do **not** require legacy implementations, aliases, or compatibility.
+Build current tools against the pinned official Stripe API.
 **Safety:** `—` reads only · `P` preview available (dryRun) · `C` needs
 `confirm: true` · `C*` needs confirm only for some uses (stated) · `$` moves
 money (dollar preview, daily limit, always confirm).
 **Profile:** `R` read_only and up · `E` everyday and up · `F` full only.
 (Every read tool is in `R`; the column shows the lowest profile that has it.)
-
-Toolkit name mapping: `stripe_list_customers` → `customer_list`, and so on.
-D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new name.
 
 ## Server about itself (`stripe_*`) — 18
 
@@ -54,21 +54,21 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `customer_list` | List customers (by email, created date) | — | C | R |
-| `customer_get` | One customer, with default payment method summary and app record link if any | — | C | R |
-| `customer_search` | Stripe search (`email:`, `name~:`, `metadata['agreementId']:`) | — | C | R |
-| `customer_find` | Plain search: name, email, phone or app ID; tries the right search for you | — | N | R |
-| `customer_create` | New customer | P | C | E |
-| `customer_update` | Name, email, phone, address, description, metadata | P | C | E |
-| `customer_delete` | Delete (cancels their subscriptions; cannot be undone) | C | C | F |
-| `customer_list_payment_methods` | Saved cards and bank accounts (brand, last 4, expiry only) | — | C | R |
-| `customer_get_payment_method` | One payment method | — | C | R |
-| `customer_remove_payment_method` | Detach a saved card or bank account | C | C | E |
-| `customer_set_default_payment_method` | Which saved method pays invoices | P | N | E |
-| `customer_list_balance_transactions` | Account credit/debit history | — | C | R |
-| `customer_add_balance_credit` | Add credit (or a debit) to a customer's balance | $ | F | E |
-| `customer_list_tax_ids` / `customer_add_tax_id` / `customer_delete_tax_id` | Tax IDs | — / P / C | C | E |
-| `customer_remove_discount` | End a customer-level coupon | C | R | E |
+| `customer_list` | List customers (by email, created date) | — | built #37 | R |
+| `customer_get` | One customer, with default payment method summary and app record link if any | — | built #37 | R |
+| `customer_search` | Stripe search (`email:`, `name~:`, `metadata['agreementId']:`) | — | built #37 | R |
+| `customer_find` | Plain search: name, email, phone or app ID; tries the right search for you | — | built #37 | R |
+| `customer_create` | New customer | P | built #37 | E |
+| `customer_update` | Name, email, phone, address, description, metadata | P | built #37 | E |
+| `customer_delete` | Delete (cancels their subscriptions; cannot be undone) | C | built #37 | F |
+| `customer_list_payment_methods` | Saved cards and bank accounts (brand, last 4, expiry only) | — | built #37 | R |
+| `customer_get_payment_method` | One payment method | — | built #37 | R |
+| `customer_remove_payment_method` | Detach a saved card or bank account | C | built #37 | E |
+| `customer_set_default_payment_method` | Which saved method pays invoices | P | built #37 | E |
+| `customer_list_balance_transactions` | Account credit/debit history | — | built #37 | R |
+| `customer_add_balance_credit` | Add credit (or a debit) to a customer's balance | $ | built #37 | E |
+| `customer_list_tax_ids` / `customer_add_tax_id` / `customer_delete_tax_id` | Tax IDs | — / P / C | built #37 | E |
+| `customer_remove_discount` | End a customer-level coupon | C | built #37 | E |
 
 ## Payments and refunds (`payment_*`) — 19
 

@@ -2,13 +2,15 @@ import { createDb } from '../src/db.js';
 import { createMcpHandler } from '../src/core/mcp-server.js';
 import { registry } from '../src/tools/index.js';
 import { createPermissionReprobe } from '../src/keys.js';
+import {createStripeForConnection} from '../src/stripe/provider.js';
 export const config = { api: { bodyParser: true } };
 
 export default async function handler(req, res) {
   try {
     const db = createDb();
     await db.initSchema();
-    return await createMcpHandler({ db, registry, services:{stripePermissionReprobe:createPermissionReprobe({db})} })(req, res);
+    return await createMcpHandler({ db, registry, services:{stripePermissionReprobe:createPermissionReprobe({db}),
+      stripeForConnection:createStripeForConnection({db})} })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
       error: 'temporarily_unavailable', error_description: 'Stripe MCP is not configured or its database is unavailable'

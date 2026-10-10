@@ -1,7 +1,7 @@
-# Design — Batch X: Undo, real-account smoke test, toolkit decision
+# Design — Batch X: Undo and read-only smoke test
 
 Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch X.
-Cards X-1 … X-3.
+Cards X-1 and X-2 only. X-3 was removed by the owner's no-legacy-compatibility decision (DECISIONS, 2026-10-10).
 
 ## 1. Decisions
 
@@ -13,15 +13,11 @@ dispute evidence and deletions have no inverse and say what the right opposite a
 **X2. Smoke test** (`scripts/smoke-readonly.mjs`): every `writes: false` tool with minimal arguments on a **test-mode**
 connection only (refuses live); report `docs/audits/smoke-<date>.md`.
 
-**X3. Toolkit decision note:** one page for Chris — keep Robinson's Toolkit's `stripe` namespace for local development,
-retire it, or point its compound tools at this server; the work each needs. Chris decides (IN-12); a later card does it.
-
 ## 4. Work units
 
 ### X-1 — Undo (M)
 Tests: each clean opposite; money movement refuses with the suggested opposite; undo of an undo.
 ### X-2 — Read-only smoke test (M)
 Done when: report committed; every failure fixed or listed as a known gap.
-### X-3 — Toolkit decision note (S, docs)
 
 ## Amendments

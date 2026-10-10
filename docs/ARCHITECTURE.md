@@ -202,3 +202,18 @@ Indirect calls and batches reuse the same dispatcher, with all provider
 writes default denied (and read_only always protected); batches refuse
 any non-read call. All tool descriptions, schemas, listing sizes and
 100-row default output are checked by pinned gpt-tokenizer budgets.
+
+### Batch D-1 — native TEST customer tools (#37)
+
+The server exposes 17 customer operations: eight read-only plus nine guarded
+`defineWrite-v1` TEST mutations. The OAuth-selected account's encrypted TEST
+key is decrypted only in server memory through `stripeForConnection` and the
+pinned official Stripe SDK. Tool arguments cannot supply a key, choose an
+unrelated account or activate LIVE.
+
+Customer output is allowlisted, including masked saved-method summaries.
+Customer changes require the declared profile, ownership guard, safe preview,
+confirmation, idempotency, audit and read-back. Customer credits also require
+separately authenticated exact-transaction owner approval and the shared daily
+spending cap. `stripe_call` reuses the direct dispatcher; `stripe_batch`
+remains read-only. No legacy agent names, aliases or adapters are built.

@@ -87,3 +87,14 @@ record. Authorization is single-use, amount-bound, idempotency-key-bound, expire
 consumed under the same serialized DB transaction as the money reservation. Until the
 authenticated approval UI is wired in a later card, money writes stay unavailable. IN-06
 live activation remains separately unapproved.
+
+**2026-10-10 — No legacy toolkit compatibility; prior toolkits are completeness checklists (Chris).**
+The older Robinson's Toolkit and related Stripe tool inventories were reviewed only to make sure this
+standalone Stripe MCP includes as much **current** Stripe functionality as possible. Build the complete
+modern toolset against the pinned official Stripe API and native security model; do **not** build old-agent
+compatibility, old toolkit name aliases, adapters, deprecated APIs, migration shims or integrations whose
+only purpose is keeping retired systems working. Removed the old-name map from D-1, the X-3 toolkit
+retirement/relay decision note, and the IN-12 follow-up (answered **not needed**). Keep the historical
+Stripe-code audit as provenance and a feature-completeness checklist, not as a list of legacy interfaces
+to reproduce. This does not change the scope of the approved current tool catalog, RTC 1, any live-mode
+or owner-money approval gate, or the standalone-first architecture.

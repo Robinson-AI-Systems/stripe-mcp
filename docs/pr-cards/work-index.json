@@ -313,20 +313,20 @@
     },
     {
       "id": "D-1",
-      "title": "Customers and toolkit name map",
+      "title": "Current native customer tools",
       "batch": "D",
       "design": "docs/designs/BATCH-D.md",
       "dependencies": [
         "C-2"
       ],
       "card": "docs/pr-cards/D-1.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "D-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -1045,24 +1045,6 @@
       "budget": 250,
       "units": [
         "X-2"
-      ],
-      "readiness": "WRITE_CARD_AT_START",
-      "ownerInputs": []
-    },
-    {
-      "id": "X-3",
-      "title": "Toolkit decision note",
-      "batch": "X",
-      "design": "docs/designs/BATCH-X.md",
-      "dependencies": [
-        "X-2"
-      ],
-      "card": "docs/pr-cards/X-3.md",
-      "status": "APPROVED",
-      "migration": "none",
-      "budget": 0,
-      "units": [
-        "X-3"
       ],
       "readiness": "WRITE_CARD_AT_START",
       "ownerInputs": []

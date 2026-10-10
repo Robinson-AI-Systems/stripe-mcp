@@ -33,6 +33,10 @@ it does not work yet. This file is updated as features ship.
 | "Help me fight this dispute." | Gathers the evidence, drafts it, lists what you must add before the deadline | W |
 | "Find the Stripe tool that can check customer subscriptions." | Uses compact tool search to discover the right safe tool without loading hundreds of tool schemas | C-2 / #36 |
 | "Check my account and recent changes together." | Runs a short batch of up to ten read-only requests with the same connection restrictions as direct calls | C-2 / #36 |
+| "Find this TEST customer by name or email." | Current native customer finder with pagination and safe summaries, without legacy aliases | D-1 / #37 |
+| "Show saved cards and banks for this customer." | Only masked payment method details; no card numbers or secrets | D-1 / #37 |
+| "Update this customer's TEST contact details." | Protected preview, explicit confirm and app-owned-record restriction | D-1 / #37 |
+| "Give this customer a TEST credit." | Independent exact owner confirmation and shared daily money guard are required | D-1 / #37 |
 | "Get the next page of that large Stripe result." | When a read exceeds 8 KB, the server gives a private result handle; this tool retrieves short pages through the same authenticated connection, never another agent’s connection | C-1 / #36 |
 | "What changed in Stripe through Claude recently?" | Read the authenticated account's safely paged, TEST-mode change summaries (no raw snapshots); advanced filtering is still planned | B-8a |
 | "Undo that." | Reverses the last change when it has a clean opposite; says plainly when it doesn't | X |

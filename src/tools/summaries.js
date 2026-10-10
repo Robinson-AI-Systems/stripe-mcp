@@ -2,7 +2,12 @@
 // Never copy an unlisted object property into the default summary.
 const FIELDS=Object.freeze({
   customer:['id','object','name','email','phone','balance','balance_display',
-    'currency','created','created_local','metadata','appRecord'],
+    'currency','created','created_local','metadata','description',
+    'defaultPaymentMethod','defaultPaymentMethodSummary','address','appRecord'],
+  payment_method:['id','object','type','customer','brand','last4','expires','bankName'],
+  tax_id:['id','object','type','value','verification'],
+  customer_balance_transaction:['id','object','amount','currency','type',
+    'description','created_local'],
   charge:['id','object','amount','amount_display','currency','status','paid',
     'refunded','created_local','customer','payment_method_details','appRecord'],
   payment_intent:['id','object','amount','amount_display','currency','status',
