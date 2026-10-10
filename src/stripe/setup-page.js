@@ -162,10 +162,11 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '; Stripe-derived target: ' + escapeHtml(moneyDecisionIntent.target) +
       '; amount: <strong>' + escapeHtml(usd(Number(moneyDecisionIntent.amount_cents))) +
       ' USD</strong>; mode: TEST; request key: ' + escapeHtml(moneyDecisionIntent.request_key) +
-      '; approval expires: ' + escapeHtml(new Intl.DateTimeFormat('en-US',{
+      '; preview must be confirmed before: ' + escapeHtml(new Intl.DateTimeFormat('en-US',{
         timeZone:'America/Denver',dateStyle:'medium',timeStyle:'short'
-      }).format(new Date(moneyDecisionIntent.expires_at))) +
-      '.</p><p>' + (moneyDecisionIntent.kind === 'override' ?
+      }).format(new Date(Math.min(new Date(moneyDecisionIntent.expires_at).getTime(),
+        new Date(moneyDecisionIntent.request_expires_at).getTime())))) +
+      ' (earliest request or preview expiry). Once approved, the transaction authorization is usable for at most 10 minutes after confirmation and never beyond the original request expiry.</p><p>' + (moneyDecisionIntent.kind === 'override' ?
         'This is a SECOND separate owner confirmation for spending above the account daily cap. It does not change the standing limit.' :
         'This approval alone permits no operation above the daily cap; that would need a separate owner override.') +
       ' No Stripe money moves through this page.</p>' +
