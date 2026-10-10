@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-5 staged behind B-4:** result formatting for USD/JPY, Colorado-local dates, nested secrets and LIVE banner, with actual read/write boundary integration and isolated unit tests. No live money enabled.
+
 - **B-4 in progress (PR #24):** plain-English Stripe errors integrated with the read-only MCP and guarded write adapter, retaining all B-3 ownership fixes. Next verify CI and reviews, merge, then B-5 result formatting. No new external money/live operations.
 
 - **B-3 completed in PR #23:** app-owned Stripe object guard is staged on `ai/gpt6/b-3-app-owned-record-guard` after B-2 (#21/#22). It denies changes to Appliance Desk-owned records unless explicitly overridden and allows the documented refund exception only through mandatory owner money consent. No tools registered or live money enabled. Next: B-4 plain-English errors (draft PR #24).
