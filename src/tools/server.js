@@ -2,13 +2,16 @@
 import { STRIPE_API_VERSION } from '../stripe/client.js';
 import { whereIsSetting } from '../data/dashboard-map.js';
 import { denverLocalTime } from './util.js';
+import { resultPage } from './result-rules.js';
 const schema = { type: 'object', properties: {}, additionalProperties: false };
 const profiles = ['read_only','everyday','full'];
 export const tools = [
   { name:'stripe_whoami', description:'Read selected Stripe account, profile, masked key, API version and limit.',
     inputSchema:schema, annotations:{readOnlyHint:true}, writes:false, profiles },
   { name:'stripe_list_accounts', description:'List connected Stripe accounts and configured modes, without keys.',
-    inputSchema:schema, annotations:{readOnlyHint:true}, writes:false, profiles },
+    inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:100},
+      offset:{type:'integer',minimum:0}},additionalProperties:false},
+    annotations:{readOnlyHint:true},writes:false,profiles },
   { name:'stripe_check_key_permissions', description:'Recheck TEST key read permissions without revealing the Stripe key.',
     inputSchema:{type:'object',properties:{
       fields:{type:'array',items:{type:'string',enum:['account','mode','permissions','checkedAt','source']},
@@ -24,11 +27,18 @@ export const tools = [
     inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:50},
       offset:{type:'integer',minimum:0}},
       additionalProperties:false},annotations:{readOnlyHint:true},writes:false,profiles },
+  { name:'stripe_get_result', description:'Read a saved, paged Stripe result belonging only to this authenticated connection.',
+    inputSchema:{type:'object',properties:{
+      handle:{type:'string',pattern:'^res_[A-Za-z0-9_-]{24,48}$'},
+      page:{type:'integer',minimum:0},
+      fields:{type:'string',maxLength:600}
+    },required:['handle'],additionalProperties:false},
+    annotations:{readOnlyHint:true},writes:false,profiles },
   { name:'stripe_where_is_setting', description:'Find owner-only Stripe Dashboard settings with clear steps, not API writes.',
     inputSchema:{type:'object',properties:{setting:{type:'string'}},
       required:['setting'],additionalProperties:false},annotations:{readOnlyHint:true},
     writes:false,profiles }
-];
+].map(tool=>({...tool,area:'server'}));
 const ok = value => ({ content:[{type:'text',text:JSON.stringify(value)}] });
 const MAX_PAGE_BYTES=6200; // Leaves room for the shared output shaper.
 const safeCents=value=>{
@@ -73,6 +83,19 @@ function pageOf(rows,{account,offset,limit,field,extra={}}) {
 }
 const fail = value => ({ isError:true,content:[{type:'text',text:value}] });
 export const handlers = {
+  async stripe_get_result(args,{db,connection}) {
+    if(!connection?.resultScope||typeof db?.getScopedResult!=='function')
+      return fail('Private result storage is not configured for this connection');
+    const found=await db.getScopedResult({handle:args?.handle,
+      connection:connection.resultScope});
+    if(!found)return fail('Result missing, expired, or belongs to another connection');
+    try {
+      return ok({handle:args.handle,summary:found.summary,
+        ...resultPage(found.body,args.page??0,args.fields)});
+    } catch {
+      return fail('Choose a valid page and up to twelve safe dotted fields');
+    }
+  },
   async stripe_whoami(_args,{db,connection}) {
     if (!connection.stripeAccount) return fail('No Stripe account is selected for this connection');
     const row = await db.getStripeAccount(connection.stripeAccount);
@@ -89,11 +112,19 @@ export const handlers = {
       moneyTrackingStatus:usage ? 'Shared account-wide daily total' : 'Not available',
       liveEnabled:row.live_enabled === true});
   },
-  async stripe_list_accounts(_args,{db}) {
+  async stripe_list_accounts(args,{db}) {
+    const limit=args?.limit??20,offset=args?.offset??0;
+    if(!Number.isInteger(limit)||limit<1||limit>100||
+       !Number.isInteger(offset)||offset<0||offset>1000000)
+      return fail('Choose a page size of 1 to 100 and a valid offset');
     const rows = await db.listStripeAccounts();
-    return ok({accounts:rows.map(row=>({account:row.id,label:row.label,isDefault:row.is_default===true,
+    const hasMore=rows.length>offset+limit;
+    return ok({accounts:rows.slice(offset,offset+limit).map(row=>({
+      account:row.id,label:row.label,isDefault:row.is_default===true,
       testConfigured:row.test_connected===true,liveConfigured:row.live_connected===true,
-      liveEnabled:row.live_enabled===true}))});
+      liveEnabled:row.live_enabled===true})),
+      hasMore,nextOffset:hasMore?offset+limit:null,
+      pageHint:hasMore?'Use nextOffset as offset to read the next page':null});
   },
   async stripe_check_key_permissions(args,{connection,services}) {
     const permissionProbe=services?.stripePermissionReprobe;

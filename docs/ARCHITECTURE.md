@@ -22,19 +22,20 @@ here with its environments when A-5 ships. Never record values.
 
 ## Database tables
 
-A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **fifteen tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
+A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **sixteen tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
 
 | Table | Purpose |
 |---|---|
 | `stripe_accounts` | Per-account labels, encrypted key slots, live-mode gate and money limit |
 | `oauth_clients` | Client registrations |
 | `oauth_codes` | Expiring one-time login codes and connection scope |
-| `oauth_tokens` | Hashed access/refresh credentials and exact account/mode/profile/listing |
+| `oauth_tokens` | Hashed access/refresh credentials, exact account/mode/profile/listing and a server-generated opaque `result_scope` stable across token refresh |
 | `login_attempts` | Auditable sign-in attempts and future lockout |
 | `change_log` | Preview/confirm/read-back audit history and future undo links |
 | `one_time_secrets` | Only ciphertext, expiry and single-view record |
 | `money_reservations` | Durable, per-account aggregate money-out reservation across ALL AI connections, Denver day, idempotency and conservative spend status (B-1) |
 | `money_approvals` | Single-use authenticated owner grant per money-out request, with separate above-limit owner override (B-1) |
+| `result_store` | C-1 redacted 24-hour JSON read results, indexed by opaque handle and single OAuth-row scope; bounded expiry cleanup |
 | `owner_money_decision_intents` | B-8c2 private TEST-only, short-lived exact provider-derived transaction snapshots; consumed with an atomic owner grant and change-log audit; never agent-facing |
 | `live_enable_intents` | Expiring, atomic owner live-enable intent, not usable while IN-06 is OFF (B-2) |
 | `owner_revoke_intents` | One-time private owner intent bound to a specific Stripe account and AI connection, expiring after ten minutes; consumed with atomic token revocation and audit (B-8b2a) |
@@ -182,3 +183,22 @@ list via protected POST, exact account-scoped, escaped account/tool/target/
 request/amount/expiry fields, actual Colorado-day shared usage and dollar
 limit. No payment or owner approval button exists. This stage DOES NOT
 expose real Stripe write handlers or grant owner spending authority.
+
+### Batch C — compact search and isolated result handles (#36)
+
+Every OAuth connector gets a server-created `result_scope` on the hashed
+token row, stable when the access/refresh hashes rotate but distinct even
+across rows sharing an AI client ID. `result_store` keeps *redacted* JSON
+in bounded UTF-8 fragments for 24 hours. Retrieval through
+`stripe_get_result` requires the same authenticated OAuth row's scope;
+expired handles and cross-connection requests are denied.
+
+Catalog listing is available to Claude AI clients; other clients default
+to compact. An owner can explicitly choose either mode during authorization,
+and `?listing=` overrides **presentation only**, never profile permissions.
+`stripe_search_tools`, `stripe_describe_tool`, `stripe_call`, and
+`stripe_batch` are server-owned progressive-disclosure tools.
+Indirect calls and batches reuse the same dispatcher, with all provider
+writes default denied (and read_only always protected); batches refuse
+any non-read call. All tool descriptions, schemas, listing sizes and
+100-row default output are checked by pinned gpt-tokenizer budgets.

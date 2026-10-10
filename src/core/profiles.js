@@ -15,7 +15,30 @@ export function profileCounts(registry,options={}) {
   return Object.fromEntries(CONNECTION_PROFILES.map(profile=>
     [profile,visibleTools(registry,profile,options).length]));
 }
+const compactNames=new Set(['stripe_whoami','stripe_search_tools',
+  'stripe_describe_tool','stripe_call','stripe_batch','stripe_get_result']);
+export function listingForConnection(registry,connection,override){
+  // Listing cannot change the account, profile or read/write eligibility.
+  const mode=['compact','catalog'].includes(override)?override:connection?.listing;
+  const available=visibleTools(registry,connection?.profile);
+  return mode==='compact'?available.filter(t=>compactNames.has(t.name)||
+    t.name==='api_search'||t.name.startsWith('workflow_')):available;
+}
 export function publicToolInfo(tool) {
-  const {writes:_writes,profiles:_profiles,...rest}=tool;
-  return rest;
+  const {writes:_writes,profiles:_profiles,area:_area,...rest}=tool;
+  const schema=rest.inputSchema||{type:'object',properties:{},additionalProperties:false};
+  const properties={...schema.properties};
+  // Keep legacy specialist shapes unchanged. Generic read tools gain the
+  // standard detail and dotted-field controls without hand-editing each tool.
+  if(tool.writes===false){
+    if(!Object.hasOwn(properties,'detail'))properties.detail={
+      type:'string',enum:['summary','full'],description:'Summary by default; full retains all safe fields'};
+    if(!Object.hasOwn(properties,'fields'))properties.fields={
+      type:'string',maxLength:600,description:'Up to 12 comma-separated dotted field paths'};
+  }
+  return {...rest,inputSchema:{...schema,properties},
+    annotations:{...rest.annotations,readOnlyHint:tool.writes===false,
+      destructiveHint:tool.writes===true ? rest.annotations?.destructiveHint!==false : false,
+      idempotentHint:tool.writes===false,
+      openWorldHint:true}};
 }

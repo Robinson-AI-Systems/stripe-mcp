@@ -1,6 +1,7 @@
 // Test-only fake that mirrors the A-2 schema and A-3 OAuth store behavior.
 import { SCHEMA_TABLES, connectionSettings } from '../../src/db.js';
 import { hashToken } from '../../src/core/oauth.js';
+import { randomUUID } from 'node:crypto';
 
 export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const rows = new Map();
@@ -15,6 +16,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const audit = [];
   const reservations = [];
   const approvals = [];
+  const results = new Map();
   const decisionIntents = [];
   const liveIntents = [];
   const revokeIntents = [];
@@ -47,7 +49,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     },
     async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
       mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 3600 }) {
-      tokens.set(hashToken(accessToken), { token_hash: hashToken(accessToken),
+      tokens.set(hashToken(accessToken), { result_scope:randomUUID(),token_hash: hashToken(accessToken),
         refresh_hash: refreshToken ? hashToken(refreshToken) : null, client_id: clientId,
         stripe_account: stripeAccount, mode, profile, listing, kind: 'connector',
         expires_at: clock() + ttlSeconds * 1000, revoked_at: null });
@@ -56,6 +58,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const row = tokens.get(hashToken(accessToken));
       if (!row || row.revoked_at || row.expires_at <= clock()) return null;
       return { client_id: row.client_id, ...connectionSettings(row), kind: row.kind,
+        result_scope:row.result_scope,
         expires_at: new Date(row.expires_at), revoked_at: null };
     },
     async getTokenByRefreshToken(refreshToken) {
@@ -453,6 +456,26 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return { used_cents: reservations.filter(r => r.account === account &&
         r.day === day && r.state !== 'rejected').reduce((sum, r) => sum + r.amountCents,0),
         limit_cents: row.money_limit_cents ?? 50000 };
+    },
+
+    async putScopedResult({handle,connection,body,summary,expiresAt}){
+      if(typeof handle!=='string'||!/^res_[A-Za-z0-9_-]{24,48}$/.test(handle)||
+        typeof connection!=='string'||!/^[0-9a-f-]{36}$/.test(connection)||
+        !body||typeof body!=='object'||typeof summary!=='string'||
+        summary.length>200||!(expiresAt instanceof Date)||
+        expiresAt.getTime()<=clock()||expiresAt.getTime()>clock()+86400000)
+        throw new TypeError('Valid scoped handle required');
+      for(const [id,row] of results)if(row.expiresAt<=clock())results.delete(id);
+      if(results.has(handle))throw new Error('Handle collision');
+      results.set(handle,{connection,body:structuredClone(body),summary,expiresAt:expiresAt.getTime()});
+    },
+    async getScopedResult({handle,connection}){
+      if(typeof handle!=='string'||!/^res_[A-Za-z0-9_-]{24,48}$/.test(handle)||
+        typeof connection!=='string'||!/^[0-9a-f-]{36}$/.test(connection))return null;
+      const r=results.get(handle);
+      if(!r||r.connection!==connection||r.expiresAt<=clock())return null;
+      return {summary:r.summary,body:structuredClone(r.body),
+        expires_at:new Date(r.expiresAt)};
     },
     async listRecentChanges({account,mode=null,limit=20,offset=0}) {
       if (!account || (mode!==null&&!['test','live'].includes(mode)) ||

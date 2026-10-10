@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store'
 ]);
 
 let productionSql;
@@ -65,7 +65,7 @@ export function createDb(sql = getProductionSql()) {
     },
     async getAccessToken(accessToken) {
       if (typeof accessToken !== 'string' || !accessToken) return null;
-      const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing, kind,
+      const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing, kind, result_scope,
         expires_at, revoked_at FROM oauth_tokens WHERE token_hash = ${hashToken(accessToken)}
         AND expires_at > now() AND revoked_at IS NULL AND kind = 'connector'`;
       return rows[0] || null;
@@ -559,6 +559,31 @@ export function createDb(sql = getProductionSql()) {
         WHERE a.id = ${account} GROUP BY a.money_limit_cents`;
       return rows[0] || null;
     },
+
+    // A private handle belongs to one stable OAuth connection record. The
+    // opaque result_scope is created server-side and survives refresh rotation.
+    async putScopedResult({handle,connection,body,summary,expiresAt}) {
+      if(typeof handle!=='string'||!/^res_[A-Za-z0-9_-]{24,48}$/.test(handle)||
+        typeof connection!=='string'||!/^[0-9a-f-]{36}$/.test(connection)||
+        typeof summary!=='string'||summary.length>200||!body||typeof body!=='object'||
+        !(expiresAt instanceof Date)||!Number.isFinite(expiresAt.getTime())||
+        expiresAt.getTime()<=Date.now()||
+        expiresAt.getTime()>Date.now()+86400000) throw new TypeError('Valid scoped result required');
+      await sql`WITH expired AS (
+        SELECT handle FROM result_store WHERE expires_at<=now()
+        ORDER BY expires_at LIMIT 100
+      ), cleaned AS (DELETE FROM result_store WHERE handle IN (SELECT handle FROM expired))
+      INSERT INTO result_store(handle,connection,summary,body,expires_at)
+      VALUES (${handle},${connection},${summary},${JSON.stringify(body)}::jsonb,${expiresAt})`;
+    },
+    async getScopedResult({handle,connection}) {
+      if(typeof handle!=='string'||!/^res_[A-Za-z0-9_-]{24,48}$/.test(handle)||
+        typeof connection!=='string'||!/^[0-9a-f-]{36}$/.test(connection))return null;
+      const rows=await sql`SELECT summary,body,expires_at FROM result_store
+        WHERE handle=${handle} AND connection=${connection}
+          AND expires_at>now()`;
+      return rows[0]||null;
+    },
     async listRecentChanges({ account, mode = null, limit = 20, offset = 0 }) {
       if (typeof account !== 'string' || !account ||
           (mode !== null && !['test','live'].includes(mode)) ||
@@ -643,11 +668,27 @@ export function createDb(sql = getProductionSql()) {
         profile TEXT NOT NULL DEFAULT 'everyday',
         listing TEXT NOT NULL DEFAULT 'catalog',
         kind TEXT NOT NULL DEFAULT 'connector',
+        result_scope TEXT NOT NULL DEFAULT gen_random_uuid()::text,
         expires_at TIMESTAMPTZ,
         last_used_at TIMESTAMPTZ,
         revoked_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
+      // Older OAuth connections receive one stable, opaque result scope.
+      await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS
+        result_scope TEXT NOT NULL DEFAULT gen_random_uuid()::text`;
+      await sql`CREATE TABLE IF NOT EXISTS result_store (
+        handle TEXT PRIMARY KEY,
+        connection TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        summary TEXT NOT NULL,
+        body JSONB NOT NULL
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS result_store_expires
+        ON result_store(expires_at)`;
+      await sql`CREATE INDEX IF NOT EXISTS result_store_scope
+        ON result_store(connection,expires_at)`;
       await sql`CREATE TABLE IF NOT EXISTS login_attempts (
         id BIGSERIAL PRIMARY KEY,
         ip TEXT NOT NULL,

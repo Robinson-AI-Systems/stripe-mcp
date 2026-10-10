@@ -6,7 +6,8 @@ describe('tool registry', () => {
   it('registers only the intended safe metadata/audit readers', () => {
     expect(registry.tools.map(t => t.name)).toEqual([
       'stripe_whoami', 'stripe_list_accounts', 'stripe_check_key_permissions', 'stripe_recent_changes',
-      'stripe_list_connections', 'stripe_where_is_setting'
+      'stripe_list_connections', 'stripe_get_result', 'stripe_where_is_setting',
+      'stripe_search_tools', 'stripe_describe_tool', 'stripe_call', 'stripe_batch'
     ]);
     expect(registry.tools.every(t => t.writes === false)).toBe(true);
   });

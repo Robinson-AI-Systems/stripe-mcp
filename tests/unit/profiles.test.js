@@ -44,7 +44,9 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
   });
   it('never publishes internal capability metadata with listed tools',()=>{
     const tool={name:'read',writes:false,profiles:['read_only'],description:'safe'};
-    expect(publicToolInfo(tool)).toEqual({name:'read',description:'safe'});
+    expect(publicToolInfo(tool)).toMatchObject({name:'read',description:'safe',
+      annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true}});
+    expect(publicToolInfo(tool)).not.toHaveProperty('writes');
     expect(tool.writes).toBe(false);
   });
   it('hidden tools cannot be invoked by guessing their exact registered names',async()=>{
@@ -65,7 +67,7 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const res={setHeader:()=>{},status:(code)=>{expect(code).toBe(200);return res;},
       json:value=>{body=value;return res;}};
     home({},res);
-    expect(body.profileToolCounts).toEqual({read_only:6,everyday:6,full:6});
-    expect(body.tools).toBe(6);
+    expect(body.profileToolCounts).toEqual({read_only:11,everyday:11,full:11});
+    expect(body.tools).toBe(11);
   });
 });
