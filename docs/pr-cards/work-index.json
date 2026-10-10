@@ -43,13 +43,13 @@
         "A-1"
       ],
       "card": "docs/pr-cards/A-2.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "foundation",
       "budget": 250,
       "units": [
         "A-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
