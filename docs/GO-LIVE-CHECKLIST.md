@@ -53,6 +53,8 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
 
 ## Money-out owner authorization gate (IN-05, 2026-10-10)
 
+B-8c2 implements two independently password-authenticated TEST-only owner confirmation actions on the private setup page. Verify all following items on the eventual authorized deployment before ticking them; the feature is NOT deployed, and AI provider money tools remain off.
+
 - [ ] Owner-only authenticated browser page lists exact account, tool, Stripe-derived
       amount, target/destination and request key for pending money-out operations.
 - [ ] Owner must affirm each transaction individually, even for $0.01.
