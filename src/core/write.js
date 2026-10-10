@@ -90,7 +90,7 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     // closed, a previous duplicate or rejected limit is never executed again.
     if (beforeApply) {
       let decision;
-      try { decision = await beforeApply({ ctx, args, before, key, prepared }); }
+      try { decision = await beforeApply({ ctx, args, before, key, prepared, tool: name }); }
       catch { return respond({ done: false, error: 'Money safety check unavailable: action refused' }, true); }
       if (decision?.accepted !== true) {
         return respond({ done: false, error: decision?.reason || 'Safety check denied this action' }, true);

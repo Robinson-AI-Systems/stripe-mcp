@@ -24,8 +24,10 @@ export function idempotencyKey(ctx, tool, args = {}, { now = Date.now() } = {}) 
   if (requestKey !== undefined && (typeof requestKey !== 'string' || !requestKey || requestKey.length > 128)) {
     throw new TypeError('requestKey must be 1 to 128 characters');
   }
-  const selected = requestKey ? ['request',requestKey] : ['args',canonical(Object.fromEntries(
-    Object.entries(args).filter(([k]) => !OMIT.has(k)))),Math.floor(now / 600000)];
+  const payload = canonical(Object.fromEntries(Object.entries(args).filter(([k]) => !OMIT.has(k))));
+  // An explicit requestKey stabilizes retries, but cannot authorize a different
+  // customer, target, destination or amount with the same owner's approval.
+  const selected = requestKey ? ['request',requestKey,payload] : ['args',payload,Math.floor(now / 600000)];
   return 'rmcp_' + tool + '_' + digest([account,ctx.mode,tool,...selected]);
 }
 export function makeStripeClient({ key, mode }, testOptions = {}) {

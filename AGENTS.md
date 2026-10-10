@@ -72,6 +72,7 @@ burned by overclaiming. A passing typecheck, a screenshot or a plan is not evide
 
 - Using a **live** Stripe key, enabling live mode, or any write in live mode — including from tests or scripts.
 - Moving real money in any mode outside a test: refunds, payouts, transfers, charges.
+- Any AI-initiated money-out needs a distinct, independently authenticated owner approval for the exact Stripe account, target and amount, even below $500. Spending that exceeds the shared $500/account/Colorado-day budget requires a second separate owner override for that same transaction. An AI `confirm`, context flag, pass or MCP argument is never owner consent. Keep money tools unexposed until B-8's secure approval page is verified.
 - Buying anything (Stripe add-ons, domains, Vercel/Neon plans).
 - Putting any secret (Stripe key, webhook secret, passphrase, encryption key, pass, GitHub token) in code, docs,
   tests, logs, PR text or a tool result. Fake keys only: `sk_test_FAKE…`, `rk_test_FAKE…`.

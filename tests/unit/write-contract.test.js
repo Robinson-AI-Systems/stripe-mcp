@@ -3,6 +3,7 @@ import { runWriteContract } from '../helpers/write-contract.js';
 import { defineWrite } from '../../src/tools/write.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
 import { formatUsd } from '../../src/money.js';
+import { idempotencyKey } from '../../src/stripe/client.js';
 runWriteContract({withMoney:false});
 runWriteContract({withMoney:true});
 // The same seven checks must work with a supplied real write tool, not just
@@ -54,10 +55,13 @@ describe('owner gate and currency hardening', () => {
       apply:async()=>{attempts++;throw rejected;},
       readAfter:async()=>{throw new Error('Read after rejection should not happen');},
       verify:async()=>false });
-    const ctx={ db, connectionId:'personal-fixture', moneyPolicyApproved:true,
-      connection:{stripeAccount:'acct_fixture',mode:'test',profile:'full'} };
+    const ctx={ db, connectionId:'personal-fixture',       connection:{stripeAccount:'acct_fixture',mode:'test',profile:'full'} };
     const parse=r=>JSON.parse(r.content[0].text);
-    const res=parse(await op.handler({confirm:true,requestKey:'declined-once'},ctx));
+    const input={confirm:true,requestKey:'declined-once'};
+    expect(parse(await op.handler(input,ctx)).error).toMatch(/explicit approval/);
+    expect(await db.approveMoneyRequest({account:'acct_fixture',
+      idempotencyKey:idempotencyKey(ctx.connection,op.tool.name,input)})).toBe(true);
+    const res=parse(await op.handler(input,ctx));
     expect(res.done).toBe(false);
     expect(res.warning).toMatch(/definitively rejected/);
     expect((await db.getMoneyUsage({account:'acct_fixture',connection:'personal-fixture'})).used_cents).toBe(0);
@@ -71,9 +75,13 @@ describe('owner gate and currency hardening', () => {
       summarize:async()=> 'Payout fake balance. TEST MODE.',
       money:async(_a,_c,b)=>({amountCents:b.cents,currency:'usd',direction:'out',description:'Payout'}),
       apply:async()=>{throw new Error('ECONNRESET');},readAfter:async()=>({}),verify:async()=>false});
-    const ctx={db,connectionId:'owner',moneyPolicyApproved:true,
+    const ctx={db,connectionId:'owner',
       connection:{stripeAccount:'acct_fixture',mode:'test',profile:'full'}};
-    const r=await op.handler({confirm:true,requestKey:'network-error'},ctx);
+    const input={confirm:true,requestKey:'network-error'};
+    expect(JSON.parse((await op.handler(input,ctx)).content[0].text).error).toMatch(/explicit approval/);
+    expect(await db.approveMoneyRequest({account:'acct_fixture',
+      idempotencyKey:idempotencyKey(ctx.connection,op.tool.name,input)})).toBe(true);
+    const r=await op.handler(input,ctx);
     expect(JSON.parse(r.content[0].text).done).toBe(false);
     expect((await db.getMoneyUsage({account:'acct_fixture',connection:'owner'})).used_cents).toBe(8500);
   });

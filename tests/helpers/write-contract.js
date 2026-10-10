@@ -2,6 +2,7 @@
 // Never calls real Stripe; all provider behavior and audit persistence are injected.
 import { describe, expect, it } from 'vitest';
 import { defineWrite } from '../../src/tools/write.js';
+import { idempotencyKey } from '../../src/stripe/client.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
 
 const parse = r => JSON.parse(r.content[0].text);
@@ -20,7 +21,7 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
       if (typeof actual?.handler !== 'function') throw new TypeError('Supplied tool must expose its real handler');
       return { ...built, op: {
         ...actual,
-        handler: (input, ctx) => actual.handler({ ...args, ...input }, ctx)
+        handler: (input, connectionCtx = built.ctx) => execute(actual, { ...args, ...input }, connectionCtx, built.db, approved)
       } };
     }
     const provider = { writes: [], afterCalls: 0 };
@@ -43,7 +44,25 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
       verify: async (_before, after) => after.status === 'after',
       inverse: async () => ({ tool: 'stripe_fixture_restore', args: { id: 'record' } })
     });
-    return { provider, db, ctx, op };
+    return { provider, db, ctx, op: {
+      ...op, handler: (input, connectionCtx = ctx) => execute(op, input, connectionCtx, db, approved)
+    } };
+  }
+  // Test harness models two distinct actions: agent requests a transaction,
+  // then an independently authenticated owner would approve it. The fake DB
+  // test approval is never exposed through the production tool handler.
+  async function execute(op, input, ctx, db, approved) {
+    if (!withMoney || input.confirm !== true || input.dryRun === true) {
+      return op.handler(input, ctx);
+    }
+    const first = await op.handler(input, ctx);
+    if (!approved || !/explicit approval is required/.test(parse(first).error || '')) return first;
+    const key = idempotencyKey(ctx.connection, op.tool.name, input);
+    const granted = await db.approveMoneyRequest({
+      account:ctx.connection.stripeAccount, idempotencyKey:key
+    });
+    if (!granted) throw new Error('Test fixture could not simulate owner authorization');
+    return op.handler(input, ctx);
   }
   describe('seven-case write contract: ' + title, () => {
     it('1. dryRun returns a truthful preview; never applies or reserves', async () => {

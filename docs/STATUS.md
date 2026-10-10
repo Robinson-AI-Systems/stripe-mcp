@@ -5,8 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-2 stacked preparation:** Draft PR #21 on `ai/gpt6/b-2-live-write-boundary` contains default-deny LIVE write guard, isolated tests and no exposed live tools. It is stacked on open #20; do not merge while the money-policy approval is pending.
-- **B-1b2 complete in PR #20, approval-gated:** all five CI jobs are green at head 2b52261 (run 38079454910), with two P1 review findings addressed and resolved; the PR intentionally remains OPEN. **IN-05 is unanswered** — the owner must choose the default daily money-out limit per connection ($500/day recommended) before the PR can merge. B-1 is NOT marked complete and no write tool is exposed.
+- **B-2 in progress, stacked PR #21 reconciled to merged B-1:** default-deny LIVE write guard, owner-only account state verification, ten-minute reauthentication predicate and fake-provider tests. Neither live activation nor Stripe money tools are exposed. Continue B-2 owner activation design without enabling it (IN-06 remains OFF). **B-1/#20 is MERGED**, IN-05 is approved.
+- **Next B-2:** PR #20 B-1 safety foundation has completed and is being merged. Owner IN-05 is approved: $500 USD per Stripe account per Colorado day, pooled across connections; an authenticated owner decision is mandatory for every AI money-out, plus a separate exact-transaction override above the budget. Owner approval browser UI is NOT active, so spending stays disabled. B-2 preparatory live guard is in draft PR #21, stacked on #20; sync it after #20 merges. No Stripe account/deployment/live mode configured.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -18,6 +18,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — B-1b2 owner-approved policy and guarded write foundation (PR #20):** internal seven-case write contract and Stripe-derived USD preview; account-wide, cross-connection $500 cap; owner-approved one-use request required for every money-out; separate auditable over-limit owner action; atomic PostgreSQL reservation; rejected-versus-uncertain outcomes. Exact-head CI verified; no money-moving tool exposed. Owner browser approval B-8 and live enable IN-06 remain off.
 
 **2026-10-10 — B-1b1 money reservation ledger (PR #19):** one additive table and database-serialized account lock for per-connection money-out reservation in America/Denver days. Conservative uncertain/confirmed statuses count against usage; no money operations exposed. B-1b2 follows.
 
