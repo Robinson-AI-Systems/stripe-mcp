@@ -120,7 +120,8 @@ page. Money is shown in dollars and cents; stored in integer cents.
 - **The `ci` check is the single merge gate**, green at the exact head.
 - **Review:** read `docs/AI-PR-READ-FIRST.md` for anything touching money, keys, guards, auth or passes, and
   record how each applicable constraint is honored. **This repo has no automated review** (Chris, 2026-10-10, IN-01):
-  never wait for or request one. Before merging, inspect the whole diff yourself against AI-PR-READ-FIRST and write
+  never wait for or request one. If one posts anyway (an organization-wide reviewer), handle its findings like your
+  own: fix or answer each thread, then resolve it. Before merging, inspect the whole diff yourself against AI-PR-READ-FIRST and write
   "Self-review: <findings and dispositions>" in the PR; fix blocking findings (security, money, data integrity,
   contract, acceptance) in one patch. Never claim a review that didn't run. Phase-gate reviews (end of a batch,
   DRIFT-PROTOCOL C) may use a second model on request.

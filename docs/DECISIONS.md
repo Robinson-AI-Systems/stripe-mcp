@@ -66,3 +66,9 @@ findings).
 each service, account management tools … everything." Added G-6 owner and administration (admin overview, requirements,
 security review, fees and Stripe's own billing, guided settings for every dashboard-only setting with structured steps
 and read-back, per hub contract §11). Tools are tagged by audience (builder / owner / operator).
+
+**2026-10-10 — Two login/limit rules from the Workspace server's review.** An automated review of the Google Workspace
+MCP plan (its PR #28) found two gaps that apply here too: (1) an OAuth refresh must copy every connection setting
+(account, mode, profile, listing) from the issuing token, or a refreshed connection silently falls back to defaults —
+added to A-3; (2) a per-pass rate limit kept in memory does nothing on Vercel, where each instance counts separately —
+R-2 now uses a Postgres `rate_limits` table with an atomic upsert. Both are in AI-PR-READ-FIRST item 12.
