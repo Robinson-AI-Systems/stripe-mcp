@@ -40,7 +40,7 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 | `stripe_list_connections` | Selected-account AI connection metadata, never credentials | — | built B-8a | R |
 | `stripe_revoke_connection` | Revoke a particular connection; owner-only private setup flow in B-8b2a, AI-callable tool still gated | C | planned MCP; private owner flow B-8b2a | F |
 | `stripe_enable_live` / `stripe_disable_live` | Enabling remains OFF (IN-06); private owner page can emergency-disable LIVE only (B-8b2b1). Neither is AI-callable yet | C | private disable #31; MCP tools planned | F |
-| `stripe_set_money_limit` | Change the daily money-out limit for an account | C | N | F |
+| `stripe_set_money_limit` | Private owner-only per-account USD cap change; no AI-callable tool yet, every money-out still requires owner consent | C | private owner flow #33; MCP planned | F |
 | `stripe_recent_changes` | Account-scoped audit summaries without raw snapshots (advanced filters later) | — | built B-8a | R |
 | `stripe_undo_change` | Undo one change-log entry when it has a clean opposite; says plainly when it does not | C | N | E |
 | `stripe_search_tools` | Find tools by plain words; one line each with safety marks (compact mode's front door) | — | N | R |
