@@ -267,28 +267,30 @@ export function createDb(sql = getProductionSql()) {
         WHERE a.id = ${account} GROUP BY a.money_limit_cents`;
       return rows[0] || null;
     },
-    async listRecentChanges({ account, mode = null, limit = 20 }) {
+    async listRecentChanges({ account, mode = null, limit = 20, offset = 0 }) {
       if (typeof account !== 'string' || !account ||
           (mode !== null && !['test','live'].includes(mode)) ||
-          !Number.isInteger(limit) || limit < 1 || limit > 100) {
-        throw new TypeError('Account, optional mode and limit 1..100 required');
+          !Number.isInteger(limit) || limit < 1 || limit > 100 ||
+          !Number.isInteger(offset) || offset < 0 || offset > 1000000) {
+        throw new TypeError('Account, mode and bounded limit/offset required');
       }
       return await sql`SELECT id, at, stripe_account, mode, connection, tool,
           target, summary, dry_run, amount_cents, currency, direction
         FROM change_log
         WHERE stripe_account = ${account} AND (${mode}::text IS NULL OR mode = ${mode})
-        ORDER BY at DESC, id DESC LIMIT ${limit}`;
+        ORDER BY at DESC, id DESC LIMIT ${limit} OFFSET ${offset}`;
     },
-    async listConnectionsForAccount({ account, limit = 50 }) {
+    async listConnectionsForAccount({ account, limit = 50, offset = 0 }) {
       if (typeof account !== 'string' || !account ||
-          !Number.isInteger(limit) || limit < 1 || limit > 100) {
-        throw new TypeError('Selected account and limit 1..100 required');
+          !Number.isInteger(limit) || limit < 1 || limit > 100 ||
+          !Number.isInteger(offset) || offset < 0 || offset > 1000000) {
+        throw new TypeError('Selected account and bounded limit/offset required');
       }
       // Never select bearer hashes, refresh hashes, client secrets or codes.
       return await sql`SELECT client_id, mode, profile, listing, created_at,
           last_used_at, expires_at, revoked_at
         FROM oauth_tokens WHERE stripe_account = ${account} AND kind = 'connector'
-        ORDER BY created_at DESC LIMIT ${limit}`;
+        ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
     },
     async recordChange({ account = null, mode = 'test', connection = null, tool, target = null, summary,
       before = null, after = null, dryRun = false, amountCents = null, currency = null,
