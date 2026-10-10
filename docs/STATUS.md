@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **In progress B-1:** first PR #18 adds fail-closed, non-money preview/confirm/read-back and durable audit scaffolding. **B-1 money-limit/amount enforcement is not implemented or authorized yet**; IN-05 ($500/day recommended) must be answered before B-1 is completed. Nothing deploys or exposes a write tool.
+- **In progress B-1:** B-1a (#18) merged. B-1b1 (#19) adds an internal, concurrent-safe PostgreSQL daily money reservation ledger; no money-changing tool is enabled. B-1b2 must integrate authoritative Stripe amounts, seven write-contract checks and the owner-selected IN-05 money-out default before B-1 can close. No live or owner database is touched.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -17,6 +17,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — B-1b1 money reservation ledger (PR #19):** one additive table and database-serialized account lock for per-connection money-out reservation in America/Denver days. Conservative uncertain/confirmed statuses count against usage; no money operations exposed. B-1b2 follows.
 
 **2026-10-10 — B-1a guarded write engine (PR #18):** internal-only, TEST-mode preview/confirm/idempotency/read-back audit, denial for missing audit or unsafe connection. No money write allowed. B-1b still needs concurrency-safe money rule and IN-05.
 
