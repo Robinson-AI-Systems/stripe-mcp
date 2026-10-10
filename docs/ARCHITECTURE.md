@@ -80,3 +80,7 @@ PostgreSQL consumption enables `stripe_accounts.live_enabled` only when that
 additional IN-06 gate is on and the account has an encrypted live credential;
 the same SQL statement records the security change in `change_log`. The MCP
 dispatcher still exposes only TEST/read-only tools and cannot approve an intent.
+
+### B-3 application-owned Stripe record guard (staged)
+
+Internal `src/tools/app-guard.js` detects the known Appliance Desk metadata keys from `docs/APP-NEEDS-APPLIANCE-DESK.md` on the target or on its customer. If customer ownership is unknown or cannot be read, writes deny rather than treating the target as unaffiliated. App-owned changes require `outsideApp:true` under the ordinary guarded write contract; app-owned refunds have the documented exception and still require individual authenticated owner money approval. Reads can be marked `appRecord`. This protection is internal; no public write handler is registered yet.
