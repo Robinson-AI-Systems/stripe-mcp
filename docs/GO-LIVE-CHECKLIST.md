@@ -17,6 +17,8 @@ Legend: **Owner** = only Chris · **Agent** = Claude can do it once you say go.
 | [ ] | Connector added in Claude, test mode (Owner) | claude.ai → Settings → Connectors | Not added | Claude answers "who am I connected as?" correctly |
 | [ ] | Daily money limit confirmed (IN-05) | Ask Claude: "set my Stripe money limit to $X" (Owner confirms) | $500 default | `stripe_whoami` shows the limit |
 
+**Developer safeguard (A-4a):** Any preview, staging or local deployment refuses live Stripe keys at the client constructor. This safeguard does not itself enable live use; Batch B's two-step owner approval is still required.
+
 ## 2. Live mode, per Stripe account
 
 | Done | Item | Where / how | Today | How you know it worked |
