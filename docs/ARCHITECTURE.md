@@ -3,7 +3,7 @@
 This file describes what **exists**, and is updated in the same PR that ships it (DRIFT-PROTOCOL checklist B). What the
 system is designed to become is in `docs/designs/`; do not copy design text here before it is built.
 
-As of 2026-10-10: A-1 test/CI foundation, A-2 additive schema, and A-3a core OAuth authentication and hashed-token storage methods are built. No deployed server, remote database, operational Stripe key store or Stripe tool exists.
+As of 2026-10-10: foundation A-1 through A-3 and A-4a pinned SDK client are built. No deployed server, remote database, operational Stripe key store or Stripe tool exists.
 
 ## Infrastructure
 
@@ -42,4 +42,4 @@ A-3b provides `/api/oauth/register`, `/api/oauth/authorize`, `/api/oauth/token`,
 
 ## Stripe API version
 
-Not pinned yet (A-4). Record the version and the vendored OpenAPI tag here when A-4 ships.
+`src/stripe/client.js` pins the official Stripe Node SDK (package lock: v23.0.0) to `2026-09-30.endive`. Keys are passed only from the encrypted store (planned A-5) and never held in this repo. Non-production deployments refuse live keys; test-only transport override cannot be selected by a production request. The vendored matching OpenAPI description is still **not built** (A-4b).

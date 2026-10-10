@@ -1,11 +1,11 @@
 # STATUS — current work, blockers and next action
 
 Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
-**A-1 and A-2 implemented (PRs #9–#10):** local/CI verification and additive database schema, not deployed. No Stripe account has been connected, no credentials added and nothing is live.
+**A-1 through A-3 implemented (#9–#12), A-4a client (#13):** tested foundation, schema, durable OAuth, and isolated Stripe SDK client. No Stripe account has been connected; none of this is deployed or live.
 
 ## Next
 
-- **In progress:** A-3b OAuth endpoints, connector login and MCP door (PR #12). A-3a merged (#11), including hashed credentials and atomic token rotation. A-3b implements the owner’s set-once, silent-refresh policy; A-3 is complete only after CI green at exact head.
+- **Next A-4b:** vendor the matching Stripe OpenAPI spec and implement bounded operation lookup (JIT from A-4 card). A-4a Stripe client, idempotency and paging merged (#13); A-4 remains incomplete until A-4b.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -17,6 +17,10 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — A-4a Stripe client (PR #13):** official SDK at API 2026-09-30.endive, stable scoped idempotency, bounded paging and preview live-key refusal. A-4b still owns vendored operation description.
+
+**2026-10-10 — A-3b OAuth connector (PR #12):** personal persistent refresh, authorization page, MCP endpoint and metadata; full login behavior tested in unit and PostgreSQL. No live Stripe credentials configured.
 
 **2026-10-10 — A-3b connector (PR #12):** auth page, OAuth registration/code/refresh, metadata, MCP bearer guard, personal persistent refresh authorization. No live keys, no money movement. Next A-4.
 
