@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { loadPinnedOpenApi, searchOperations, PINNED_VERSION, SOURCE_GIT_BLOB } from '../../scripts/stripe-openapi.mjs';
+import { loadPinnedOpenApi, searchOperations, PINNED_VERSION, SOURCE_GIT_BLOB, SOURCE_SHA256 } from '../../scripts/stripe-openapi.mjs';
 
 describe('immutable pinned Stripe API operation catalog', () => {
   const source = loadPinnedOpenApi();
@@ -8,7 +8,7 @@ describe('immutable pinned Stripe API operation catalog', () => {
     expect(source.gitBlob).toBe(SOURCE_GIT_BLOB);
     expect(source.spec.info.version).toBe(PINNED_VERSION);
     expect(source.paths).toBe(398);
-    expect(source.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(source.sha256).toBe(SOURCE_SHA256);
   });
   it('finds the refund and nested subscription operations', () => {
     const refund = searchOperations(source.spec,'create refund');

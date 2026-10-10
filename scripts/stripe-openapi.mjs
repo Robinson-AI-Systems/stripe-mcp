@@ -7,6 +7,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = path.join(ROOT, 'vendor/stripe-openapi');
 export const SOURCE_GIT_BLOB = '509de1b4510d2c03ad8755d06778c1deb5619c7f';
 export const PINNED_VERSION = '2026-09-30.endive';
+export const SOURCE_SHA256 = '622e04fb9ae98eb28b5a67c7c885af52a71ffa60e9230b2197f5b3e136651b1d';
 
 export function loadPinnedOpenApi() {
   const names = fs.readdirSync(DIR).filter(n => /^spec3\.sdk\.part\d{3}$/.test(n)).sort();
@@ -21,8 +22,9 @@ export function loadPinnedOpenApi() {
   if (spec.info?.version !== PINNED_VERSION || Object.keys(spec.paths || {}).length < 300) {
     throw new Error('Stripe OpenAPI version or paths do not match the pinned release');
   }
-  return { spec, sha256: createHash('sha256').update(contents).digest('hex'),
-    paths: Object.keys(spec.paths).length, gitBlob };
+  const sha256 = createHash('sha256').update(contents).digest('hex');
+  if (sha256 !== SOURCE_SHA256) throw new Error('Pinned Stripe OpenAPI SHA-256 mismatch');
+  return { spec, sha256, paths: Object.keys(spec.paths).length, gitBlob };
 }
 
 export function searchOperations(spec, query, max = 20) {
