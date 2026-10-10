@@ -229,6 +229,24 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         r.day === day && r.state !== 'rejected').reduce((sum, r) => sum + r.amountCents,0),
         limit_cents: row.money_limit_cents ?? 50000 };
     },
+    async listRecentChanges({account,mode=null,limit=20}) {
+      if (!account || (mode!==null&&!['test','live'].includes(mode)) ||
+          !Number.isInteger(limit)||limit<1||limit>100) throw new TypeError('Invalid audit filter');
+      return structuredClone(audit.filter(r=>r.stripe_account===account&&(!mode||r.mode===mode))
+        .slice().reverse().slice(0,limit).map(r=>Object.fromEntries(
+          Object.entries(r).filter(([name])=>!['inverse','before','after'].includes(name)))));
+    },
+    async listConnectionsForAccount({account,limit=50}) {
+      if (!account||!Number.isInteger(limit)||limit<1||limit>100) {
+        throw new TypeError('Invalid account connection filter');
+      }
+      return structuredClone([...tokens.values()].filter(r=>r.stripe_account===account)
+        .slice(0,limit).map(r=>({
+          client_id:r.client_id,mode:r.mode,profile:r.profile,listing:r.listing,
+          created_at:null,last_used_at:null,expires_at:new Date(r.expires_at),
+          revoked_at:r.revoked_at?new Date(r.revoked_at):null
+        })));
+    },
     async recordChange({ account = null, mode = 'test', connection = null,
       tool, summary, dryRun = false, idempotencyKey = null, inverse = null,
       amountCents = null, currency = null, direction = null }) {
