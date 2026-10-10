@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   try {
     const db = createDb();
     await db.initSchema();
-    return await createMcpHandler({ db, registry, permissionProbe:createPermissionReprobe({db}) })(req, res);
+    return await createMcpHandler({ db, registry, services:{stripePermissionReprobe:createPermissionReprobe({db})} })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
       error: 'temporarily_unavailable', error_description: 'Stripe MCP is not configured or its database is unavailable'

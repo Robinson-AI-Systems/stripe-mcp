@@ -10,7 +10,12 @@ export const tools = [
   { name:'stripe_list_accounts', description:'List connected Stripe accounts and configured modes, without keys.',
     inputSchema:schema, annotations:{readOnlyHint:true}, writes:false, profiles },
   { name:'stripe_check_key_permissions', description:'Recheck TEST key read permissions without revealing the Stripe key.',
-    inputSchema:schema,annotations:{readOnlyHint:true},writes:false,profiles },
+    inputSchema:{type:'object',properties:{
+      fields:{type:'array',items:{type:'string',enum:['account','mode','permissions','checkedAt','source']},
+        maxItems:5,uniqueItems:true},
+      detail:{type:'string',enum:['compact','full']}
+    },additionalProperties:false},
+    annotations:{readOnlyHint:true},writes:false,profiles },
   { name:'stripe_recent_changes', description:'Read safe audit summaries for the selected Stripe account, without snapshots.',
     inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:50},
       mode:{type:'string',enum:['test','live']},offset:{type:'integer',minimum:0}},additionalProperties:false},
@@ -90,14 +95,25 @@ export const handlers = {
       testConfigured:row.test_connected===true,liveConfigured:row.live_connected===true,
       liveEnabled:row.live_enabled===true}))});
   },
-  async stripe_check_key_permissions(_args,{connection,permissionProbe}) {
+  async stripe_check_key_permissions(args,{connection,services}) {
+    const permissionProbe=services?.stripePermissionReprobe;
     if (connection?.mode!=='test' || !connection.stripeAccount ||
         typeof permissionProbe!=='function') {
       return fail('Only a configured TEST account with server-side key access may be checked');
     }
+    const valid=['account','mode','permissions','checkedAt','source'];
+    const detail=args?.detail??'compact',fields=args?.fields;
+    if (!['compact','full'].includes(detail) ||
+        (fields!==undefined && (!Array.isArray(fields) || fields.length>5 ||
+         fields.some(x=>!valid.includes(x)) || new Set(fields).size!==fields.length))) {
+      return fail('Invalid fields or detail selection');
+    }
     const result=await permissionProbe({account:connection.stripeAccount,mode:'test'});
-    return ok({account:result.account,mode:result.mode,permissions:result.permissions,
-      checkedAt:result.checkedAt,source:'Fresh TEST key read-only Stripe probes'});
+    const data={account:result.account,mode:result.mode,permissions:result.permissions,
+      checkedAt:result.checkedAt,source:'Fresh TEST key read-only Stripe probes'};
+    const include=fields??(detail==='compact'
+      ? ['account','mode','permissions'] : valid);
+    return ok(Object.fromEntries(include.map(key=>[key,data[key]])));
   },
   async stripe_recent_changes(args,{db,connection}) {
     if (!connection.stripeAccount) return fail('Select a Stripe account first');
