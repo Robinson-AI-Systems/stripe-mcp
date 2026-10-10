@@ -1,0 +1,30 @@
+# Bootstrap for the first repository PR. A-1 expands this into the full four-suite CI.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate work index
+        run: python3 docs/pr-cards/validate-index.py
+      - name: Compile index validator
+        run: python3 -m py_compile docs/pr-cards/validate-index.py
+
+  ci:
+    if: always()
+    needs: [docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all checks to pass
+        env:
+          DOCS_RESULT: ${{ needs.docs.result }}
+        run: test "$DOCS_RESULT" = success
