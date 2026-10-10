@@ -6,7 +6,8 @@ import { idempotencyKey } from '../../src/stripe/client.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
 
 const parse = r => JSON.parse(r.content[0].text);
-export function runWriteContract({ withMoney, tool = null, args = {}, fixtures = null }) {
+export function runWriteContract({withMoney,tool=null,args={},fixtures=null,
+  strictArgs=false,createOnly=false}) {
   if ((tool || fixtures) && (typeof tool !== 'function' ||
       typeof fixtures !== 'function' || !args || Array.isArray(args) ||
       typeof args !== 'object')) {
@@ -114,6 +115,12 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
     });
     it('5. app-owned objects denied except an explicitly authorized exception', async () => {
       const { ctx, op, provider } = fixture({appOwned:true});
+      if(createOnly){
+        await expect(op.handler({confirm:true,metadata:{agreementId:'foreign'}},ctx))
+          .rejects.toThrow();
+        expect(provider.writes).toHaveLength(0);
+        return;
+      }
       expect(parse(await op.handler({confirm:true},ctx)).done).toBe(false);
       expect(provider.writes).toHaveLength(0);
       expect(parse(await op.handler({confirm:true,outsideApp:true},ctx)).done).toBe(true);
@@ -127,16 +134,16 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
     it('7. provider-derived cents, dollar preview and daily cap are enforced', async () => {
       const { ctx, db, op, provider } = fixture({limitCents:10000});
       if (!withMoney) {
-        const res = parse(await op.handler({confirm:true,amountCents:1},ctx));
+        const res = parse(await op.handler({confirm:true,...(strictArgs?{}:{amountCents:1})},ctx));
         expect(res.done).toBe(true);
         return;
       }
-      const preview = parse(await op.handler({dryRun:true,amountCents:1},ctx));
+      const preview = parse(await op.handler({dryRun:true,...(strictArgs?{}:{amountCents:1})},ctx));
       expect(preview.preview.split('\n')[0]).toContain('$85.00');
-      expect(parse(await op.handler({confirm:true,requestKey:'first',amountCents:1},ctx)).done).toBe(true);
+      expect(parse(await op.handler({confirm:true,requestKey:'first',...(strictArgs?{}:{amountCents:1})},ctx)).done).toBe(true);
       expect((await db.getMoneyUsage({account:ctx.connection.stripeAccount,
         connection:ctx.connectionId})).used_cents).toBe(8500);
-      const denied = parse(await op.handler({confirm:true,requestKey:'second',amountCents:1},ctx));
+      const denied = parse(await op.handler({confirm:true,requestKey:'second',...(strictArgs?{}:{amountCents:1})},ctx));
       expect(denied.done).toBe(false);
       expect(denied.error).toMatch(/limit exceeded/i);
       expect(provider.writes).toHaveLength(1);
