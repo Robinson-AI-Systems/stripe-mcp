@@ -30,7 +30,13 @@ setup-page passphrase. Passes are listed by `stripe_list_connections` and revoke
 
 **R2. HTTPS tool API and manifest** exactly as RTC §1 and §7: `GET /api/contract` (no auth), `GET /api/whoami`,
 `GET /api/tools`, `GET /api/tools/{name}`, `POST /api/tools/{name}`, `POST /api/tools/_batch`, `GET /api/results/{handle}`;
-pass-only auth; the RTC result envelope and error codes; rate limit per pass. `GET /api/openapi.json` (generated, ≤30
+pass-only auth; the RTC result envelope and error codes; rate limit per pass, **shared across serverless instances**
+(review finding on the Workspace server, 2026-10-10): a Postgres `rate_limits (key, window_start, count)` table updated
+with one atomic `INSERT … ON CONFLICT (key, window_start) DO UPDATE SET count = rate_limits.count + 1 RETURNING count`,
+one-minute windows. The limit is stored **per pass** in `oauth_tokens.rate_limit_per_minute` (starting value 120,
+allowed 1–600), chosen when the pass is created (setup page or the create-pass tool), shown by `stripe_list_connections`,
+and read from the pass row on every call — never hard-coded; over the limit → HTTP 429 with
+`Retry-After` and error code `rate_limited`. Never an in-memory counter (each Vercel instance would count separately). `GET /api/openapi.json` (generated, ≤30
 operations: meta tools, whoami, workflows) for HTTP-only agents.
 
 **R3. Conformance in CI, never a blocker.** When the hub's `packages/conformance` exists it runs against a locally
@@ -50,6 +56,9 @@ ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS allow_writes BOOLEAN NOT NULL 
 ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS money_limit_cents INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS areas TEXT[];
 ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS for_hub BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS rate_limit_per_minute INTEGER NOT NULL DEFAULT 120;
+CREATE TABLE IF NOT EXISTS rate_limits (key TEXT NOT NULL, window_start TIMESTAMPTZ NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (key, window_start));
 ```
 
 ## 4. Work units
@@ -59,7 +68,11 @@ Tests: shown once; expired → `pass_expired`; revoked → `pass_revoked`; read-
 HTTPS; money limit $0 by default; 365-day life only with `for_hub`.
 ### R-2 — HTTPS tool API, manifest, OpenAPI (M)
 Tests: write-contract helper through HTTPS (door #3); envelope and error codes per RTC §7; manifest counts match the
-registry; OpenAPI valid with ≤30 operations; connector tokens and no token refused on `/api/tools`.
+registry; OpenAPI valid with ≤30 operations; connector tokens and no token refused on `/api/tools`; rate limit
+database test with two independently created handler instances sharing one pass's limit, sending **overlapping**
+requests (e.g. 150 at once split across both, `Promise.all`): exactly 120 succeed and the rest get 429 — a
+read-then-update counter fails this test; a pass created with limit 5 gets 429 on its 6th call; old windows are cleaned
+up.
 ### R-3 — RTC 1 conformance in CI (S)
 Done when: the hub's conformance package passes in this repo's CI against a local server with fake Stripe.
 

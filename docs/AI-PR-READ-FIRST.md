@@ -25,7 +25,9 @@ description saying how it is honored.
 ## Login and passes
 10. Lockout after 5 wrong passphrases in 15 minutes; tokens stored hashed; revoked tokens and expired passes refused.
 11. Pass defaults stay narrow (test, read-only, 24 h, $0). Widening a default is an owner decision.
-12. Contract behavior (RTC 1) unchanged unless the PR moves to a newer contract version; conformance stays green.
+12. A token refresh copies every connection setting (account, mode, profile, listing) from the issuing row — never
+    defaults. Rate limits live in the database (shared by every serverless instance), never in memory.
+13. Contract behavior (RTC 1) unchanged unless the PR moves to a newer contract version; conformance stays green.
 
 ## Context
-13. New tools keep listing descriptions ≤160 characters and default results ≤8 KB or a handle (budget check green).
+14. New tools keep listing descriptions ≤160 characters and default results ≤8 KB or a handle (budget check green).

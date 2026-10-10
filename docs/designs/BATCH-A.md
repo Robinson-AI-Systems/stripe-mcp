@@ -131,9 +131,14 @@ Tests: contract against fake and Postgres; `initSchema()` twice changes nothing.
 Files: `api/oauth/*`, `api/well-known/*`, `src/oauth/*`, `api/mcp.js` (lists zero tools until B; home page `api/index.js`
 prints counts).
 Change: port the Workspace flow; authorize page shows account dropdown, mode (test only unless `live_enabled`), profile,
-listing, passphrase. Hash tokens.
+listing, passphrase. Hash tokens. **Settings survive refresh** (review finding on the Workspace server, 2026-10-10):
+`stripe_account`, `mode`, `profile` and `listing` are stored on the authorization code and the token row, the
+refresh-token lookup returns them, and one helper copies every connection setting from the issuing row into the new row
+for both grant types — a refresh never falls back to defaults (a test connection must never become something else).
 Tests: 5 wrong passphrases in 15 minutes lock the address; a forged `mode=live` post is refused when not enabled;
-refresh only for the same client; revoked tokens refused; tokens stored hashed.
+refresh only for the same client; revoked tokens refused; tokens stored hashed; after a refresh the new token keeps the
+same account, mode, profile and listing (unit + database test); a test fails if a connection-setting column is added to
+the token table but not copied by the helper.
 
 ### A-4 — Stripe client wrapper and OpenAPI index
 Files: `src/stripe/client.js`, `vendor/stripe-openapi/<version>.json` (downloaded from Stripe's repo at the matching tag,
