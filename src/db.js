@@ -317,6 +317,12 @@ export function createDb(sql = getProductionSql()) {
         END IF;
         -- Serialize requests by locking the common account row. After the lock,
         -- a separate SQL statement sees the prior reservation's committed row.
+        -- The owner's cap is denominated in USD cents. No mixing unrelated
+        -- currencies or zero-decimal units before a verified conversion policy.
+        IF p_currency <> 'usd' THEN
+          decision := 'currency_unsupported'; used_cents := 0; limit_cents := 0;
+          RETURN NEXT; RETURN;
+        END IF;
         SELECT money_limit_cents::BIGINT INTO v_limit
         FROM stripe_accounts WHERE id = p_account FOR UPDATE;
         IF NOT FOUND THEN

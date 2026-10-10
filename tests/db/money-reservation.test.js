@@ -61,6 +61,15 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
     expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(30000);
     expect(Number((await db.getMoneyUsage({ account, connection: 'owner-client-2' })).used_cents)).toBe(40000);
   });
+  it('refuses to mix EUR or zero-decimal JPY into the USD daily dollar cap', async () => {
+    const usedBefore = Number((await db.getMoneyUsage({ account, connection })).used_cents);
+    for (const currency of ['eur', 'jpy']) {
+      const response = await db.reserveMoneyOut({ account, connection,
+        idempotencyKey: 'reject-' + currency, amountCents: 10000, currency });
+      expect(response.decision).toBe('currency_unsupported');
+    }
+    expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(usedBefore);
+  });
   it('reports a nonexistent account as unavailable rather than silently allowing it', async () => {
     const res = await db.reserveMoneyOut({ account: 'acct_unknown', connection,
       idempotencyKey: 'orphan', amountCents: 100, currency: 'usd' });

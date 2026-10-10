@@ -124,6 +124,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
           !Number.isSafeInteger(amountCents) || amountCents <= 0 || !/^[a-z]{3}$/.test(currency)) {
         throw new TypeError('Invalid money reservation');
       }
+      if (currency !== 'usd') return { decision: 'currency_unsupported',
+        used_cents: 0, limit_cents: 0 };
       const row = accountRows.get(account);
       if (!row) return { decision: 'account_missing', used_cents: 0, limit_cents: 0 };
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
