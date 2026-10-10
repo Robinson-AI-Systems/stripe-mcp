@@ -353,21 +353,45 @@ export function createDb(sql = getProductionSql()) {
       FROM revoked LIMIT 1 RETURNING id`;
       return rows.length===1;
     },
-    async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {
-      if (![account,idempotencyKey,tool,description].every(v => typeof v === 'string' && v.length > 0) ||
-          description.length > 240 || !Number.isSafeInteger(amountCents) || amountCents <= 0 ||
-          currency !== 'usd') throw new TypeError('Valid Stripe-derived money approval request required');
+    async requestMoneyApproval({ account, idempotencyKey, tool, description,
+      amountCents, currency, target = '', mode = 'test' }) {
+      if (![account,idempotencyKey,tool,description].every(v => typeof v==='string' && v.length>0) ||
+          !/^acct_[A-Za-z0-9]+$/.test(account) || description.length>240 ||
+          !Number.isSafeInteger(amountCents) || amountCents<=0 ||
+          currency!=='usd' || mode!=='test' ||
+          typeof target!=='string' ||
+          (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt)_[A-Za-z0-9]{2,100}$/.test(target))) {
+        throw new TypeError('A safe, provider-derived TEST money identity is required');
+      }
+      // Empty targets preserve old unapproved test fixtures, but can NEVER
+      // receive an owner grant. The owner inbox excludes them completely.
       await sql`INSERT INTO money_approvals
-        (stripe_account, request_key, tool, description, amount_cents, currency, expires_at)
-        VALUES (${account}, ${idempotencyKey}, ${tool}, ${description}, ${amountCents},
-          ${currency}, now() + interval '24 hours')
-        ON CONFLICT (stripe_account, request_key) DO NOTHING`;
-      const rows = await sql`SELECT tool, amount_cents, currency, description, consumed_at, expires_at
-        FROM money_approvals WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}`;
-      const row = rows[0];
-      return !!row && row.tool === tool && Number(row.amount_cents) === amountCents &&
-        row.currency === currency && row.description === description &&
-        row.consumed_at === null && new Date(row.expires_at).getTime() > Date.now();
+        (stripe_account,request_key,tool,description,amount_cents,currency,
+          target,mode,expires_at)
+        VALUES (${account},${idempotencyKey},${tool},${description},${amountCents},
+          ${currency},${target},${mode},now()+interval '24 hours')
+        ON CONFLICT (stripe_account,request_key) DO NOTHING`;
+      const rows=await sql`SELECT tool,amount_cents,currency,description,target,mode,
+        consumed_at,expires_at FROM money_approvals WHERE stripe_account=${account}
+        AND request_key=${idempotencyKey}`;
+      const row=rows[0];
+      return !!row && row.tool===tool && Number(row.amount_cents)===amountCents &&
+        row.currency===currency && row.description===description &&
+        row.target===target && row.mode===mode &&
+        row.consumed_at===null && new Date(row.expires_at).getTime()>Date.now();
+    },
+    async listPendingMoneyApprovals({account,limit=10}) {
+      if(typeof account!=='string'||!/^acct_[A-Za-z0-9]+$/.test(account)||
+          !Number.isInteger(limit)||limit<1||limit>20)
+        throw new TypeError('Selected account and page size 1..20 required');
+      // No client tokens, passphrases, Stripe secrets or raw provider data.
+      return await sql`SELECT request_key,tool,target,description,amount_cents,
+        currency,mode,created_at,expires_at,approved_at,override_approved_at,
+        allow_over_limit
+        FROM money_approvals
+        WHERE stripe_account=${account} AND mode='test' AND target <> ''
+          AND consumed_at IS NULL AND expires_at>now()
+        ORDER BY created_at DESC,id DESC LIMIT ${limit}`;
     },
     // SERVER-SIDE ONLY: B-8 owner-authenticated setup page is the sole intended caller.
     // Never register this method as an MCP/HTTPS agent operation.
@@ -378,6 +402,7 @@ export function createDb(sql = getProductionSql()) {
         SET approved_at = now()
         WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}
           AND consumed_at IS NULL AND expires_at > now()
+          AND mode='test' AND target <> ''
         RETURNING request_key`;
       return rows.length === 1;
     },
@@ -392,6 +417,7 @@ export function createDb(sql = getProductionSql()) {
         WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}
           AND approved_at IS NOT NULL AND approved_at > now() - interval '10 minutes'
           AND consumed_at IS NULL AND expires_at > now()
+          AND mode='test' AND target <> ''
         RETURNING request_key`;
       return rows.length === 1;
     },
@@ -717,6 +743,13 @@ export function createDb(sql = getProductionSql()) {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         UNIQUE (stripe_account, request_key)
       )`;
+      await sql`ALTER TABLE money_approvals
+        ADD COLUMN IF NOT EXISTS target TEXT NOT NULL DEFAULT ''`;
+      await sql`ALTER TABLE money_approvals
+        ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'test'`;
+      await sql`CREATE INDEX IF NOT EXISTS money_approvals_verified_pending_idx
+        ON money_approvals (stripe_account, expires_at)
+        WHERE consumed_at IS NULL AND target <> ''`;
       await sql`CREATE INDEX IF NOT EXISTS money_approvals_pending_idx
         ON money_approvals (stripe_account, expires_at) WHERE consumed_at IS NULL`;
       await sql`CREATE OR REPLACE FUNCTION reserve_money_out_guarded(
