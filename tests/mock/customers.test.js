@@ -41,7 +41,7 @@ describe('D-1 real pinned Stripe SDK request shape through stripe-mock',()=>{
       type:'eu_vat',value:'DE123456789'},options)).object).toBe('tax_id');
     expect((await s.customers.retrieveTaxId(customer,tax)).object).toBe('tax_id');
     expect((await s.customers.deleteTaxId(customer,tax,undefined,options)).deleted).toBe(true);
-    expect((await s.customers.deleteDiscount(customer,options)).deleted).toBe(true);
+    expect((await s.customers.deleteDiscount(customer,undefined,options)).deleted).toBe(true);
   });
   it('binds idempotency to a single account, target and body regardless of confirm',()=>{
     const a={stripeAccount:'acct_FIXTURE1',mode:'test'};

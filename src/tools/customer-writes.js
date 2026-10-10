@@ -121,7 +121,7 @@ function build(def){
       if(n==='customer_delete_tax_id')
         await s.customers.deleteTaxId(a.customerId,a.taxId,undefined,opts);
       if(n==='customer_remove_discount')
-        await s.customers.deleteDiscount(a.customerId,opts);
+        await s.customers.deleteDiscount(a.customerId,undefined,opts);
     },
     readAfter:async(a,ctx)=>{
       const s=await getClient(ctx),n=def.name;

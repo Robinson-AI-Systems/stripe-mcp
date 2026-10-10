@@ -25,7 +25,7 @@ function fixture(){
       card:{brand:'visa',last4:'4242',fingerprint:'never-expose'}}],has_more:false};},
     async retrievePaymentMethod(id,pm){return {id:pm,type:'card',customer:id,
       card:{brand:'visa',last4:'4242',fingerprint:'never-expose'}};},
-    async listBalanceTransactions(id,p){return {data:[{
+    async listBalanceTransactions(_id,_p){return {data:[{
       id:'cbtxn_FAKE',amount:-100,currency:'usd',type:'adjustment'}],has_more:false};},
     async createBalanceTransaction(id,p,o){calls.push(['credit',p,o]);credit={id:'cbtxn_NEW',...p};return credit;},
     async retrieveBalanceTransaction(){return credit;},
