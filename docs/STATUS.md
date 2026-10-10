@@ -5,11 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8c1 (PR #34) in review:** provider-derived target-bound TEST money
-  requests, private owner-authenticated **READ-ONLY** pending request list,
-  exact account/tool/target/amount/idempotency-key protection, no owner
-  grant from AI or browser in this slice. Authenticated POST has password,
-  origin, CSRF, lockout; details never appear on anonymous GET.
+- **B-8c2 (PR #35, in review):** carries B-8c1 (#34 merged), adds private two-stage owner consent for each exact TEST transaction and a separate password-authenticated owner over-limit override. New one-use decision intents bind Stripe-derived request identity. No money-moving Stripe tool is exposed. Targeted unit and disposable PostgreSQL test files are committed; exact-head CI and self-review are required before merge.
 - **Last merged:** #33 money-cap owner management (`91236b8`), #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
