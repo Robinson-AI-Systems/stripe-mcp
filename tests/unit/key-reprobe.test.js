@@ -14,8 +14,9 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
     let loaded=0,checked=0;
     const probe=createPermissionReprobe({
       db,
-      keyStoreFactory:()=>({loadKey:async ({account,mode})=>{
-        expect(account).toBe('acct_testowner');expect(mode).toBe('test');loaded++;return secret;
+      keyStoreFactory:()=>({loadKeySnapshot:async ({account,mode})=>{
+        expect(account).toBe('acct_testowner');expect(mode).toBe('test');loaded++;
+        return {key:secret,expectedCiphertext:'test-fixture-cipher'};
       }}),
       makeClient:({key,mode})=>{expect(key).toBe(secret);expect(mode).toBe('test');return {fake:true};},
       probe:async client=>{expect(client.fake).toBe(true);checked++;
@@ -36,9 +37,28 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
     await expect(probe({account:'acct_testowner',mode:'live'})).rejects.toThrow(/TEST/);
     await expect(probe({account:'other',mode:'test'})).rejects.toThrow();
     const malformed=createPermissionReprobe({db,keyStoreFactory:()=>({
-      loadKey:async()=>['rk','test','FAKE'].join('_')}),
+      loadKeySnapshot:async()=>({key:['rk','test','FAKE'].join('_'),
+        expectedCiphertext:'fixture-cipher'})}),
       makeClient:()=>({}),probe:async()=>({customers:'unverified'})});
     await expect(malformed({account:'acct_testowner',mode:'test'})).rejects.toThrow();
+  });
+  it('fails closed when the owner rotates the key during the nine read probes',async()=>{
+    const account='acct_rotation';
+    const db=createFakeDb({accounts:[{id:account,label:'Fixture'}]});
+    await db.saveTestKey({account,label:'Fixture',ciphertext:'original-cipher',
+      kind:'restricted',last4:'0001',permissions:{customers:'denied'}});
+    const check=createPermissionReprobe({db,
+      keyStoreFactory:()=>({loadKeySnapshot:async()=>({
+        key:['rk','test','FAKE12345'].join('_'),expectedCiphertext:'original-cipher'})}),
+      makeClient:()=>({}),
+      probe:async()=>{
+        await db.saveTestKey({account,label:'Fixture',ciphertext:'rotated-cipher',
+          kind:'restricted',last4:'0002',permissions:{customers:'denied'}});
+        return {customers:'ok'};
+      }
+    });
+    await expect(check({account,mode:'test'})).rejects.toThrow(/could not be updated/);
+    expect((await db.getStripeAccount(account)).key_permissions).toEqual({customers:'denied'});
   });
   it('denies the MCP permission tool unless server probe and selected TEST account exist',async()=>{
     const db=createFakeDb({accounts:[{id:'acct_A',label:'A'}]});
@@ -46,15 +66,27 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
     expect((await handlers.stripe_check_key_permissions({},{
       db,connection:conn})).isError).toBe(true);
     expect((await handlers.stripe_check_key_permissions({},{
-      db,connection:{...conn,mode:'live'},permissionProbe:async()=>({})})).isError).toBe(true);
+      db,connection:{...conn,mode:'live'},services:{stripePermissionReprobe:async()=>({})}})).isError).toBe(true);
     let called=0;
     const result=await dispatchReadOnlyTool({registry,name:'stripe_check_key_permissions',
-      args:{},connection:conn,db,permissionProbe:async ({account,mode})=>{
+      args:{},connection:conn,db,services:{stripePermissionReprobe:async ({account,mode})=>{
         expect(account).toBe('acct_A');expect(mode).toBe('test');called++;
         return {account,mode,checkedAt:'2026-10-10T00:00:00Z',
           permissions:{customers:'ok',refunds:'denied'}};
-      }});
+      }}});
     expect(called).toBe(1);
     expect(parse(result).permissions).toEqual({customers:'ok',refunds:'denied'});
+    const full=await handlers.stripe_check_key_permissions({detail:'full'},{
+      connection:conn,services:{stripePermissionReprobe:async ({account,mode})=>({
+        account,mode,checkedAt:'2026-10-10T00:00:00Z',
+        permissions:{customers:'ok'}})}});
+    expect(parse(full).source).toMatch(/Fresh TEST/);
+    const selected=await handlers.stripe_check_key_permissions({fields:['permissions']},{
+      connection:conn,services:{stripePermissionReprobe:async ({account,mode})=>({
+        account,mode,checkedAt:'2026-10-10T00:00:00Z',
+        permissions:{customers:'ok'}})}});
+    expect(parse(selected)).toEqual({permissions:{customers:'ok'}});
+    expect((await handlers.stripe_check_key_permissions({fields:['forbidden']},{
+      connection:conn,services:{stripePermissionReprobe:async()=>({})}})).isError).toBe(true);
   });
 });

@@ -18,12 +18,18 @@ describe('B-8b1 durable permissions read-back',()=>{
     await db.saveTestKey({account:'acct_PGPERMISSION',label:'Fixture',ciphertext:'fake-encrypted',
       kind:'restricted',last4:'FAKE',permissions:{customers:'denied'}});
     expect(await db.updateKeyPermissions({account:'acct_PGPERMISSION',
-      permissions:{customers:'ok',refunds:'denied'}})).toBe(true);
+      permissions:{customers:'ok',refunds:'denied'},expectedCiphertext:'fake-encrypted'})).toBe(true);
     const row=await db.getStripeAccount('acct_PGPERMISSION');
     expect(row.key_permissions).toEqual({customers:'ok',refunds:'denied'});
+    await db.saveTestKey({account:'acct_PGPERMISSION',label:'Rotated',ciphertext:'new-cipher',
+      kind:'restricted',last4:'NEW4',permissions:{customers:'denied'}});
+    expect(await db.updateKeyPermissions({account:'acct_PGPERMISSION',
+      permissions:{customers:'ok'},expectedCiphertext:'fake-encrypted'})).toBe(false);
+    expect((await db.getStripeAccount('acct_PGPERMISSION')).key_permissions)
+      .toEqual({customers:'denied'});
     expect(await db.updateKeyPermissions({account:'acct_UNKNOWN',
-      permissions:{customers:'ok'}})).toBe(false);
+      permissions:{customers:'ok'},expectedCiphertext:'fake-encrypted'})).toBe(false);
     await expect(db.updateKeyPermissions({account:'acct_PGPERMISSION',
-      permissions:{refunds:'maybe'}})).rejects.toThrow();
+      permissions:{refunds:'maybe'},expectedCiphertext:'fake-encrypted'})).rejects.toThrow();
   });
 });
