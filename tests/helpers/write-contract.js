@@ -5,10 +5,24 @@ import { defineWrite } from '../../src/tools/write.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
 
 const parse = r => JSON.parse(r.content[0].text);
-export function runWriteContract({ withMoney }) {
+export function runWriteContract({ withMoney, tool = null, args = {}, fixtures = null }) {
+  if ((tool || fixtures) && (typeof tool !== 'function' ||
+      typeof fixtures !== 'function' || !args || Array.isArray(args) ||
+      typeof args !== 'object')) {
+    throw new TypeError('An actual tool contract requires tool factory, args and fixtures factory');
+  }
   const title = withMoney ? 'money-out write' : 'non-money write';
   function fixture({ appOwned = false, readBackMatches = true, approved = true,
     moneyCents = 8500, limitCents = 10000 } = {}) {
+    if (tool) {
+      const built = fixtures({ appOwned, readBackMatches, approved, moneyCents, limitCents });
+      const actual = tool(built, { appOwned, readBackMatches, approved, moneyCents, limitCents });
+      if (typeof actual?.handler !== 'function') throw new TypeError('Supplied tool must expose its real handler');
+      return { ...built, op: {
+        ...actual,
+        handler: (input, ctx) => actual.handler({ ...args, ...input }, ctx)
+      } };
+    }
     const provider = { writes: [], afterCalls: 0 };
     const db = createFakeDb({ accounts: [{
       id: 'acct_safe_fixture', label: 'Fixture', money_limit_cents: limitCents }] });

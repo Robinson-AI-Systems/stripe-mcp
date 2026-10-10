@@ -15,12 +15,12 @@ const profiles = new Set(['everyday', 'full']);
  */
 export function defineWrite({ name, read, summarize, apply, readAfter, verify, idempotency,
   inverse = () => null, needsConfirm = true, prepare = null, beforeApply = null,
-  afterApply = null, targetGuard = null }) {
+  afterApply = null, targetGuard = null, classifyError = () => 'uncertain' }) {
   if (!/^[a-z][a-z0-9_]{1,48}$/.test(name)) throw new TypeError('Valid tool name required');
   for (const [label, func] of Object.entries({ read, summarize, apply, readAfter, verify, idempotency, inverse })) {
     if (typeof func !== 'function') throw new TypeError(name + ': ' + label + ' must be a function');
   }
-  for (const [label, func] of Object.entries({ prepare, beforeApply, afterApply, targetGuard })) {
+  for (const [label, func] of Object.entries({ prepare, beforeApply, afterApply, targetGuard, classifyError })) {
     if (func !== null && typeof func !== 'function') throw new TypeError(name + ': ' + label + ' must be a function');
   }
   if (needsConfirm !== true) throw new Error('Confirmation is required for every write before the safety layer is finished');
@@ -90,18 +90,24 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
       // Capacity may remain reserved; conservative until manually reconciled.
       return reply({ done: false, error: 'Could not record intent; action not sent to Stripe' }, true);
     }
-    let observed, completed = false;
+    let observed, completed = false, status = 'uncertain', applied = false;
     try {
       await apply(args, ctx, { idempotencyKey: key, before });
-      observed = await readAfter(args, ctx);
-      completed = await verify(before, observed, args, ctx) === true;
-    } catch {
-      // Network and provider errors after sending a request are ambiguous.
-      completed = false;
+      applied = true;
+    } catch (error) {
+      // Only a verified definitive Stripe SDK rejection frees a reservation.
+      // Transport, rate-limit, idempotency conflicts and unknown failures do not.
+      status = classifyError(error) === 'rejected' ? 'rejected' : 'uncertain';
+    }
+    if (applied) {
+      try {
+        observed = await readAfter(args, ctx);
+        completed = await verify(before, observed, args, ctx) === true;
+        status = completed ? 'confirmed' : 'uncertain';
+      } catch { status = 'uncertain'; }
     }
     try {
-      if (afterApply) await afterApply({ ctx, args, before, key, prepared,
-        status: completed ? 'confirmed' : 'uncertain' });
+      if (afterApply) await afterApply({ ctx, args, before, key, prepared, status });
     } catch {
       return reply({ done: false, confirmed: false, idempotencyKey: key,
         warning: 'Provider outcome may have changed; could not finalize money reservation' }, true);
@@ -110,9 +116,9 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     try {
       inverseOperation = completed ? await inverse(before, observed, args, ctx) : null;
       await ctx.db.recordChange({ account: connection.stripeAccount, mode: connection.mode,
-        connection: ctx.connectionId ?? null, tool: name, summary,
+        connection: ctx.connectionId ?? null, tool: name, summary: status === 'rejected' ? 'REJECTED: ' + summary : summary,
         before: null, after: null, dryRun: false, idempotencyKey: key,
-        inverse: inverseOperation, amountCents: prepared?.amountCents ?? null,
+        inverse: inverseOperation, amountCents: status === 'rejected' ? null : (prepared?.amountCents ?? null),
         currency: prepared?.currency ?? null, direction: prepared?.direction ?? null });
     } catch {
       return reply({ done: false, confirmed: false, idempotencyKey: key,
@@ -120,7 +126,9 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     }
     return reply({ done: completed, confirmed: completed, mode: connection.mode,
       idempotencyKey: key, summary,
-      ...(!completed ? { warning: 'Read-back did not confirm the change, or the provider outcome is uncertain' } : {}) });
+      ...(!completed ? { warning: status === 'rejected'
+        ? 'Stripe definitively rejected the request; no money moved and the reservation was released'
+        : 'Read-back did not confirm the change, or the provider outcome is uncertain' } : {}) });
   }
   return Object.freeze({ tool, handler });
 }

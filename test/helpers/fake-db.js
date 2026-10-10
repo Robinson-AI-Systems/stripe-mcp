@@ -134,7 +134,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         r.key === idempotencyKey);
       const limit_cents = row.money_limit_cents ?? 50000;
       const used_cents = reservations.filter(r => r.account === account && r.connection === connection &&
-        r.day === day).reduce((sum, r) => sum + r.amountCents, 0);
+        r.day === day && r.state !== 'rejected').reduce((sum, r) => sum + r.amountCents, 0);
       if (existing) return { decision: existing.amountCents !== amountCents ||
         existing.currency !== currency ? 'request_conflict' :
           existing.day !== day ? 'previous_day' : 'already_' + existing.state,
@@ -146,7 +146,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return { decision: 'reserved', used_cents: used_cents + amountCents, limit_cents };
     },
     async settleMoneyReservation({ account, connection, idempotencyKey, state }) {
-      if (!['confirmed', 'uncertain'].includes(state)) throw new TypeError('Invalid reservation state');
+      if (!['confirmed', 'uncertain', 'rejected'].includes(state)) throw new TypeError('Invalid reservation state');
       const row = reservations.find(r => r.account === account && r.connection === connection &&
         r.key === idempotencyKey && r.state === 'reserved');
       if (!row) return false;
@@ -159,7 +159,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
         year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(clock()));
       return { used_cents: reservations.filter(r => r.account === account &&
-        r.connection === connection && r.day === day).reduce((sum, r) => sum + r.amountCents,0),
+        r.connection === connection && r.day === day && r.state !== 'rejected').reduce((sum, r) => sum + r.amountCents,0),
         limit_cents: row.money_limit_cents ?? 50000 };
     },
     async recordChange({ account = null, mode = 'test', connection = null,

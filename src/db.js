@@ -162,9 +162,9 @@ export function createDb(sql = getProductionSql()) {
       return rows[0];
     },
     async settleMoneyReservation({ account, connection, idempotencyKey, state }) {
-      if (!['confirmed', 'uncertain'].includes(state) ||
+      if (!['confirmed', 'uncertain', 'rejected'].includes(state) ||
           ![account, connection, idempotencyKey].every(x => typeof x === 'string' && x)) {
-        throw new TypeError('Only confirmed or uncertain money reservations can be settled');
+        throw new TypeError('Only confirmed, rejected or uncertain money reservations can be settled');
       }
       const rows = await sql`UPDATE money_reservations SET state = ${state}
         WHERE stripe_account = ${account} AND connection = ${connection}
@@ -182,6 +182,7 @@ export function createDb(sql = getProductionSql()) {
         FROM stripe_accounts a LEFT JOIN money_reservations r
           ON r.stripe_account = a.id AND r.connection = ${connection}
             AND r.local_day = (now() AT TIME ZONE 'America/Denver')::date
+            AND r.state <> 'rejected'
         WHERE a.id = ${account} GROUP BY a.money_limit_cents`;
       return rows[0] || null;
     },
@@ -293,10 +294,26 @@ export function createDb(sql = getProductionSql()) {
         amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
         currency TEXT NOT NULL,
         state TEXT NOT NULL DEFAULT 'reserved'
-          CHECK (state IN ('reserved', 'confirmed', 'uncertain')),
+          CHECK (state IN ('reserved', 'confirmed', 'uncertain', 'rejected')),
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         UNIQUE (stripe_account, connection, request_key)
       )`;
+      // Existing installations have a three-state CHECK. Upgrade once,
+      // not by locking and rebuilding the constraint on every request.
+      await sql`DO $upgrade$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'money_reservations'::regclass
+            AND conname = 'money_reservations_state_check'
+            AND pg_get_constraintdef(oid) NOT LIKE '%rejected%'
+        ) THEN
+          ALTER TABLE money_reservations DROP CONSTRAINT money_reservations_state_check;
+          ALTER TABLE money_reservations ADD CONSTRAINT money_reservations_state_check
+            CHECK (state IN ('reserved', 'confirmed', 'uncertain', 'rejected'));
+        END IF;
+      END
+      $upgrade$`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
         ON money_reservations (stripe_account, connection, local_day)`;
       await sql`CREATE OR REPLACE FUNCTION reserve_money_out_guarded(
@@ -336,7 +353,8 @@ export function createDb(sql = getProductionSql()) {
         v_duplicate := FOUND;
         SELECT COALESCE(SUM(amount_cents), 0)::BIGINT INTO v_used
           FROM money_reservations
-          WHERE stripe_account = p_account AND connection = p_connection AND local_day = v_day;
+          WHERE stripe_account = p_account AND connection = p_connection AND local_day = v_day
+            AND state <> 'rejected';
         used_cents := v_used;
         limit_cents := GREATEST(v_limit, 0);
         IF v_duplicate THEN

@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-1b2 complete in PR #20, approval-gated:** all five CI jobs passed on `8f189df` (run 38078451991); the PR intentionally remains OPEN. **IN-05 is unanswered** — the owner must choose the default daily money-out limit per connection ($500/day recommended) before the PR can merge. B-1 is NOT marked complete and no write tool is exposed.
+- **B-1b2 complete in PR #20, approval-gated:** an earlier head passed CI; new P1-review fixes require another exact-head pass; the PR intentionally remains OPEN. **IN-05 is unanswered** — the owner must choose the default daily money-out limit per connection ($500/day recommended) before the PR can merge. B-1 is NOT marked complete and no write tool is exposed.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).

@@ -11,5 +11,9 @@ describe('fake budget ledger mirrors fail-closed DB behavior', () => {
     expect(await db.settleMoneyReservation({ ...args, idempotencyKey: 'A', state: 'uncertain' })).toBe(true);
     expect((await db.getMoneyUsage({ account: 'acct_budget', connection: 'agent' })).used_cents).toBe(7500);
     expect((await db.reserveMoneyOut({ ...args, idempotencyKey: 'A', amountCents: 7500 })).decision).toBe('already_uncertain');
+    expect((await db.reserveMoneyOut({ ...args, idempotencyKey: 'C', amountCents: 2000 })).decision).toBe('reserved');
+    expect(await db.settleMoneyReservation({ ...args, idempotencyKey: 'C', state: 'rejected' })).toBe(true);
+    expect((await db.getMoneyUsage({account:'acct_budget',connection:'agent'})).used_cents).toBe(7500);
+    expect((await db.reserveMoneyOut({ ...args, idempotencyKey: 'C', amountCents: 2000 })).decision).toBe('already_rejected');
   });
 });

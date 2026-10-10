@@ -70,6 +70,29 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
     }
     expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(usedBefore);
   });
+  it('releases a proven rejection without allowing replay of the same request ID', async () => {
+    const before = Number((await db.getMoneyUsage({ account, connection })).used_cents);
+    const attempt = await reserve('definitely-declined', 12500);
+    expect(attempt.decision).toBe('reserved');
+    expect(await db.settleMoneyReservation({ account, connection,
+      idempotencyKey: 'definitely-declined', state: 'rejected' })).toBe(true);
+    expect(await db.settleMoneyReservation({ account, connection,
+      idempotencyKey: 'definitely-declined', state: 'confirmed' })).toBe(false);
+    expect((await reserve('definitely-declined', 12500)).decision).toBe('already_rejected');
+    expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(before);
+  });
+  it('upgrades the older three-state constraint once without removing ledger records', async () => {
+    await rawQuery('ALTER TABLE money_reservations DROP CONSTRAINT money_reservations_state_check');
+    await rawQuery("ALTER TABLE money_reservations ADD CONSTRAINT money_reservations_state_check CHECK (state IN ('reserved', 'confirmed', 'uncertain'))");
+    await db.initSchema();
+    const constraints = await rawQuery(`SELECT pg_get_constraintdef(oid) AS definition
+      FROM pg_constraint WHERE conrelid = 'money_reservations'::regclass
+      AND conname = 'money_reservations_state_check'`);
+    expect(constraints).toHaveLength(1);
+    expect(constraints[0].definition).toContain('rejected');
+    await db.initSchema();
+    expect((await reserve('definitely-declined', 12500)).decision).toBe('already_rejected');
+  });
   it('reports a nonexistent account as unavailable rather than silently allowing it', async () => {
     const res = await db.reserveMoneyOut({ account: 'acct_unknown', connection,
       idempotencyKey: 'orphan', amountCents: 100, currency: 'usd' });

@@ -59,3 +59,17 @@ export async function listAll(listFn, params = {}, { max = 1000 } = {}) {
   }
   return { items, capped };
 }
+
+// Only official Stripe SDK error subclasses with definitive rejection status
+// codes are safe to treat as an operation that never moved money. Any unknown,
+// interrupted, idempotency-conflict or rate-limit response remains uncertain.
+export function classifyStripeWriteError(error) {
+  const e = Stripe.errors;
+  if ((error instanceof e.StripeInvalidRequestError && [400, 404].includes(error.statusCode)) ||
+      (error instanceof e.StripeAuthenticationError && error.statusCode === 401) ||
+      (error instanceof e.StripePermissionError && error.statusCode === 403) ||
+      (error instanceof e.StripeCardError && error.statusCode === 402)) {
+    return 'rejected';
+  }
+  return 'uncertain';
+}
