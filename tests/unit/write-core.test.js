@@ -35,7 +35,7 @@ describe('B-1a fail-closed write lifecycle (fake provider only)', () => {
   it('never writes until user explicitly confirms, and refuses fabricated flags', async () => {
     const { op, ctx, calls } = make();
     expect(parse(await op.handler({}, ctx)).needsConfirmation).toBe(true);
-    expect(parse(await op.handler({ confirm: 'yes' }, ctx)).error).toMatch(/booleans/);
+    expect(parse(await op.handler({ confirm: 'yes' }, ctx)).error).toMatch(/confirmation flags/);
     expect(calls.write).toEqual([]);
     expect(calls.log).toEqual([]);
   });
