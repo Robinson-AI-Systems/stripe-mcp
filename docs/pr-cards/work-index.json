@@ -313,7 +313,7 @@
     },
     {
       "id": "D-1",
-      "title": "Customers and toolkit name map",
+      "title": "Current native customer tools",
       "batch": "D",
       "design": "docs/designs/BATCH-D.md",
       "dependencies": [
@@ -326,7 +326,7 @@
       "units": [
         "D-1"
       ],
-      "readiness": "CARD_READY_IMPLEMENTATION_PENDING",
+      "readiness": "D1_NATIVE_CUSTOMERS_PR37_IN_REVIEW",
       "ownerInputs": []
     },
     {

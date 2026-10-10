@@ -54,21 +54,21 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `customer_list` | List customers (by email, created date) | — | C | R |
-| `customer_get` | One customer, with default payment method summary and app record link if any | — | C | R |
-| `customer_search` | Stripe search (`email:`, `name~:`, `metadata['agreementId']:`) | — | C | R |
-| `customer_find` | Plain search: name, email, phone or app ID; tries the right search for you | — | N | R |
-| `customer_create` | New customer | P | C | E |
-| `customer_update` | Name, email, phone, address, description, metadata | P | C | E |
-| `customer_delete` | Delete (cancels their subscriptions; cannot be undone) | C | C | F |
-| `customer_list_payment_methods` | Saved cards and bank accounts (brand, last 4, expiry only) | — | C | R |
-| `customer_get_payment_method` | One payment method | — | C | R |
-| `customer_remove_payment_method` | Detach a saved card or bank account | C | C | E |
-| `customer_set_default_payment_method` | Which saved method pays invoices | P | N | E |
-| `customer_list_balance_transactions` | Account credit/debit history | — | C | R |
-| `customer_add_balance_credit` | Add credit (or a debit) to a customer's balance | $ | F | E |
-| `customer_list_tax_ids` / `customer_add_tax_id` / `customer_delete_tax_id` | Tax IDs | — / P / C | C | E |
-| `customer_remove_discount` | End a customer-level coupon | C | R | E |
+| `customer_list` | List customers (by email, created date) | — | built #37 | R |
+| `customer_get` | One customer, with default payment method summary and app record link if any | — | built #37 | R |
+| `customer_search` | Stripe search (`email:`, `name~:`, `metadata['agreementId']:`) | — | built #37 | R |
+| `customer_find` | Plain search: name, email, phone or app ID; tries the right search for you | — | built #37 | R |
+| `customer_create` | New customer | P | built #37 | E |
+| `customer_update` | Name, email, phone, address, description, metadata | P | built #37 | E |
+| `customer_delete` | Delete (cancels their subscriptions; cannot be undone) | C | built #37 | F |
+| `customer_list_payment_methods` | Saved cards and bank accounts (brand, last 4, expiry only) | — | built #37 | R |
+| `customer_get_payment_method` | One payment method | — | built #37 | R |
+| `customer_remove_payment_method` | Detach a saved card or bank account | C | built #37 | E |
+| `customer_set_default_payment_method` | Which saved method pays invoices | P | built #37 | E |
+| `customer_list_balance_transactions` | Account credit/debit history | — | built #37 | R |
+| `customer_add_balance_credit` | Add credit (or a debit) to a customer's balance | $ | built #37 | E |
+| `customer_list_tax_ids` / `customer_add_tax_id` / `customer_delete_tax_id` | Tax IDs | — / P / C | built #37 | E |
+| `customer_remove_discount` | End a customer-level coupon | C | built #37 | E |
 
 ## Payments and refunds (`payment_*`) — 19
 

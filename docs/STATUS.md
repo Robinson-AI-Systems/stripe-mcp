@@ -13,7 +13,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - **Last merged:** #36 complete Batch C, #35 independent TEST owner consent, #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
-- **In progress:** D-1 customer tools and Toolkit name mapping, branch `ai/gpt6/d-1-customer-tools` from merged Batch C #36 (`e4be155`). Only the execution card is committed so far; provider operations, tests and PR are NEXT, not yet implemented. Then D-2 and following. Batch C is complete in single PR #36. Batch B TEST approval boundary is unchanged; LIVE IN-06 remains OFF. Batch C drift-C: legacy direct reads, authenticated scopes and BATCH-C constraints verified in unit and isolated PostgreSQL; no new external provider write.
+- **In review:** D-1 current-native customer PR #37, all 17 TEST-only customer tools (eight reads, nine guarded writes), masked saved methods, search, credits with independent owner approval and app-ownership protection. Pinned SDK mock and unit tests committed; exact-head CI, security self-review and merge still required. No legacy-name compatibility. Next D-2 payments/refunds. Batch C is complete in single PR #36. Batch B TEST approval boundary is unchanged; LIVE IN-06 remains OFF. Batch C drift-C: legacy direct reads, authenticated scopes and BATCH-C constraints verified in unit and isolated PostgreSQL; no new external provider write.
 - **IN-05:** $500 USD/account/Colorado day shared across AI connections,
   all money-out separately owner-approved, above limit a second override.
   **IN-06 remains OFF.** No live credentials, provider money movement,
