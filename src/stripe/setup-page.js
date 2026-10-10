@@ -7,7 +7,7 @@ function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
-function htmlPage({ csrf, show = '', result = '', revealed = '' }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
@@ -28,6 +28,15 @@ function htmlPage({ csrf, show = '', result = '', revealed = '' }) {
       '<input type="hidden" name="id" value="' + escapeHtml(show) + '">' +
       '<label>Administrator passphrase<input type="password" name="passphrase" required></label>' +
       '<button type="submit">Reveal this one-time secret</button></form>' : '') +
+    (liveIntent ? '<h2>Approve LIVE account activation</h2>' +
+      '<p>Selected account: <strong>' + escapeHtml(liveIntent.label || liveIntent.stripe_account) +
+      '</strong> (' + escapeHtml(liveIntent.stripe_account) + '). This will allow REAL Stripe changes if enabled later. Do not proceed unless you intend that.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="enable-live">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(liveIntent.id) + '">' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<label><input type="checkbox" name="ownerLiveConsent" value="yes" required> I personally authorize LIVE mode for this exact Stripe account.</label>' +
+      '<button type="submit">Approve this LIVE account (final step)</button></form>' : '') +
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.env }) {
@@ -42,7 +51,11 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
       const csrf = randomBytes(32).toString('base64url');
       res.setHeader('Set-Cookie', 'stripe_setup_csrf=' + csrf +
         '; Max-Age=600; Path=/api/stripe/setup; HttpOnly; Secure; SameSite=Strict');
-      return send(res, 200, htmlPage({ csrf, show: req.query?.show || '' }), 'text/html; charset=utf-8');
+      const liveId = String(req.query?.liveEnable || '');
+      const liveIntent = liveId && typeof db.getLiveEnableIntent === 'function'
+        ? await db.getLiveEnableIntent(liveId) : null;
+      return send(res, 200, htmlPage({ csrf, show: req.query?.show || '', liveIntent }),
+        'text/html; charset=utf-8');
     }
     // Require an exact same-origin browser form and its double-submit CSRF token.
     if (String(req.headers?.origin || '') !== origin) {
@@ -91,6 +104,27 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
         return send(res, 400, htmlPage({ csrf:cookie,
           result:'Unable to retrieve this secret.' }), 'text/html; charset=utf-8');
       }
+    }
+    if (p.action === 'enable-live') {
+      // This server-owned gate defaults OFF. Owner consent in a form is
+      // necessary, but never enough to silently authorize IN-06 activation.
+      if (env.LIVE_MODE_OWNER_APPROVED !== 'true') {
+        return send(res, 403, htmlPage({ csrf:cookie, result:
+          'LIVE mode remains disabled until the owner separately authorizes IN-06.' }),
+          'text/html; charset=utf-8');
+      }
+      if (p.ownerLiveConsent !== 'yes') {
+        return send(res, 400, htmlPage({ csrf:cookie, result:
+          'Explicit account-specific LIVE consent is required.' }), 'text/html; charset=utf-8');
+      }
+      const requested = await db.getLiveEnableIntent(p.id);
+      if (!requested) return send(res, 410, htmlPage({ csrf:cookie, result:
+        'This LIVE activation request expired, was used or was revoked.' }), 'text/html; charset=utf-8');
+      const enabled = await db.consumeLiveEnableIntent({id:p.id,allowActivation:true});
+      return send(res, enabled ? 200 : 409, htmlPage({ csrf:cookie, result:enabled ?
+        'LIVE mode enabled for ' + requested.label + ' (' + requested.stripe_account + ').' :
+        'LIVE mode was not enabled: the account lacks a verified LIVE key or the request is invalid.' }),
+        'text/html; charset=utf-8');
     }
     return send(res, 400, htmlPage({ csrf:cookie, result:'Unsupported setup action.' }),
       'text/html; charset=utf-8');

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 // Live-mode decisions are server-side and never accepted from tool arguments.
 // Nothing in the current MCP dispatcher grants liveAccessGranted. A future
 // owner-only two-step activation must establish this server-owned gate.
@@ -27,3 +28,20 @@ export async function authorizeLiveWrite({ args, ctx, env = process.env }) {
   }
 }
 
+
+/** Stage an account-specific, ten-minute pending LIVE intent after a confirmed
+ * first-step owner command. The actual account flag is NOT changed here.
+ * B-8 must make this helper reachable only from its FULL-profile, confirmed tool.
+ */
+export async function requestLiveEnableIntent({ db, connection, confirm, now = Date.now() }) {
+  if (confirm !== true || connection?.mode !== 'test' || connection?.profile !== 'full' ||
+      !connection?.stripeAccount || !Number.isSafeInteger(now) ||
+      typeof db?.createLiveEnableIntent !== 'function') {
+    return { accepted:false, reason:'Explicit first-step confirmation from a full TEST connection required' };
+  }
+  const id=randomBytes(24).toString('base64url');
+  await db.createLiveEnableIntent({id,account:connection.stripeAccount,
+    expiresAt:new Date(now + LIVE_REAUTH_WINDOW_MS)});
+  return {accepted:true, id, account:connection.stripeAccount, expiresInSeconds:600,
+    requiresOwnerSetupPage:true, liveEnabled:false};
+}
