@@ -3,7 +3,7 @@
 This file describes what **exists**, and is updated in the same PR that ships it (DRIFT-PROTOCOL checklist B). What the
 system is designed to become is in `docs/designs/`; do not copy design text here before it is built.
 
-As of 2026-10-10: A-1 test/CI foundation and A-2 additive database schema code are built. No deployed server, remote database, operational Stripe key store or Stripe tool exists.
+As of 2026-10-10: A-1 test/CI foundation, A-2 additive schema, and A-3a core OAuth authentication and hashed-token storage methods are built. No deployed server, remote database, operational Stripe key store or Stripe tool exists.
 
 ## Infrastructure
 
@@ -34,11 +34,11 @@ A-2 defines seven tables, created **only when `initSchema()` is invoked**. In CI
 | `change_log` | Preview/confirm/read-back audit history and future undo links |
 | `one_time_secrets` | Only ciphertext, expiry and single-view record |
 
-Six additive indexes support code/token expiry, login lockout, changes and secret expiry. A-3 adds login operations; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
+Six additive indexes support code/token expiry, login lockout, changes and secret expiry. A-3a added hashed client registration, authorization code consumption, access/refresh rotation, revocation, login lockout and account selection methods. A-3b adds HTTP OAuth endpoints and the connector door; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
 
 ## Endpoints
 
-None yet.
+None yet (A-3a is internal-only; A-3b adds OAuth/MCP HTTP routes).
 
 ## Stripe API version
 
