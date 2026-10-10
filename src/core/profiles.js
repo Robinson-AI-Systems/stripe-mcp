@@ -29,7 +29,7 @@ export function publicToolInfo(tool) {
   }
   return {...rest,inputSchema:{...schema,properties},
     annotations:{...rest.annotations,readOnlyHint:tool.writes===false,
-      destructiveHint:tool.writes===true&&!rest.annotations?.destructiveHint===false,
+      destructiveHint:tool.writes===true ? rest.annotations?.destructiveHint!==false : false,
       idempotentHint:tool.writes===false,
       openWorldHint:true}};
 }
