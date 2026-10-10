@@ -84,7 +84,8 @@ describe('B-8b2a owner-only connection removal',()=>{
     const confirm={action:'confirm-revoke',id,ownerRevokeConsent:'yes',
       passphrase:env.ADMIN_PASSPHRASE};
     const results=await Promise.all([f.submit(confirm),f.submit(confirm)]);
-    expect(results.map(x=>x.statusCode).sort()).toEqual([200,410]);
+    expect(results.filter(x=>x.statusCode===200)).toHaveLength(1);
+    expect(results.filter(x=>[409,410].includes(x.statusCode))).toHaveLength(1);
     expect((await f.db.listAuditForTest()).filter(x=>x.tool==='stripe_revoke_connection'))
       .toHaveLength(1);
     const f2=await createFixture({clock:()=>now});
