@@ -290,7 +290,7 @@ export function createDb(sql = getProductionSql()) {
       return await sql`SELECT client_id, mode, profile, listing, created_at,
           last_used_at, expires_at, revoked_at
         FROM oauth_tokens WHERE stripe_account = ${account} AND kind = 'connector'
-        ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+        ORDER BY created_at DESC, token_hash DESC LIMIT ${limit} OFFSET ${offset}`;
     },
     async recordChange({ account = null, mode = 'test', connection = null, tool, target = null, summary,
       before = null, after = null, dryRun = false, amountCents = null, currency = null,
