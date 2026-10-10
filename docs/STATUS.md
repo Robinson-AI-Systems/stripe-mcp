@@ -18,6 +18,11 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Recent merges (newest first)
 
+**2026-10-10 — Review fixes (docs PR #8):** two gaps found by an automated review of the Workspace server's plan,
+applied here: a login refresh keeps account, mode, profile and listing (A-3); the per-pass rate limit is stored per pass
+and counted in a shared Postgres table with an atomic update, tested with overlapping requests across two instances
+(R-2). Next action unchanged: A-1.
+
 **2026-10-10 — For account owners too (docs PR):** G-6 owner and administration; every dashboard setting covered as a
 real tool or a guided setting; audience tags.
 
