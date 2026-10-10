@@ -245,13 +245,13 @@
         "B-6"
       ],
       "card": "docs/pr-cards/B-7.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 150,
       "units": [
         "B-7"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "STACKED_ON_B-6",
       "ownerInputs": []
     },
     {

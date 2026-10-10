@@ -482,3 +482,7 @@ Tool results add human-readable amount/time values and mask sensitive keys. This
 ## B-6 profile counts (in progress, no additional tools)
 
 Home now displays read_only, everyday, and full counts for the tools currently exposed, not projected future tools. Unavailable/hidden names are refused before invoking handlers.
+
+## B-7 guard metadata (internal, no additional tools)
+
+Guarded write adapter declares a provider-derived money specification when one exists. The CI checker refuses missing writes, confirmation and money metadata. No money operation has been registered externally.
