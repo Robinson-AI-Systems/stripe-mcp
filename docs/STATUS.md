@@ -5,11 +5,11 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8c2 (PR #35, in review):** carries B-8c1 (#34 merged), adds private two-stage owner consent for each exact TEST transaction and a separate password-authenticated owner over-limit override. New one-use decision intents bind Stripe-derived request identity. No money-moving Stripe tool is exposed. Targeted unit and disposable PostgreSQL test files are committed; exact-head CI and self-review are required before merge.
-- **Last merged:** #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
+- **B-8c2 merged (#35):** carries B-8c1 (#34 merged), adds private two-stage owner consent for each exact TEST transaction and a separate password-authenticated owner over-limit override. New one-use decision intents bind Stripe-derived request identity. No money-moving Stripe tool is exposed. Unit, disposable PostgreSQL, mock and repository CI passed at reviewed head 27fd5de; owner-authenticated transaction consent is now code-complete, but provider money tools and LIVE remain OFF.
+- **Last merged:** #35 independent TEST owner consent, #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
-- **Next after B-8c2 merge:** C-1 result summaries, field metadata and handles. Batch B-8 remains IN_PROGRESS until B-8c2 exact-head green merge and Batch B drift-C closeout; C-1 cannot merge ahead of its prerequisite.
+- **Next:** C-1 from approved Batch C, followed by C-2. Batch B TEST owner safety layer is complete, with LIVE still explicitly gated by IN-06; no provider money tools exposed. Drift-C: verified B-1…B-8 and approved BATCH-C assumptions; existing MCP SDK v1.32.1 tool metadata supports annotations, and source registry has read-only declarations. No Stripe operation or owner limit changed.
 - **IN-05:** $500 USD/account/Colorado day shared across AI connections,
   all money-out separately owner-approved, above limit a second override.
   **IN-06 remains OFF.** No live credentials, provider money movement,
