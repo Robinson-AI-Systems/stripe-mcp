@@ -338,13 +338,13 @@
         "D-1"
       ],
       "card": "docs/pr-cards/D-2.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 450,
       "units": [
         "D-2"
       ],
-      "readiness": "D2_19_NATIVE_PAYMENT_TOOLS_IN_REVIEW",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
