@@ -55,6 +55,48 @@ export function createDb(sql = getProductionSql()) {
       const row = rows[0];
       return row ? { client_id: row.client_id, ...row.data, ...connectionSettings(row) } : null;
     },
+    async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
+      mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 2592000 }) {
+      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+      await sql`INSERT INTO oauth_tokens
+        (token_hash, refresh_hash, client_id, stripe_account, mode, profile, listing, expires_at)
+        VALUES (${hashToken(accessToken)}, ${refreshToken ? hashToken(refreshToken) : null},
+          ${clientId}, ${stripeAccount}, ${mode}, ${profile}, ${listing}, ${expiresAt})`;
+    },
+    async getAccessToken(accessToken) {
+      if (typeof accessToken !== 'string' || !accessToken) return null;
+      const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing, kind,
+        expires_at, revoked_at FROM oauth_tokens WHERE token_hash = ${hashToken(accessToken)}
+        AND expires_at > now() AND revoked_at IS NULL AND kind = 'connector'`;
+      return rows[0] || null;
+    },
+    async getTokenByRefreshToken(refreshToken) {
+      if (typeof refreshToken !== 'string' || !refreshToken) return null;
+      const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing
+        FROM oauth_tokens WHERE refresh_hash = ${hashToken(refreshToken)}
+        AND expires_at > now() AND revoked_at IS NULL AND kind = 'connector'`;
+      return rows[0] || null;
+    },
+    async rotateRefreshToken({ refreshToken, clientId, accessToken, newRefreshToken,
+      ttlSeconds = 2592000 }) {
+      // Single atomic update consumes a refresh credential only once, even with concurrent requests.
+      // All connection columns remain in this very row: no copying from a default connection.
+      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+      const rows = await sql`UPDATE oauth_tokens SET
+        token_hash = ${hashToken(accessToken)}, refresh_hash = ${hashToken(newRefreshToken)},
+        expires_at = ${expiresAt}, last_used_at = NULL
+        WHERE refresh_hash = ${hashToken(refreshToken)} AND client_id = ${clientId}
+          AND revoked_at IS NULL AND expires_at > now() AND kind = 'connector'
+        RETURNING client_id, stripe_account, mode, profile, listing`;
+      return rows[0] || null;
+    },
+    async revokeAccessToken(accessToken) {
+      if (typeof accessToken !== 'string' || !accessToken) return false;
+      const rows = await sql`UPDATE oauth_tokens SET revoked_at = now()
+        WHERE token_hash = ${hashToken(accessToken)} AND revoked_at IS NULL
+        RETURNING token_hash`;
+      return rows.length > 0;
+    },
     async recordLoginAttempt(ip) {
       const rows = await sql`INSERT INTO login_attempts (ip, success) VALUES (${ip}, FALSE) RETURNING id`;
       return rows[0].id;
