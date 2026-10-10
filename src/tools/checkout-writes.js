@@ -84,7 +84,7 @@ const ownerUrls=ctx=>{
   return a;
 };
 const hosted=x=>safeHost(x,['checkout.stripe.com','billing.stripe.com','buy.stripe.com']);
-const safePrice=(price,a)=>{
+const safePrice=(price)=>{
   if(price.active!==true||price.currency!=='usd'||!Number.isSafeInteger(price.unit_amount)||
     price.unit_amount<=0)return false;
   return true;
@@ -96,7 +96,7 @@ async function beforeFor(def,a,s){
       if(customer.deleted)throw new TypeError('Customer unavailable');
       if(a.priceId){
         const price=await s.prices.retrieve(a.priceId);
-        if(!safePrice(price,a))throw new TypeError('Price is invalid or belongs to an app');
+        if(!safePrice(price))throw new TypeError('Price is invalid or belongs to an app');
         return {...customer,_price:price};
       }
       return customer;
