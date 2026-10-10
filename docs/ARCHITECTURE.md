@@ -84,3 +84,7 @@ dispatcher still exposes only TEST/read-only tools and cannot approve an intent.
 ### B-3 application-owned Stripe record guard (staged)
 
 Internal `src/tools/app-guard.js` detects the known Appliance Desk metadata keys from `docs/APP-NEEDS-APPLIANCE-DESK.md` on the target or on its customer. If customer ownership is unknown or cannot be read, writes deny rather than treating the target as unaffiliated. App-owned changes require `outsideApp:true` under the ordinary guarded write contract; app-owned refunds have the documented exception and still require individual authenticated owner money approval. Reads can be marked `appRecord`. This protection is internal; no public write handler is registered yet.
+
+### B-4 safely translated Stripe errors (staged)
+
+`src/tools/errors.js` maps recognized Stripe SDK error classes to plain-English diagnostics and corrective actions, retains only sanitized request IDs/fields, and never returns raw provider messages or secrets. It is integrated in the current read-only MCP handler and guarded Stripe write adapter. Unknown errors preserve previous handling; no additional write door is exposed.

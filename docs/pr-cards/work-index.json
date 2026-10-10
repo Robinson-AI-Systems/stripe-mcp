@@ -191,13 +191,13 @@
         "B-3"
       ],
       "card": "docs/pr-cards/B-4.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 300,
       "units": [
         "B-4"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {

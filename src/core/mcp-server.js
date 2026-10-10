@@ -3,6 +3,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { requireMcpToken } from './mcp-auth.js';
+import { toStripeToolError } from '../tools/errors.js';
 
 export async function dispatchReadOnlyTool({ registry, name, args, connection, db }) {
   const item = registry.tools.find(t => t.name === name);
@@ -14,8 +15,9 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
   try { return await handler(args || {},{connection,db}); }
-  catch {
-    return {isError:true,content:[{type:'text',text:'Could not read account details; check server setup'}]};
+  catch (error) {
+    return toStripeToolError(error,{mode:connection.mode}) ||
+      {isError:true,content:[{type:'text',text:'Could not read account details; check server setup'}]};
   }
 }
 export function createMcpHandler({ db, registry, env = process.env }) {

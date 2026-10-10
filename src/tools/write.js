@@ -4,6 +4,7 @@ import { idempotencyKey, classifyStripeWriteError } from '../stripe/client.js';
 import { prepareMoney, reserveMoneyBeforeWrite, settleMoneyAfterWrite } from '../money.js';
 import { authorizeLiveWrite } from './live-guard.js';
 import { protectAppOwnedTarget } from './app-guard.js';
+import { toStripeToolError } from './errors.js';
 export function defineWrite(spec) {
   if (spec?.money && typeof spec.money !== 'function') throw new TypeError('Money spec must be a function');
   if (spec?.targetGuard !== undefined && typeof spec.targetGuard !== 'function') {
@@ -30,13 +31,23 @@ export function defineWrite(spec) {
     return spec?.appOwnedRefundAllowed === true && guarded?.ownership
       ? original + ' The rental app will see this refund and record it.' : original;
   };
-  return defineCoreWrite({ ...spec, summarize, targetGuard, idempotency: idempotencyKey,
+  const guarded = defineCoreWrite({ ...spec, summarize, targetGuard, idempotency: idempotencyKey,
     classifyError: classifyStripeWriteError,
     modeGuard: (args, ctx) => authorizeLiveWrite({ args, ctx }),
     prepare: spec?.money ? async (args, ctx, before) =>
       prepareMoney(await spec.money(args, ctx, before), ctx?.connection?.mode) : null,
     beforeApply: spec?.money ? reserveMoneyBeforeWrite : null,
     afterApply: spec?.money ? settleMoneyAfterWrite : null });
+  return Object.freeze({...guarded, async handler(args,ctx) {
+    try { return await guarded.handler(args,ctx); }
+    catch (error) {
+      const formatted=toStripeToolError(error,{
+        mode:ctx?.connection?.mode, requiredPermission:spec?.requiredPermission
+      });
+      if (formatted) return formatted;
+      throw error;
+    }
+  }});
 }
 export function gone(reason = 'Operation unavailable') {
   return { isError: true, content: [{ type: 'text',
