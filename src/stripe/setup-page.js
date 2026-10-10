@@ -7,7 +7,7 @@ function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
@@ -37,6 +37,24 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<label><input type="checkbox" name="ownerLiveConsent" value="yes" required> I personally authorize LIVE mode for this exact Stripe account.</label>' +
       '<button type="submit">Approve this LIVE account (final step)</button></form>' : '') +
+    '<h2>Disconnect an AI connection (owner only)</h2>' +
+    '<p>Use a Stripe account ID and the AI client ID from the account connection list. This signs out that connection; it never touches customer payments.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="request-revoke">' +
+    '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
+    '<label>AI client ID<input name="clientId" required maxlength="160" autocomplete="off"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Preview connection removal</button></form>' +
+    (revokeIntent ? '<h2>Confirm removal of this connection</h2>' +
+      '<p>Account: <strong>' + escapeHtml(revokeIntent.label || revokeIntent.stripe_account) +
+      '</strong> (' + escapeHtml(revokeIntent.stripe_account) + '), client ID: <strong>' +
+      escapeHtml(revokeIntent.client_id) + '</strong>. Its current access and refresh tokens will be revoked. This cannot be undone for that connection.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-revoke">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(revokeIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerRevokeConsent" value="yes" required> I personally authorize revoking exactly this connection.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Revoke this connection</button></form>' : '') +
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.env }) {
@@ -104,6 +122,38 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
         return send(res, 400, htmlPage({ csrf:cookie,
           result:'Unable to retrieve this secret.' }), 'text/html; charset=utf-8');
       }
+    }
+    if (p.action === 'request-revoke') {
+      // Phase one is only a short-lived intent, not a connection mutation.
+      const id=randomBytes(24).toString('base64url');
+      let accepted=false;
+      try {
+        accepted=await db.requestConnectionRevokeIntent({
+          id,account:p.account,clientId:p.clientId,
+          expiresAt:new Date(Date.now()+10*60*1000)
+        });
+      } catch { accepted=false; }
+      if (!accepted) return send(res, 404, htmlPage({csrf:cookie,result:
+        'No active connection matches this exact account and client ID.'}),
+        'text/html; charset=utf-8');
+      const revokeIntent=await db.getConnectionRevokeIntent(id);
+      return send(res, 200, htmlPage({csrf:cookie,revokeIntent,result:
+        'Review the exact account and client, then independently confirm the removal.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'confirm-revoke') {
+      if (p.ownerRevokeConsent !== 'yes') return send(res, 400, htmlPage({csrf:cookie,result:
+        'A separate explicit owner confirmation is required.'}),
+        'text/html; charset=utf-8');
+      const intent=await db.getConnectionRevokeIntent(p.id);
+      if (!intent) return send(res, 410, htmlPage({csrf:cookie,result:
+        'This connection removal request was used or expired. Start again.'}),
+        'text/html; charset=utf-8');
+      const revoked=await db.consumeConnectionRevokeIntent(p.id);
+      return send(res, revoked ? 200 : 409, htmlPage({csrf:cookie,result:revoked ?
+        'Connection removed for account '+intent.stripe_account+', client '+intent.client_id+'.' :
+        'The connection was already removed or changed. No removal performed.'}),
+        'text/html; charset=utf-8');
     }
     if (p.action === 'enable-live') {
       // This server-owned gate defaults OFF. Owner consent in a form is
