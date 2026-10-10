@@ -8,8 +8,10 @@ describe('fake budget ledger mirrors fail-closed DB behavior', () => {
       expect(await db.requestMoneyApproval({ account:args.account, idempotencyKey:key,
         tool:'stripe_fixture', description:'Owner-reviewed payout', amountCents:cents,
         currency:'usd' })).toBe(true);
-      expect(await db.approveMoneyRequest({account:args.account,idempotencyKey:key,
-        allowOverLimit:override})).toBe(true);
+      expect(await db.approveMoneyRequest({account:args.account,idempotencyKey:key}))
+        .toBe(true);
+      if (override) expect(await db.approveMoneyOverride({account:args.account,idempotencyKey:key}))
+        .toBe(true);
     };
     await ownerApprove('A',7500);
     expect((await db.reserveMoneyOut({ ...args, idempotencyKey: 'A', amountCents: 7500 })).decision).toBe('reserved');

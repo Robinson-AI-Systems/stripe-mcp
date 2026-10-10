@@ -128,7 +128,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       let row = approvals.find(a => a.account === account && a.key === idempotencyKey);
       if (!row) {
         row = { account, key:idempotencyKey, tool, description, amountCents, currency,
-          expiresAt:clock()+86400000, approvedAt:null, allowOverLimit:false, consumedAt:null };
+          expiresAt:clock()+86400000, approvedAt:null, allowOverLimit:false, overrideApprovedAt:null, consumedAt:null };
         approvals.push(row);
       }
       return row.tool === tool && row.description === description && row.amountCents === amountCents &&
@@ -136,11 +136,19 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     },
     // Simulates authenticated owner action. Never expose this as an AI operation.
     async approveMoneyRequest({ account, idempotencyKey, allowOverLimit = false }) {
-      if (typeof allowOverLimit !== 'boolean') throw new TypeError('Explicit override boolean required');
+      if (allowOverLimit !== false) throw new TypeError('Separate owner override action required');
       const row=approvals.find(a => a.account === account && a.key === idempotencyKey &&
         a.consumedAt === null && a.expiresAt > clock());
       if (!row) return false;
-      row.approvedAt=clock(); row.allowOverLimit=allowOverLimit;
+      row.approvedAt=clock();
+      return true;
+    },
+    async approveMoneyOverride({ account, idempotencyKey }) {
+      const row=approvals.find(a => a.account === account && a.key === idempotencyKey &&
+        a.approvedAt !== null && a.approvedAt >= clock() - 600000 &&
+        a.consumedAt === null && a.expiresAt > clock());
+      if (!row) return false;
+      row.allowOverLimit=true; row.overrideApprovedAt=clock();
       return true;
     },
     async listMoneyApprovalsForTest() { return structuredClone(approvals); },
@@ -169,7 +177,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
           approval.expiresAt <= clock() || approval.approvedAt < clock() - 600000) {
         return { decision:'owner_approval_required', used_cents, limit_cents };
       }
-      if (used_cents > limit_cents - amountCents && !approval.allowOverLimit) {
+      if (used_cents > limit_cents - amountCents &&
+          (!approval.allowOverLimit || approval.overrideApprovedAt === null)) {
         return { decision:'limit_exceeded_override_required', used_cents, limit_cents };
       }
       approval.consumedAt=clock();

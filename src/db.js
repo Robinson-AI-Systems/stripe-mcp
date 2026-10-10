@@ -170,10 +170,24 @@ export function createDb(sql = getProductionSql()) {
     // Never register this method as an MCP/HTTPS agent operation.
     async approveMoneyRequest({ account, idempotencyKey, allowOverLimit = false }) {
       if (![account,idempotencyKey].every(v => typeof v === 'string' && v) ||
-          typeof allowOverLimit !== 'boolean') throw new TypeError('Valid owner approval required');
+          allowOverLimit !== false) throw new TypeError('General approval cannot authorize over-limit spending');
       const rows = await sql`UPDATE money_approvals
-        SET approved_at = now(), allow_over_limit = ${allowOverLimit}
+        SET approved_at = now()
         WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}
+          AND consumed_at IS NULL AND expires_at > now()
+        RETURNING request_key`;
+      return rows.length === 1;
+    },
+    // Separate owner-authenticated action: can only elevate an already approved
+    // exact transaction, never the account's standing $500 budget.
+    async approveMoneyOverride({ account, idempotencyKey }) {
+      if (![account,idempotencyKey].every(v => typeof v === 'string' && v)) {
+        throw new TypeError('Valid owner override required');
+      }
+      const rows = await sql`UPDATE money_approvals
+        SET allow_over_limit = TRUE, override_approved_at = now()
+        WHERE stripe_account = ${account} AND request_key = ${idempotencyKey}
+          AND approved_at IS NOT NULL AND approved_at > now() - interval '10 minutes'
           AND consumed_at IS NULL AND expires_at > now()
         RETURNING request_key`;
       return rows.length === 1;
@@ -355,6 +369,7 @@ export function createDb(sql = getProductionSql()) {
         currency TEXT NOT NULL CHECK (currency = 'usd'),
         approved_at TIMESTAMPTZ,
         allow_over_limit BOOLEAN NOT NULL DEFAULT FALSE,
+        override_approved_at TIMESTAMPTZ,
         consumed_at TIMESTAMPTZ,
         expires_at TIMESTAMPTZ NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -415,7 +430,7 @@ export function createDb(sql = getProductionSql()) {
         END IF;
         -- The approval is tied to this account, idempotency key and the exact
         -- provider-derived amount, then consumed atomically with the reservation.
-        SELECT amount_cents, currency, approved_at, allow_over_limit, consumed_at, expires_at
+        SELECT amount_cents, currency, approved_at, allow_over_limit, override_approved_at, consumed_at, expires_at
           INTO v_approval FROM money_approvals
           WHERE stripe_account = p_account AND request_key = p_key FOR UPDATE;
         IF NOT FOUND OR v_approval.amount_cents <> p_cents OR v_approval.currency <> p_currency
@@ -425,7 +440,8 @@ export function createDb(sql = getProductionSql()) {
           decision := 'owner_approval_required';
           RETURN NEXT; RETURN;
         END IF;
-        IF v_used > limit_cents - p_cents AND v_approval.allow_over_limit IS NOT TRUE THEN
+        IF v_used > limit_cents - p_cents AND (v_approval.allow_over_limit IS NOT TRUE
+          OR v_approval.override_approved_at IS NULL) THEN
           decision := 'limit_exceeded_override_required';
           RETURN NEXT; RETURN;
         END IF;

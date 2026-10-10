@@ -36,7 +36,8 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
     await client.requestMoneyApproval({account, idempotencyKey:key,
       tool:'stripe_fake_payout',description:'Verified payout',
       amountCents,currency:'usd'});
-    await client.approveMoneyRequest({account,idempotencyKey:key,allowOverLimit});
+    await client.approveMoneyRequest({account,idempotencyKey:key});
+    if (allowOverLimit) await client.approveMoneyOverride({account,idempotencyKey:key});
     return client.reserveMoneyOut({ account, connection:selectedConnection, idempotencyKey:key,
       amountCents, currency:'usd' });
   };
@@ -103,8 +104,9 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
     expect(await db.approveMoneyRequest({account,idempotencyKey:input.idempotencyKey,
       allowOverLimit:false})).toBe(true);
     expect((await db.reserveMoneyOut(input)).decision).toBe('reserved');
-    expect(await db.approveMoneyRequest({account,idempotencyKey:input.idempotencyKey,
-      allowOverLimit:true})).toBe(false);
+    await expect(db.approveMoneyRequest({account,idempotencyKey:input.idempotencyKey,
+      allowOverLimit:true})).rejects.toThrow(/Separate|over-limit/i);
+    expect(await db.approveMoneyOverride({account,idempotencyKey:input.idempotencyKey})).toBe(false);
     // Release only this test fixture from usage as a confirmed decline; keep its key spent.
     expect(await db.settleMoneyReservation({ ...input,state:'rejected' })).toBe(true);
   });
