@@ -39,7 +39,10 @@ export function defineWrite(spec) {
       prepareMoney(await spec.money(args, ctx, before), ctx?.connection?.mode) : null,
     beforeApply: spec?.money ? reserveMoneyBeforeWrite : null,
     afterApply: spec?.money ? settleMoneyAfterWrite : null });
-  return Object.freeze({...guarded, async handler(args,ctx) {
+  const declaredTool = Object.freeze({...guarded.tool,
+    safety: spec.money ? '$' : 'P',
+    moneySpec: spec.money ? 'provider-derived' : null});
+  return Object.freeze({...guarded, tool:declaredTool, async handler(args,ctx) {
     try { return shapeToolResult(await guarded.handler(args,ctx), {mode:ctx?.connection?.mode}); }
     catch (error) {
       const formatted=toStripeToolError(error,{

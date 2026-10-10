@@ -96,3 +96,7 @@ Read-only MCP results and guarded Stripe write results are postprocessed by a no
 ### B-6 connection-profile enforcement (in review)
 
 Every profile's tool discovery and direct name-call gate checks the same declared metadata; write tools are withheld from read_only unconditionally. The currently registered tool surface is still read-only while remaining Batch B gates are implemented. Home endpoint lists actual exposed-tool counts.
+
+### B-7 tool safety declarations (staged)
+
+Every registered tool has an explicit writes:boolean declaration. Money-out risk requires an attached provider-derived money spec and a guarded write contract, enforced by the shared CI write checker. The checker does not infer write status from names.

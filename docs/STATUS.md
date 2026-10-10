@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-7 completed (#27), next B-8 owner/server tools:** strict tool write declarations, guarded contract and provider-derived money safety metadata validation; no new money/live capabilities available.
+
 - **B-6 completed (PR #26); next B-7 write-declaration validator:** profile-specific tool exposure and call authorization, hidden-tool name denial, and home-page counts. B-5 result shaping is merged; external writes remain disabled pending B-8.
 
 - **B-5 completed (PR #25); next B-6 profiles:** currency displays, Colorado-local dates, nested credential redaction and LIVE output banner integrated into shared tool result boundaries; reviewed B-4 errors now merged in #24. No live or payment tools activated.
