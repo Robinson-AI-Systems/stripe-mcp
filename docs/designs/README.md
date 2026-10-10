@@ -7,15 +7,15 @@ go in `CHANGES-SINCE-DESIGN.md`. New designs start from `TEMPLATE.md`.
 
 | Batch | File | Status |
 |---|---|---|
-| A Foundation | [BATCH-A](BATCH-A.md) | Approved once IN-00 is answered |
-| B Trust layer | [BATCH-B](BATCH-B.md) | same |
-| C Cheap on context | [BATCH-C](BATCH-C.md) | same |
-| D Everyday money | [BATCH-D](BATCH-D.md) | same |
-| G Money out, disputes, risk, events, account | [BATCH-G](BATCH-G.md) | same |
-| H Branding and setup | [BATCH-H](BATCH-H.md) | same |
-| P Project profiles | [BATCH-P](BATCH-P.md) | same |
-| W Workflows | [BATCH-W](BATCH-W.md) | same |
-| U Universal tools | [BATCH-U](BATCH-U.md) | same |
-| R Reach any agent | [BATCH-R](BATCH-R.md) | same |
-| E Catalog, Stripe Tax, usage | [BATCH-E](BATCH-E.md) | same |
-| X Undo, smoke test, toolkit decision | [BATCH-X](BATCH-X.md) | same |
+| A Foundation | [BATCH-A](BATCH-A.md) | Approved 2026-10-10 (IN-00) |
+| B Trust layer | [BATCH-B](BATCH-B.md) | Approved 2026-10-10 (IN-00) |
+| C Cheap on context | [BATCH-C](BATCH-C.md) | Approved 2026-10-10 (IN-00) |
+| D Everyday money | [BATCH-D](BATCH-D.md) | Approved 2026-10-10 (IN-00) |
+| G Money out, disputes, risk, events, account | [BATCH-G](BATCH-G.md) | Approved 2026-10-10 (IN-00) |
+| H Branding and setup | [BATCH-H](BATCH-H.md) | Approved 2026-10-10 (IN-00) |
+| P Project profiles | [BATCH-P](BATCH-P.md) | Approved 2026-10-10 (IN-00) |
+| W Workflows | [BATCH-W](BATCH-W.md) | Approved 2026-10-10 (IN-00) |
+| U Universal tools | [BATCH-U](BATCH-U.md) | Approved 2026-10-10 (IN-00) |
+| R Reach any agent | [BATCH-R](BATCH-R.md) | Approved 2026-10-10 (IN-00) |
+| E Catalog, Stripe Tax, usage | [BATCH-E](BATCH-E.md) | Approved 2026-10-10 (IN-00) |
+| X Undo, smoke test, toolkit decision | [BATCH-X](BATCH-X.md) | Approved 2026-10-10 (IN-00) |

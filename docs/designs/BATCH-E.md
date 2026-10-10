@@ -1,6 +1,6 @@
 # Design — Batch E: Catalog, Stripe Tax, usage billing, quotes, test clocks
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch E.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch E.
 Cards E-1 … E-5. Depends on Batches B, C, P.
 
 Why this comes late: Appliance Desk creates its own products, prices and tax rates in code, so it needs none of these

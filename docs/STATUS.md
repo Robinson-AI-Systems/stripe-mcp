@@ -5,9 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **Waiting on Chris:** IN-00 (approve the plan) and IN-01 (repository visibility and automated review). Nothing blocks
-  writing code once IN-00 is answered.
-- **First card:** A-1 — repository, test harness, CI and doc checks ([card](pr-cards/A-1.md)). Then A-2 … A-6 (JIT).
+- **Ready now:** A-1 — repository, test harness, CI and doc checks ([card](pr-cards/A-1.md)). Then A-2 … A-6 (JIT).
+- **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
+  implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
 
 ## Environment
@@ -18,6 +18,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Recent merges (newest first)
 
+**2026-10-10 — Owner answers recorded (docs PR):** IN-00 approved, IN-01 public / no automated review; designs
+marked APPROVED; A-1 READY; review rule changed to self-review in AGENTS and PLAYBOOK.
+
 **2026-10-10 — Plan written (initial commit):** AGENTS, START-HERE, SESSION-START, PLAYBOOK, drift protocol, PLAN,
 MASTER-ROADMAP, 12 batch designs, TOOL-CATALOG (283 hand-built tools + 4 universal), Appliance Desk project profile,
 owner inputs, go-live checklist, decisions, roadmap, work index with validator, first card A-1. The earlier plan version
@@ -25,4 +28,4 @@ is archived in `docs/archive/plan-v1/`.
 
 ## Blocked
 
-Nothing in engineering. Owner inputs open: IN-00 … IN-12 (`OWNER-INPUTS.md`).
+Nothing in engineering. Owner inputs open: IN-02 … IN-12 (`OWNER-INPUTS.md`); none blocks A-1 … A-4.

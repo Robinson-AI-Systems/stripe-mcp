@@ -5,8 +5,8 @@ An answer is "applied" only once the setting and its behavior are verified. Plai
 
 | ID | Status | Question | Blocks | Recommended / safe default |
 |---|---|---|---|---|
-| IN-00 | **Awaiting Chris** | Approve this plan (all designs in `docs/designs/`) so implementation can start. | Every card | — |
-| IN-01 | **Awaiting Chris** | Keep this repository **public** (free GitHub Actions minutes, like your other MCP repos; the secret scan blocks secrets) or make it private? And should Codex automatically review PRs here as it does for Appliance Desk? | A-1 (CI choices) | Public, with secret scanning; Codex review on if it is free on your plan |
+| IN-00 | **Answered 2026-10-10: approved** (Chris: "Yes, I approve the plan") | Approve this plan (all designs in `docs/designs/`) so implementation can start. | Nothing | — |
+| IN-01 | **Answered 2026-10-10: public; no Codex review** | Keep this repository public or make it private? Should Codex automatically review PRs here? | Nothing | Applied: repo stays public with secret scanning; PRs get no automated review — the implementer inspects the diff itself (AGENTS "Review") |
 | IN-02 | Awaiting Chris (before A-5 is tried for real) | Create a Vercel project `stripe-mcp` and a Neon database for it (free tiers). Claude can do both with your Vercel and Neon connectors once you say go. | Real deployment | Free tiers; no purchase |
 | IN-03 | Awaiting Chris (with IN-02) | Set two secrets in Vercel yourself: `ADMIN_PASSPHRASE` (the passphrase for the login and setup pages) and `TOKEN_ENCRYPTION_KEY` (DEPLOY.md shows how to generate it). Claude never sees them. | Real deployment | — |
 | IN-04 | Awaiting Chris (after A-5 deploys) | In Stripe (test mode), create the MCP's restricted keys with the permission lists in DEPLOY.md and paste them on the setup page. These are separate from Appliance Desk's own key. | Using the server | Start with "Everyday" in test mode |

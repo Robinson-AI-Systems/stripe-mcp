@@ -1,6 +1,6 @@
 # Design — Batch U: Universal tools (every other Stripe operation)
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch U.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch U.
 Card U-1. Depends on Batches B and C (and A-4's vendored OpenAPI file).
 
 Goal (Chris, 2026-10-10): "let my AI agent do literally almost everything for me." Hand-built tools cover the common

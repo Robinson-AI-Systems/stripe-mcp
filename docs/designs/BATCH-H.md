@@ -1,6 +1,6 @@
 # Design — Batch H: Branding and setup
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch H. Card
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch H. Card
 H-1 (and `workflow_brand_business` in Batch W). Depends on Batch G (G-5's trial result). Tool list: `docs/TOOL-CATALOG.md`
 section Branding and setup.
 

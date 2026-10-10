@@ -1,6 +1,6 @@
 # Design — Batch D: Everyday money (customers, payments, refunds, checkout, subscriptions, invoices)
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch D.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch D.
 Cards D-1 … D-5. Depends on Batches B and C. Tool list: `docs/TOOL-CATALOG.md` sections Customers; Payments and refunds;
 Checkout, payment links and the customer portal; Subscriptions; Invoices, credit notes and quotes (invoices and credit
 notes here; quotes in Batch E).
