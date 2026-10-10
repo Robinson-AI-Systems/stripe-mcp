@@ -50,3 +50,17 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
 | [ ] | Live webhook + its secret in the app's Vercel (Owner pastes) | n/a |
 | [ ] | App's live restricted key created with the printed permission list and put in the app's Vercel (Owner) | n/a |
 | [ ] | Stripe confirms phone payments are allowed (Owner, Stripe support) | Not asked |
+
+## Money-out owner authorization gate (IN-05, 2026-10-10)
+
+- [ ] Owner-only authenticated browser page lists exact account, tool, Stripe-derived
+      amount, target/destination and request key for pending money-out operations.
+- [ ] Owner must affirm each transaction individually, even for $0.01.
+- [ ] When the account-wide Colorado-day total would exceed $500 USD, require
+      a **separate explicit override affirmation** for that same transaction.
+- [ ] Approval cannot be generated, forged, reused, stretched to a different target
+      or amount, or approved by any AI tool or agent argument.
+- [ ] PostgreSQL consumes owner grant atomically with the money reservation.
+- [ ] Verify cross-connection concurrency, expiry, uncertain provider outcomes,
+      confirmed rejections, one-use grants, and replay resistance.
+- [ ] Live money movement remains DISABLED until IN-06 is separately approved.

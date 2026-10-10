@@ -40,6 +40,18 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
     return client.reserveMoneyOut({ account, connection:selectedConnection, idempotencyKey:key,
       amountCents, currency:'usd' });
   };
+  it('upgrades the older three-state constraint once without removing ledger records', async () => {
+    await rawQuery('ALTER TABLE money_reservations DROP CONSTRAINT money_reservations_state_check');
+    await rawQuery("ALTER TABLE money_reservations ADD CONSTRAINT money_reservations_state_check CHECK (state IN ('reserved', 'confirmed', 'uncertain'))");
+    await db.initSchema();
+    const constraints = await rawQuery(`SELECT pg_get_constraintdef(oid) AS definition
+      FROM pg_constraint WHERE conrelid = 'money_reservations'::regclass
+      AND conname = 'money_reservations_state_check'`);
+    expect(constraints).toHaveLength(1);
+    expect(constraints[0].definition).toContain('rejected');
+    await db.initSchema();
+    expect((await reserve('once-A')).decision).toBe('already_uncertain');
+  });
   it('requires a separate owner decision for every request even in TEST mode', async () => {
     const input={account,connection,idempotencyKey:'owner-not-approved',
       amountCents:100,currency:'usd'};
@@ -57,7 +69,7 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
   });
   it('does not let two serverless connections exceed the same limit', async () => {
     const pair = await Promise.all([reserve('once-A'), reserve('once-B', 30000, otherDb)]);
-    expect(pair.map(x => x.decision).sort()).toEqual(['limit_exceeded', 'reserved']);
+    expect(pair.map(x => x.decision).sort()).toEqual(['limit_exceeded_override_required', 'reserved']);
     expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(30000);
   });
   it('never charges the limit twice for a replay or a mismatched amount', async () => {
@@ -95,18 +107,6 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
       expect(response.decision).toBe('currency_unsupported');
     }
     expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(usedBefore);
-  });
-  it('upgrades the older three-state constraint once without removing ledger records', async () => {
-    await rawQuery('ALTER TABLE money_reservations DROP CONSTRAINT money_reservations_state_check');
-    await rawQuery("ALTER TABLE money_reservations ADD CONSTRAINT money_reservations_state_check CHECK (state IN ('reserved', 'confirmed', 'uncertain'))");
-    await db.initSchema();
-    const constraints = await rawQuery(`SELECT pg_get_constraintdef(oid) AS definition
-      FROM pg_constraint WHERE conrelid = 'money_reservations'::regclass
-      AND conname = 'money_reservations_state_check'`);
-    expect(constraints).toHaveLength(1);
-    expect(constraints[0].definition).toContain('rejected');
-    await db.initSchema();
-    expect((await reserve('once-A')).decision).toBe('already_uncertain');
   });
   it('releases a proven rejection without allowing replay of the same request ID', async () => {
     const before = Number((await db.getMoneyUsage({ account, connection })).used_cents);

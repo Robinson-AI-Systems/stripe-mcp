@@ -21,7 +21,7 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
       if (typeof actual?.handler !== 'function') throw new TypeError('Supplied tool must expose its real handler');
       return { ...built, op: {
         ...actual,
-        handler: input => execute(actual, { ...args, ...input }, built.ctx, built.db, approved)
+        handler: (input, connectionCtx = built.ctx) => execute(actual, { ...args, ...input }, connectionCtx, built.db, approved)
       } };
     }
     const provider = { writes: [], afterCalls: 0 };
@@ -45,7 +45,7 @@ export function runWriteContract({ withMoney, tool = null, args = {}, fixtures =
       inverse: async () => ({ tool: 'stripe_fixture_restore', args: { id: 'record' } })
     });
     return { provider, db, ctx, op: {
-      ...op, handler: input => execute(op, input, ctx, db, approved)
+      ...op, handler: (input, connectionCtx = ctx) => execute(op, input, connectionCtx, db, approved)
     } };
   }
   // Test harness models two distinct actions: agent requests a transaction,

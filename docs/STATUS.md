@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-1b2 complete in PR #20, approval-gated:** all five CI jobs are green at head 2b52261 (run 38079454910), with two P1 review findings addressed and resolved; the PR intentionally remains OPEN. **IN-05 is unanswered** — the owner must choose the default daily money-out limit per connection ($500/day recommended) before the PR can merge. B-1 is NOT marked complete and no write tool is exposed.
+- **IN-05 approved 2026-10-10; PR #20 re-verification underway:** $500 USD per Stripe account per Colorado day, shared across all AI connections. EVERY AI money-out requires a separate owner-authenticated approval, and going over the remaining daily cap requires an additional single-transaction override. Approval records are amount/request-bound and single-use; the owner-only approval page will be a later, separately tested gate. No live account, money movement, or user-facing write tool is enabled. PR #21 (B-2 live guard) remains stacked in DRAFT.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).

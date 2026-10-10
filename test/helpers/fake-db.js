@@ -185,7 +185,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       row.state = state;
       return true;
     },
-    async getMoneyUsage({ account, connection }) {
+    async getMoneyUsage({ account, connection: _connection }) {
       const row = accountRows.get(account);
       if (!row) return null;
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
