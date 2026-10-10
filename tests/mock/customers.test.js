@@ -27,7 +27,7 @@ describe('D-1 real pinned Stripe SDK request shape through stripe-mock',()=>{
       .toBe('customer');
     expect((await s.customers.update(customer,{
       invoice_settings:{default_payment_method:method}},options)).object).toBe('customer');
-    expect((await s.customers.del(customer,options)).deleted).toBe(true);
+    expect((await s.customers.del(customer,undefined,options)).deleted).toBe(true);
     expect((await s.paymentMethods.detach(method,{},options)).object).toBe('payment_method');
   });
   it('submits money credit with integer cents, tax and discount methods',async()=>{
@@ -40,7 +40,7 @@ describe('D-1 real pinned Stripe SDK request shape through stripe-mock',()=>{
     expect((await s.customers.createTaxId(customer,{
       type:'eu_vat',value:'DE123456789'},options)).object).toBe('tax_id');
     expect((await s.customers.retrieveTaxId(customer,tax)).object).toBe('tax_id');
-    expect((await s.customers.deleteTaxId(customer,tax,options)).deleted).toBe(true);
+    expect((await s.customers.deleteTaxId(customer,tax,undefined,options)).deleted).toBe(true);
     expect((await s.customers.deleteDiscount(customer,options)).deleted).toBe(true);
   });
   it('binds idempotency to a single account, target and body regardless of confirm',()=>{

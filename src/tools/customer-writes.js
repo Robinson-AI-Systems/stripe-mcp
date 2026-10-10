@@ -107,7 +107,7 @@ function build(def){
         .filter(k=>a[k]!==undefined).map(k=>[k,a[k]]));
       if(n==='customer_create')created=await s.customers.create(payload,opts);
       if(n==='customer_update')await s.customers.update(a.customerId,payload,opts);
-      if(n==='customer_delete')await s.customers.del(a.customerId,opts);
+      if(n==='customer_delete')await s.customers.del(a.customerId,undefined,opts);
       if(n==='customer_remove_payment_method')
         await s.paymentMethods.detach(a.paymentMethodId,{},opts);
       if(n==='customer_set_default_payment_method')
@@ -119,7 +119,7 @@ function build(def){
       if(n==='customer_add_tax_id')
         created=await s.customers.createTaxId(a.customerId,{type:a.type,value:a.value},opts);
       if(n==='customer_delete_tax_id')
-        await s.customers.deleteTaxId(a.customerId,a.taxId,opts);
+        await s.customers.deleteTaxId(a.customerId,a.taxId,undefined,opts);
       if(n==='customer_remove_discount')
         await s.customers.deleteDiscount(a.customerId,opts);
     },

@@ -15,7 +15,7 @@ describe('C-2 progressive tool disclosure and wrapped execution',()=>{
     expect(compact).toEqual(['stripe_whoami','stripe_get_result',
       'stripe_search_tools','stripe_describe_tool','stripe_call','stripe_batch']);
     expect(listingForConnection(registry,{...connection,listing:'catalog'}).length)
-      .toBe(registry.tools.length);
+      .toBe(registry.tools.filter(t=>t.writes===false).length);
     expect(listingForConnection(registry,connection,'catalog')).toHaveLength(19);
     expect(listingForConnection(registry,connection,'read_only')).toHaveLength(6);
   });

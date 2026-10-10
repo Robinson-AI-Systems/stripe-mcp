@@ -15,7 +15,7 @@ function fixture(){
   const calls=[];let credit=null,methodCustomer=customer.id;
   const stripe={customers:{
     async list(p){calls.push(['list',p]);return {data:[{...customer}],has_more:false};},
-    async retrieve(id){return {...customer};},
+    async retrieve(_id){return {...customer};},
     async search(p){calls.push(['search',p]);return {data:[{...customer}],has_more:false};},
     async create(p,o){calls.push(['create',p,o]);customer.id='cus_CREATED';Object.assign(customer,p);return {...customer};},
     async update(id,p,o){calls.push(['update',p,o]);Object.assign(customer,p);return {...customer};},
@@ -36,7 +36,7 @@ function fixture(){
     async deleteDiscount(){customer.discount=null;return {};}
   },paymentMethods:{
     async retrieve(pm){return {id:pm,customer:methodCustomer};},
-    async detach(pm,p,o){calls.push(['detach',pm,o]);methodCustomer=null;return {id:pm,customer:null};}
+    async detach(pm,_p,o){calls.push(['detach',pm,o]);methodCustomer=null;return {id:pm,customer:null};}
   }};
   const db=createFakeDb({accounts:[{id:account,money_limit_cents:50000}]});
   const call=(name,args={},conn=connection)=>dispatchReadOnlyTool({
