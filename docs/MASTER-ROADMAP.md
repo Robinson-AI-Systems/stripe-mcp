@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Next:** B-1b money-rule enforcement after B-1a internal-only write engine (#18). Owner input IN-05 sets the daily money-out default before B-1 completes. No write tools are exposed until later guards are done.
+**Next:** B-1b2 authoritative money-spec/write-contract integration after B-1b1's atomic reservation table (#19). B-1a (#18) was merged. IN-05 still requires the owner's daily money-out amount; no writes exposed.
 
 ## Order and why
 

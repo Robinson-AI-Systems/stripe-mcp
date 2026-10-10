@@ -134,7 +134,7 @@
       ],
       "card": "docs/pr-cards/B-1.md",
       "status": "IN_PROGRESS",
-      "migration": "none",
+      "migration": "money_reservations",
       "budget": 450,
       "units": [
         "B-1"

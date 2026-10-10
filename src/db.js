@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations'
 ]);
 
 let productionSql;
@@ -150,6 +150,41 @@ export function createDb(sql = getProductionSql()) {
         RETURNING stripe_account, mode, kind, ciphertext`;
       return rows[0] || null;
     },
+    async reserveMoneyOut({ account, connection, idempotencyKey, amountCents, currency }) {
+      if (![account, connection, idempotencyKey].every(x => typeof x === 'string' && x) ||
+          !Number.isSafeInteger(amountCents) || amountCents <= 0 ||
+          typeof currency !== 'string' || !/^[a-z]{3}$/.test(currency)) {
+        throw new TypeError('Valid money reservation identity, amount and currency required');
+      }
+      const rows = await sql`SELECT decision, used_cents, limit_cents FROM
+        reserve_money_out_guarded(${account}, ${connection}, ${idempotencyKey},
+          ${amountCents}, ${currency})`;
+      return rows[0];
+    },
+    async settleMoneyReservation({ account, connection, idempotencyKey, state }) {
+      if (!['confirmed', 'uncertain'].includes(state) ||
+          ![account, connection, idempotencyKey].every(x => typeof x === 'string' && x)) {
+        throw new TypeError('Only confirmed or uncertain money reservations can be settled');
+      }
+      const rows = await sql`UPDATE money_reservations SET state = ${state}
+        WHERE stripe_account = ${account} AND connection = ${connection}
+          AND request_key = ${idempotencyKey} AND state = 'reserved'
+        RETURNING id`;
+      return rows.length > 0;
+    },
+    async getMoneyUsage({ account, connection }) {
+      if (![account, connection].every(x => typeof x === 'string' && x)) {
+        throw new TypeError('Selected account and connection required');
+      }
+      const rows = await sql`SELECT
+        COALESCE(SUM(r.amount_cents),0)::BIGINT AS used_cents,
+        a.money_limit_cents::BIGINT AS limit_cents
+        FROM stripe_accounts a LEFT JOIN money_reservations r
+          ON r.stripe_account = a.id AND r.connection = ${connection}
+            AND r.local_day = (now() AT TIME ZONE 'America/Denver')::date
+        WHERE a.id = ${account} GROUP BY a.money_limit_cents`;
+      return rows[0] || null;
+    },
     async recordChange({ account = null, mode = 'test', connection = null, tool, target = null, summary,
       before = null, after = null, dryRun = false, amountCents = null, currency = null,
       direction = null, idempotencyKey = null, inverse = null }) {
@@ -249,6 +284,83 @@ export function createDb(sql = getProductionSql()) {
         expires_at TIMESTAMPTZ NOT NULL,
         viewed_at TIMESTAMPTZ
       )`;
+      await sql`CREATE TABLE IF NOT EXISTS money_reservations (
+        id BIGSERIAL PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        connection TEXT NOT NULL,
+        request_key TEXT NOT NULL,
+        local_day DATE NOT NULL,
+        amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
+        currency TEXT NOT NULL,
+        state TEXT NOT NULL DEFAULT 'reserved'
+          CHECK (state IN ('reserved', 'confirmed', 'uncertain')),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (stripe_account, connection, request_key)
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
+        ON money_reservations (stripe_account, connection, local_day)`;
+      await sql`CREATE OR REPLACE FUNCTION reserve_money_out_guarded(
+        p_account TEXT, p_connection TEXT, p_key TEXT, p_cents BIGINT, p_currency TEXT)
+      RETURNS TABLE(decision TEXT, used_cents BIGINT, limit_cents BIGINT)
+      LANGUAGE plpgsql AS $function$
+      DECLARE
+        v_day DATE := (now() AT TIME ZONE 'America/Denver')::date;
+        v_limit BIGINT;
+        v_used BIGINT;
+        v_previous RECORD;
+        v_duplicate BOOLEAN;
+      BEGIN
+        IF p_account IS NULL OR p_account = '' OR p_connection IS NULL OR p_connection = ''
+          OR p_key IS NULL OR p_key = '' OR p_cents IS NULL OR p_cents <= 0
+          OR p_currency !~ '^[a-z]{3}$' THEN
+          RAISE EXCEPTION 'Invalid money reservation';
+        END IF;
+        -- Serialize requests by locking the common account row. After the lock,
+        -- a separate SQL statement sees the prior reservation's committed row.
+        -- The owner's cap is denominated in USD cents. No mixing unrelated
+        -- currencies or zero-decimal units before a verified conversion policy.
+        IF p_currency <> 'usd' THEN
+          decision := 'currency_unsupported'; used_cents := 0; limit_cents := 0;
+          RETURN NEXT; RETURN;
+        END IF;
+        SELECT money_limit_cents::BIGINT INTO v_limit
+        FROM stripe_accounts WHERE id = p_account FOR UPDATE;
+        IF NOT FOUND THEN
+          decision := 'account_missing'; used_cents := 0; limit_cents := 0;
+          RETURN NEXT; RETURN;
+        END IF;
+        SELECT amount_cents, currency, state, local_day INTO v_previous
+          FROM money_reservations
+          WHERE stripe_account = p_account AND connection = p_connection
+            AND request_key = p_key;
+        v_duplicate := FOUND;
+        SELECT COALESCE(SUM(amount_cents), 0)::BIGINT INTO v_used
+          FROM money_reservations
+          WHERE stripe_account = p_account AND connection = p_connection AND local_day = v_day;
+        used_cents := v_used;
+        limit_cents := GREATEST(v_limit, 0);
+        IF v_duplicate THEN
+          IF v_previous.amount_cents <> p_cents OR v_previous.currency <> p_currency THEN
+            decision := 'request_conflict';
+          ELSIF v_previous.local_day <> v_day THEN
+            decision := 'previous_day';
+          ELSE
+            decision := 'already_' || v_previous.state;
+          END IF;
+          RETURN NEXT; RETURN;
+        END IF;
+        IF v_used > limit_cents - p_cents THEN
+          decision := 'limit_exceeded';
+          RETURN NEXT; RETURN;
+        END IF;
+        INSERT INTO money_reservations
+          (stripe_account, connection, request_key, local_day, amount_cents, currency)
+        VALUES (p_account, p_connection, p_key, v_day, p_cents, p_currency);
+        used_cents := v_used + p_cents;
+        decision := 'reserved';
+        RETURN NEXT;
+      END;
+      $function$`;
       await sql`CREATE INDEX IF NOT EXISTS oauth_codes_expiration_idx ON oauth_codes (expires_at)`;
       await sql`CREATE INDEX IF NOT EXISTS oauth_tokens_refresh_idx ON oauth_tokens (refresh_hash)`;
       await sql`CREATE INDEX IF NOT EXISTS oauth_tokens_expiration_idx ON oauth_tokens (expires_at)`;

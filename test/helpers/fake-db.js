@@ -13,6 +13,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const encryptedTestKeys = new Map();
   const oneTimeSecrets = new Map();
   const audit = [];
+  const reservations = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -117,6 +118,49 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       oneTimeSecrets.delete(id);
       return row && row.expires_at > clock() ? structuredClone(Object.fromEntries(
         Object.entries(row).filter(([name]) => name !== 'expires_at'))) : null;
+    },
+    async reserveMoneyOut({ account, connection, idempotencyKey, amountCents, currency }) {
+      if (![account, connection, idempotencyKey].every(x => typeof x === 'string' && x) ||
+          !Number.isSafeInteger(amountCents) || amountCents <= 0 || !/^[a-z]{3}$/.test(currency)) {
+        throw new TypeError('Invalid money reservation');
+      }
+      if (currency !== 'usd') return { decision: 'currency_unsupported',
+        used_cents: 0, limit_cents: 0 };
+      const row = accountRows.get(account);
+      if (!row) return { decision: 'account_missing', used_cents: 0, limit_cents: 0 };
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
+        year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(clock()));
+      const existing = reservations.find(r => r.account === account && r.connection === connection &&
+        r.key === idempotencyKey);
+      const limit_cents = row.money_limit_cents ?? 50000;
+      const used_cents = reservations.filter(r => r.account === account && r.connection === connection &&
+        r.day === day).reduce((sum, r) => sum + r.amountCents, 0);
+      if (existing) return { decision: existing.amountCents !== amountCents ||
+        existing.currency !== currency ? 'request_conflict' :
+          existing.day !== day ? 'previous_day' : 'already_' + existing.state,
+        used_cents, limit_cents };
+      if (used_cents > limit_cents - amountCents) return { decision: 'limit_exceeded',
+        used_cents, limit_cents };
+      reservations.push({ account, connection, key: idempotencyKey, amountCents, currency,
+        day, state: 'reserved' });
+      return { decision: 'reserved', used_cents: used_cents + amountCents, limit_cents };
+    },
+    async settleMoneyReservation({ account, connection, idempotencyKey, state }) {
+      if (!['confirmed', 'uncertain'].includes(state)) throw new TypeError('Invalid reservation state');
+      const row = reservations.find(r => r.account === account && r.connection === connection &&
+        r.key === idempotencyKey && r.state === 'reserved');
+      if (!row) return false;
+      row.state = state;
+      return true;
+    },
+    async getMoneyUsage({ account, connection }) {
+      const row = accountRows.get(account);
+      if (!row) return null;
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
+        year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(clock()));
+      return { used_cents: reservations.filter(r => r.account === account &&
+        r.connection === connection && r.day === day).reduce((sum, r) => sum + r.amountCents,0),
+        limit_cents: row.money_limit_cents ?? 50000 };
     },
     async recordChange({ account = null, mode = 'test', connection = null,
       tool, summary, dryRun = false, idempotencyKey = null, inverse = null,
