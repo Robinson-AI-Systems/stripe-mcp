@@ -1,11 +1,11 @@
 # STATUS — current work, blockers and next action
 
 Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
-**A-1 foundation implemented (PR #9):** local and CI verification harness only. No Stripe account has been connected, no credentials added and nothing is live.
+**A-1 and A-2 implemented (PRs #9–#10):** local/CI verification and additive database schema, not deployed. No Stripe account has been connected, no credentials added and nothing is live.
 
 ## Next
 
-- **Ready next:** A-2 — additive database schema (JIT card required); A-1 verification harness merged in PR #9.
+- **Ready next:** A-3 — connector login, account/mode/profile/listing binding and hashed tokens (JIT card required); A-2 database schema merged in PR #10.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -17,6 +17,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — A-2 database schema (PR #10):** seven foundation tables and six indexes defined additively in code, tested only on throwaway PostgreSQL; no Neon database created and no Stripe records touched. Next A-3.
 
 **2026-10-10 — A-1 foundation (PR #9):** Node ESM registry, test-only Stripe fake, disposable Postgres adapter, secret scan, docs and budget checks, four CI gates and single `ci` merger. No Stripe requests against real accounts.
 
