@@ -93,6 +93,8 @@ export const handlers={
   }),
   customer_search:(a,c)=>perform(c,async s=>{
     const query=safeSearch(a?.query),p=page(a);
+    if(a?.page!==undefined&&!match(a.page,/^[A-Za-z0-9_-]{1,200}$/))
+      throw new TypeError('Invalid Stripe search page cursor');
     return list(await s.customers.search({query,limit:p.limit,
       ...(a?.page?{page:a.page}:{})}),v=>safeCustomer(v,c));
   }),
@@ -114,6 +116,8 @@ export const handlers={
   }),
   customer_list_payment_methods:(a,c)=>perform(c,async s=>{
     if(!validCustomer(a?.customerId))throw new TypeError('Valid customer ID required');
+    if(a?.type!==undefined&&!['card','us_bank_account'].includes(a.type))
+      throw new TypeError('Invalid saved payment method type');
     return list(await s.customers.listPaymentMethods(a.customerId,{
       ...page(a),...(a?.type?{type:a.type}:{})}),safeMethod);
   }),

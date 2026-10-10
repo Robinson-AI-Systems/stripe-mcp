@@ -56,6 +56,7 @@ function permittedArgs(def,args){
     if(rule.type==='boolean'&&typeof v!=='boolean')throw new TypeError('Invalid outsideApp');
     if(rule.type==='object'&&(!v||Array.isArray(v)||typeof v!=='object'||
       Object.keys(v).length>20||Object.keys(v).some(key=>!/^[A-Za-z0-9_-]{1,40}$/.test(key)||
+        ['__proto__','prototype','constructor'].includes(key)||
         typeof v[key]!=='string'||v[key].length>200)))
       throw new TypeError('Invalid customer metadata');
   }
@@ -106,7 +107,7 @@ function build(def){
         .filter(k=>a[k]!==undefined).map(k=>[k,a[k]]));
       if(n==='customer_create')created=await s.customers.create(payload,opts);
       if(n==='customer_update')await s.customers.update(a.customerId,payload,opts);
-      if(n==='customer_delete')await s.customers.del(a.customerId,{},opts);
+      if(n==='customer_delete')await s.customers.del(a.customerId,opts);
       if(n==='customer_remove_payment_method')
         await s.paymentMethods.detach(a.paymentMethodId,{},opts);
       if(n==='customer_set_default_payment_method')

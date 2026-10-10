@@ -22,7 +22,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
   try {
-    const raw=shapeToolResult(await handler(args || {},{connection,db,services,registry,
+    const raw=shapeToolResult(await handler(args || {},{connection,connectionId:connection?.resultScope,db,services,registry,
       runRead:(toolName,toolArgs)=>dispatchReadOnlyTool({registry,
         name:toolName,args:toolArgs,connection,db,services})}),
       {mode:connection.mode});
