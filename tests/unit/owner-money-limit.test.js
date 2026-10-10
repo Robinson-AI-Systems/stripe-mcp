@@ -57,7 +57,7 @@ describe('B-8b2b3 owner-only account money-out cap settings',()=>{
     expect(result.body).toContain('$350.00');
     expect(result.body).toContain('Already used today:');
     expect(result.body).toContain('$0.00');
-    expect(result.body).toContain('each AI money-out');
+    expect(result.body).toContain('Each AI money-out');
     expect(idOf(result.body)).toMatch(/^[A-Za-z0-9_-]{32}$/);
     expect((await f.db.getStripeAccount(account)).money_limit_cents).toBe(50000);
   });
