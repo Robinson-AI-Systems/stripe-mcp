@@ -2,6 +2,7 @@
 import { STRIPE_API_VERSION } from '../stripe/client.js';
 import { whereIsSetting } from '../data/dashboard-map.js';
 import { denverLocalTime } from './util.js';
+import { resultPage } from './result-rules.js';
 const schema = { type: 'object', properties: {}, additionalProperties: false };
 const profiles = ['read_only','everyday','full'];
 export const tools = [
@@ -24,6 +25,13 @@ export const tools = [
     inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:50},
       offset:{type:'integer',minimum:0}},
       additionalProperties:false},annotations:{readOnlyHint:true},writes:false,profiles },
+  { name:'stripe_get_result', description:'Read a saved, paged Stripe result belonging only to this authenticated connection.',
+    inputSchema:{type:'object',properties:{
+      handle:{type:'string',pattern:'^res_[A-Za-z0-9_-]{24,48}$'},
+      page:{type:'integer',minimum:0},
+      fields:{type:'string',maxLength:600}
+    },required:['handle'],additionalProperties:false},
+    annotations:{readOnlyHint:true},writes:false,profiles },
   { name:'stripe_where_is_setting', description:'Find owner-only Stripe Dashboard settings with clear steps, not API writes.',
     inputSchema:{type:'object',properties:{setting:{type:'string'}},
       required:['setting'],additionalProperties:false},annotations:{readOnlyHint:true},
@@ -73,6 +81,19 @@ function pageOf(rows,{account,offset,limit,field,extra={}}) {
 }
 const fail = value => ({ isError:true,content:[{type:'text',text:value}] });
 export const handlers = {
+  async stripe_get_result(args,{db,connection}) {
+    if(!connection?.resultScope||typeof db?.getScopedResult!=='function')
+      return fail('Private result storage is not configured for this connection');
+    const found=await db.getScopedResult({handle:args?.handle,
+      connection:connection.resultScope});
+    if(!found)return fail('Result missing, expired, or belongs to another connection');
+    try {
+      return ok({handle:args.handle,summary:found.summary,
+        ...resultPage(found.body,args.page??0,args.fields)});
+    } catch {
+      return fail('Choose a valid page and up to twelve safe dotted fields');
+    }
+  },
   async stripe_whoami(_args,{db,connection}) {
     if (!connection.stripeAccount) return fail('No Stripe account is selected for this connection');
     const row = await db.getStripeAccount(connection.stripeAccount);
