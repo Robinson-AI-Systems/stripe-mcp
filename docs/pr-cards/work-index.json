@@ -320,13 +320,13 @@
         "C-2"
       ],
       "card": "docs/pr-cards/D-1.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 400,
       "units": [
         "D-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_READY_IMPLEMENTATION_PENDING",
       "ownerInputs": []
     },
     {
