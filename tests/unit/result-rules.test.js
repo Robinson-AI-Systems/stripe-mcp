@@ -19,6 +19,14 @@ describe('C-1 compact safe provider summaries and fields',()=>{
       .toMatchObject({has_more:true,data:[{id:'cus_FAKE123'}]});
     expect(readDetail(obj,{detail:'full'})).toHaveProperty('other');
     expect(readDetail(obj)).not.toHaveProperty('other');
+    expect(readDetail(obj,{fields:'other'})).toEqual({other:'extra'});
+    const list={data:[{id:'cus_A',name:'Ada',balance:100},
+      {id:'cus_B',name:'Ben',balance:200}],has_more:false};
+    expect(projectFields(list,'data.id,data.name')).toEqual({
+      value:{data:[{id:'cus_A',name:'Ada'},{id:'cus_B',name:'Ben'}]},
+      unknown:[]});
+    expect(readDetail(list,{fields:'data.balance'})).toEqual({
+      data:[{balance:100},{balance:200}]});
   });
   it('allows bounded dotted selection with explicit unknown notes; refuses prototype paths',()=>{
     const obj={customer:{name:'J',address:{city:'Greeley'}},id:'cus_FAKE123'};

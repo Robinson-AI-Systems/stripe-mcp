@@ -12,30 +12,43 @@ export function projectFields(value,fields){
     p.split('.').some(x=>forbidden.has(x)))||new Set(paths).size!==paths.length)
     throw new TypeError('Choose at most 12 distinct safe dotted fields');
   if(value===null||typeof value!=='object')return {value,unknown:paths};
-  const out={};const unknown=[];
+  // A dotted path projects across array elements (e.g. data.id), without
+  // permitting arbitrary numeric indexes, prototypes or unsafe keys.
+  function select(node,parts){
+    if(parts.length===0)return {found:true,value:node};
+    if(Array.isArray(node)){
+      const rows=node.map(item=>select(item,parts));
+      return rows.some(r=>r.found)?{found:true,value:rows.map(r=>r.found?r.value:null)}
+        :{found:false};
+    }
+    if(!node||typeof node!=='object'||!Object.hasOwn(node,parts[0]))
+      return {found:false};
+    const next=select(node[parts[0]],parts.slice(1));
+    return next.found?{found:true,value:{[parts[0]]:next.value}}:{found:false};
+  }
+  function merge(into,from){
+    if(Array.isArray(from)){
+      return from.map((item,i)=>merge(into?.[i],item));
+    }
+    if(!from||typeof from!=='object')return from;
+    const merged={...into};
+    for(const [key,v] of Object.entries(from))
+      merged[key]=merge(merged[key],v);
+    return merged;
+  }
+  let out={};const unknown=[];
   for(const path of paths){
-    const parts=path.split('.');let cursor=value;
-    for(const segment of parts){
-      if(!cursor||typeof cursor!=='object'||!Object.hasOwn(cursor,segment)){
-        cursor=undefined;break;
-      }
-      cursor=cursor[segment];
-    }
-    if(cursor===undefined){unknown.push(path);continue;}
-    let destination=out;
-    for(const segment of parts.slice(0,-1)){
-      if(!Object.hasOwn(destination,segment))destination[segment]={};
-      destination=destination[segment];
-    }
-    Object.defineProperty(destination,parts.at(-1),{value:cursor,
-      enumerable:true,writable:true,configurable:true});
+    const result=select(value,path.split('.'));
+    if(!result.found){unknown.push(path);continue;}
+    out=merge(out,result.value);
   }
   return {value:out,unknown};
 }
 export function readDetail(value,{detail,fields}={}){
   if(detail!==undefined&&!['summary','full'].includes(detail))
     throw new TypeError('detail must be summary or full');
-  const selected=detail==='full'?value:summarizeProvider(value);
+  const selected=detail==='full'||(fields!==undefined&&fields!=='')
+    ?value:summarizeProvider(value);
   const result=projectFields(selected,fields);
   return result.unknown.length?{...result.value,unavailableFields:result.unknown}:result.value;
 }
