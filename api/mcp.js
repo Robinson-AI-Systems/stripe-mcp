@@ -10,7 +10,10 @@ export default async function handler(req, res) {
     const db = createDb();
     await db.initSchema();
     return await createMcpHandler({ db, registry, services:{stripePermissionReprobe:createPermissionReprobe({db}),
-      stripeForConnection:createStripeForConnection({db})} })(req, res);
+      stripeForConnection:createStripeForConnection({db}),
+      hostedReturnUrls:{success:process.env.STRIPE_CHECKOUT_SUCCESS_URL,
+        cancel:process.env.STRIPE_CHECKOUT_CANCEL_URL,
+        portal:process.env.STRIPE_PORTAL_RETURN_URL}} })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
       error: 'temporarily_unavailable', error_description: 'Stripe MCP is not configured or its database is unavailable'
