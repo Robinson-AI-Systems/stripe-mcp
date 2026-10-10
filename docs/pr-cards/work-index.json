@@ -191,13 +191,13 @@
         "B-3"
       ],
       "card": "docs/pr-cards/B-4.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 300,
       "units": [
         "B-4"
       ],
-      "readiness": "IN_PROGRESS_B3_MERGED",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
