@@ -42,7 +42,7 @@ the approved design; write the card when its predecessor is real.
 | C Context | C-1 small results · C-2 listing modes + budgets | JIT |
 | D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | JIT |
 | V Developer tools | V-1 seed + runs · V-2 cleanup · V-3 trigger events · V-4 event forwarding · V-5 test clocks, simulation, test cards | JIT |
-| G Money out & account | G-1 balance/payouts/reports · G-2 disputes · G-3 Radar/Identity · G-4 events/webhooks · G-5 account settings | JIT |
+| G Money out & account | G-1 balance/payouts/reports · G-2 disputes · G-3 Radar/Identity · G-4 events/webhooks · G-5 account settings · G-6 owner and administration | JIT |
 | H Branding | H-1 branding and setup | JIT |
 | P Project profiles | P-1 known_apps + Appliance Desk · P-2 record links · P-3 app readiness · P-4 project setup | JIT |
 | W Workflows | W-1 … W-10 (`designs/BATCH-W.md` §4 table) | JIT |

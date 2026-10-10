@@ -9,6 +9,8 @@ it does not work yet. This file is updated as features ship.
 | "Clean up the test data from that run." | Removes exactly what was created, nothing else | V |
 | "Send my app a failed-payment webhook." | Makes Stripe produce a real test event and, if your app is under development, forwards it correctly signed | V |
 | "What happens to this subscription over 6 months?" | Runs it on a test clock and shows every invoice and event | V |
+| "Review my Stripe account." | Business details, what Stripe still needs from you, payouts, branding, security, fees — ok or needs attention | G |
+| "Add Sam to my Stripe team." / "Turn off Stripe's failed-payment emails." | Stripe has no API for these, so you get exact steps (or a browser walk-through with `rtool guide`), then it checks the result where it can | G |
 | "Who am I connected to in Stripe?" | Account, TEST or LIVE, your money limit and how much is used today | A/B |
 | "How's the money looking this month?" | Balance, payouts coming, money in and out, monthly recurring revenue, failed payments, disputes | W |
 | "Who didn't pay this week and why?" | Each failed payment, the reason in plain words, when Stripe retries, the link to send them | W |

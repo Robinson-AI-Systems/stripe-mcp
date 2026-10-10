@@ -575,12 +575,30 @@
       "ownerInputs": []
     },
     {
+      "id": "G-6",
+      "title": "Owner and administration, full dashboard map",
+      "batch": "G",
+      "design": "docs/designs/BATCH-G.md",
+      "dependencies": [
+        "G-5"
+      ],
+      "card": "docs/pr-cards/G-6.md",
+      "status": "APPROVED",
+      "migration": "none",
+      "budget": 450,
+      "units": [
+        "G-6"
+      ],
+      "readiness": "WRITE_CARD_AT_START",
+      "ownerInputs": []
+    },
+    {
       "id": "H-1",
       "title": "Branding and setup tools, brand kits",
       "batch": "H",
       "design": "docs/designs/BATCH-H.md",
       "dependencies": [
-        "G-5"
+        "G-6"
       ],
       "card": "docs/pr-cards/H-1.md",
       "status": "APPROVED",

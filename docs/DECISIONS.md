@@ -61,3 +61,8 @@ checks only. Added Batch V (developer tools: seed scenarios, precise cleanup, re
 into apps under development, test clocks and simulation, test cards) after Batch D; moved test clocks there from Batch E;
 made project profiles explicitly optional and general (inline specs for readiness; `project_draft_profile` from codebase
 findings).
+
+**2026-10-10 — For account owners too (Chris).** "These toolsets should be great for both developers and end users of
+each service, account management tools … everything." Added G-6 owner and administration (admin overview, requirements,
+security review, fees and Stripe's own billing, guided settings for every dashboard-only setting with structured steps
+and read-back, per hub contract §11). Tools are tagged by audience (builder / owner / operator).

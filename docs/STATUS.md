@@ -18,6 +18,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Recent merges (newest first)
 
+**2026-10-10 — For account owners too (docs PR):** G-6 owner and administration; every dashboard setting covered as a
+real tool or a guided setting; audience tags.
+
 **2026-10-10 — General development tool (docs PR):** Batch V developer tools added; test clocks moved from E; project
 profiles made optional and general; Appliance Desk framed as an example and completeness check.
 

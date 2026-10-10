@@ -1,7 +1,7 @@
 # Design — Batch G: Money out, disputes, risk, events and webhooks, account settings
 
 Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch G.
-Cards G-1 … G-5. Depends on Batch D. Tool list: `docs/TOOL-CATALOG.md` sections Money out; Disputes; Risk and identity;
+Cards G-1 … G-6. Depends on Batch D. Tool list: `docs/TOOL-CATALOG.md` sections Money out; Disputes; Risk and identity;
 Events and webhooks; Reports and account.
 
 ## 0. Verify before starting
@@ -49,6 +49,14 @@ Extra: secret shown once on the setup page and never in a result; `event_list_un
 ### G-5 — Account: profile read, capabilities, payment method settings (ACH on/off), Apple Pay domains, payout schedule (M)
 First step: G5 trial, recorded in the PR; tools follow G5's guided pattern where Stripe refuses.
 
+### G-6 — Owner and administration (M, medium effort)
+Tools: `stripe_admin_overview`, `admin_list_requirements`, `admin_list_guided_settings`, `admin_check_setting`,
+`admin_review_security`, `admin_fees_and_billing`; `stripe_where_is_setting` upgraded to the structured-steps format of
+Robinson Tool Contract §11 (`{ setting, url, steps[], expected, verifyWith? }`); the dashboard map extended to every
+settings page of Stripe's dashboard (walk it once in test mode; record the date). Key-related steps never reveal a key.
+Tests: overview items each ok / needs_attention / not_readable on fixtures; every map entry has steps and an expected
+result; `verifyWith` points at a real read tool; closing the account is steps-only.
+
 ## 5. Stop-and-ask points
 
 1. G5 trial shows Stripe accepts *none* of the settings: still build the guided versions; tell Chris which settings are
@@ -63,3 +71,6 @@ First step: G5 trial, recorded in the PR; tools follow G5's guided pattern where
 | Guided settings never claim success without read-back | `tests/unit/account-guided.test.js` |
 
 ## Amendments
+
+**2026-10-10 — G-6 added (Chris: tools for account owners and end users too, "account management … everything").**
+Owner and administration tools plus full dashboard coverage through guided settings; follows contract §11.
