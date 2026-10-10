@@ -40,7 +40,7 @@ Chris builds (Appliance Desk today; YardSync, Cortiware and future projects late
 billing gets a **project profile** (Batch P) so the server knows which Stripe records that app owns, which webhook events
 it needs and how to check its setup — and never fights it. Appliance Desk is the first profile. It is reached
 through a Claude connector and a plain HTTPS API, and it follows the **Robinson Tool Contract** (RTC 1) so that
-**Robinson's Toolkit** (`Robinson-AI-Systems/robinsons-toolkit`, the hub) can combine it with Chris's other servers into
+**Robinson's Toolkit** (`Robinson-AI-Systems/robinsons-toolkit-hub`, the hub) can combine it with Chris's other servers into
 one MCP, CLI and HTTPS API for any agent. **Chris is not a developer:** every
 update, question or PR summary for him is plain English — what changed, how it was verified, what he must decide,
 what is next.
@@ -143,7 +143,7 @@ page. Money is shown in dollars and cents; stored in integer cents.
 | Go-live switches | `docs/GO-LIVE-CHECKLIST.md` |
 | What Chris can ask for | `docs/OWNER-GUIDE.md` |
 | Money/secret constraints for PRs | `docs/AI-PR-READ-FIRST.md` |
-| The contract every Robinson server follows | `Robinson-AI-Systems/robinsons-toolkit` `docs/CONTRACT.md` (RTC 1) |
+| The contract every Robinson server follows | `Robinson-AI-Systems/robinsons-toolkit-hub` `docs/CONTRACT.md` (RTC 1) |
 | Audit of the older Stripe code | `docs/audits/2026-10-10-existing-stripe-code.md` |
 | Retired documents (reference only) | `docs/archive/` |
 

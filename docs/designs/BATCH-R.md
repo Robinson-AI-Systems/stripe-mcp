@@ -4,10 +4,10 @@ Status: **APPROVED** (Chris, 2026-10-10, IN-00; amended the same day — see "Am
 `docs/PLAN.md` → Batch R. Cards R-1 … R-3. Depends on Batches B and C.
 
 Chris (2026-10-10) chose this architecture: each service gets its own solid, hosted server (Google Workspace MCP, this
-Stripe MCP, later Vercel, Neon, GitHub, …), and **Robinson's Toolkit** (`Robinson-AI-Systems/robinsons-toolkit`, the
+Stripe MCP, later Vercel, Neon, GitHub, …), and **Robinson's Toolkit** (`Robinson-AI-Systems/robinsons-toolkit-hub`, the
 hub) combines them into one MCP, CLI and HTTPS API for any AI agent, wherever it runs. So this server provides only the
 doors every server provides under the **Robinson Tool Contract** (RTC 1, authority:
-`https://github.com/Robinson-AI-Systems/robinsons-toolkit/blob/main/docs/CONTRACT.md`): passes, the HTTPS tool API and the
+`https://github.com/Robinson-AI-Systems/robinsons-toolkit-hub/blob/main/docs/CONTRACT.md`): passes, the HTTPS tool API and the
 contract manifest. The `rtool` CLI, code SDK, local MCP, GitHub relay and agent setup recipes are built **once**, in the
 hub (its Batch D), for every server. The first version of this batch is archived in
 `docs/archive/batch-r-v1/BATCH-R.md` and is the starting point for the hub's designs.
