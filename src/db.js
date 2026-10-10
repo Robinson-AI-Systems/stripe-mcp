@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents'
 ]);
 
 let productionSql;
@@ -201,6 +201,52 @@ export function createDb(sql = getProductionSql()) {
             'Owner independently approved LIVE mode for this account', FALSE
           FROM activated RETURNING id`;
       return rows.length === 1;
+    },
+    async requestConnectionRevokeIntent({id,account,clientId,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime())) {
+        throw new TypeError('Valid account, connection and one-time intent required');
+      }
+      const rows=await sql`INSERT INTO owner_revoke_intents (id,stripe_account,client_id,expires_at)
+        SELECT ${id},${account},${clientId},${expiresAt}
+        WHERE EXISTS (SELECT 1 FROM oauth_tokens t WHERE t.stripe_account=${account}
+          AND t.client_id=${clientId} AND t.kind='connector' AND t.revoked_at IS NULL)
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getConnectionRevokeIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
+      const rows=await sql`SELECT i.id,i.stripe_account,i.client_id,a.label,i.expires_at
+        FROM owner_revoke_intents i
+        JOIN stripe_accounts a ON a.id=i.stripe_account
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()`;
+      return rows[0] || null;
+    },
+    // Only the separately password-authenticated owner page may invoke this
+    // method. State change, one-time intent consumption and audit are one SQL
+    // statement, including when multiple serverless instances race.
+    async consumeConnectionRevokeIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return false;
+      const rows=await sql`WITH consumed AS (
+        UPDATE owner_revoke_intents i SET consumed_at=now()
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
+          AND EXISTS (SELECT 1 FROM oauth_tokens t WHERE
+            t.stripe_account=i.stripe_account AND t.client_id=i.client_id
+            AND t.kind='connector' AND t.revoked_at IS NULL)
+        RETURNING i.stripe_account,i.client_id
+      ), revoked AS (
+        UPDATE oauth_tokens t SET revoked_at=now()
+        FROM consumed i WHERE t.stripe_account=i.stripe_account
+          AND t.client_id=i.client_id AND t.kind='connector' AND t.revoked_at IS NULL
+        RETURNING t.stripe_account,t.client_id
+      )
+      INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run)
+      SELECT stripe_account,'test','stripe_revoke_connection',client_id,
+        'Owner revoked this account connection from the private setup page',FALSE
+      FROM revoked LIMIT 1 RETURNING id`;
+      return rows.length===1;
     },
     async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {
       if (![account,idempotencyKey,tool,description].every(v => typeof v === 'string' && v.length > 0) ||
@@ -436,6 +482,16 @@ export function createDb(sql = getProductionSql()) {
         ON money_reservations (stripe_account, request_key)`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
         ON money_reservations (stripe_account, local_day)`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_revoke_intents (
+        id TEXT PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        client_id TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_revoke_intents_expiry_idx
+        ON owner_revoke_intents (expires_at)`;
       await sql`CREATE TABLE IF NOT EXISTS live_enable_intents (
         id TEXT PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),

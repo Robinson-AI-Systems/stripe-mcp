@@ -6,7 +6,7 @@ describe('database schema declaration', () => {
   it('exposes the seven A-2 and additive B-1 money/B-2 live-intent tables without requiring a connection at import', () => {
     expect(SCHEMA_TABLES).toEqual([
       'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-      'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents'
+      'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents'
     ]);
   });
 
