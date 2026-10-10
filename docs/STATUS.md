@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-8b1 staged behind B-8a:** server-owned TEST restricted-key permission re-probe with durable permission status, no credential disclosure or LIVE key access. Admin mutations and transaction owner approvals are still B-8b2/B-8c.
+
 - **B-8a safe read tools completed (#28); B-8b owner management next:** selected-account change summaries, connection metadata, daily shared budget usage and dashboard guidance. Owner-only mutations and LIVE remain disabled.
 
 - **B-7 completed (#27), next B-8 owner/server tools:** strict tool write declarations, guarded contract and provider-derived money safety metadata validation; no new money/live capabilities available.

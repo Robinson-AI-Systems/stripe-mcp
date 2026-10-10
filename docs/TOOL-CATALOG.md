@@ -28,7 +28,7 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 | `stripe_whoami` | Which Stripe account, mode (TEST/LIVE), profile, key type, key last 4, API version, daily money limit and how much is used today | — | partial #16 (usage B) | R |
 | `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
 | `stripe_set_default_account` | Which account new connections pick first | P | N | F |
-| `stripe_check_key_permissions` | Re-probe the key: which tool areas work and which are blocked, with the permission to add for each | — | N | R |
+| `stripe_check_key_permissions` | Recheck TEST restricted-key read permissions using the encrypted server-side key | — | built B-8b1 | R |
 | `stripe_list_connections` | Selected-account AI connection metadata, never credentials | — | built B-8a | R |
 | `stripe_revoke_connection` | Switch a connection off | C | N | F |
 | `stripe_enable_live` / `stripe_disable_live` | Allow or stop live-mode connections for an account (enabling also needs the passphrase on the setup page) | C | N | F |
