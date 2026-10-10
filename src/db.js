@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents'
 ]);
 
 let productionSql;
@@ -201,6 +201,51 @@ export function createDb(sql = getProductionSql()) {
             'Owner independently approved LIVE mode for this account', FALSE
           FROM activated RETURNING id`;
       return rows.length === 1;
+    },
+    async requestDisableLiveIntent({id,account,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime())) {
+        throw new TypeError('Valid LIVE-disable intent required');
+      }
+      const rows=await sql`INSERT INTO owner_disable_live_intents
+        (id,stripe_account,expires_at)
+        SELECT ${id},${account},${expiresAt}
+        WHERE EXISTS (SELECT 1 FROM stripe_accounts a
+          WHERE a.id=${account} AND a.live_enabled=TRUE)
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getDisableLiveIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
+      const rows=await sql`SELECT i.id,i.stripe_account,a.label,i.expires_at
+        FROM owner_disable_live_intents i
+        JOIN stripe_accounts a ON a.id=i.stripe_account
+        WHERE i.id=${id} AND i.consumed_at IS NULL
+          AND i.expires_at>now() AND a.live_enabled=TRUE`;
+      return rows[0] || null;
+    },
+    // Emergency DENY only: no live key is decrypted, enrolled, or accepted.
+    // Account state, single-use intent and one audit row share one statement.
+    async consumeDisableLiveIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return false;
+      const rows=await sql`WITH disabled AS (
+        UPDATE stripe_accounts a SET live_enabled=FALSE
+        WHERE a.live_enabled=TRUE AND a.id=(
+          SELECT i.stripe_account FROM owner_disable_live_intents i
+          WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
+        ) RETURNING a.id
+      ), consumed AS (
+        UPDATE owner_disable_live_intents i SET consumed_at=now()
+        FROM disabled d WHERE i.id=${id} AND i.stripe_account=d.id
+          AND i.consumed_at IS NULL AND i.expires_at>now()
+        RETURNING i.stripe_account
+      )
+      INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run)
+      SELECT stripe_account,'live','stripe_disable_live',stripe_account,
+        'Owner disabled LIVE connection access using the private setup page',FALSE
+      FROM consumed RETURNING id`;
+      return rows.length===1;
     },
     async requestConnectionRevokeIntent({id,account,clientId,expiresAt}) {
       if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
@@ -482,6 +527,15 @@ export function createDb(sql = getProductionSql()) {
         ON money_reservations (stripe_account, request_key)`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
         ON money_reservations (stripe_account, local_day)`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_disable_live_intents (
+        id TEXT PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_disable_live_intents_expiry_idx
+        ON owner_disable_live_intents (expires_at)`;
       await sql`CREATE TABLE IF NOT EXISTS owner_revoke_intents (
         id TEXT PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
