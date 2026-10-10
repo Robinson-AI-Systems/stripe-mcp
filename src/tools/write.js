@@ -17,6 +17,7 @@ export function defineWrite(spec) {
   };
   const summarize = async (before, args, ctx) => {
     const original = await spec.summarize(before,args,ctx);
+    if (typeof original !== 'string') return original;
     return spec?.appOwnedRefundAllowed === true
       ? original + await appRefundPreviewSuffix(before,ctx) : original;
   };
