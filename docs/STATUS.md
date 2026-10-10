@@ -5,6 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-2 stacked preparation:** Draft PR #21 on `ai/gpt6/b-2-live-write-boundary` contains default-deny LIVE write guard, isolated tests and no exposed live tools. It is stacked on open #20; do not merge while the money-policy approval is pending.
 - **B-1b2 complete in PR #20, approval-gated:** all five CI jobs are green at head 2b52261 (run 38079454910), with two P1 review findings addressed and resolved; the PR intentionally remains OPEN. **IN-05 is unanswered** — the owner must choose the default daily money-out limit per connection ($500/day recommended) before the PR can merge. B-1 is NOT marked complete and no write tool is exposed.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
