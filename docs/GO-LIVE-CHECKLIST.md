@@ -6,6 +6,8 @@ that adds a switch adds a line here.
 
 Legend: **Owner** = only Chris · **Agent** = Claude can do it once you say go.
 
+Follow the owner-friendly [DEPLOY.md](DEPLOY.md) for each setup step. The checklist below remains unchecked until each step is actually verified.
+
 ## 1. The server itself
 
 | Done | Item | Where / how | Today | How you know it worked |
