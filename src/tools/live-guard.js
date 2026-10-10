@@ -27,6 +27,3 @@ export async function authorizeLiveWrite({ args, ctx, env = process.env }) {
   }
 }
 
-export function withLiveBanner(value, mode) {
-  return mode === 'live' ? { mode: 'LIVE', ...value, mode: 'LIVE' } : value;
-}
