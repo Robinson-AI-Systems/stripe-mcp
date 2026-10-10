@@ -169,3 +169,16 @@ refund or payout: each AI money-out still requires an independently
 authenticated owner grant and, above the then-applicable cap, a separate
 exact-transaction owner override. B-8c's actual browser approval interface
 is still not built. Neither MCP nor HTTPS exposes a money-out or cap-write tool.
+
+### B-8c1 provider-target money requests and private review (PR #34)
+
+Additive columns `target` (default empty for legacy/test fixtures) and
+`mode` (default TEST) on `money_approvals`. A money-out's trusted server
+preparation must include a stable provider target ID. Reusing a request key
+with a changed target, tool, amount, description, currency or mode fails
+closed; preexisting empty-target rows cannot be owner-approved. The
+separately authenticated owner page exposes a bounded TEST-only pending
+list via protected POST, exact account-scoped, escaped account/tool/target/
+request/amount/expiry fields, actual Colorado-day shared usage and dollar
+limit. No payment or owner approval button exists. This stage DOES NOT
+expose real Stripe write handlers or grant owner spending authority.

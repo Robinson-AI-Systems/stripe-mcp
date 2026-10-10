@@ -269,7 +269,7 @@
       "units": [
         "B-8"
       ],
-      "readiness": "B8B2B3_OWNER_MONEY_LIMIT_IN_REVIEW",
+      "readiness": "B8C1_EXACT_TARGET_PRIVATE_INBOX_IN_REVIEW",
       "ownerInputs": [
         "IN-05",
         "IN-06"

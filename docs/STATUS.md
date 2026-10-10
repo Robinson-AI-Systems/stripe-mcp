@@ -5,22 +5,21 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8b2b3 in review:** private owner-only account daily money-limit changes,
-  PR #33, branch `ai/gpt6/b-8b2b3-owner-money-limit`. The standard remains
-  $500 USD/account/Colorado day. Protected two-stage owner confirmation,
-  exact USD cents, existing/current spending preview, expected-old-cap check,
-  account-row locking and one-use atomic audit. Fake and isolated PostgreSQL
-  tests must pass before merge.
-- **Last merged:** B-8b2b2 default-account selection #32 (`713836f`).
-  #31 emergency LIVE disable, #30 private connection revoke, #29 TEST
-  permission re-probe and #28 read-only owner tools; B-1–B-7 merged.
-- **Next:** B-8c independent, owner-authenticated approval for **EVERY**
-  AI-initiated money-out, with separate exact-transaction approval above the
-  configured daily cap. B-8 stays **IN_PROGRESS** until verified end to end.
-- **Hard gates:** IN-05 approved $500 standard, but this does **not**
-  activate payments. IN-06 LIVE still OFF. No AI-write doors, real funds,
-  live credentials or paid infrastructure. IN-02/03/04 deployment inputs
-  remain unapproved/unconfigured.
+- **B-8c1 (PR #34) in review:** provider-derived target-bound TEST money
+  requests, private owner-authenticated **READ-ONLY** pending request list,
+  exact account/tool/target/amount/idempotency-key protection, no owner
+  grant from AI or browser in this slice. Authenticated POST has password,
+  origin, CSRF, lockout; details never appear on anonymous GET.
+- **Last merged:** #33 money-cap owner management (`91236b8`), #32 default
+  account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
+  re-probe, #28 scoped reads; B-1–B-7 completed.
+- **Next:** B-8c2 independent owner-authenticated approval for **each**
+  AI money-out and separate over-limit confirmation for the SAME target,
+  amount, account, tool and request. B-8 remains IN_PROGRESS; C-1 waits.
+- **IN-05:** $500 USD/account/Colorado day shared across AI connections,
+  all money-out separately owner-approved, above limit a second override.
+  **IN-06 remains OFF.** No live credentials, provider money movement,
+  AI write tools, paid infrastructure or operational deployment.
 - **Ordered batches:** A → B → C → D → V → G → H → P → W → U → R → E → X.
 
 ## Environment
