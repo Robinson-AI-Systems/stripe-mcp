@@ -74,6 +74,8 @@ burned by overclaiming. A passing typecheck, a screenshot or a plan is not evide
   Robinson's Toolkit, other Vercel/Neon projects. Reading them for reference is fine.
 - Changing Stripe records a profiled app owns (Appliance Desk today), outside a test fixture.
 - Widening what a restricted key or a pass may do by default.
+- Making this server depend on Robinson's Toolkit (the hub). It must stay **fully usable on its own** — connector,
+  HTTPS API and passes — whether or not the hub ever exists (Chris, 2026-10-10).
 - Committing directly to `main`.
 
 ## Scope and owner decisions

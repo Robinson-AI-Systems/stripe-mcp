@@ -33,8 +33,11 @@ setup-page passphrase. Passes are listed by `stripe_list_connections` and revoke
 pass-only auth; the RTC result envelope and error codes; rate limit per pass. `GET /api/openapi.json` (generated, ≤30
 operations: meta tools, whoami, workflows) for HTTP-only agents.
 
-**R3. Conformance in CI.** The hub's `packages/conformance` runs against a locally started server (fake Stripe) in this
-repo's CI. A failure fails `ci`.
+**R3. Conformance in CI, never a blocker.** When the hub's `packages/conformance` exists it runs against a locally
+started server (fake Stripe) in this repo's CI and a failure fails `ci`. Until then this server's own write-contract
+tests over MCP, `stripe_call` and HTTPS cover the same behavior; nothing here waits on the hub. Agents use this server
+without the hub through its connector, its HTTPS API, or the hub repo's `rtool` CLI and GitHub relay, which talk to this
+server directly.
 
 **R4. Contract code lives in `src/core/`** (see Batch A amendment): passes, HTTPS doors, manifest, meta-tools, result rules,
 write layer, error envelope. The hub extracts it into the shared package `robinson-mcp-core` (hub card K-3); this server
