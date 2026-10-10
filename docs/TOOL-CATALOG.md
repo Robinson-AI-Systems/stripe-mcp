@@ -1,6 +1,14 @@
 # Tool catalog
 
-**Implementation status (B-1a, PR #18):** Two real read-only account tools (`stripe_whoami`, `stripe_list_accounts`) shipped in A-5b (#16). B-1a/B-1b2 add the internal guarded-write and USD money-out ledger integration, **but register no write tools**; all money, live and app-ownership gates remain unfinished. Other catalog entries are planned, not usable.
+**Implementation status (Batch B, 2026-10-10):** Registered server tools
+are currently TEST/read-only. Six server tools are implemented by B-8b1
+(`stripe_whoami`, `stripe_list_accounts`, `stripe_recent_changes`,
+`stripe_list_connections`, `stripe_where_is_setting`, and
+`stripe_check_key_permissions` in #29). The other catalog rows are
+planned until their own cards merge. Guarded write internals exist but
+**no AI-accessible Stripe write or live money operation is enabled**.
+B-8b2/B-8c owner administration and individually authenticated money
+approvals are still pending; LIVE remains OFF (IN-06).
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
@@ -25,7 +33,7 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `stripe_whoami` | Which Stripe account, mode (TEST/LIVE), profile, key type, key last 4, API version, daily money limit and how much is used today | — | partial #16 (usage B) | R |
+| `stripe_whoami` | Selected account, TEST mode, profile, masked key, actual shared USD daily limit/used amount | — | built #16, amount status #28 | R |
 | `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
 | `stripe_set_default_account` | Which account new connections pick first | P | N | F |
 | `stripe_check_key_permissions` | Recheck TEST key read permissions using encrypted server-only credentials | — | built B-8b1 | R |

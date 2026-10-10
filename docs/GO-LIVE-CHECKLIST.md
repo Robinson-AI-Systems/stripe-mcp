@@ -12,12 +12,12 @@ Follow the owner-friendly [DEPLOY.md](DEPLOY.md) for each setup step. The checkl
 
 | Done | Item | Where / how | Today | How you know it worked |
 |---|---|---|---|---|
-| [ ] | `DATABASE_URL` configured for this server's own Neon database (IN-02) | Vercel → Environment Variables (Agent after approval) | Not set | Server initializes its eight tables without touching any other project |
+| [ ] | `DATABASE_URL` configured for this server's own Neon database (IN-02) | Vercel → Environment Variables (Agent after approval) | Not set | Server initializes its ten additive tables without touching any other project |
 | [ ] | Vercel project and Neon database created (IN-02) | Vercel and Neon connectors (Agent, after you say go) | Not created | The server's home page shows its tool counts |
 | [ ] | `ADMIN_PASSPHRASE` and `TOKEN_ENCRYPTION_KEY` set (IN-03) | Vercel → Environment Variables (Owner) | Not set | The setup page asks for the passphrase and accepts a key |
 | [ ] | Test-mode restricted keys added (IN-04) | Stripe dashboard → Developers → API keys, then the server's setup page (Owner) | None | `stripe_whoami` shows the account, TEST, key type and last 4 |
 | [ ] | Connector added in Claude, test mode (Owner) | claude.ai → Settings → Connectors | Not added | Claude answers "who am I connected as?" correctly |
-| [ ] | Daily money limit confirmed (IN-05) | Ask Claude: "set my Stripe money limit to $X" (Owner confirms) | $500 default | `stripe_whoami` shows the limit |
+| [ ] | $500 daily policy applied (IN-05) | Owner has approved $500 USD per Stripe account/Colorado day; tools to change it are not active | Approved policy; not operational | Once deployed, `stripe_whoami` verifies the persisted account limit; do not interpret this as permission to move money |
 
 **Developer safeguard (A-4a):** Any preview, staging or local deployment refuses live Stripe keys at the client constructor. This safeguard does not itself enable live use; Batch B's two-step owner approval is still required.
 
