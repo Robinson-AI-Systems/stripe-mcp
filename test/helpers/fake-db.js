@@ -286,24 +286,46 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         dry_run:false,at:new Date(clock())});
       return true;
     },
-    async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {
-      if (![account,idempotencyKey,tool,description].every(x => typeof x === 'string' && x) ||
-          !Number.isSafeInteger(amountCents) || amountCents <= 0 || currency !== 'usd' ||
-          description.length > 240) throw new TypeError('Invalid owner approval request');
-      if (!accountRows.has(account)) return false;
-      let row = approvals.find(a => a.account === account && a.key === idempotencyKey);
-      if (!row) {
-        row = { account, key:idempotencyKey, tool, description, amountCents, currency,
-          expiresAt:clock()+86400000, approvedAt:null, allowOverLimit:false, overrideApprovedAt:null, consumedAt:null };
+    async requestMoneyApproval({account,idempotencyKey,tool,description,
+      amountCents,currency,target='',mode='test'}) {
+      if (![account,idempotencyKey,tool,description].every(x=>typeof x==='string'&&x) ||
+          !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !Number.isSafeInteger(amountCents)||amountCents<=0||currency!=='usd'||
+          description.length>240||mode!=='test'||typeof target!=='string'||
+          (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt)_[A-Za-z0-9]{2,100}$/.test(target)))
+        throw new TypeError('Invalid provider money approval request');
+      if(!accountRows.has(account))return false;
+      let row=approvals.find(a=>a.account===account&&a.key===idempotencyKey);
+      if(!row){
+        row={account,key:idempotencyKey,tool,description,amountCents,currency,
+          target,mode,expiresAt:clock()+86400000,approvedAt:null,
+          allowOverLimit:false,overrideApprovedAt:null,consumedAt:null};
         approvals.push(row);
       }
-      return row.tool === tool && row.description === description && row.amountCents === amountCents &&
-        row.currency === currency && row.consumedAt === null && row.expiresAt > clock();
+      return row.tool===tool&&row.description===description&&
+        row.amountCents===amountCents&&row.currency===currency&&
+        row.target===target&&row.mode===mode&&row.consumedAt===null&&
+        row.expiresAt>clock();
+    },
+    async listPendingMoneyApprovals({account,limit=10}){
+      if(!/^acct_[A-Za-z0-9]+$/.test(account)||!Number.isInteger(limit)||
+          limit<1||limit>20)throw new TypeError('Invalid pending money filter');
+      return structuredClone(approvals.filter(r=>r.account===account&&
+        r.target!==''&&r.mode==='test'&&r.consumedAt===null&&
+        r.expiresAt>clock()).slice().reverse().slice(0,limit)
+        .map(r=>({request_key:r.key,tool:r.tool,target:r.target,
+          description:r.description,amount_cents:r.amountCents,
+          currency:r.currency,mode:r.mode,created_at:null,
+          expires_at:new Date(r.expiresAt),approved_at:r.approvedAt?
+            new Date(r.approvedAt):null,override_approved_at:r.overrideApprovedAt?
+            new Date(r.overrideApprovedAt):null,allow_over_limit:r.allowOverLimit})));
     },
     // Simulates authenticated owner action. Never expose this as an AI operation.
     async approveMoneyRequest({ account, idempotencyKey, allowOverLimit = false }) {
       if (allowOverLimit !== false) throw new TypeError('Separate owner override action required');
       const row=approvals.find(a => a.account === account && a.key === idempotencyKey &&
+        a.target!=='' && a.mode==='test' &&
+        a.target!=='' && a.mode==='test' &&
         a.consumedAt === null && a.expiresAt > clock());
       if (!row) return false;
       row.approvedAt=clock();
