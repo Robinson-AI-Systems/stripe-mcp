@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **Ready next:** A-3 — connector login, account/mode/profile/listing binding and hashed tokens (JIT card required); A-2 database schema merged in PR #10.
+- **In progress:** A-3 split into A-3a (OAuth security, hashed token storage and rotating refresh credentials, PR #11) and A-3b (HTTP endpoints, connector login and MCP door); the combined A-3 acceptance remains open until both are verified.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -17,6 +17,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — A-3a primitives (PR #11):** core token-hashing, PKCE, IP/login lockout and hashed OAuth database methods, real-PG rotation tests. The connector endpoints are deliberately A-3b; do not claim A-3 complete.
 
 **2026-10-10 — A-2 database schema (PR #10):** seven foundation tables and six indexes defined additively in code, tested only on throwaway PostgreSQL; no Neon database created and no Stripe records touched. Next A-3.
 
