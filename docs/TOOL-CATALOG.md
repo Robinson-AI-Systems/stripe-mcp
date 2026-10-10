@@ -16,17 +16,15 @@ anything else goes in `docs/ROADMAP.md` and the PR report. Which batch builds ea
 Customers…Invoices D, Catalog/Tax/Usage/quotes E, Developer tools and test clocks V, Money out…Reports G, Branding H, Universal U,
 Project profiles P, Workflows W. When a tool merges, its Origin cell gains `built #<PR>`.
 
-**Origin:** `C` carried over from the toolkit (port to the new conventions),
-`F` carried over and **fixed** (`docs/audits/2026-10-10-existing-stripe-code.md`), `R` restored from the older
-TypeScript versions, `N` new.
+**Origin:** `C`, `F`, and `R` record where a capability was first identified in the historical
+completeness audit (`docs/audits/2026-10-10-existing-stripe-code.md`); `F` also flags a known defect to avoid.
+`N` is newly identified. Origins do **not** require legacy implementations, aliases, or compatibility.
+Build current tools against the pinned official Stripe API.
 **Safety:** `—` reads only · `P` preview available (dryRun) · `C` needs
 `confirm: true` · `C*` needs confirm only for some uses (stated) · `$` moves
 money (dollar preview, daily limit, always confirm).
 **Profile:** `R` read_only and up · `E` everyday and up · `F` full only.
 (Every read tool is in `R`; the column shows the lowest profile that has it.)
-
-Toolkit name mapping: `stripe_list_customers` → `customer_list`, and so on.
-D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new name.
 
 ## Server about itself (`stripe_*`) — 18
 

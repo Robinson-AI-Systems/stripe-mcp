@@ -38,7 +38,7 @@ next bounded implementation.
 ## Batch D — Everyday money (`designs/BATCH-D.md`)
 - [ ] Every Customers, Payments, Checkout/portal, Subscriptions, Invoices/credit-notes tool in TOOL-CATALOG built and marked.
 - [ ] No `client_secret` in any result; setup via hosted Checkout.
-- [ ] Regression tests for audit bugs 1, 3, 4, 5. `docs/TOOLKIT-NAME-MAP.md` complete.
+- [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
 - [ ] Seed scenarios with every created object recorded; cleanup touches only recorded objects.
@@ -75,5 +75,5 @@ next bounded implementation.
 ## Batch E — Catalog, Stripe Tax, usage, quotes (`designs/BATCH-E.md`)
 - [ ] Every listed tool built; profiled apps' catalogs never touched; no legacy usage records.
 
-## Batch X — Undo, smoke test, toolkit decision (`designs/BATCH-X.md`)
-- [ ] Undo for every clean opposite; read-only smoke report on test mode; toolkit decision note delivered.
+## Batch X — Undo and smoke test (`designs/BATCH-X.md`)
+- [ ] Undo for every clean opposite; read-only smoke report on test mode. No toolkit compatibility or retirement decision.

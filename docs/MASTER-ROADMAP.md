@@ -22,7 +22,7 @@ IN-06 live activation is still OFF. The owner approval page is not active.
 | 3 Everyday money and building | D → V → G → H | The everyday Stripe jobs, then the developer tools that make building any project with Stripe fast (test data, cleanup, test events, forwarding, time travel); G and H cover account settings and branding | — |
 | 4 Projects | P → W | Optional project profiles and readiness for any app you build (Appliance Desk is the first example), and the one-sentence jobs | IN-08, IN-09, IN-10 (only for using the Appliance Desk profile for real) |
 | 5 Everything else | U → R | Universal access; the contract doors Robinson's Toolkit (the hub) uses to reach this server | — |
-| 6 Later | E → X | Catalog, Stripe Tax, usage billing and quotes (the universal tools reach them meanwhile); undo and smoke test close out | IN-12 (toolkit decision) |
+| 6 Later | E → X | Catalog, Stripe Tax, usage billing and quotes (the universal tools reach them meanwhile); undo and smoke test close out | — (IN-12 answered: no legacy compatibility) |
 | Live | GO-LIVE-CHECKLIST | Only after Chris authorizes live per account | IN-06 |
 
 ## Implementing agent — paste this
@@ -56,4 +56,4 @@ the approved design; write the card when its predecessor is real.
 | U Universal | U-1 | JIT |
 | R Hub-ready doors (RTC 1) | R-1 passes · R-2 HTTPS API, manifest, OpenAPI · R-3 conformance in CI | JIT |
 | E Catalog etc. | E-1 … E-4 | JIT |
-| X Close-out | X-1 undo · X-2 smoke test · X-3 toolkit note | JIT |
+| X Close-out | X-1 undo · X-2 smoke test | JIT |

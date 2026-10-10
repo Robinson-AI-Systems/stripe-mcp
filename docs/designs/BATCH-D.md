@@ -22,8 +22,8 @@ systems are **not** implementation dependencies or acceptance requirements.
 
 **D1. No `client_secret` ever leaves the server.** Saving a card or bank account is a hosted Checkout page in `setup`
 mode (`checkout_create_setup_link`, card + US bank account); paying is a hosted Checkout page or the hosted invoice page.
-The toolkit's `stripe_onboard_customer`, `stripe_create_setup_intent` and raw `create/confirm_payment_intent` are not
-rebuilt.
+Direct secret-returning setup/payment-intent operations are deliberately excluded; hosted Checkout setup and payment
+links provide the current, secure capability without exposing client secrets.
 
 **D2. Charging a saved method off-session** (`payment_charge_saved_method`) requires a description and the customer's
 default payment method; it is `$` (always confirm, daily limit).
