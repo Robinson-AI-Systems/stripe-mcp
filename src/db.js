@@ -307,38 +307,39 @@ export function createDb(sql = getProductionSql()) {
         v_day DATE := (now() AT TIME ZONE 'America/Denver')::date;
         v_limit BIGINT;
         v_used BIGINT;
-        v_prev RECORD;
+        v_previous RECORD;
+        v_duplicate BOOLEAN;
       BEGIN
         IF p_account IS NULL OR p_account = '' OR p_connection IS NULL OR p_connection = ''
           OR p_key IS NULL OR p_key = '' OR p_cents IS NULL OR p_cents <= 0
-          OR p_currency !~ '^[a-z]{3} THEN
+          OR p_currency !~ '^[a-z]{3}$' THEN
           RAISE EXCEPTION 'Invalid money reservation';
         END IF;
-        -- This account row lock serializes every spend reservation for an account.
-        -- Each subsequent SQL statement runs with a fresh READ COMMITTED snapshot,
-        -- so the sum includes reservations committed by previous lock holders.
+        -- Serialize requests by locking the common account row. After the lock,
+        -- a separate SQL statement sees the prior reservation's committed row.
         SELECT money_limit_cents::BIGINT INTO v_limit
         FROM stripe_accounts WHERE id = p_account FOR UPDATE;
         IF NOT FOUND THEN
           decision := 'account_missing'; used_cents := 0; limit_cents := 0;
           RETURN NEXT; RETURN;
         END IF;
-        SELECT amount_cents, currency, state, local_day
-          INTO v_prev FROM money_reservations
+        SELECT amount_cents, currency, state, local_day INTO v_previous
+          FROM money_reservations
           WHERE stripe_account = p_account AND connection = p_connection
             AND request_key = p_key;
+        v_duplicate := FOUND;
         SELECT COALESCE(SUM(amount_cents), 0)::BIGINT INTO v_used
           FROM money_reservations
           WHERE stripe_account = p_account AND connection = p_connection AND local_day = v_day;
         used_cents := v_used;
         limit_cents := GREATEST(v_limit, 0);
-        IF FOUND AND v_prev.amount_cents IS NOT NULL THEN
-          IF v_prev.amount_cents <> p_cents OR v_prev.currency <> p_currency THEN
+        IF v_duplicate THEN
+          IF v_previous.amount_cents <> p_cents OR v_previous.currency <> p_currency THEN
             decision := 'request_conflict';
-          ELSIF v_prev.local_day <> v_day THEN
+          ELSIF v_previous.local_day <> v_day THEN
             decision := 'previous_day';
           ELSE
-            decision := 'already_' || v_prev.state;
+            decision := 'already_' || v_previous.state;
           END IF;
           RETURN NEXT; RETURN;
         END IF;
@@ -353,22 +354,7 @@ export function createDb(sql = getProductionSql()) {
         decision := 'reserved';
         RETURN NEXT;
       END;
-      $function      await sql`CREATE TABLE IF NOT EXISTS money_reservations (
-        id BIGSERIAL PRIMARY KEY,
-        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
-        connection TEXT NOT NULL,
-        request_key TEXT NOT NULL,
-        local_day DATE NOT NULL,
-        amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
-        currency TEXT NOT NULL,
-        state TEXT NOT NULL DEFAULT 'reserved'
-          CHECK (state IN ('reserved', 'confirmed', 'uncertain')),
-        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        UNIQUE (stripe_account, connection, request_key)
-      )`;
-      await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
-        ON money_reservations (stripe_account, connection, local_day)`;
-;
+      $function$`;
       await sql`CREATE INDEX IF NOT EXISTS oauth_codes_expiration_idx ON oauth_codes (expires_at)`;
       await sql`CREATE INDEX IF NOT EXISTS oauth_tokens_refresh_idx ON oauth_tokens (refresh_hash)`;
       await sql`CREATE INDEX IF NOT EXISTS oauth_tokens_expiration_idx ON oauth_tokens (expires_at)`;
