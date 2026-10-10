@@ -269,8 +269,11 @@
       "units": [
         "B-8"
       ],
-      "readiness": "B8A_READONLY_STAGED",
-      "ownerInputs": []
+      "readiness": "B8B1_COMPLETED_B8B2_NEXT",
+      "ownerInputs": [
+        "IN-05",
+        "IN-06"
+      ]
     },
     {
       "id": "C-1",
