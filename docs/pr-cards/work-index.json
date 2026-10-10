@@ -269,7 +269,7 @@
       "units": [
         "B-8"
       ],
-      "readiness": "B8B1_COMPLETED_B8B2_NEXT",
+      "readiness": "B8B2A_OWNER_REVOKE_STAGED",
       "ownerInputs": [
         "IN-05",
         "IN-06"

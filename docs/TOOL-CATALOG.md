@@ -38,7 +38,7 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 | `stripe_set_default_account` | Which account new connections pick first | P | N | F |
 | `stripe_check_key_permissions` | Re-probe encrypted server-only TEST key; compact/full output and optional fields | — | built #29 | R |
 | `stripe_list_connections` | Selected-account AI connection metadata, never credentials | — | built B-8a | R |
-| `stripe_revoke_connection` | Switch a connection off | C | N | F |
+| `stripe_revoke_connection` | Revoke a particular connection; owner-only private setup flow in B-8b2a, AI-callable tool still gated | C | planned MCP; private owner flow B-8b2a | F |
 | `stripe_enable_live` / `stripe_disable_live` | Allow or stop live-mode connections for an account (enabling also needs the passphrase on the setup page) | C | N | F |
 | `stripe_set_money_limit` | Change the daily money-out limit for an account | C | N | F |
 | `stripe_recent_changes` | Account-scoped audit summaries without raw snapshots (advanced filters later) | — | built B-8a | R |

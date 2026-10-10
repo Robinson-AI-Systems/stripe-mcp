@@ -77,3 +77,13 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
       Stripe account, behind origin, CSRF and rate-limit protections.
 - [ ] Verify the intent was consumed once and live mode was audited; never infer
       authorization solely from a tool argument or a successful HTTP response.
+
+## Owner-only connection administration (B-8b2a)
+
+- [ ] When deployed, verify a private owner can preview a specific account/client
+      connection without revoking it, then confirm via passphrase, CSRF and explicit
+      acknowledgement; one-use intent expires after ten minutes.
+- [ ] Verify the revoked connection's access and refresh credentials stop working,
+      with one audit record and no effect on other accounts or clients.
+- [ ] Never treat an AI `confirm` as owner authorization. No AI-callable account
+      write is enabled by this private page, and IN-06 LIVE remains OFF.
