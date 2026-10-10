@@ -3,11 +3,20 @@ import { randomBytes } from 'node:crypto';
 import { clientIp, evaluateLogin, secretsMatch, LOCKOUT_WINDOW_MINUTES } from '../core/oauth.js';
 import { publicOrigin, paramsOf, send, escapeHtml, only } from '../core/http.js';
 
+function parseUsdCents(text) {
+  if (typeof text!=='string' || !/^(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,2})?$/.test(text))
+    return null;
+  const [whole,decimal='']=text.split('.');
+  const cents=Number(whole)*100+Number(decimal.padEnd(2,'0'));
+  return Number.isSafeInteger(cents) && cents>=0 && cents<=2147483647 ? cents : null;
+}
+const usd=cents=>new Intl.NumberFormat('en-US',
+  {style:'currency',currency:'USD'}).format(cents/100);
 function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
@@ -90,6 +99,26 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<label><input type="checkbox" name="ownerDefaultConsent" value="yes" required> I personally approve this exact default-account selection.</label>' +
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<button type="submit">Set default account</button></form>' : '') +
+    '<h2>Change the daily AI money-out limit (owner only)</h2>' +
+    '<p>The standard remains $500 per Stripe account per Colorado day, shared by every AI connection. Changing an account limit never removes your separate approval requirement for each outgoing transaction.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="request-money-limit">' +
+    '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
+    '<label>New daily limit in USD (example 500.00)<input name="newLimitUsd" inputmode="decimal" required autocomplete="off"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Preview daily money-out limit</button></form>' +
+    (moneyLimitIntent ? '<h2>Final owner confirmation: daily account limit</h2>' +
+      '<p>Account: <strong>' + escapeHtml(moneyLimitIntent.label || moneyLimitIntent.stripe_account) +
+      '</strong> (' + escapeHtml(moneyLimitIntent.stripe_account) +
+      '). Current limit: <strong>' + escapeHtml(usd(moneyLimitIntent.expected_limit_cents)) +
+      '</strong>. New limit: <strong>' + escapeHtml(usd(moneyLimitIntent.new_limit_cents)) +
+      '</strong>. Any previous daily usage still counts. Each AI money-out still needs your independent authenticated approval, and requests above this limit need a second explicit override.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-money-limit">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(moneyLimitIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerLimitConsent" value="yes" required> I personally authorize changing the daily limit for this exact account.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Set this account limit</button></form>' : '') +
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.env }) {
@@ -188,6 +217,40 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
       return send(res, revoked ? 200 : 409, htmlPage({csrf:cookie,result:revoked ?
         'Connection removed for account '+intent.stripe_account+', client '+intent.client_id+'.' :
         'The connection was already removed or changed. No removal performed.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'request-money-limit') {
+      const newLimitCents=parseUsdCents(p.newLimitUsd);
+      if (newLimitCents===null) return send(res,400,htmlPage({csrf:cookie,result:
+        'Enter a valid USD limit with no more than two decimal places.'}),
+        'text/html; charset=utf-8');
+      const id=randomBytes(24).toString('base64url');
+      let staged=false;
+      try { staged=await db.requestMoneyLimitIntent({
+        id,account:p.account,newLimitCents,
+        expiresAt:new Date(Date.now()+10*60*1000)
+      }); } catch { staged=false; }
+      if(!staged) return send(res,404,htmlPage({csrf:cookie,result:
+        'No eligible TEST-connected account exists or the limit is unchanged.'}),
+        'text/html; charset=utf-8');
+      const moneyLimitIntent=await db.getMoneyLimitIntent(id);
+      return send(res,200,htmlPage({csrf:cookie,moneyLimitIntent,result:
+        'Preview only. No limit has changed yet. Review both amounts carefully.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'confirm-money-limit') {
+      if(p.ownerLimitConsent!=='yes') return send(res,400,htmlPage({csrf:cookie,result:
+        'Independent owner approval is required for this specific limit change.'}),
+        'text/html; charset=utf-8');
+      const intent=await db.getMoneyLimitIntent(p.id);
+      if(!intent)return send(res,410,htmlPage({csrf:cookie,result:
+        'The request expired or was already used; start again.'}),
+        'text/html; charset=utf-8');
+      const updated=await db.consumeMoneyLimitIntent(p.id);
+      return send(res,updated?200:409,htmlPage({csrf:cookie,result:updated
+        ? 'New daily limit for '+intent.stripe_account+': '+usd(intent.new_limit_cents)+
+          '. Separate owner approval is still required for EVERY AI money-out.'
+        : 'Account limit changed elsewhere or this request is stale. No change made.'}),
         'text/html; charset=utf-8');
     }
     if (p.action === 'request-default-account') {
