@@ -110,3 +110,13 @@ Change summaries and AI connection metadata are scoped to the authenticated Stri
 ### B-8b1 TEST read-permission checks (in progress)
 
 The server injects a lazy permission probe into the MCP read dispatcher, loading only the selected account's TEST key after a call. It refreshes verified per-account read-permission status and never exposes/decrypts LIVE credentials. Missing keys fail this tool, not the server startup.
+
+### B-8b1 reviewed key rotation and dispatcher boundaries
+
+MCP core takes a generic server-provided services object. The Stripe-only
+TEST permission recheck is assembled at the external API boundary, never
+accepted as an agent argument. The encrypted TEST-key snapshot is loaded once
+for the call; the database persists verified permission results only if the
+account's encrypted key still matches that snapshot (compare-and-set).
+Rotated keys fail closed. The read tool supports `fields` and
+`detail=compact|full`, with no credentials in either presentation.
