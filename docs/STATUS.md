@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-6 prepared behind B-5:** shared profile metadata gating, guessed-name refusal, and home-page counts. The current MCP stays read-only for all profiles until B-8 completes the other guards; no live activation or money writes.
+
 - **B-5 in progress (PR #25):** currency displays, Colorado-local dates, nested credential redaction and LIVE output banner integrated into shared tool result boundaries; reviewed B-4 errors now merged in #24. No live or payment tools activated.
 
 - **B-4 completed (PR #24); next B-5 result formatting:** plain-English Stripe errors integrated with the read-only MCP and guarded write adapter, retaining all B-3 ownership fixes. B-4 uses safe and human-readable Stripe SDK errors without exposing raw provider secrets. No new external money/live operations.

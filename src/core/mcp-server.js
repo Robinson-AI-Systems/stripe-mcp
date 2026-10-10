@@ -5,10 +5,11 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { requireMcpToken } from './mcp-auth.js';
 import { toStripeToolError } from '../tools/errors.js';
 import { shapeToolResult } from '../tools/util.js';
+import { isToolAllowed, visibleTools, publicToolInfo } from './profiles.js';
 
 export async function dispatchReadOnlyTool({ registry, name, args, connection, db }) {
   const item = registry.tools.find(t => t.name === name);
-  if (!item || item.writes !== false || !item.profiles?.includes(connection.profile)) {
+  if (!isToolAllowed(item,connection?.profile)) {
     return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};
   }
   const handler = registry.handlers[name];
@@ -27,9 +28,9 @@ export function createMcpHandler({ db, registry, env = process.env }) {
     if (!connection) return;
     const server = new Server({name:'robinson-stripe-mcp',version:'0.1.0'},
       {capabilities:{tools:{}}});
-    server.setRequestHandler(ListToolsRequestSchema,async()=>({tools:registry.tools
-      .filter(t=>t.writes===false&&t.profiles?.includes(connection.profile))
-      .map(({writes:_writes,profiles:_profiles,...publicTool})=>publicTool)}));
+    server.setRequestHandler(ListToolsRequestSchema,async()=>({
+      tools:visibleTools(registry,connection.profile).map(publicToolInfo)
+    }));
     server.setRequestHandler(CallToolRequestSchema,async request=>
       dispatchReadOnlyTool({registry,name:request.params?.name,args:request.params?.arguments,connection,db}));
     const transport = new StreamableHTTPServerTransport({sessionIdGenerator:undefined});

@@ -92,3 +92,7 @@ Internal `src/tools/app-guard.js` detects the known Appliance Desk metadata keys
 ### B-5 result shaping (under review)
 
 Read-only MCP results and guarded Stripe write results are postprocessed by a non-mutating, credential-redacting display layer. Original money minor units remain available with additive currency displays, and Unix timestamps get Denver-local companions. No changes to Stripe permissions or account authorization.
+
+### B-6 profiles (staged)
+
+Tool listing and direct name-call authorization share metadata-based profile checks. read_only categorically denies writes. Existing MCP remains read-only for all connections pending B-8 permissions and owner approvals. The home endpoint reports currently exposed read tool counts by profile.
