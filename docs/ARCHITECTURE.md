@@ -35,6 +35,7 @@ A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, 
 | `one_time_secrets` | Only ciphertext, expiry and single-view record |
 | `money_reservations` | Durable, per-account aggregate money-out reservation across ALL AI connections, Denver day, idempotency and conservative spend status (B-1) |
 | `money_approvals` | Single-use authenticated owner grant per money-out request, with separate above-limit owner override (B-1) |
+| `owner_money_decision_intents` | B-8c2 private TEST-only, short-lived exact provider-derived transaction snapshots; consumed with an atomic owner grant and change-log audit; never agent-facing |
 | `live_enable_intents` | Expiring, atomic owner live-enable intent, not usable while IN-06 is OFF (B-2) |
 | `owner_revoke_intents` | One-time private owner intent bound to a specific Stripe account and AI connection, expiring after ten minutes; consumed with atomic token revocation and audit (B-8b2a) |
 | `owner_disable_live_intents` | Ten-minute owner-only emergency LIVE-disable intent, consumed atomically with a one-way account disable and audit; cannot enable LIVE (B-8b2b1) |
