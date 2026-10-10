@@ -43,3 +43,11 @@ The first independently testable slice (#31) is an owner-only **OFF** control:
 `stripe_disable_live` tool or change any money limits. B-8b2b2 keeps default
 account and owner-approved money-limit settings; B-8c keeps independent
 money approval UI. No batch completion is implied.
+
+## B-8b2b2 default-account owner page (#32)
+
+Independently authenticated owner-only selection of the default account for
+new connections, with expected-prior-default compare-and-set and a serialized
+one-use audit. No MCP write tool. Owner daily money-limit administration
+remains a later slice; the standing $500 cap and separate owner approval
+are unchanged. B-8c transaction-specific owner approval remains unbuilt.

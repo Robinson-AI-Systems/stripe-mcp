@@ -97,3 +97,13 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
       one security audit record appears; unrelated accounts remain unchanged.
 - [ ] IN-06 still controls **enabling** LIVE mode and remains unapproved.
       Emergency disable cannot authorize any LIVE payment or money movement.
+
+## Owner-selected default account (B-8b2b2)
+
+- [ ] When separately approved for deployment, verify the owner can preview
+      the selected Stripe TEST account and previous default, confirm using
+      the protected two-step owner setup page, and read back exactly one default.
+- [ ] Existing AI connections retain their original Stripe account;
+      conflicting/stale/expired requests fail, with one change-log entry.
+- [ ] This does not change the approved $500 account-wide money policy,
+      enable LIVE, or give any agent approval authority.
