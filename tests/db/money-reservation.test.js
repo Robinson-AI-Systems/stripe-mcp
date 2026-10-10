@@ -103,6 +103,8 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
     expect((await db.reserveMoneyOut(input)).decision).toBe('owner_approval_required');
     expect(await db.approveMoneyRequest({account,idempotencyKey:input.idempotencyKey,
       allowOverLimit:false})).toBe(true);
+    expect((await db.reserveMoneyOut(input)).decision).toBe('limit_exceeded_override_required');
+    expect(await db.approveMoneyOverride({account,idempotencyKey:input.idempotencyKey})).toBe(true);
     expect((await db.reserveMoneyOut(input)).decision).toBe('reserved');
     await expect(db.approveMoneyRequest({account,idempotencyKey:input.idempotencyKey,
       allowOverLimit:true})).rejects.toThrow(/Separate|over-limit/i);
