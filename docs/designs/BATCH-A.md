@@ -1,6 +1,6 @@
 # Design — Batch A: Foundation (repo, tests, login, key store, Stripe client)
 
-Status: **APPROVED once IN-00 is answered** (Chris approves the plan). Written 2026-10-10 by Claude (Opus 5.5) for an
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10 by Claude (Opus 5.5) for an
 empty repository. Scope and acceptance: `docs/PLAN.md` → Batch A. Cards A-1 … A-6.
 
 ## 0. Verify before starting

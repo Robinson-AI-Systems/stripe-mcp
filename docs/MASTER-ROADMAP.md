@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Before any code:** Chris answers IN-00 (approve this plan) and the setup inputs A-1 needs (IN-01). Then A-1.
+**Next:** A-1 (ready; IN-00 and IN-01 answered 2026-10-10).
 
 ## Order and why
 

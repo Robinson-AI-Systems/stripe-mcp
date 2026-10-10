@@ -1,6 +1,6 @@
 # Design — Batch R: Reach any agent (HTTPS API, `rstripe` CLI, code mode, GitHub relay)
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch R.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch R.
 Cards R-1 … R-5. Depends on Batches B and C.
 
 Chris (2026-10-10): agents that can't use the connector should be able to use this from wherever they run; "come up with

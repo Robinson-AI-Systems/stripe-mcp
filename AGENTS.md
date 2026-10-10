@@ -110,9 +110,11 @@ page. Money is shown in dollars and cents; stored in integer cents.
   not a cause; never skip, weaken or quarantine a test.
 - **The `ci` check is the single merge gate**, green at the exact head.
 - **Review:** read `docs/AI-PR-READ-FIRST.md` for anything touching money, keys, guards, auth, the relay or passes, and
-  record how each applicable constraint is honored. Read any automated review and all open threads together; fix
-  blocking findings (security, money, data integrity, contract, acceptance) in one patch. If no review is available,
-  inspect the diff yourself and write "automated review unavailable — waived" — never claim a review that didn't run.
+  record how each applicable constraint is honored. **This repo has no automated review** (Chris, 2026-10-10, IN-01):
+  never wait for or request one. Before merging, inspect the whole diff yourself against AI-PR-READ-FIRST and write
+  "Self-review: <findings and dispositions>" in the PR; fix blocking findings (security, money, data integrity,
+  contract, acceptance) in one patch. Never claim a review that didn't run. Phase-gate reviews (end of a batch,
+  DRIFT-PROTOCOL C) may use a second model on request.
 - **Merging (authorized by Chris):** `ci` green at the exact head, acceptance met with evidence, reviews handled → merge
   with the expected-head SHA. Stacks merge bottom-up, retargeting each PR to `main` first. Merging never covers a hard
   limit.

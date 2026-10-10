@@ -1,6 +1,6 @@
 # Design — Batch X: Undo, real-account smoke test, toolkit decision
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch X.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch X.
 Cards X-1 … X-3.
 
 ## 1. Decisions

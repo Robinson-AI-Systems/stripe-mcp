@@ -1,6 +1,6 @@
 # Design — Batch P: Project profiles (any app that runs billing on Stripe)
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch P.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch P.
 Cards P-1 … P-4. Depends on Batches B, D, G, H.
 
 The Stripe MCP is general-purpose. Some of Chris's projects run their own Stripe billing in code (Appliance Desk today;

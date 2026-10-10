@@ -1,6 +1,6 @@
 # Design — Batch G: Money out, disputes, risk, events and webhooks, account settings
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch G.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch G.
 Cards G-1 … G-5. Depends on Batch D. Tool list: `docs/TOOL-CATALOG.md` sections Money out; Disputes; Risk and identity;
 Events and webhooks; Reports and account.
 

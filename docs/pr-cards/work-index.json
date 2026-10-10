@@ -24,17 +24,14 @@
       "design": "docs/designs/BATCH-A.md",
       "dependencies": [],
       "card": "docs/pr-cards/A-1.md",
-      "status": "APPROVED",
+      "status": "READY",
       "migration": "none",
       "budget": 450,
       "units": [
         "A-1"
       ],
-      "readiness": "READY_AFTER_OWNER_INPUT",
-      "ownerInputs": [
-        "IN-00",
-        "IN-01"
-      ]
+      "readiness": "READY",
+      "ownerInputs": []
     },
     {
       "id": "A-2",
@@ -45,7 +42,7 @@
         "A-1"
       ],
       "card": "docs/pr-cards/A-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "foundation",
       "budget": 250,
       "units": [
@@ -63,7 +60,7 @@
         "A-2"
       ],
       "card": "docs/pr-cards/A-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -81,7 +78,7 @@
         "A-3"
       ],
       "card": "docs/pr-cards/A-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 350,
       "units": [
@@ -99,7 +96,7 @@
         "A-4"
       ],
       "card": "docs/pr-cards/A-5.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -117,7 +114,7 @@
         "A-5"
       ],
       "card": "docs/pr-cards/A-6.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 0,
       "units": [
@@ -135,7 +132,7 @@
         "A-6"
       ],
       "card": "docs/pr-cards/B-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -153,7 +150,7 @@
         "B-1"
       ],
       "card": "docs/pr-cards/B-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 150,
       "units": [
@@ -171,7 +168,7 @@
         "B-2"
       ],
       "card": "docs/pr-cards/B-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 250,
       "units": [
@@ -189,7 +186,7 @@
         "B-3"
       ],
       "card": "docs/pr-cards/B-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 300,
       "units": [
@@ -207,7 +204,7 @@
         "B-4"
       ],
       "card": "docs/pr-cards/B-5.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 200,
       "units": [
@@ -225,7 +222,7 @@
         "B-5"
       ],
       "card": "docs/pr-cards/B-6.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 250,
       "units": [
@@ -243,7 +240,7 @@
         "B-6"
       ],
       "card": "docs/pr-cards/B-7.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 150,
       "units": [
@@ -261,7 +258,7 @@
         "B-7"
       ],
       "card": "docs/pr-cards/B-8.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -279,7 +276,7 @@
         "B-8"
       ],
       "card": "docs/pr-cards/C-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "result_store",
       "budget": 450,
       "units": [
@@ -297,7 +294,7 @@
         "C-1"
       ],
       "card": "docs/pr-cards/C-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -315,7 +312,7 @@
         "C-2"
       ],
       "card": "docs/pr-cards/D-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -333,7 +330,7 @@
         "D-1"
       ],
       "card": "docs/pr-cards/D-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -351,7 +348,7 @@
         "D-2"
       ],
       "card": "docs/pr-cards/D-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -369,7 +366,7 @@
         "D-3"
       ],
       "card": "docs/pr-cards/D-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 500,
       "units": [
@@ -387,7 +384,7 @@
         "D-4"
       ],
       "card": "docs/pr-cards/D-5.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 500,
       "units": [
@@ -405,7 +402,7 @@
         "D-5"
       ],
       "card": "docs/pr-cards/G-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -423,7 +420,7 @@
         "G-1"
       ],
       "card": "docs/pr-cards/G-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -441,7 +438,7 @@
         "G-2"
       ],
       "card": "docs/pr-cards/G-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 350,
       "units": [
@@ -459,7 +456,7 @@
         "G-3"
       ],
       "card": "docs/pr-cards/G-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -477,7 +474,7 @@
         "G-4"
       ],
       "card": "docs/pr-cards/G-5.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -495,7 +492,7 @@
         "G-5"
       ],
       "card": "docs/pr-cards/H-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "brand_kits",
       "budget": 500,
       "units": [
@@ -513,7 +510,7 @@
         "H-1"
       ],
       "card": "docs/pr-cards/P-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "known_apps",
       "budget": 400,
       "units": [
@@ -531,7 +528,7 @@
         "P-1"
       ],
       "card": "docs/pr-cards/P-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 150,
       "units": [
@@ -549,7 +546,7 @@
         "P-2"
       ],
       "card": "docs/pr-cards/P-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 500,
       "units": [
@@ -567,7 +564,7 @@
         "P-3"
       ],
       "card": "docs/pr-cards/P-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -585,7 +582,7 @@
         "P-4"
       ],
       "card": "docs/pr-cards/W-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -603,7 +600,7 @@
         "W-1"
       ],
       "card": "docs/pr-cards/W-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -621,7 +618,7 @@
         "W-2"
       ],
       "card": "docs/pr-cards/W-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 300,
       "units": [
@@ -639,7 +636,7 @@
         "W-3"
       ],
       "card": "docs/pr-cards/W-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -657,7 +654,7 @@
         "W-4"
       ],
       "card": "docs/pr-cards/W-5.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 200,
       "units": [
@@ -675,7 +672,7 @@
         "W-5"
       ],
       "card": "docs/pr-cards/W-6.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -693,7 +690,7 @@
         "W-6"
       ],
       "card": "docs/pr-cards/W-7.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 350,
       "units": [
@@ -711,7 +708,7 @@
         "W-7"
       ],
       "card": "docs/pr-cards/W-8.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 500,
       "units": [
@@ -729,7 +726,7 @@
         "W-8"
       ],
       "card": "docs/pr-cards/W-9.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -747,7 +744,7 @@
         "W-9"
       ],
       "card": "docs/pr-cards/W-10.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 350,
       "units": [
@@ -765,7 +762,7 @@
         "W-10"
       ],
       "card": "docs/pr-cards/U-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 600,
       "units": [
@@ -783,7 +780,7 @@
         "U-1"
       ],
       "card": "docs/pr-cards/R-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "pass_columns",
       "budget": 350,
       "units": [
@@ -801,7 +798,7 @@
         "R-1"
       ],
       "card": "docs/pr-cards/R-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -819,7 +816,7 @@
         "R-2"
       ],
       "card": "docs/pr-cards/R-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 700,
       "units": [
@@ -837,7 +834,7 @@
         "R-3"
       ],
       "card": "docs/pr-cards/R-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "relay_seen",
       "budget": 600,
       "units": [
@@ -855,7 +852,7 @@
         "R-4"
       ],
       "card": "docs/pr-cards/R-5.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 200,
       "units": [
@@ -873,7 +870,7 @@
         "R-5"
       ],
       "card": "docs/pr-cards/E-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -891,7 +888,7 @@
         "E-1"
       ],
       "card": "docs/pr-cards/E-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -909,7 +906,7 @@
         "E-2"
       ],
       "card": "docs/pr-cards/E-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 400,
       "units": [
@@ -927,7 +924,7 @@
         "E-3"
       ],
       "card": "docs/pr-cards/E-4.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 450,
       "units": [
@@ -945,7 +942,7 @@
         "E-4"
       ],
       "card": "docs/pr-cards/E-5.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 200,
       "units": [
@@ -963,7 +960,7 @@
         "E-5"
       ],
       "card": "docs/pr-cards/X-1.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 350,
       "units": [
@@ -981,7 +978,7 @@
         "X-1"
       ],
       "card": "docs/pr-cards/X-2.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 250,
       "units": [
@@ -999,7 +996,7 @@
         "X-2"
       ],
       "card": "docs/pr-cards/X-3.md",
-      "status": "PLANNED",
+      "status": "APPROVED",
       "migration": "none",
       "budget": 0,
       "units": [

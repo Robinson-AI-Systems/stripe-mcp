@@ -38,3 +38,7 @@ rates in code; the MCP must not duplicate them. Those tools serve future project
 **2026-10-10 — Plan rebuilt in the Appliance Desk planning system** (AGENTS, SESSION-START, PLAYBOOK, drift protocol,
 designs, JIT cards, work index, owner inputs) so Sol 5.6 can implement it efficiently. First version archived in
 `docs/archive/plan-v1/`.
+
+**2026-10-10 — Plan approved; public repository; no automated review (IN-00, IN-01).** Chris approved the plan, chose to
+keep the repository public (free CI, secret scanning on), and declined Codex reviews for this repo. Every PR carries a
+written self-review of the full diff against AI-PR-READ-FIRST instead.

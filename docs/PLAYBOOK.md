@@ -101,8 +101,9 @@ what is not included; CI runs used. Delete the resume note in the final commit.
 
 1. Money, keys, guards, auth, passes, relay, live mode: re-read `docs/AI-PR-READ-FIRST.md` and write one line per
    applicable constraint in the PR.
-2. Freeze scope; read any automated review and every open thread together; fix all blocking findings in one patch.
-   If no review posts, inspect the diff yourself and write "automated review unavailable — waived".
+2. Freeze scope. There is no automated review in this repo (IN-01): inspect the whole diff yourself against
+   AI-PR-READ-FIRST, write "Self-review: …" with every finding and its disposition, and fix all blocking findings in one
+   patch.
 3. Resolve a thread only after verifying the fix at the exact head.
 
 ## Step 8 — Preview

@@ -1,6 +1,6 @@
 # Design — Batch B: Trust layer (safety, money rules, guards, errors, profiles)
 
-Status: **APPROVED once IN-00 is answered.** Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch B.
+Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch B.
 Cards B-1 … B-8. Depends on Batch A.
 
 ## 0. Verify before starting
