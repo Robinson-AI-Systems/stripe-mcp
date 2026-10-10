@@ -1,6 +1,6 @@
 # B-8a — Safe owner/server status and dashboard navigation
 
-Status: **IN_PROGRESS**; branch `ai/gpt6/b-8a-readonly-owner-tools`.
+Status: **MERGED (#28)**; branch `ai/gpt6/b-8a-readonly-owner-tools`.
 Design: `docs/designs/BATCH-B.md` §4 B-8, staged slice of Batch B.
 Baseline: PR #27 B-7 guard; after merge sync with current main.
 Risk: account data isolation. Schema: no new tables.
