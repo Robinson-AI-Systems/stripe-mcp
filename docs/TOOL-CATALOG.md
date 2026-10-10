@@ -9,7 +9,7 @@ read-back. Customer balance credits and debits require separately authenticated
 exact owner approval, even for $0.01. **LIVE remains OFF (IN-06)**. No Stripe
 account, hosted production infrastructure or real provider money action has
 been activated. Remaining catalog rows are planned; legacy compatibility is
-not required.
+not required. The D-2 set (19 native payment, charge, refund and setup operations) merged in #38, with full exact-head CI and security self-review passing. Incoming charges/captures require explicit confirmation, and outgoing refunds separately require owner approval.
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
@@ -74,19 +74,19 @@ money (dollar preview, daily limit, always confirm).
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `payment_list` / `payment_get` / `payment_search` | Payment intents | — | C/C/R | R |
-| `payment_charge_saved_method` | Charge a customer's saved card/bank off-session for a one-off amount (description required) | $ | N | E |
-| `payment_capture` | Capture an authorized payment (full or part) | $ | C | E |
-| `payment_cancel` | Cancel an uncaptured payment | C | C | E |
-| `payment_update` | Description, metadata, receipt email | P | R | E |
-| `charge_list` / `charge_get` / `charge_search` | Charges, with outcome and decline reason in words | — | C/C/R | R |
-| `charge_update` | Description, metadata, receipt email | P | C | E |
-| `payment_create_refund` | Refund all or part of a charge or payment, with reason; checks refundable amount first | $ | C | E |
-| `payment_list_refunds` / `payment_get_refund` | Refunds | — | C | R |
-| `payment_update_refund` | Refund metadata | P | R | E |
-| `payment_cancel_refund` | Cancel a refund still pending (bank refunds) | C | R | E |
-| `setup_list` / `setup_get` | Setup intents (saving a payment method) | — | C | R |
-| `setup_cancel` | Cancel a setup intent | C | C | E |
+| `payment_list` / `payment_get` / `payment_search` | Payment intents | — | built #38 | R |
+| `payment_charge_saved_method` | Charge a customer's saved card/bank off-session for a one-off amount (description required) | $ | built #38 | E |
+| `payment_capture` | Capture an authorized payment (full or part) | $ | built #38 | E |
+| `payment_cancel` | Cancel an uncaptured payment | C | built #38 | E |
+| `payment_update` | Description, metadata, receipt email | P | built #38 | E |
+| `charge_list` / `charge_get` / `charge_search` | Charges, with outcome and decline reason in words | — | built #38 | R |
+| `charge_update` | Description, metadata, receipt email | P | built #38 | E |
+| `payment_create_refund` | Refund all or part of a charge or payment, with reason; checks refundable amount first | $ | built #38 | E |
+| `payment_list_refunds` / `payment_get_refund` | Refunds | — | built #38 | R |
+| `payment_update_refund` | Refund metadata | P | built #38 | E |
+| `payment_cancel_refund` | Cancel a refund still pending (bank refunds) | C | built #38 | E |
+| `setup_list` / `setup_get` | Setup intents (saving a payment method) | — | built #38 | R |
+| `setup_cancel` | Cancel a setup intent | C | built #38 | E |
 
 Removed on purpose: `stripe_create_payment_intent` / `stripe_confirm_payment_intent`
 with raw payment method IDs and returned `client_secret` (replaced by

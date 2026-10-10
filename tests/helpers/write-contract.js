@@ -7,7 +7,7 @@ import { createFakeDb } from '../../test/helpers/fake-db.js';
 
 const parse = r => JSON.parse(r.content[0].text);
 export function runWriteContract({withMoney,tool=null,args={},fixtures=null,
-  strictArgs=false,createOnly=false}) {
+  strictArgs=false,createOnly=false,appOwnedAllowed=false}) {
   if ((tool || fixtures) && (typeof tool !== 'function' ||
       typeof fixtures !== 'function' || !args || Array.isArray(args) ||
       typeof args !== 'object')) {
@@ -119,6 +119,11 @@ export function runWriteContract({withMoney,tool=null,args={},fixtures=null,
         await expect(op.handler({confirm:true,metadata:{agreementId:'foreign'}},ctx))
           .rejects.toThrow();
         expect(provider.writes).toHaveLength(0);
+        return;
+      }
+      if(appOwnedAllowed){
+        expect(parse(await op.handler({confirm:true},ctx)).done).toBe(true);
+        expect(provider.writes).toHaveLength(1);
         return;
       }
       expect(parse(await op.handler({confirm:true},ctx)).done).toBe(false);

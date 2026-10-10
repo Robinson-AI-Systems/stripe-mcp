@@ -5,15 +5,13 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { requireMcpToken } from './mcp-auth.js';
 import { toStripeToolError } from '../tools/errors.js';
 import { shapeToolResult } from '../tools/util.js';
-import { isToolAllowed, publicToolInfo, listingForConnection } from './profiles.js';
+import { isToolAllowed, publicToolInfo, listingForConnection, isGuardedTestWrite } from './profiles.js';
 import { randomBytes } from 'node:crypto';
 import { readDetail,splitResult,resultPage } from '../tools/result-rules.js';
 
 export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} }) {
   const item = registry.tools.find(t => t.name === name);
-  const guardedWrite=item?.writes===true&&item?.writeContract==='defineWrite-v1'&&
-    item?.area==='customers'&&connection?.mode==='test'&&
-    ['everyday','full'].includes(connection?.profile);
+  const guardedWrite=isGuardedTestWrite(item,connection);
   if (!isToolAllowed(item,connection?.profile,{allowWrites:guardedWrite})) {
     return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};
   }

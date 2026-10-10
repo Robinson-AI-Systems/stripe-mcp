@@ -1,6 +1,6 @@
 // Context-efficient discovery. Every indirect execution goes through the
 // exact same default-deny dispatcher as a direct MCP tool call.
-import {visibleTools,isToolAllowed,publicToolInfo} from '../core/profiles.js';
+import {visibleTools,isToolAllowed,publicToolInfo,isGuardedTestWrite} from '../core/profiles.js';
 const profiles=['read_only','everyday','full'];
 const shape={type:'object',additionalProperties:false};
 const noNested=new Set(['stripe_call','stripe_batch','stripe_search_tools','stripe_describe_tool']);
@@ -34,8 +34,7 @@ export const tools=[
 ];
 const allowed=(registry,connection,name)=>{
   const tool=registry?.tools?.find(t=>t.name===name);
-  const safeWrite=connection?.mode==='test'&&tool?.writes===true&&
-    tool?.writeContract==='defineWrite-v1'&&tool?.area==='customers';
+  const safeWrite=isGuardedTestWrite(tool,connection);
   return isToolAllowed(tool,connection?.profile,{allowWrites:safeWrite})&&
     (tool.writes===false||safeWrite)?tool:null;
 };
