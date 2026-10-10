@@ -9,11 +9,11 @@ export function defineWrite(spec) {
   if (spec?.targetGuard !== undefined && typeof spec.targetGuard !== 'function') {
     throw new TypeError('Custom targetGuard must be a function');
   }
-  if (typeof spec?.summarize !== 'function') {
-    throw new TypeError('The guarded write summary must be a function');
-  }
   if (spec?.appOwnedRefundAllowed === true && typeof spec.money !== 'function') {
     throw new TypeError('App-owned refund exception requires the guarded money contract');
+  }
+  if (typeof spec?.summarize !== 'function') {
+    throw new TypeError('The guarded write summary must be a function');
   }
   const targetGuard = async (args, ctx, before) => {
     const appDecision = await protectAppOwnedTarget(args, ctx, before, {
