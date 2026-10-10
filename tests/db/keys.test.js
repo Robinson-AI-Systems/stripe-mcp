@@ -22,7 +22,7 @@ describe('encrypted Stripe credentials on isolated real PostgreSQL', () => {
   it('stores only AES-GCM ciphertext and permits server-only decrypt', async () => {
     const key = randomBytes(32), fake = makeFakeStripe(), apiKey = ['rk','test','FAKEFAKEFAKEFAKEFAKE'].join('_');
     fake.when('accounts.retrieve').resolves({ id:'acct_FAKESTORE', business_profile:{name:'Fixture'} });
-    const vault = createKeyStore({ db, encryptionKey:key, makeClient:()=>fake.stripe });
+    const vault = createKeyStore({ db, encryptionKey:key, makeClient:()=>fake.stripe, probe:async()=>({}) });
     const metadata = await vault.storeTestKey({ key:apiKey });
     expect(metadata).toMatchObject({ account:'acct_FAKESTORE', mode:'test', kind:'restricted' });
     const [row] = await rawQuery('SELECT test_key_enc, test_key_kind, test_key_last4, live_key_enc, live_enabled FROM stripe_accounts WHERE id = $1', ['acct_FAKESTORE']);

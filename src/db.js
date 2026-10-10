@@ -111,20 +111,26 @@ export function createDb(sql = getProductionSql()) {
       return rows[0].count;
     },
     async listStripeAccounts() {
-      return await sql`SELECT id, label, live_enabled, is_default
+      return await sql`SELECT id, label, live_enabled, is_default,
+          test_key_enc IS NOT NULL AS test_connected, live_key_enc IS NOT NULL AS live_connected
         FROM stripe_accounts ORDER BY is_default DESC, added_at ASC`;
     },
     async getStripeAccount(accountId) {
-      const rows = await sql`SELECT id, label, live_enabled FROM stripe_accounts WHERE id = ${accountId}`;
+      const rows = await sql`SELECT id, label, live_enabled, is_default, test_key_kind, test_key_last4,
+          live_key_kind, live_key_last4, money_limit_cents, key_permissions,
+          test_key_enc IS NOT NULL AS test_connected, live_key_enc IS NOT NULL AS live_connected
+          FROM stripe_accounts WHERE id = ${accountId}`;
       return rows[0] || null;
     },
-    async saveTestKey({ account, label, ciphertext, kind, last4 }) {
+    async saveTestKey({ account, label, ciphertext, kind, last4, permissions = {} }) {
       await sql`INSERT INTO stripe_accounts
-        (id, label, test_key_enc, test_key_kind, test_key_last4, key_checked_at)
-        VALUES (${account}, ${label}, ${ciphertext}, ${kind}, ${last4}, now())
+        (id, label, test_key_enc, test_key_kind, test_key_last4, key_permissions, key_checked_at)
+        VALUES (${account}, ${label}, ${ciphertext}, ${kind}, ${last4},
+          ${JSON.stringify(permissions)}::jsonb, now())
         ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label,
           test_key_enc = EXCLUDED.test_key_enc, test_key_kind = EXCLUDED.test_key_kind,
-          test_key_last4 = EXCLUDED.test_key_last4, key_checked_at = now()`;
+          test_key_last4 = EXCLUDED.test_key_last4, key_permissions = EXCLUDED.key_permissions,
+          key_checked_at = now()`;
     },
     async getEncryptedKey({ account, mode }) {
       if (mode !== 'test') return null;

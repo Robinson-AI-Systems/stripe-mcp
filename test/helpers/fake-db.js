@@ -85,13 +85,22 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async countRecentFailedLogins(ip, minutes) {
       return attempts.filter((a) => a.ip === ip && !a.success && a.at > clock() - minutes * 60000).length;
     },
-    async listStripeAccounts() { return structuredClone([...accountRows.values()]); },
-    async getStripeAccount(id) { return structuredClone(accountRows.get(id) || null); },
-    async saveTestKey({ account, label, ciphertext, kind, last4 }) {
+    async listStripeAccounts() { return structuredClone([...accountRows.values()].map(a => ({
+      ...a, test_connected: encryptedTestKeys.has(a.id), live_connected: false
+    }))); },
+    async getStripeAccount(id) {
+      const account = accountRows.get(id);
+      if (!account) return null;
+      const saved = encryptedTestKeys.get(id);
+      return structuredClone({ ...account, test_key_kind: saved?.kind || null,
+        test_key_last4: saved?.last4 || null, key_permissions: saved?.permissions || {},
+        money_limit_cents: 50000, test_connected: !!saved, live_connected: false });
+    },
+    async saveTestKey({ account, label, ciphertext, kind, last4, permissions = {} }) {
       const before = accountRows.get(account) || { id: account, is_default: accountRows.size === 0,
         live_enabled: false };
       accountRows.set(account, { ...before, label });
-      encryptedTestKeys.set(account, { ciphertext, kind, last4 });
+      encryptedTestKeys.set(account, { ciphertext, kind, last4, permissions: structuredClone(permissions) });
     },
     async getEncryptedKey({ account, mode }) {
       if (mode !== 'test') return null;

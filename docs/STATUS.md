@@ -1,11 +1,11 @@
 # STATUS — current work, blockers and next action
 
 Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
-**A-1 through A-3 implemented (#9–#12), A-4a client (#13):** tested foundation, schema, durable OAuth, and isolated Stripe SDK client. No Stripe account has been connected; none of this is deployed or live.
+**A-1 through A-5 implemented (#9–#16):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys and secure setup code. No Stripe account has been connected; none of this is deployed or live.
 
 ## Next
 
-- **Next A-5b:** secure owner setup page, real test-key verification and key-permission probes; A-5a encrypted credential storage and one-time secret primitives merged (#15). Real setup remains gated by IN-02/03/04.
+- **Next A-6:** owner-friendly deployment instructions and one-time configuration checklist. A-5a encrypted storage (#15) and A-5b owner setup, permission probes and two read-only account tools (#16) merged. Real hosting and keys still gated by IN-02/03/04.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -17,6 +17,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — A-5b owner setup (PR #16):** protected key-entry page, 15-minute login lockout, CSRF and origin checks, Stripe permission probes, single-view secret page and first two guarded read-only MCP account tools. No real key has been entered or live mode enabled.
 
 **2026-10-10 — A-5a encrypted credential primitives (PR #15):** AES-256-GCM encryption with no plaintext fallback, verified test-key persistence and atomically single-use secret records, with fake and real isolated Postgres tests. The authenticated setup page is still A-5b; nothing deployed.
 

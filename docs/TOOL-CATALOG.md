@@ -25,8 +25,8 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `stripe_whoami` | Which Stripe account, mode (TEST/LIVE), profile, key type, key last 4, API version, daily money limit and how much is used today | — | N | R |
-| `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | N | R |
+| `stripe_whoami` | Which Stripe account, mode (TEST/LIVE), profile, key type, key last 4, API version, daily money limit and how much is used today | — | partial #16 (usage B) | R |
+| `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
 | `stripe_set_default_account` | Which account new connections pick first | P | N | F |
 | `stripe_check_key_permissions` | Re-probe the key: which tool areas work and which are blocked, with the permission to add for each | — | N | R |
 | `stripe_list_connections` | Which Claude connections exist, their account, mode, profile, last used | — | N | R |

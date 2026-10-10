@@ -2,7 +2,32 @@
 import { makeStripeClient } from './stripe/client.js';
 import { encryptSecret, decryptSecret, readEncryptionKey } from './core/crypto.js';
 
-export function createKeyStore({ db, makeClient = makeStripeClient, encryptionKey = readEncryptionKey() }) {
+// Harmless read probes only. Permission-denied means unavailable; network/provider errors abort setup.
+export async function probeKeyPermissions(stripe) {
+  const probes = {
+    customers: () => stripe.customers.list({ limit: 1 }),
+    payments: () => stripe.paymentIntents.list({ limit: 1 }),
+    subscriptions: () => stripe.subscriptions.list({ limit: 1 }),
+    invoices: () => stripe.invoices.list({ limit: 1 }),
+    products: () => stripe.products.list({ limit: 1 }),
+    prices: () => stripe.prices.list({ limit: 1 }),
+    refunds: () => stripe.refunds.list({ limit: 1 }),
+    disputes: () => stripe.disputes.list({ limit: 1 }),
+    webhooks: () => stripe.webhookEndpoints.list({ limit: 1 })
+  };
+  const result = {};
+  for (const [name, fn] of Object.entries(probes)) {
+    try { await fn(); result[name] = 'ok'; }
+    catch (error) {
+      if (error?.statusCode === 403 || error?.code === 'permission_denied') result[name] = 'denied';
+      else throw new Error('Stripe permission probe was unavailable. Try again later.');
+    }
+  }
+  return result;
+}
+
+export function createKeyStore({ db, makeClient = makeStripeClient,
+  probe = probeKeyPermissions, encryptionKey = readEncryptionKey() }) {
   if (!db || typeof db.saveTestKey !== 'function') throw new TypeError('Key database is required');
   return {
     async storeTestKey({ key, label }) {
@@ -22,7 +47,8 @@ export function createKeyStore({ db, makeClient = makeStripeClient, encryptionKe
       const ciphertext = encryptSecret(key, { aad: 'stripe-account/' + account + '/test', key: encryptionKey });
       const kind = key.startsWith('rk_') ? 'restricted' : 'secret';
       const last4 = key.slice(-4);
-      await db.saveTestKey({ account, label: safeLabel, ciphertext, kind, last4 });
+      const permissions = await probe(stripe);
+      await db.saveTestKey({ account, label: safeLabel, ciphertext, kind, last4, permissions });
       return { account, label: safeLabel, mode: 'test', kind, last4 };
     },
     async loadKey({ account, mode = 'test' }) {
