@@ -155,7 +155,7 @@ function build(def){
       const n=def.name;
       if(n==='customer_create')return after.id===created?.id&&
         changed(after,a,['name','email','phone','description','metadata','address']);
-      if(n==='customer_update')return changed(after,a,['name','email','phone','description','metadata']);
+      if(n==='customer_update')return changed(after,a,['name','email','phone','description','metadata','address']);
       if(n==='customer_delete'||n==='customer_delete_tax_id')return after.deleted===true;
       if(n==='customer_remove_payment_method')return after.customer===null;
       if(n==='customer_set_default_payment_method')

@@ -3,7 +3,7 @@
 const FIELDS=Object.freeze({
   customer:['id','object','name','email','phone','balance','balance_display',
     'currency','created','created_local','metadata','description',
-    'defaultPaymentMethod','appRecord'],
+    'defaultPaymentMethod','defaultPaymentMethodSummary','address','appRecord'],
   payment_method:['id','object','type','customer','brand','last4','expires','bankName'],
   tax_id:['id','object','type','value','verification'],
   customer_balance_transaction:['id','object','amount','currency','type',

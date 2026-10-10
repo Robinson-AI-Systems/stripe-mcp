@@ -54,6 +54,11 @@ describe('D-1 Stripe TEST customers and guarded writes',()=>{
     const methods=data(await f.call('customer_list_payment_methods',{customerId:'cus_FAKE123'}));
     expect(methods.data[0]).toMatchObject({brand:'visa',last4:'4242'});
     expect(JSON.stringify(methods)).not.toContain('fingerprint');
+    f.customer.invoice_settings.default_payment_method='pm_FAKE123';
+    const defaultMethod=data(await f.call('customer_get',{customerId:'cus_FAKE123'}));
+    expect(defaultMethod.defaultPaymentMethodSummary).toMatchObject({
+      brand:'visa',last4:'4242'});
+    expect(JSON.stringify(defaultMethod)).not.toContain('fingerprint');
     f.customer.metadata={agreementId:'ag_test'};
     expect(data(await f.call('customer_get',{customerId:'cus_FAKE123'}))
       .appRecord.agreementId).toBe('ag_test');
@@ -84,6 +89,33 @@ describe('D-1 Stripe TEST customers and guarded writes',()=>{
     expect(updated[0][2].idempotencyKey).toBe(idempotencyKey(connection,'customer_update',a));
     expect((await f.call('customer_update',{...a,confirm:true},
       {...connection,profile:'read_only'})).isError).toBe(true);
+  });
+  it('updates a bounded address and keeps owner approval for either balance direction',async()=>{
+    const f=fixture(),args={customerId:'cus_FAKE123',
+      address:{line1:'200 Test St',city:'Greeley',state:'CO',
+        country:'US',postal_code:'80631'}};
+    const updated=data(await f.call('customer_update',{...args,confirm:true,requestKey:'addr1'}));
+    expect(updated.done).toBe(true);
+    expect(f.customer.address).toMatchObject(args.address);
+    expect((await f.call('customer_update',{...args,address:{line1:'test',hacker:'x'}}))
+      .isError).toBe(true);
+    for(const bad of [
+      {creditCents:1,debitCents:1},
+      {creditCents:0},{debitCents:1.5},{},
+    ]){
+      const refused=await f.call('customer_add_balance_credit',{
+        customerId:'cus_FAKE123',description:'Adjustment',...bad,confirm:true});
+      expect(refused.isError).toBe(true);
+    }
+    const debit={customerId:'cus_FAKE123',debitCents:1,
+      description:'One cent debit',requestKey:'debit1',confirm:true};
+    const denied=data(await f.call('customer_add_balance_credit',debit));
+    expect(denied.error).toMatch(/explicit approval/);
+    expect(f.calls.some(c=>c[0]==='credit')).toBe(false);
+    const key=idempotencyKey(connection,'customer_add_balance_credit',debit);
+    expect(await f.db.approveMoneyRequest({account,idempotencyKey:key})).toBe(true);
+    expect(data(await f.call('customer_add_balance_credit',debit)).done).toBe(true);
+    expect(f.calls.find(c=>c[0]==='credit')[1].amount).toBe(1);
   });
   it('cannot smuggle a write into a batch or a read-only indirect call',async()=>{
     const f=fixture(),a={customerId:'cus_FAKE123',name:'Test'};

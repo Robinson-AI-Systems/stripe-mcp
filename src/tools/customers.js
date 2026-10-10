@@ -47,9 +47,13 @@ const perform=async(ctx,fn)=>{
   try{return ok(await fn(await getStripe(ctx)));}
   catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
 };
+const safeAddress=address=>address?Object.fromEntries(
+  ['line1','line2','city','state','postal_code','country']
+    .filter(k=>typeof address[k]==='string').map(k=>[k,address[k]])):null;
 const safeCustomer=(v,ctx)=>annotateAppRead({
   id:v.id,object:'customer',name:v.name??null,email:v.email??null,phone:v.phone??null,
   description:v.description??null,currency:v.currency??null,balance:v.balance??0,
+  address:safeAddress(v.address),
   created_local:v.created?denverLocalTime(v.created):null,
   defaultPaymentMethod:typeof v.invoice_settings?.default_payment_method==='string'?
     v.invoice_settings.default_payment_method:v.invoice_settings?.default_payment_method?.id??null,
@@ -89,7 +93,14 @@ export const handlers={
   customer_get:(a,c)=>perform(c,async s=>{
     if(!validCustomer(a?.customerId))throw new TypeError('Valid customer ID required');
     const v=await s.customers.retrieve(a.customerId);
-    return v.deleted?{id:v.id,deleted:true}:safeCustomer(v,c);
+    if(v.deleted)return {id:v.id,deleted:true};
+    const safe=await safeCustomer(v,c);
+    if(validPm(safe.defaultPaymentMethod)){
+      const method=await s.customers.retrievePaymentMethod(v.id,safe.defaultPaymentMethod);
+      if(method?.customer===v.id) safe.defaultPaymentMethodSummary=safeMethod(method);
+      else safe.defaultPaymentMethodSummary={status:'unavailable'};
+    }
+    return safe;
   }),
   customer_search:(a,c)=>perform(c,async s=>{
     const query=safeSearch(a?.query),p=page(a);
