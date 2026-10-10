@@ -68,6 +68,12 @@ describe('personal-use OAuth HTTP endpoints', () => {
     const authorized = await call(h.authorize, request('POST', { ...p, passphrase: env.ADMIN_PASSPHRASE }));
     expect(authorized.statusCode).toBe(302);
     const code = new URL(authorized.headers.Location).searchParams.get('code');
+    const wrongSecret = await call(h.token, request('POST', {
+      grant_type: 'authorization_code', client_id: client.client_id,
+      client_secret: 'wrong-client-secret', redirect_uri: callback,
+      code, code_verifier: verifier, resource }));
+    expect(wrongSecret.statusCode).toBe(401);
+    expect(json(wrongSecret).error).toBe('invalid_client');
     const granted = await call(h.token, request('POST', { grant_type: 'authorization_code',
       client_id: client.client_id, client_secret: client.client_secret, redirect_uri: callback,
       code, code_verifier: verifier, resource }));

@@ -101,7 +101,8 @@ export function createOAuthHandlers({ db, env = process.env }) {
     try { p = paramsOf(req); } catch { return bad(res, 400, 'invalid_request', 'Malformed token request'); }
     if (!validateResource(p.resource)) return bad(res, 400, 'invalid_target', 'Token resource must be this MCP');
     const client = await db.getOAuthClient(str(p.client_id));
-    if (!client || !secretsMatch(p.client_secret, client.client_secret_hash)) {
+    if (!client || typeof p.client_secret !== 'string' || !p.client_secret ||
+      !secretsMatch(hashToken(p.client_secret), client.client_secret_hash)) {
       return bad(res, 401, 'invalid_client', 'Client credentials rejected');
     }
     if (p.grant_type === 'authorization_code') {
