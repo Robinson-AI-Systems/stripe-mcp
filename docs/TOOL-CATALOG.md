@@ -471,6 +471,6 @@ no model call can reach these internals. Live keys remain unavailable.
 
 The app metadata guard is wired into the shared Stripe write adapter. This adds no new callable tools and does not change the tool catalog's built counts; B-8 and later batches will register guarded operations. Refund exceptions still require the mandatory owner-approved money contract.
 
-## B-4 safe error responses (no new tools)
+## B-4 safe errors (no new callable tools)
 
-Existing Stripe tool handlers use human-readable error messages with protected diagnostics. This feature adds no callable tool or change to catalog counts.
+Existing read handlers and guarded Stripe write adapters use safe, human-readable error formatting for recognized Stripe exceptions. No extra tool is exposed and money/authorization limits are unchanged.

@@ -5,9 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-4 prepared behind B-3:** plain-English safe Stripe errors with read/guarded-write integration and SDK-based regression tests on branch `ai/gpt6/b-4-stripe-readable-errors`. Merge B-3 before B-4; no new live operations or provider permissions.
+- **B-4 in progress (PR #24):** plain-English Stripe errors integrated with the read-only MCP and guarded write adapter, retaining all B-3 ownership fixes. Next verify CI and reviews, merge, then B-5 result formatting. No new external money/live operations.
 
-- **B-3 underway:** app-owned Stripe object guard is staged on `ai/gpt6/b-3-app-owned-record-guard` after B-2 (#21/#22). It denies changes to Appliance Desk-owned records unless explicitly overridden and allows the documented refund exception only through mandatory owner money consent. No tools registered or live money enabled. Next: finish B-3, then B-4 plain-English errors.
+- **B-3 completed in PR #23:** app-owned Stripe object guard is staged on `ai/gpt6/b-3-app-owned-record-guard` after B-2 (#21/#22). It denies changes to Appliance Desk-owned records unless explicitly overridden and allows the documented refund exception only through mandatory owner money consent. No tools registered or live money enabled. Next: B-4 plain-English errors (draft PR #24).
 
 - **B-2b delivered (#22); next B-3 app-owned record guard (IN-06 still OFF):** durable ten-minute intent, authenticated owner setup confirmation, and atomic PostgreSQL audit; no live key, public write tool or actual activation. B-8 must later wire the protected enable tool, and IN-06 must be expressly approved before any live operation.
 - **B-2a and B-2b merged:** default-deny LIVE write guard, owner-only account state verification, ten-minute reauthentication predicate and fake-provider tests. Neither live activation nor Stripe money tools are exposed. Continue B-2 owner activation design without enabling it (IN-06 remains OFF). **B-1/#20 is MERGED**, IN-05 is approved.
