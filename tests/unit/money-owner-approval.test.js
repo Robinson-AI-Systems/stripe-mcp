@@ -14,8 +14,8 @@ function request(method,body,headers={}){
     socket:{remoteAddress:'192.0.2.84'}};
 }
 async function fixture(){
-  let timestamp=Date.now();
-  const db=createFakeDb({clock:()=>timestamp,accounts:[{id:account},{id:'acct_OTHER'}]});
+  let timeOffset=0;
+  const db=createFakeDb({clock:()=>Date.now()+timeOffset,accounts:[{id:account},{id:'acct_OTHER'}]});
   for(const a of [account,'acct_OTHER'])
     await db.saveTestKey({account:a,label:a,ciphertext:'fake-cipher-'+a,
       kind:'restricted',last4:'FAKE'});
@@ -35,7 +35,7 @@ async function fixture(){
       tool:'stripe_test_refund',description:'Test provider refund',target,
       amountCents,currency:'usd',mode:'test'});
   const owner=(action,fields={})=>({action,passphrase:env.ADMIN_PASSPHRASE,...fields});
-  return {db,get,post,pending,owner,advance:ms=>{timestamp+=ms;}};
+  return {db,get,post,pending,owner,advance:ms=>{timeOffset+=ms;}};
 }
 function intentFrom(html){return /name="id" value="([A-Za-z0-9_-]{32})"/.exec(html)?.[1];}
 
