@@ -1,0 +1,1 @@
+B-8a safe owner read slice: branch ai/gpt6/b-8a-readonly-owner-tools, staged on #27. Account-scoped history, token metadata, actual usage and guided map implemented; targeted unit/DB tests authored. Next sync latest main after #27 and create draft PR; check CI and reviews. B-8 owner actions, approval screen and LIVE remain OFF.

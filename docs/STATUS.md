@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-8a staged (owner/server read tools):** selected-account audit summaries, connection metadata without credentials, accurately shared daily money usage, and guided dashboard settings. No account-changing tool is exposed; owner approval UI and privileged B-8 actions remain next. Branch `ai/gpt6/b-8a-readonly-owner-tools`.
+
 - **B-7 prepared after B-6:** strict tool write declarations, guarded contract and provider-derived money safety metadata validation; no new money/live capabilities available.
 
 - **B-6 completed (PR #26); next B-7 write-declaration validator:** profile-specific tool exposure and call authorization, hidden-tool name denial, and home-page counts. B-5 result shaping is merged; external writes remain disabled pending B-8.

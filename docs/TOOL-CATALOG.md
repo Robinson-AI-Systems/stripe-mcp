@@ -25,15 +25,15 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `stripe_whoami` | Which Stripe account, mode (TEST/LIVE), profile, key type, key last 4, API version, daily money limit and how much is used today | — | partial #16 (usage B) | R |
+| `stripe_whoami` | Which Stripe account, mode (TEST/LIVE), profile, masked key, API version, shared daily money limit and actual used today | — | built #16, usage B-8a | R |
 | `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
 | `stripe_set_default_account` | Which account new connections pick first | P | N | F |
 | `stripe_check_key_permissions` | Re-probe the key: which tool areas work and which are blocked, with the permission to add for each | — | N | R |
-| `stripe_list_connections` | Which Claude connections exist, their account, mode, profile, last used | — | N | R |
+| `stripe_list_connections` | Metadata for AI connections on the selected Stripe account only, never token credentials | — | built B-8a | R |
 | `stripe_revoke_connection` | Switch a connection off | C | N | F |
 | `stripe_enable_live` / `stripe_disable_live` | Allow or stop live-mode connections for an account (enabling also needs the passphrase on the setup page) | C | N | F |
 | `stripe_set_money_limit` | Change the daily money-out limit for an account | C | N | F |
-| `stripe_recent_changes` | What was changed through this server (filter by tool, mode, customer, date; previews hidden unless asked) | — | N | R |
+| `stripe_recent_changes` | Account-and-mode-scoped recent safe change summaries, no raw snapshots; more filters later | — | built B-8a | R |
 | `stripe_undo_change` | Undo one change-log entry when it has a clean opposite; says plainly when it does not | C | N | E |
 | `stripe_search_tools` | Find tools by plain words; one line each with safety marks (compact mode's front door) | — | N | R |
 | `stripe_describe_tool` | Full instructions and arguments for one tool | — | N | R |
@@ -41,7 +41,7 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 | `stripe_batch` | Up to 10 read calls in one round trip | — | N | R |
 | `stripe_get_result` | Page through a big result kept on the server behind a handle | — | N | R |
 | `stripe_create_pass` | Make a short-lived pass for the HTTPS API and Robinson's Toolkit (shown once on the setup page; test, read-only, 24 h, $0 by default; RTC §2) | C | N | F |
-| `stripe_where_is_setting` | Structured steps (link, numbered actions, expected result, read-back check) for any dashboard-only setting (team members, two-step login, Radar rules, statement emails, resending a webhook) | — | N | R |
+| `stripe_where_is_setting` | Guided steps for common dashboard-only settings; no API changes | — | built B-8a (expanded catalog later) | R |
 
 ## Customers (`customer_*`) — 17
 
