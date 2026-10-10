@@ -1,6 +1,6 @@
 # B-8b2a — Private owner-only AI connection revocation
 
-Status: **IN_PROGRESS**, branch `ai/gpt6/b-8b2-owner-admin`; next card B-8b2b follows.
+Status: **MERGED (#30) after verified CI — private owner-only action; no public MCP write**, branch `ai/gpt6/b-8b2-owner-admin`; next card B-8b2b follows.
 Baseline inspected: main `d28fc79` after B-8b1 #29 merged.
 Parent card: `docs/pr-cards/B-8b2.md`. Design: `docs/designs/BATCH-B.md` §4 B-8.
 Risk: connection access and owner authentication. One additive table;
@@ -42,3 +42,15 @@ This builds a real private owner action, **not** an exposed MCP
 `stripe_revoke_connection` tool. B-8b2b still owns other administrative
 actions, B-8c separate individual money-out approvals. Never claim B-8
 completed on this merge.
+
+## Final acceptance, evidence and handoff
+
+`tests/unit/owner-revoke.test.js` verifies owner credential, CSRF, origin,
+separate confirmation, stale account/client denial, one-use/replay/expiry,
+concurrent exactly-one success and unchanged unrelated connection. Isolated
+PostgreSQL `tests/db/owner-revoke.test.js` proves token+refresh revocation
+and one audit in an atomic statement. The final `ci` job must be green at
+the exact head before merge. These owner controls cannot authorize any
+Stripe money-out, LIVE key or AI-side account write.
+**Next:** `docs/pr-cards/B-8b2b.md` for remaining guarded administration;
+B-8c owns the independently authenticated money-approval UI.

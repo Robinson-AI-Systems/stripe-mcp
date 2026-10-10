@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8b2a IN_PROGRESS:** owner-only two-step connection revocation (branch `ai/gpt6/b-8b2-owner-admin`), authenticated private setup page, expiring one-time intent, atomic account-scoped OAuth token revocation and audit; fake/PostgreSQL tests authored. Requires exact-head CI and security review before merge. B-8b2b still owns default account/money limit/disable-live controls; B-8c owns independent money approval page. No public write tools or LIVE access enabled.
+- **B-8b2a completed in #30; next B-8b2b remaining administration:** owner-only two-step connection revocation (branch `ai/gpt6/b-8b2-owner-admin`), authenticated private setup page, expiring one-time intent, atomic account-scoped OAuth token revocation and audit; fake/PostgreSQL tests authored. Requires exact-head CI and security review before merge. B-8b2b still owns default account/money limit/disable-live controls; B-8c owns independent money approval page. No public write tools or LIVE access enabled.
 
 - **Current implementation: B-8b1 TEST permission re-probe — PR #29.** Branch
   `ai/gpt6/b-8b1-permission-probes`. TEST-only server-side read permission checks
