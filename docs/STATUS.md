@@ -5,31 +5,25 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8b2a completed in #30; next B-8b2b remaining administration:** owner-only two-step connection revocation (branch `ai/gpt6/b-8b2-owner-admin`), authenticated private setup page, expiring one-time intent, atomic account-scoped OAuth token revocation and audit; fake/PostgreSQL tests authored. Requires exact-head CI and security review before merge. B-8b2b still owns default account/money limit/disable-live controls; B-8c owns independent money approval page. No public write tools or LIVE access enabled.
-
-- **Current implementation: B-8b1 TEST permission re-probe — PR #29.** Branch
-  `ai/gpt6/b-8b1-permission-probes`. TEST-only server-side read permission checks
-  and account-scoped results; CI was green before this documentation reconciliation.
-  Card `docs/pr-cards/B-8b1.md` is written as MERGED in accordance with
-  DRIFT checklist B; merge still requires green CI at the final head.
-- **Next in order:** B-8b2 independently authenticated owner-only administrative
-  actions (no AI authority to approve itself), then B-8c authenticated per-transaction
-  money-out approvals, then B-8 completion reconciliation and C-1.
-  B-8 is **IN_PROGRESS**, not fully delivered.
-- **Last merged:** #28 B-8a account-scoped read tools (`ee9011b`).
-  Previously merged: #27 B-7, #26 B-6, #25 B-5, #24 B-4, #23 B-3,
-  #22/#21 B-2, #20 B-1. Batch A #9–#17 complete.
-- **Owner-approved policy IN-05:** $500 USD per Stripe account per
-  America/Denver calendar day, shared across AI connections. Every AI money-out
-  needs a separate authenticated owner authorization even below the cap;
-  crossing the cap needs another explicit single-transaction override.
-  No AI argument or `confirm:true` can supply these authorizations.
-- **Hard gates unchanged:** IN-06 LIVE OFF. No public money-moving write tool,
-  owner money-approval page, live Stripe key or operational server deployment.
-  IN-02/03/04 remain unanswered; no approval to provision infrastructure,
-  use live credentials or move money.
+- **Current PR #31 (B-8b2b1):** private owner-only emergency LIVE disable,
+  branch `ai/gpt6/b-8b2b-safe-live-disable`, pending exact-head CI,
+  security self-review and merge. Authenticated two-step OFF-only browser flow,
+  one-use intent, account-specific atomic audit, fake and PostgreSQL tests.
+  No LIVE key has been used or enabled.
+- **Last merged #30 (B-8b2a):** protected owner-only AI connection revocation,
+  exact-account/client one-use confirmation and durable audit; CI green at merge.
+  #29 TEST key permissions, #28 account read tools and B-1–B-7 are merged.
+- **Next:** B-8b2b2 default-account selection and separately owner-authorized
+  daily-limit settings, then B-8c authenticated, single-transaction money-out
+  approval UI. B-8 remains **IN_PROGRESS**, C-1 must wait.
+- **IN-05 is approved:** $500 USD per Stripe account per America/Denver day,
+  pooled across AI connections; every AI money-out needs a separate authenticated
+  owner approval; over-limit transactions need an additional explicit override.
+  No AI tool or `confirm` parameter can issue either approval.
+- **IN-06 remains OFF:** No real money movement, live-key activation,
+  AI-callable Stripe write tools or production deployment. IN-02/03/04
+  provisioning and test-key setup are still unapproved/unconfigured.
 - **Ordered batches:** A → B → C → D → V → G → H → P → W → U → R → E → X.
-  `MASTER-ROADMAP.md` and `docs/pr-cards/work-index.json` retain coverage.
 
 ## Environment
 
@@ -38,6 +32,12 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — #30 B-8b2a private connection revoke:** protected owner
+preview and final consent, expiring one-time intent, atomic account/client
+token revocation and audit. Does not expose a public AI write operation.
+
+
 
 **2026-10-10 — B-8b1 TEST-only permission re-probe (PR #29, pending final merge):**
  server-owned lazy encrypted TEST-key use, safe Stripe read list probes, stored
