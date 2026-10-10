@@ -9,6 +9,9 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const codes = new Map();
   const tokens = new Map();
   const attempts = [];
+  const accountRows = new Map(accounts.map(a => [a.id, structuredClone(a)]));
+  const encryptedTestKeys = new Map();
+  const oneTimeSecrets = new Map();
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -82,8 +85,29 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async countRecentFailedLogins(ip, minutes) {
       return attempts.filter((a) => a.ip === ip && !a.success && a.at > clock() - minutes * 60000).length;
     },
-    async listStripeAccounts() { return structuredClone(accounts); },
-    async getStripeAccount(id) { return structuredClone(accounts.find(a => a.id === id) || null); },
+    async listStripeAccounts() { return structuredClone([...accountRows.values()]); },
+    async getStripeAccount(id) { return structuredClone(accountRows.get(id) || null); },
+    async saveTestKey({ account, label, ciphertext, kind, last4 }) {
+      const before = accountRows.get(account) || { id: account, is_default: accountRows.size === 0,
+        live_enabled: false };
+      accountRows.set(account, { ...before, label });
+      encryptedTestKeys.set(account, { ciphertext, kind, last4 });
+    },
+    async getEncryptedKey({ account, mode }) {
+      if (mode !== 'test') return null;
+      const row = encryptedTestKeys.get(account);
+      return row ? { ciphertext: row.ciphertext } : null;
+    },
+    async addOneTimeSecret({ id, account, mode, kind, ciphertext, expiresAt }) {
+      oneTimeSecrets.set(id, { stripe_account: account, mode, kind, ciphertext,
+        expires_at: new Date(expiresAt).getTime() });
+    },
+    async consumeOneTimeSecret(id) {
+      const row = oneTimeSecrets.get(id);
+      oneTimeSecrets.delete(id);
+      return row && row.expires_at > clock() ? structuredClone(Object.fromEntries(
+        Object.entries(row).filter(([name]) => name !== 'expires_at'))) : null;
+    },
     async tokenRowsForTest() { return structuredClone([...tokens.values()]); }
   };
 }

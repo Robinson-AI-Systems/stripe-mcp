@@ -118,6 +118,32 @@ export function createDb(sql = getProductionSql()) {
       const rows = await sql`SELECT id, label, live_enabled FROM stripe_accounts WHERE id = ${accountId}`;
       return rows[0] || null;
     },
+    async saveTestKey({ account, label, ciphertext, kind, last4 }) {
+      await sql`INSERT INTO stripe_accounts
+        (id, label, test_key_enc, test_key_kind, test_key_last4, key_checked_at)
+        VALUES (${account}, ${label}, ${ciphertext}, ${kind}, ${last4}, now())
+        ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label,
+          test_key_enc = EXCLUDED.test_key_enc, test_key_kind = EXCLUDED.test_key_kind,
+          test_key_last4 = EXCLUDED.test_key_last4, key_checked_at = now()`;
+    },
+    async getEncryptedKey({ account, mode }) {
+      if (mode !== 'test') return null;
+      const rows = await sql`SELECT test_key_enc AS ciphertext FROM stripe_accounts
+        WHERE id = ${account}`;
+      return rows[0] || null;
+    },
+    async addOneTimeSecret({ id, account, mode, kind, ciphertext, expiresAt }) {
+      await sql`INSERT INTO one_time_secrets
+        (id, stripe_account, mode, kind, ciphertext, expires_at)
+        VALUES (${id}, ${account}, ${mode}, ${kind}, ${ciphertext}, ${expiresAt})`;
+    },
+    async consumeOneTimeSecret(id) {
+      // Atomic delete means two callers cannot both obtain a single-view secret.
+      const rows = await sql`DELETE FROM one_time_secrets
+        WHERE id = ${id} AND expires_at > now() AND viewed_at IS NULL
+        RETURNING stripe_account, mode, kind, ciphertext`;
+      return rows[0] || null;
+    },
     async initSchema() {
       await sql`CREATE TABLE IF NOT EXISTS stripe_accounts (
         id TEXT PRIMARY KEY,
