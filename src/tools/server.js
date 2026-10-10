@@ -10,7 +10,7 @@ export const tools = [
   { name:'stripe_list_accounts', description:'List connected Stripe accounts and configured modes, without keys.',
     inputSchema:schema, annotations:{readOnlyHint:true}, writes:false, profiles },
   { name:'stripe_recent_changes', description:'Read safe audit summaries for the selected Stripe account, without snapshots.',
-    inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:100},
+    inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:50},
       mode:{type:'string',enum:['test','live']},offset:{type:'integer',minimum:0}},additionalProperties:false},
     annotations:{readOnlyHint:true},writes:false,profiles },
   { name:'stripe_list_connections', description:'List connection metadata for the selected account, never bearer credentials.',
