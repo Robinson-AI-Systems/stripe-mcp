@@ -133,13 +133,13 @@
         "A-6"
       ],
       "card": "docs/pr-cards/B-1.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "money_reservations",
       "budget": 450,
       "units": [
         "B-1"
       ],
-      "readiness": "IN_PROGRESS",
+      "readiness": "MERGED",
       "ownerInputs": [
         "IN-05"
       ]

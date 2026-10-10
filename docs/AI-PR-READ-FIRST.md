@@ -4,8 +4,15 @@ Blocking review input, in the spirit of Appliance Desk's audit note. Write one l
 description saying how it is honored.
 
 ## Money
-1. Every money-moving tool (TOOL-CATALOG `$`) has a money spec that reads the amount from Stripe, a dollar preview, always
+1. Every money-moving tool (TOOL-CATALOG `# Read before any PR that touches money, keys, guards, login or passes
+
+Blocking review input, in the spirit of Appliance Desk's audit note. Write one line per applicable item in the PR
+description saying how it is honored.
+
+## Money
+) has a money spec that reads the amount from Stripe, a dollar preview, always
    needs `confirm`, and counts against the daily limit. Universal `api_write` treats unknown money-like operations as money.
+1a. IN-05: every AI money-out needs owner-authenticated approval of the exact account, operation, target and Stripe-derived amount. Exceeding $500/account/Denver-day needs a second owner override for the same request. Neither `confirm` nor any AI context flag authorizes a payment. Owner UI is disabled until completed in B-8.
 2. Every Stripe write carries an idempotency key from `src/stripe/client.js`; a retried call cannot charge, refund or pay
    out twice. Tests prove the key is stable across `dryRun`/`confirm` and changes with `requestKey`.
 3. Read-back decides `confirmed`; a tool never says "done" from the request alone.

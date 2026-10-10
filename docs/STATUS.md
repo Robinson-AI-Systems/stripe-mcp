@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **IN-05 approved 2026-10-10; PR #20 re-verification underway:** $500 USD per Stripe account per Colorado day, shared across all AI connections. EVERY AI money-out requires a separate owner-authenticated approval, and going over the remaining daily cap requires an additional single-transaction override. Approval records are amount/request-bound and single-use; the owner-only approval page will be a later, separately tested gate. No live account, money movement, or user-facing write tool is enabled. PR #21 (B-2 live guard) remains stacked in DRAFT.
+- **Next B-2:** PR #20 B-1 safety foundation has completed and is being merged. Owner IN-05 is approved: $500 USD per Stripe account per Colorado day, pooled across connections; an authenticated owner decision is mandatory for every AI money-out, plus a separate exact-transaction override above the budget. Owner approval browser UI is NOT active, so spending stays disabled. B-2 preparatory live guard is in draft PR #21, stacked on #20; sync it after #20 merges. No Stripe account/deployment/live mode configured.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -17,6 +17,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — B-1b2 owner-approved policy and guarded write foundation (PR #20):** internal seven-case write contract and Stripe-derived USD preview; account-wide, cross-connection $500 cap; owner-approved one-use request required for every money-out; separate auditable over-limit owner action; atomic PostgreSQL reservation; rejected-versus-uncertain outcomes. Exact-head CI verified; no money-moving tool exposed. Owner browser approval B-8 and live enable IN-06 remain off.
 
 **2026-10-10 — B-1b1 money reservation ledger (PR #19):** one additive table and database-serialized account lock for per-connection money-out reservation in America/Denver days. Conservative uncertain/confirmed statuses count against usage; no money operations exposed. B-1b2 follows.
 

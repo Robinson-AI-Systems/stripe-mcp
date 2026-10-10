@@ -62,7 +62,7 @@ B-1a adds `src/core/write.js` and `src/tools/write.js` for an internal-only TEST
 
 `money_approvals` stores account, idempotency key, tool, safe human description,
 provider-derived USD cents, expiry, owner approval timestamp, single-use consumption,
-and a separately authorized over-limit flag. `money_reservations` is serialized
+and a separately authorized over-limit flag plus independent `override_approved_at` timestamp. `money_reservations` is serialized
 under the Stripe-account row lock. Its daily sum covers all connections of the
 same Stripe account; the owner's approval must be valid and is consumed inside
 the reservation procedure. No public or agent-side method can approve a request.
