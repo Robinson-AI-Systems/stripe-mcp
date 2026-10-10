@@ -47,7 +47,7 @@ describe('B-7 explicit writes and provider-derived money declarations',()=>{
       summarize:async()=> 'Change isolated fake object',
       apply:async()=>{},readAfter:async()=>({ok:true}),verify:async()=>true,
       ...(money?{money:async(_a,_c,b)=>({amountCents:b.amount,currency:b.currency,
-        direction:'out',description:'Fake refundable cents'})}:{})
+        targetId:'ch_FAKE1234',direction:'out',description:'Fake refundable cents'})}:{})
     });
     const monetary=make(true),notMonetary=make(false);
     expect(monetary.tool.moneySpec).toBe('provider-derived');

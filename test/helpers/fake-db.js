@@ -325,7 +325,6 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       if (allowOverLimit !== false) throw new TypeError('Separate owner override action required');
       const row=approvals.find(a => a.account === account && a.key === idempotencyKey &&
         a.target!=='' && a.mode==='test' &&
-        a.target!=='' && a.mode==='test' &&
         a.consumedAt === null && a.expiresAt > clock());
       if (!row) return false;
       row.approvedAt=clock();
@@ -334,7 +333,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async approveMoneyOverride({ account, idempotencyKey }) {
       const row=approvals.find(a => a.account === account && a.key === idempotencyKey &&
         a.approvedAt !== null && a.approvedAt >= clock() - 600000 &&
-        a.consumedAt === null && a.expiresAt > clock());
+        a.target!=='' && a.mode==='test' && a.consumedAt === null && a.expiresAt > clock());
       if (!row) return false;
       row.allowOverLimit=true; row.overrideApprovedAt=clock();
       return true;

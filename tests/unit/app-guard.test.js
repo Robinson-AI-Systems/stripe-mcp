@@ -17,7 +17,7 @@ function fixture({before,refund=false,ctxExtras={}}={}) {
     read:async()=>before,
     summarize:async()=> 'Update isolated Stripe fixture. TEST MODE.',
     money:refund?async(_args,_ctx,b)=>({amountCents:b.refundableCents,
-      currency:'usd',direction:'out',description:'Refund app-owned fake charge'}):undefined,
+      currency:'usd',targetId:'ch_FAKE1234',direction:'out',description:'Refund app-owned fake charge'}):undefined,
     apply:async()=>{calls.written++;},
     readAfter:async()=>({done:true}),
     verify:async(_a,b)=>b.done===true
@@ -98,7 +98,7 @@ describe('B-3 default-deny app ownership guard',()=>{
     const op=defineWrite({name:'stripe_refund_invalid_summary',appOwnedRefundAllowed:true,
       read:async()=>({id:'ch_123',metadata:{agreementId:'agr'} ,refundableCents:100}),
       summarize:async()=>null,
-      money:async(_a,_c,b)=>({amountCents:b.refundableCents,currency:'usd',direction:'out',
+      money:async(_a,_c,b)=>({amountCents:b.refundableCents,currency:'usd',targetId:'ch_FAKE1234',direction:'out',
         description:'Test refund'}),
       apply:async()=>{throw Error('MUST NOT APPLY');},readAfter:async()=>({}),verify:async()=>false});
     const ctx={db:createFakeDb({accounts:[{id:'acct_APP_SAFE'}]}),

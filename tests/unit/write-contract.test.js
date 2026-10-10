@@ -28,7 +28,7 @@ runWriteContract({
     },
     summarize: async () => 'Refund the real-handler fixture. TEST MODE.',
     money: async (_args, _ctx, before) => ({
-      amountCents: before.refundableCents, currency: 'usd', direction: 'out',
+      amountCents: before.refundableCents, currency: 'usd', targetId:'ch_FAKE1234',direction: 'out',
       description: 'Refund verified customer balance'
     }),
     targetGuard: (args, _ctx, before) => !before.appOwned || args.outsideApp === true,
@@ -50,7 +50,7 @@ describe('owner gate and currency hardening', () => {
     });
     const op = defineWrite({name:'stripe_test_refund', read:async()=>({cents:8500}),
       summarize:async()=> 'Refund fake balance. TEST MODE.',
-      money:async(_a,_c,b)=>({amountCents:b.cents,currency:'usd',direction:'out',
+      money:async(_a,_c,b)=>({amountCents:b.cents,currency:'usd',targetId:'ch_FAKE1234',direction:'out',
         description:'Verified fake refundable amount'}),
       apply:async()=>{attempts++;throw rejected;},
       readAfter:async()=>{throw new Error('Read after rejection should not happen');},
@@ -73,7 +73,7 @@ describe('owner gate and currency hardening', () => {
     const db=createFakeDb({accounts:[{id:'acct_fixture',label:'Fixture',money_limit_cents:10000}]});
     const op=defineWrite({name:'stripe_test_payout',read:async()=>({cents:8500}),
       summarize:async()=> 'Payout fake balance. TEST MODE.',
-      money:async(_a,_c,b)=>({amountCents:b.cents,currency:'usd',direction:'out',description:'Payout'}),
+      money:async(_a,_c,b)=>({amountCents:b.cents,currency:'usd',targetId:'ch_FAKE1234',direction:'out',description:'Payout'}),
       apply:async()=>{throw new Error('ECONNRESET');},readAfter:async()=>({}),verify:async()=>false});
     const ctx={db,connectionId:'owner',
       connection:{stripeAccount:'acct_fixture',mode:'test',profile:'full'}};
@@ -96,7 +96,7 @@ describe('owner gate and currency hardening', () => {
     let called = 0;
     const op = defineWrite({ name:'stripe_test_charge', read:async()=>({cents:10}),
       summarize:async()=> 'Test update', money:async(_args,_ctx,before)=>({
-        amountCents:before.cents,currency:'usd',direction:'out',description:'Provider balance'
+        amountCents:before.cents,currency:'usd',targetId:'ch_FAKE1234',direction:'out',description:'Provider balance'
       }), apply:async()=>{called++;}, readAfter:async()=>({updated:true}),verify:async()=>true });
     const res = await op.handler({confirm:true},{db,connectionId:'conn1',
       connection:{stripeAccount:'acct_fixture',mode:'test',profile:'full'}});
@@ -107,7 +107,7 @@ describe('owner gate and currency hardening', () => {
     const db = createFakeDb({ accounts:[{id:'acct_fixture',label:'Fixture'}] });
     const op = defineWrite({name:'stripe_test_eur',read:async()=>({ cents:900 }),
       summarize:async()=> 'Test update',money:async(_a,_c,b)=>({
-        amountCents:b.cents,currency:'eur',direction:'out',description:'EUR test'
+        amountCents:b.cents,currency:'eur',targetId:'ch_FAKE1234',direction:'out',description:'EUR test'
       }),apply:async()=>{throw Error('MUST NOT APPLY');},readAfter:async()=>({}),verify:async()=>false});
     await expect(op.handler({confirm:true},{db,connectionId:'conn1',moneyPolicyApproved:true,
       connection:{stripeAccount:'acct_fixture',mode:'test',profile:'full'}})).rejects.toThrow(/Verified USD/);

@@ -37,7 +37,7 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
   const reserve = async (key, amountCents = 30000, client = db,
     allowOverLimit = false, selectedConnection = connection) => {
     await client.requestMoneyApproval({account, idempotencyKey:key,
-      tool:'stripe_fake_payout',description:'Verified payout',
+      tool:'stripe_fake_payout',target:'ch_FAKE1234',description:'Verified payout',
       amountCents,currency:'usd'});
     await client.approveMoneyRequest({account,idempotencyKey:key});
     if (allowOverLimit) await client.approveMoneyOverride({account,idempotencyKey:key});
@@ -103,7 +103,7 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
       amountCents:100,currency:'usd'};
     expect((await db.reserveMoneyOut(input)).decision).toBe('owner_approval_required');
     expect(await db.requestMoneyApproval({account,idempotencyKey:input.idempotencyKey,
-      amountCents:100,currency:'usd',tool:'stripe_fake_refund',description:'Refund'})).toBe(true);
+      amountCents:100,currency:'usd',tool:'stripe_fake_refund',target:'ch_FAKE1234',description:'Refund'})).toBe(true);
     expect((await db.reserveMoneyOut(input)).decision).toBe('owner_approval_required');
     expect(await db.approveMoneyRequest({account,idempotencyKey:input.idempotencyKey,
       allowOverLimit:false})).toBe(true);
