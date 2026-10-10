@@ -47,11 +47,13 @@ export const handlers = {
   },
   async stripe_recent_changes(args,{db,connection}) {
     if (!connection.stripeAccount) return fail('Select a Stripe account first');
+    if (args?.mode && args.mode!==connection.mode && connection.profile!=='full')
+      return fail('Cross-mode audit inspection requires the full profile');
     if (!Number.isInteger(args?.limit??20) || (args?.limit??20)<1 ||
         (args?.limit??20)>100 || (args?.mode!==undefined &&
         !['test','live'].includes(args.mode))) return fail('Invalid audit filter');
     const changes=await db.listRecentChanges({account:connection.stripeAccount,
-      mode:args?.mode??null,limit:args?.limit??20});
+      mode:args?.mode??connection.mode,limit:args?.limit??20});
     return ok({account:connection.stripeAccount,changes,includesRawSnapshots:false});
   },
   async stripe_list_connections(args,{db,connection}) {
