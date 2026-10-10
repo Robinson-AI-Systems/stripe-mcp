@@ -133,7 +133,14 @@ function build(def){
   let created=null;
   const op=defineWrite({
     name:def.name,
-    read:async(a,ctx)=>{valid(def,a);return beforeFor(def,a,await getStripe(ctx));},
+    read:async(a,ctx)=>{
+      valid(def,a);
+      // Redirect configuration is a mandatory preflight, not an apply-time
+      // failure. Fail closed before recording intent or contacting Stripe.
+      if(def.name.startsWith('checkout_create_')||def.name==='portal_create_session')
+        ownerUrls(ctx);
+      return beforeFor(def,a,await getStripe(ctx));
+    },
     summarize:async(b,a)=>'TEST MODE. '+def.name+' for '+b.id+
       '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','outsideApp'].includes(k))
         .join(', ')+'. No client secrets or LIVE writes.'+
