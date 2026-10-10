@@ -56,3 +56,15 @@ B-1a adds `src/core/write.js` and `src/tools/write.js` for an internal-only TEST
 ## Stripe API version
 
 `src/stripe/client.js` pins the official Stripe Node SDK (package lock: v23.0.0) to `2026-09-30.endive`. Keys are passed only from the encrypted store (planned A-5) and never held in this repo. Non-production deployments refuse live keys; test-only transport override cannot be selected by a production request. The exact published Stripe v2556 SDK OpenAPI description is vendored in 23 byte-preserving parts under `vendor/stripe-openapi/` due the GitHub write-size limit. `scripts/stripe-openapi.mjs` checks the reconstructed Git blob SHA-1 `509de1b4510d2c03ad8755d06778c1deb5619c7f`, version and path count before using it. `scripts/openapi-find.mjs` provides capped, read-only lookups and prints the SHA-256 on `--verify`; SOURCE.md preserves provenance.
+
+
+### Money approvals and shared account budget (IN-05, 2026-10-10)
+
+`money_approvals` stores account, idempotency key, tool, safe human description,
+provider-derived USD cents, expiry, owner approval timestamp, single-use consumption,
+and a separately authorized over-limit flag. `money_reservations` is serialized
+under the Stripe-account row lock. Its daily sum covers all connections of the
+same Stripe account; the owner's approval must be valid and is consumed inside
+the reservation procedure. No public or agent-side method can approve a request.
+The owner-authenticated approval interface belongs to B-8 and remains unavailable
+until independently tested; therefore no real money movement is enabled.
