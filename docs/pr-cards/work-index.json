@@ -25,13 +25,13 @@
       "design": "docs/designs/BATCH-A.md",
       "dependencies": [],
       "card": "docs/pr-cards/A-1.md",
-      "status": "READY",
+      "status": "MERGED",
       "migration": "none",
       "budget": 450,
       "units": [
         "A-1"
       ],
-      "readiness": "READY",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {

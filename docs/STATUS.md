@@ -1,22 +1,24 @@
 # STATUS — current work, blockers and next action
 
 Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
-**No code exists yet.** No Stripe key has been added anywhere. Nothing is live.
+**A-1 foundation implemented (PR #9):** local and CI verification harness only. No Stripe account has been connected, no credentials added and nothing is live.
 
 ## Next
 
-- **Ready now:** A-1 — repository, test harness, CI and doc checks ([card](pr-cards/A-1.md)). Then A-2 … A-6 (JIT).
+- **Ready next:** A-2 — additive database schema (JIT card required); A-1 verification harness merged in PR #9.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
 
 ## Environment
 
-- Repo: `Robinson-AI-Systems/stripe-mcp`, default branch `main`. The first commit (this plan) went straight to `main`
+- Repo: `Robinson-AI-Systems/stripe-mcp`, default branch `main`. CI validates docs, secrets, tests with throwaway PostgreSQL and stripe-mock (PR #9). The first commit (this plan) went straight to `main`
   because the repository was empty; every later change goes through an `ai/*` branch and a PR.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — A-1 foundation (PR #9):** Node ESM registry, test-only Stripe fake, disposable Postgres adapter, secret scan, docs and budget checks, four CI gates and single `ci` merger. No Stripe requests against real accounts.
 
 **2026-10-10 — Review fixes (docs PR #8):** two gaps found by an automated review of the Workspace server's plan,
 applied here: a login refresh keeps account, mode, profile and listing (A-3); the per-pass rate limit is stored per pass
