@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Next:** B-1 safety layer and money rules (Batch A done through A-6 #17). Owner input IN-05 sets the daily money-out default before B-1 may merge; IN-02/03/04 remain real-setup gates.
+**Next:** B-1b money-rule enforcement after B-1a internal-only write engine (#18). Owner input IN-05 sets the daily money-out default before B-1 completes. No write tools are exposed until later guards are done.
 
 ## Order and why
 

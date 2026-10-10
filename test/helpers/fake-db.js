@@ -12,6 +12,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const accountRows = new Map(accounts.map(a => [a.id, structuredClone(a)]));
   const encryptedTestKeys = new Map();
   const oneTimeSecrets = new Map();
+  const audit = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -117,6 +118,18 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return row && row.expires_at > clock() ? structuredClone(Object.fromEntries(
         Object.entries(row).filter(([name]) => name !== 'expires_at'))) : null;
     },
+    async recordChange({ account = null, mode = 'test', connection = null,
+      tool, summary, dryRun = false, idempotencyKey = null, inverse = null,
+      amountCents = null, currency = null, direction = null }) {
+      if (!tool || !summary) throw new TypeError('Tool and summary required for audit');
+      const row = { id: audit.length + 1, stripe_account: account, mode, connection,
+        tool, summary, dry_run: dryRun, idempotency_key: idempotencyKey,
+        inverse: structuredClone(inverse), amount_cents: amountCents, currency, direction,
+        at: new Date(clock()) };
+      audit.push(row);
+      return row.id;
+    },
+    async listAuditForTest() { return structuredClone(audit); },
     async tokenRowsForTest() { return structuredClone([...tokens.values()]); }
   };
 }

@@ -133,13 +133,13 @@
         "A-6"
       ],
       "card": "docs/pr-cards/B-1.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 450,
       "units": [
         "B-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "IN_PROGRESS",
       "ownerInputs": []
     },
     {

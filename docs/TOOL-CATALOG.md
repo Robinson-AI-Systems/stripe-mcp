@@ -1,6 +1,6 @@
 # Tool catalog
 
-**Implementation status (A-1, PR #9):** The registry and checks are installed but intentionally register zero Stripe tools. Every listed operation remains planned; A-5 introduces the first real handlers.
+**Implementation status (B-1a, PR #18):** Two real read-only account tools (`stripe_whoami`, `stripe_list_accounts`) shipped in A-5b (#16). B-1a adds an internal guarded-write engine with audit and read-back, **but registers no write tools**; all money, live and app-ownership gates remain unfinished. Other catalog entries are planned, not usable.
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
