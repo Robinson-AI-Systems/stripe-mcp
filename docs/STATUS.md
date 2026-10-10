@@ -1,11 +1,11 @@
 # STATUS — current work, blockers and next action
 
 Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
-**A-1 through A-5 implemented (#9–#16):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys and secure setup code. No Stripe account has been connected; none of this is deployed or live.
+**Batch A implemented (#9–#17):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys, secure setup code and owner's deployment guide. No Stripe account has been connected; none of this is deployed or live.
 
 ## Next
 
-- **Next A-6:** owner-friendly deployment instructions and one-time configuration checklist. A-5a encrypted storage (#15) and A-5b owner setup, permission probes and two read-only account tools (#16) merged. Real hosting and keys still gated by IN-02/03/04.
+- **Next B-1:** trust/safety layer and money rules from approved Batch B. Money-out limit default is **owner input IN-05 ($500/day recommended)** and must be answered before B-1 merges. A-6 deployment guide (#17) merged; actual hosting/keys still gated by IN-02/03/04.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
@@ -17,6 +17,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — A-6 deployment guide (PR #17):** docs/DEPLOY.md explains private Vercel/Neon setup, personal credential handling, restricted key templates, test-only setup page, OAuth connection and verification. No environment or Stripe account modified.
 
 **2026-10-10 — A-5b owner setup (PR #16):** protected key-entry page, 15-minute login lockout, CSRF and origin checks, Stripe permission probes, single-view secret page and first two guarded read-only MCP account tools. No real key has been entered or live mode enabled.
 
