@@ -112,7 +112,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '</strong> (' + escapeHtml(moneyLimitIntent.stripe_account) +
       '). Current limit: <strong>' + escapeHtml(usd(moneyLimitIntent.expected_limit_cents)) +
       '</strong>. New limit: <strong>' + escapeHtml(usd(moneyLimitIntent.new_limit_cents)) +
-      '</strong>. Any previous daily usage still counts. Each AI money-out still needs your independent authenticated approval, and requests above this limit need a second explicit override.</p>' +
+      '</strong>. Already used today: <strong>' + escapeHtml(usd(moneyLimitIntent.usedTodayCents)) +
+      '</strong>. All spending already reserved today still counts. Each AI money-out still needs your independent authenticated approval, and requests above this limit need a second explicit override.</p>' +
       '<form method="post" autocomplete="off">' + formHidden +
       '<input type="hidden" name="action" value="confirm-money-limit">' +
       '<input type="hidden" name="id" value="' + escapeHtml(moneyLimitIntent.id) + '">' +
@@ -234,6 +235,17 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
         'No eligible TEST-connected account exists or the limit is unchanged.'}),
         'text/html; charset=utf-8');
       const moneyLimitIntent=await db.getMoneyLimitIntent(id);
+      let usedTodayCents;
+      try {
+        const usage=await db.getMoneyUsage({account:p.account,connection:'owner-settings'});
+        usedTodayCents=Number(usage?.used_cents);
+      } catch { usedTodayCents=NaN; }
+      if(!Number.isSafeInteger(usedTodayCents)||usedTodayCents<0) {
+        return send(res,503,htmlPage({csrf:cookie,result:
+          'Daily money-out usage cannot be verified. No limit change has been made.'}),
+          'text/html; charset=utf-8');
+      }
+      moneyLimitIntent.usedTodayCents=usedTodayCents;
       return send(res,200,htmlPage({csrf:cookie,moneyLimitIntent,result:
         'Preview only. No limit has changed yet. Review both amounts carefully.'}),
         'text/html; charset=utf-8');
