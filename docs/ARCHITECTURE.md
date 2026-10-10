@@ -3,7 +3,7 @@
 This file describes what **exists**, and is updated in the same PR that ships it (DRIFT-PROTOCOL checklist B). What the
 system is designed to become is in `docs/designs/`; do not copy design text here before it is built.
 
-As of 2026-10-10: Batch A and B-1–B-7 are merged, B-8a read tools merged (#28), and B-8b1 TEST permission re-probe is in PR #29. No server, Neon database, live key or Stripe account has been provisioned for production. No public write tool is enabled; account administration and independent owner money approvals remain unbuilt.
+As of 2026-10-10: Batch A and the TEST-side trust layer B-1–B-8c2 (#35) are merged. No server, Neon database, live key or real Stripe account is provisioned. Private per-transaction owner TEST approval is implemented; public Stripe write tools and LIVE activation remain disabled (IN-06).
 
 ## Infrastructure
 
@@ -73,8 +73,7 @@ and a separately authorized over-limit flag plus independent `override_approved_
 under the Stripe-account row lock. Its daily sum covers all connections of the
 same Stripe account; the owner's approval must be valid and is consumed inside
 the reservation procedure. No public or agent-side method can approve a request.
-The owner-authenticated approval interface belongs to B-8 and remains unavailable
-until independently tested; therefore no real money movement is enabled.
+Private TEST-only owner approvals are available in code via the protected setup page after #35, with one-use, transaction-identity-bound decisions and separate above-cap consent. No public money-writing tool or live provider operation is enabled.
 
 ### B-2b owner LIVE confirmation intent (IN-06 OFF)
 
