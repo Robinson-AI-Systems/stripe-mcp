@@ -10,7 +10,7 @@ export function scanText(text) {
   for (const [kind, pattern] of [['Stripe key', stripePattern], ['webhook secret', webhookPattern], ['GitHub token', ghPattern]]) {
     pattern.lastIndex = 0;
     for (const match of text.matchAll(pattern)) {
-      if (kind === 'Stripe key' && match[0].includes('_FAKE')) continue;
+      if (kind === 'Stripe key' && /^(?:sk|rk)_test_FAKE/.test(match[0])) continue;
       found.push(kind);
     }
   }

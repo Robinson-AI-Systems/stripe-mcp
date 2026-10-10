@@ -16,6 +16,10 @@ describe('secrets check', () => {
   it('allows explicitly fake test credentials', () => {
     expect(scanText('sk_test_FAKEfixture rk_test_FAKEfixture')).toEqual([]);
   });
+  it('never exempts live-mode strings merely because they contain FAKE', () => {
+    expect(scanText('sk_' + 'live_' + 'FAKE' + 'A'.repeat(24))).toEqual(['Stripe key']);
+    expect(scanText('rk_' + 'live_' + 'FAKE' + 'A'.repeat(24))).toEqual(['Stripe key']);
+  });
   it('flags non-local database credential URLs and webhook secrets', () => {
     const secret = 'whsec_' + 'A'.repeat(24);
     expect(scanText(secret + ' postgre' + 'sql://u:password@db.example.org/database')).toEqual(['webhook secret', 'database URL']);
