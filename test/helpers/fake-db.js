@@ -16,6 +16,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const reservations = [];
   const approvals = [];
   const liveIntents = [];
+  const revokeIntents = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -156,6 +157,35 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       account.live_enabled=true;
       audit.push({stripe_account:row.account,mode:'live',tool:'stripe_enable_live',
         summary:'Owner independently approved LIVE mode for this account',dry_run:false});
+      return true;
+    },
+    async requestConnectionRevokeIntent({id,account,clientId,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId) ||
+          !(expiresAt instanceof Date)) throw new TypeError('Invalid owner intent');
+      if (![...tokens.values()].some(t=>t.stripe_account===account&&t.client_id===clientId&&
+          t.kind==='connector'&&!t.revoked_at)) return false;
+      revokeIntents.push({id,account,clientId,expiresAt:expiresAt.getTime(),consumedAt:null});
+      return true;
+    },
+    async getConnectionRevokeIntent(id) {
+      const r=revokeIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      return r ? {id:r.id,stripe_account:r.account,client_id:r.clientId,
+        label:accountRows.get(r.account)?.label??r.account,expires_at:new Date(r.expiresAt)} : null;
+    },
+    async consumeConnectionRevokeIntent(id) {
+      const r=revokeIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      if (!r) return false;
+      const eligible=[...tokens.values()].filter(t=>t.stripe_account===r.account&&
+        t.client_id===r.clientId&&t.kind==='connector'&&!t.revoked_at);
+      if(!eligible.length)return false;
+      r.consumedAt=clock();
+      for(const t of eligible)t.revoked_at=clock();
+      audit.push({id:audit.length+1,stripe_account:r.account,mode:'test',
+        tool:'stripe_revoke_connection',target:r.clientId,
+        summary:'Owner revoked this account connection from the private setup page',
+        dry_run:false,at:new Date(clock())});
       return true;
     },
     async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {

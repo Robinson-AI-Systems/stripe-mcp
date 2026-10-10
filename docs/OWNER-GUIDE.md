@@ -14,6 +14,7 @@ it does not work yet. This file is updated as features ship.
 | "Who am I connected to in Stripe?" | After test setup, reports selected account, mode, profile, masked key and actual shared daily money-out budget/usage | A/B-8a |
 | "Which Stripe test accounts have I connected?" | Lists account labels and connection status without revealing keys | A-5 |
 | "Which AI connections exist for this Stripe account?" | Lists account-scoped connection metadata, not credentials | B-8a |
+| "Disconnect this specific AI connection." | After the owner-only server is deployed, use its private setup page to preview and explicitly confirm revocation of that account/client ID; not an AI-action tool yet | B-8b2a |
 | "Where do I set up Stripe receipt emails?" | Gives guided Dashboard steps, never pretends to change a setting | B-8a |
 | "Check my TEST Stripe key permissions again." | Safely re-probes restricted TEST-key read permissions only after a key is configured; credentials are never shown | B-8b1 / #29 |
 | "How's the money looking this month?" | Balance, payouts coming, money in and out, monthly recurring revenue, failed payments, disputes | W |

@@ -12,7 +12,7 @@ Follow the owner-friendly [DEPLOY.md](DEPLOY.md) for each setup step. The checkl
 
 | Done | Item | Where / how | Today | How you know it worked |
 |---|---|---|---|---|
-| [ ] | `DATABASE_URL` configured for this server's own Neon database (IN-02) | Vercel → Environment Variables (Agent after approval) | Not set | Server initializes its ten additive tables without touching any other project |
+| [ ] | `DATABASE_URL` configured for this server's own Neon database (IN-02) | Vercel → Environment Variables (Agent after approval) | Not set | Server initializes its eleven additive tables without touching any other project |
 | [ ] | Vercel project and Neon database created (IN-02) | Vercel and Neon connectors (Agent, after you say go) | Not created | The server's home page shows its tool counts |
 | [ ] | `ADMIN_PASSPHRASE` and `TOKEN_ENCRYPTION_KEY` set (IN-03) | Vercel → Environment Variables (Owner) | Not set | The setup page asks for the passphrase and accepts a key |
 | [ ] | Test-mode restricted keys added (IN-04) | Stripe dashboard → Developers → API keys, then the server's setup page (Owner) | None | `stripe_whoami` shows the account, TEST, key type and last 4 |
@@ -77,3 +77,13 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
       Stripe account, behind origin, CSRF and rate-limit protections.
 - [ ] Verify the intent was consumed once and live mode was audited; never infer
       authorization solely from a tool argument or a successful HTTP response.
+
+## Owner-only connection administration (B-8b2a)
+
+- [ ] When deployed, verify a private owner can preview a specific account/client
+      connection without revoking it, then confirm via passphrase, CSRF and explicit
+      acknowledgement; one-use intent expires after ten minutes.
+- [ ] Verify the revoked connection's access and refresh credentials stop working,
+      with one audit record and no effect on other accounts or clients.
+- [ ] Never treat an AI `confirm` as owner authorization. No AI-callable account
+      write is enabled by this private page, and IN-06 LIVE remains OFF.
