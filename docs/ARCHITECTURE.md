@@ -101,13 +101,6 @@ Every profile's tool discovery and direct name-call gate checks the same declare
 
 Every registered tool has an explicit writes:boolean declaration. Money-out risk requires an attached provider-derived money spec and a guarded write contract, enforced by the shared CI write checker. The checker does not infer write status from names.
 
-### B-8a account-scoped safe status and guidance (staged)
+### B-8a account-scoped read tools (in review)
 
-`stripe_recent_changes` selects only safe columns from the server change log,
-constrained by authenticated Stripe account, mode and bounded results; raw
-before/after snapshots are never returned. `stripe_list_connections` exposes
-only selected-account client/profile/mode metadata, not OAuth hashes or secrets.
-`stripe_whoami` reports the actual shared account-wide Colorado-day money
-usage instead of a placeholder. `stripe_where_is_setting` provides a guided
-owner-read checklist for dashboard-only settings, and never changes Stripe.
-These are read-only server tools for every profile; no money or LIVE privileges.
+Change summaries and AI connection metadata are scoped to the authenticated Stripe account, without token hashes or raw snapshots; reads are bounded. Account status reports actual shared daily budget usage. Dashboard guidance is informational and does not change settings. No new money or LIVE permission is exposed.
