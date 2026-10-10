@@ -17,6 +17,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const approvals = [];
   const liveIntents = [];
   const revokeIntents = [];
+  const disableIntents = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -157,6 +158,34 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       account.live_enabled=true;
       audit.push({stripe_account:row.account,mode:'live',tool:'stripe_enable_live',
         summary:'Owner independently approved LIVE mode for this account',dry_run:false});
+      return true;
+    },
+    async requestDisableLiveIntent({id,account,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime()))
+        throw new TypeError('Invalid LIVE-disable intent');
+      if (accountRows.get(account)?.live_enabled!==true) return false;
+      disableIntents.push({id,account,expiresAt:expiresAt.getTime(),consumedAt:null});
+      return true;
+    },
+    async getDisableLiveIntent(id) {
+      const r=disableIntents.find(x=>x.id===id&&x.consumedAt===null&&
+        x.expiresAt>clock()&&accountRows.get(x.account)?.live_enabled===true);
+      return r ? {id:r.id,stripe_account:r.account,
+        label:accountRows.get(r.account)?.label??r.account,
+        expires_at:new Date(r.expiresAt)} : null;
+    },
+    async consumeDisableLiveIntent(id) {
+      const r=disableIntents.find(x=>x.id===id&&x.consumedAt===null&&
+        x.expiresAt>clock()&&accountRows.get(x.account)?.live_enabled===true);
+      if(!r) return false;
+      r.consumedAt=clock();
+      accountRows.get(r.account).live_enabled=false;
+      audit.push({id:audit.length+1,stripe_account:r.account,mode:'live',
+        tool:'stripe_disable_live',target:r.account,
+        summary:'Owner disabled LIVE connection access using the private setup page',
+        dry_run:false,at:new Date(clock())});
       return true;
     },
     async requestConnectionRevokeIntent({id,account,clientId,expiresAt}) {

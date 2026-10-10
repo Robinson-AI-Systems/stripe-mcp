@@ -35,3 +35,11 @@ local isolated PostgreSQL atomicity and audit; tool write contract where
 applicable; `npm run check`, full exact-head `ci`, documented self-review.
 No live keys, production money, paid provisioning or changes to other repos.
 B-8c owner transaction approval remains an independent later card.
+
+## B-8b2b1 safe split
+
+The first independently testable slice (#31) is an owner-only **OFF** control:
+`docs/pr-cards/B-8b2b1.md`. It does not implement a general AI-callable
+`stripe_disable_live` tool or change any money limits. B-8b2b2 keeps default
+account and owner-approved money-limit settings; B-8c keeps independent
+money approval UI. No batch completion is implied.

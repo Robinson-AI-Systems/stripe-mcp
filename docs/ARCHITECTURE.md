@@ -22,7 +22,7 @@ here with its environments when A-5 ships. Never record values.
 
 ## Database tables
 
-A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **eleven tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
+A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **twelve tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
 
 | Table | Purpose |
 |---|---|
@@ -37,6 +37,7 @@ A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, 
 | `money_approvals` | Single-use authenticated owner grant per money-out request, with separate above-limit owner override (B-1) |
 | `live_enable_intents` | Expiring, atomic owner live-enable intent, not usable while IN-06 is OFF (B-2) |
 | `owner_revoke_intents` | One-time private owner intent bound to a specific Stripe account and AI connection, expiring after ten minutes; consumed with atomic token revocation and audit (B-8b2a) |
+| `owner_disable_live_intents` | Ten-minute owner-only emergency LIVE-disable intent, consumed atomically with a one-way account disable and audit; cannot enable LIVE (B-8b2b1) |
 
 Additive indexes support token expiry, lockout, audits, reservations, approvals and live intents. A-5a adds `src/core/crypto.js` AES-256-GCM authenticated encryption (random nonce, additional authenticated context and no plaintext fallback); `src/keys.js` stores and retrieves test-only Stripe keys server-side in encrypted form, and `src/core/one-time-secrets.js` uses atomic database deletion on reveal. A-5b adds the private owner-only `/api/stripe/setup` endpoint with strict origin/CSRF checks, passphrase lockout, account-verification and permission probes; no real owner key has been entered. Read-only `stripe_whoami` and `stripe_list_accounts` are dispatched through the MCP bearer guard. Writes remain denied until Batch B. `TOKEN_ENCRYPTION_KEY` is required only when these functions execute; it is not configured in any deployment. A-3a added hashed client registration, authorization code consumption, access/refresh rotation, revocation, login lockout and account selection methods. A-3b adds HTTP OAuth endpoints and the connector door; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
 
@@ -132,3 +133,12 @@ all matching active access/refresh tokens on that account and writes one audit
 entry; other accounts and clients are unaffected. This flow does not register
 `stripe_revoke_connection` as an AI-callable write tool. Additional owner account
 administration and B-8c money approval remain not built.
+
+### B-8b2b1 emergency LIVE access disable (pending #31)
+
+The private owner setup page creates an expiring ten-minute intent only when
+the selected account has `live_enabled=true`. A second, independent owner
+passphrase + same-origin + CSRF + checkbox confirmation consumes the intent
+and atomically flips only that account to `live_enabled=false`, writing one
+audit entry. This never accesses a LIVE key, creates an enable intent or
+authorizes any money movement. It is a private owner action, not an MCP tool.

@@ -87,3 +87,13 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
       with one audit record and no effect on other accounts or clients.
 - [ ] Never treat an AI `confirm` as owner authorization. No AI-callable account
       write is enabled by this private page, and IN-06 LIVE remains OFF.
+
+## Emergency LIVE access disable (B-8b2b1)
+
+- [ ] After a separately approved server deployment, verify the protected
+      setup page's OFF-only intent shows the exact account before confirmation.
+- [ ] Confirm separately with owner passphrase, same-origin CSRF and explicit
+      checkbox. Verify the account's `live_enabled` flag becomes FALSE and
+      one security audit record appears; unrelated accounts remain unchanged.
+- [ ] IN-06 still controls **enabling** LIVE mode and remains unapproved.
+      Emergency disable cannot authorize any LIVE payment or money movement.
