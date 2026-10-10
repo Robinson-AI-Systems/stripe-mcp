@@ -4,4 +4,5 @@ import * as meta from './meta.js';
 import * as customers from './customers.js';
 import * as customerWrites from './customer-writes.js';
 import * as paymentReads from './payments.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads]);
+import * as paymentWrites from './payment-writes.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites]);
