@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents'
 ]);
 
 let productionSql;
@@ -201,6 +201,36 @@ export function createDb(sql = getProductionSql()) {
             'Owner independently approved LIVE mode for this account', FALSE
           FROM activated RETURNING id`;
       return rows.length === 1;
+    },
+    async requestMoneyLimitIntent({id,account,newLimitCents,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !Number.isSafeInteger(newLimitCents) || newLimitCents<0 ||
+          newLimitCents>2147483647 ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime())) {
+        throw new TypeError('Safe USD money-limit and owner intent required');
+      }
+      const rows=await sql`INSERT INTO owner_money_limit_intents
+        (id,stripe_account,expected_limit_cents,new_limit_cents,expires_at)
+        SELECT ${id},a.id,a.money_limit_cents,${newLimitCents},${expiresAt}
+        FROM stripe_accounts a WHERE a.id=${account}
+          AND a.test_key_enc IS NOT NULL AND a.money_limit_cents!=${newLimitCents}
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getMoneyLimitIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
+      const rows=await sql`SELECT i.id,i.stripe_account,a.label,
+          i.expected_limit_cents,i.new_limit_cents,i.expires_at
+        FROM owner_money_limit_intents i JOIN stripe_accounts a
+          ON a.id=i.stripe_account
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()`;
+      return rows[0] || null;
+    },
+    async consumeMoneyLimitIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return false;
+      const rows=await sql`SELECT apply_owner_money_limit_intent(${id}) AS applied`;
+      return rows[0]?.applied===true;
     },
     async requestDefaultAccountIntent({id,account,expiresAt}) {
       if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
@@ -557,6 +587,49 @@ export function createDb(sql = getProductionSql()) {
         ON money_reservations (stripe_account, request_key)`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
         ON money_reservations (stripe_account, local_day)`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_money_limit_intents (
+        id TEXT PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        expected_limit_cents INTEGER NOT NULL,
+        new_limit_cents INTEGER NOT NULL
+          CHECK (new_limit_cents >= 0),
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_money_limit_intents_expiry_idx
+        ON owner_money_limit_intents (expires_at)`;
+      await sql`CREATE OR REPLACE FUNCTION apply_owner_money_limit_intent(p_id TEXT)
+      RETURNS BOOLEAN LANGUAGE plpgsql AS $fn$
+      DECLARE
+        v_intent RECORD;
+        v_current INTEGER;
+      BEGIN
+        SELECT i.id,i.stripe_account,i.expected_limit_cents,i.new_limit_cents
+          INTO v_intent FROM owner_money_limit_intents i
+          WHERE i.id=p_id AND i.consumed_at IS NULL AND i.expires_at>now()
+          FOR UPDATE;
+        IF NOT FOUND THEN RETURN FALSE; END IF;
+        -- Same account-row lock B-1 reservations use: new cap cannot race spend.
+        SELECT money_limit_cents INTO v_current FROM stripe_accounts
+          WHERE id=v_intent.stripe_account AND test_key_enc IS NOT NULL
+          FOR UPDATE;
+        IF NOT FOUND OR v_current IS DISTINCT FROM v_intent.expected_limit_cents
+          OR v_intent.new_limit_cents < 0 THEN RETURN FALSE; END IF;
+        UPDATE stripe_accounts SET money_limit_cents=v_intent.new_limit_cents
+          WHERE id=v_intent.stripe_account;
+        UPDATE owner_money_limit_intents SET consumed_at=now()
+          WHERE id=v_intent.id;
+        INSERT INTO change_log
+          (stripe_account,mode,tool,target,summary,dry_run,before,after)
+          VALUES (v_intent.stripe_account,'test','stripe_set_money_limit',
+            v_intent.stripe_account,
+            'Owner changed the daily USD money-out account limit from the private setup page',
+            FALSE,jsonb_build_object('limit_cents',v_current),
+            jsonb_build_object('limit_cents',v_intent.new_limit_cents));
+        RETURN TRUE;
+      END;
+      $fn$`;
       await sql`CREATE TABLE IF NOT EXISTS owner_default_account_intents (
         id TEXT PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
