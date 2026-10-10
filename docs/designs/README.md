@@ -11,6 +11,7 @@ go in `CHANGES-SINCE-DESIGN.md`. New designs start from `TEMPLATE.md`.
 | B Trust layer | [BATCH-B](BATCH-B.md) | Approved 2026-10-10 (IN-00) |
 | C Cheap on context | [BATCH-C](BATCH-C.md) | Approved 2026-10-10 (IN-00) |
 | D Everyday money | [BATCH-D](BATCH-D.md) | Approved 2026-10-10 (IN-00) |
+| V Developer tools (test mode) | [BATCH-V](BATCH-V.md) | Approved 2026-10-10 (Chris: "a powerful development tool") |
 | G Money out, disputes, risk, events, account | [BATCH-G](BATCH-G.md) | Approved 2026-10-10 (IN-00) |
 | H Branding and setup | [BATCH-H](BATCH-H.md) | Approved 2026-10-10 (IN-00) |
 | P Project profiles | [BATCH-P](BATCH-P.md) | Approved 2026-10-10 (IN-00) |

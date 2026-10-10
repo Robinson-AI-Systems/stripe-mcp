@@ -54,3 +54,10 @@ leaves the CLI, code SDK, local MCP, GitHub relay and agent recipes to the hub. 
 **2026-10-10 — Standalone first (Chris).** "I still need to be able to use the individual tool sets before the hub is
 built." This server never depends on the hub: conformance joins CI only when available, and agents reach it through its
 own connector and HTTPS API, or through `rtool`/the relay talking to it directly.
+
+**2026-10-10 — A general development tool, not a business tool (Chris).** "This should be general, able to work freely
+on any project … It is supposed to be a powerful development tool." Real projects (Appliance Desk) are completeness
+checks only. Added Batch V (developer tools: seed scenarios, precise cleanup, real test events, signed event forwarding
+into apps under development, test clocks and simulation, test cards) after Batch D; moved test clocks there from Batch E;
+made project profiles explicitly optional and general (inline specs for readiness; `project_draft_profile` from codebase
+findings).

@@ -1,12 +1,11 @@
-# Design — Batch E: Catalog, Stripe Tax, usage billing, quotes, test clocks
+# Design — Batch E: Catalog, Stripe Tax, usage billing, quotes
 
 Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch E.
-Cards E-1 … E-5. Depends on Batches B, C, P.
+Cards E-1 … E-4. Depends on Batches B, C, P. (Test clocks moved to Batch V, developer tools, 2026-10-10.)
 
 Why this comes late: Appliance Desk creates its own products, prices and tax rates in code, so it needs none of these
 tools; Batch U already reaches them. They matter for future projects (YardSync, Cortiware) that may keep a catalog in
-Stripe, and for test clocks. Tool list: TOOL-CATALOG sections Catalog; Stripe Tax; Usage billing; quotes in Invoices;
-`testclock_*` in Events.
+Stripe. Tool list: TOOL-CATALOG sections Catalog; Stripe Tax; Usage billing; quotes in Invoices.
 
 ## 0. Verify before starting
 
@@ -27,7 +26,6 @@ account's app creates its own products; this one will not be used by it").
 
 **E4. No legacy usage-record tools** (audit bug 2); meters only.
 
-**E5. Test clocks refuse live mode.**
 
 ## 4. Work units
 
@@ -35,7 +33,6 @@ account's app creates its own products; this one will not be used by it").
 ### E-2 — Coupons, promotion codes, features, entitlements, tax rates (M)
 ### E-3 — Meters, usage, billing alerts, credit grants (M) — grep test: no usage-record endpoint anywhere
 ### E-4 — Stripe Tax, quotes (M)
-### E-5 — Test clocks (S)
 
 ## 6. Acceptance mapping
 

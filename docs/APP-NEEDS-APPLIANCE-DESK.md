@@ -6,9 +6,10 @@ Audited 2026-10-10 against `christcr2012/appliance-desk` `main` (code in `src/li
 `docs/GO-LIVE-CHECKLIST.md` §1 Money, `docs/designs/BATCH-W-AMENDMENT-B.md` §6.2, §6.4, §6.7, §6.8, §6.6,
 `docs/designs/BATCH-K.md` D-K4, `docs/designs/BATCH-M.md` M-3).
 
-This is the **first project profile**. The Stripe MCP is general-purpose; each app that runs billing on Stripe gets
-one file like this and one `known_apps` row (Batch P, `docs/designs/BATCH-P.md`). Future projects (YardSync,
-Cortiware) follow the same template.
+This is an **example project profile**, and the completeness check used to prove the Stripe MCP can do everything a
+real app needs. The server itself is a general development tool; profiles are optional and any app Chris builds can
+have one (Batch P, `docs/designs/BATCH-P.md`; `project_draft_profile` drafts one from a codebase). This file is also the
+template for future profiles.
 
 **Rule for this file:** every row names the tool or workflow that covers it, or says plainly that Stripe has
 no API for it and how the server guides Chris instead. Batch P (`docs/designs/BATCH-P.md`) turns this table

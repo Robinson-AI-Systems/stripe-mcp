@@ -5,6 +5,10 @@ it does not work yet. This file is updated as features ship.
 
 | Say something like… | What happens | Batch |
 |---|---|---|
+| "Give me realistic test data for a subscription app." | Customers, products, subscriptions in every state (including past-due), recorded so they can be removed later | V |
+| "Clean up the test data from that run." | Removes exactly what was created, nothing else | V |
+| "Send my app a failed-payment webhook." | Makes Stripe produce a real test event and, if your app is under development, forwards it correctly signed | V |
+| "What happens to this subscription over 6 months?" | Runs it on a test clock and shows every invoice and event | V |
 | "Who am I connected to in Stripe?" | Account, TEST or LIVE, your money limit and how much is used today | A/B |
 | "How's the money looking this month?" | Balance, payouts coming, money in and out, monthly recurring revenue, failed payments, disputes | W |
 | "Who didn't pay this week and why?" | Each failed payment, the reason in plain words, when Stripe retries, the link to send them | W |
