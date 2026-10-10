@@ -5,7 +5,7 @@ const make = (name) => ({ tools: [{ name }], handlers: { [name]: async () => nul
 describe('tool registry', () => {
   it('registers only the intended safe metadata/audit readers', () => {
     expect(registry.tools.map(t => t.name)).toEqual([
-      'stripe_whoami', 'stripe_list_accounts', 'stripe_recent_changes',
+      'stripe_whoami', 'stripe_list_accounts', 'stripe_check_key_permissions', 'stripe_recent_changes',
       'stripe_list_connections', 'stripe_where_is_setting'
     ]);
     expect(registry.tools.every(t => t.writes === false)).toBe(true);
