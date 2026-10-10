@@ -7,38 +7,38 @@ import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 const parse=r=>JSON.parse(r.content[0].text);
 describe('B-8b1 independently verified TEST-only permission probes',()=>{
   it('lazily probes server-owned key and saves only safe permissions, not credentials',async()=>{
-    const db=createFakeDb({accounts:[{id:'acct_test_owner',label:'Fixture'}]});
-    await db.saveTestKey({account:'acct_test_owner',label:'Fixture',ciphertext:'test-fixture-cipher',
+    const db=createFakeDb({accounts:[{id:'acct_testowner',label:'Fixture'}]});
+    await db.saveTestKey({account:'acct_testowner',label:'Fixture',ciphertext:'test-fixture-cipher',
       kind:'restricted',last4:'FAKE',permissions:{customers:'denied'}});
     const secret=['rk','test','NOTAREALKEY12345'].join('_');
     let loaded=0,checked=0;
     const probe=createPermissionReprobe({
       db,
       keyStoreFactory:()=>({loadKey:async ({account,mode})=>{
-        expect(account).toBe('acct_test_owner');expect(mode).toBe('test');loaded++;return secret;
+        expect(account).toBe('acct_testowner');expect(mode).toBe('test');loaded++;return secret;
       }}),
       makeClient:({key,mode})=>{expect(key).toBe(secret);expect(mode).toBe('test');return {fake:true};},
       probe:async client=>{expect(client.fake).toBe(true);checked++;
         return {customers:'ok',refunds:'denied'};}
     });
     expect(loaded).toBe(0); // Decryption is deferred until authenticated tool call.
-    const result=await probe({account:'acct_test_owner',mode:'test'});
+    const result=await probe({account:'acct_testowner',mode:'test'});
     expect(result.permissions).toEqual({customers:'ok',refunds:'denied'});
     expect(loaded).toBe(1);expect(checked).toBe(1);
-    expect((await db.getStripeAccount('acct_test_owner')).key_permissions).toEqual(result.permissions);
+    expect((await db.getStripeAccount('acct_testowner')).key_permissions).toEqual(result.permissions);
     expect(JSON.stringify(result)).not.toContain(secret);
   });
   it('refuses LIVE, unknown accounts and malformed permission results',async()=>{
-    const db=createFakeDb({accounts:[{id:'acct_test_owner',label:'Fixture'}]});
+    const db=createFakeDb({accounts:[{id:'acct_testowner',label:'Fixture'}]});
     const probe=createPermissionReprobe({db,keyStoreFactory:()=>{
       throw Error('Must not load credentials for LIVE');
     }});
-    await expect(probe({account:'acct_test_owner',mode:'live'})).rejects.toThrow(/TEST/);
+    await expect(probe({account:'acct_testowner',mode:'live'})).rejects.toThrow(/TEST/);
     await expect(probe({account:'other',mode:'test'})).rejects.toThrow();
     const malformed=createPermissionReprobe({db,keyStoreFactory:()=>({
       loadKey:async()=>['rk','test','FAKE'].join('_')}),
       makeClient:()=>({}),probe:async()=>({customers:'unverified'})});
-    await expect(malformed({account:'acct_test_owner',mode:'test'})).rejects.toThrow();
+    await expect(malformed({account:'acct_testowner',mode:'test'})).rejects.toThrow();
   });
   it('denies the MCP permission tool unless server probe and selected TEST account exist',async()=>{
     const db=createFakeDb({accounts:[{id:'acct_A',label:'A'}]});
