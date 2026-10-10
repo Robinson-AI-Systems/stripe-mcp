@@ -3,7 +3,7 @@ const reply = (value, isError = false) => ({
   ...(isError ? { isError: true } : {}),
   content: [{ type: 'text', text: JSON.stringify(value) }]
 });
-const modes = new Set(['test']); // Live remains disallowed until Batch B-2.
+const modes = new Set(['test', 'live']); // LIVE additionally requires injected server-only guard.
 const profiles = new Set(['everyday', 'full']);
 
 /** All hooks run server-side. The MCP does not expose a write handler until
@@ -15,12 +15,12 @@ const profiles = new Set(['everyday', 'full']);
  */
 export function defineWrite({ name, read, summarize, apply, readAfter, verify, idempotency,
   inverse = () => null, needsConfirm = true, prepare = null, beforeApply = null,
-  afterApply = null, targetGuard = null, classifyError = () => 'uncertain' }) {
+  afterApply = null, targetGuard = null, modeGuard = null, classifyError = () => 'uncertain' }) {
   if (!/^[a-z][a-z0-9_]{1,48}$/.test(name)) throw new TypeError('Valid tool name required');
   for (const [label, func] of Object.entries({ read, summarize, apply, readAfter, verify, idempotency, inverse })) {
     if (typeof func !== 'function') throw new TypeError(name + ': ' + label + ' must be a function');
   }
-  for (const [label, func] of Object.entries({ prepare, beforeApply, afterApply, targetGuard, classifyError })) {
+  for (const [label, func] of Object.entries({ prepare, beforeApply, afterApply, targetGuard, modeGuard, classifyError })) {
     if (func !== null && typeof func !== 'function') throw new TypeError(name + ': ' + label + ' must be a function');
   }
   if (needsConfirm !== true) throw new Error('Confirmation is required for every write before the safety layer is finished');
@@ -33,21 +33,35 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
       additionalProperties: true } });
   async function handler(args, ctx) {
     const connection = ctx?.connection;
+    const respond = (value, isError = false) => {
+      if (connection?.mode !== 'live') return reply(value, isError);
+      const banner = { ...value };
+      delete banner.mode;
+      return reply({ mode: 'LIVE', ...banner }, isError);
+    };
     if (!connection?.stripeAccount || !modes.has(connection.mode) || !profiles.has(connection.profile)) {
-      return reply({ done: false, error: 'This connection is not allowed to change Stripe records' }, true);
+      return respond({ done: false, error: 'This connection is not allowed to change Stripe records' }, true);
     }
     if (!ctx.db || typeof ctx.db.recordChange !== 'function') {
-      return reply({ done: false, error: 'Audit database unavailable: action refused' }, true);
+      return respond({ done: false, error: 'Audit database unavailable: action refused' }, true);
     }
     if (!args || typeof args !== 'object' || Array.isArray(args) ||
       (args.dryRun !== undefined && typeof args.dryRun !== 'boolean') ||
       (args.confirm !== undefined && typeof args.confirm !== 'boolean')) {
-      return reply({ done: false, error: 'Invalid write arguments or confirmation flags' }, true);
+      return respond({ done: false, error: 'Invalid write arguments or confirmation flags' }, true);
+    }
+    if (connection.mode === 'live') {
+      let permitted = false;
+      try { permitted = typeof modeGuard === 'function' && await modeGuard(args, ctx) === true; }
+      catch { permitted = false; }
+      if (!permitted) return respond({
+        done: false, error: 'LIVE changes are not enabled: owner approval, account settings and confirmation are required'
+      }, true);
     }
     const before = await read(args, ctx);
     if (targetGuard) {
       const allowed = await targetGuard(args, ctx, before);
-      if (allowed !== true) return reply({ done: false, error: 'App-owned record or unsafe target',
+      if (allowed !== true) return respond({ done: false, error: 'App-owned record or unsafe target',
         reason: typeof allowed === 'string' ? allowed : undefined }, true);
     }
     const prepared = prepare ? await prepare(args, ctx, before) : null;
@@ -55,7 +69,7 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     if (typeof summaryText !== 'string' || !summaryText || summaryText.length > 1024 ||
       (prepared !== null && (typeof prepared?.previewLine !== 'string' || !prepared.previewLine ||
        prepared.previewLine.length > 240))) {
-      return reply({ done: false, error: 'Safe preview unavailable: action refused' }, true);
+      return respond({ done: false, error: 'Safe preview unavailable: action refused' }, true);
     }
     const summary = prepared ? prepared.previewLine + '\n' + summaryText : summaryText;
     const preview = { done: false, mode: connection.mode, preview: summary,
@@ -63,23 +77,23 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     if (args.dryRun === true) {
       await ctx.db.recordChange({ account: connection.stripeAccount, mode: connection.mode,
         connection: ctx.connectionId ?? null, tool: name, summary, dryRun: true });
-      return reply(preview);
+      return respond(preview);
     }
     if (args.confirm !== true) {
-      return reply({ ...preview, prompt: 'Review the preview and explicitly set confirm: true' });
+      return respond({ ...preview, prompt: 'Review the preview and explicitly set confirm: true' });
     }
     const key = idempotency(connection, name, args);
     if (typeof key !== 'string' || !key.startsWith('rmcp_')) {
-      return reply({ done: false, error: 'Missing stable provider retry identifier' }, true);
+      return respond({ done: false, error: 'Missing stable provider retry identifier' }, true);
     }
     // A safe preflight must complete before any provider write. If it fails
     // closed, a previous duplicate or rejected limit is never executed again.
     if (beforeApply) {
       let decision;
       try { decision = await beforeApply({ ctx, args, before, key, prepared, tool: name }); }
-      catch { return reply({ done: false, error: 'Money safety check unavailable: action refused' }, true); }
+      catch { return respond({ done: false, error: 'Money safety check unavailable: action refused' }, true); }
       if (decision?.accepted !== true) {
-        return reply({ done: false, error: decision?.reason || 'Safety check denied this action' }, true);
+        return respond({ done: false, error: decision?.reason || 'Safety check denied this action' }, true);
       }
     }
     try {
@@ -88,7 +102,7 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
         dryRun: true, idempotencyKey: key });
     } catch {
       // Capacity may remain reserved; conservative until manually reconciled.
-      return reply({ done: false, error: 'Could not record intent; action not sent to Stripe' }, true);
+      return respond({ done: false, error: 'Could not record intent; action not sent to Stripe' }, true);
     }
     let observed, completed = false, status = 'uncertain', applied = false;
     try {
@@ -109,7 +123,7 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     try {
       if (afterApply) await afterApply({ ctx, args, before, key, prepared, status });
     } catch {
-      return reply({ done: false, confirmed: false, idempotencyKey: key,
+      return respond({ done: false, confirmed: false, idempotencyKey: key,
         warning: 'Provider outcome may have changed; could not finalize money reservation' }, true);
     }
     let inverseOperation;
@@ -121,10 +135,10 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
         inverse: inverseOperation, amountCents: status === 'rejected' ? null : (prepared?.amountCents ?? null),
         currency: prepared?.currency ?? null, direction: prepared?.direction ?? null });
     } catch {
-      return reply({ done: false, confirmed: false, idempotencyKey: key,
+      return respond({ done: false, confirmed: false, idempotencyKey: key,
         warning: 'Provider action may have succeeded, but its audit could not be finalized' }, true);
     }
-    return reply({ done: completed, confirmed: completed, mode: connection.mode,
+    return respond({ done: completed, confirmed: completed, mode: connection.mode,
       idempotencyKey: key, summary,
       ...(!completed ? { warning: status === 'rejected'
         ? 'Stripe definitively rejected the request; no money moved and the reservation was released'

@@ -2,12 +2,14 @@
 import { defineWrite as defineCoreWrite } from '../core/write.js';
 import { idempotencyKey, classifyStripeWriteError } from '../stripe/client.js';
 import { prepareMoney, reserveMoneyBeforeWrite, settleMoneyAfterWrite } from '../money.js';
+import { authorizeLiveWrite } from './live-guard.js';
 export function defineWrite(spec) {
   if (spec?.money && typeof spec.money !== 'function') throw new TypeError('Money spec must be a function');
   return defineCoreWrite({ ...spec, idempotency: idempotencyKey,
     classifyError: classifyStripeWriteError,
+    modeGuard: (args, ctx) => authorizeLiveWrite({ args, ctx }),
     prepare: spec?.money ? async (args, ctx, before) =>
-      prepareMoney(await spec.money(args, ctx, before)) : null,
+      prepareMoney(await spec.money(args, ctx, before), ctx?.connection?.mode) : null,
     beforeApply: spec?.money ? reserveMoneyBeforeWrite : null,
     afterApply: spec?.money ? settleMoneyAfterWrite : null });
 }

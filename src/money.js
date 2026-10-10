@@ -7,7 +7,7 @@ export function formatUsd(amountCents) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
     .format(amountCents / 100);
 }
-export function prepareMoney(value) {
+export function prepareMoney(value, mode = 'test') {
   if (!value || !Number.isSafeInteger(value.amountCents) || value.amountCents <= 0 ||
     value.currency !== 'usd' || !['in', 'out', 'change'].includes(value.direction) ||
     typeof value.description !== 'string' || value.description.length < 1 ||
@@ -16,7 +16,7 @@ export function prepareMoney(value) {
   }
   const verb = value.direction === 'out' ? 'Money out' : value.direction === 'in' ? 'Money in' : 'Money change';
   return { ...value, previewLine: verb + ': ' + formatUsd(value.amountCents) +
-    ' USD — ' + value.description + '. TEST MODE.' };
+    ' USD — ' + value.description + (mode === 'live' ? '. LIVE MODE.' : '. TEST MODE.') };
 }
 
 export async function reserveMoneyBeforeWrite({ ctx, key, prepared, tool }) {

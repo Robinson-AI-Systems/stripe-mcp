@@ -153,13 +153,13 @@
         "B-1"
       ],
       "card": "docs/pr-cards/B-2.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 150,
       "units": [
         "B-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "IN_PROGRESS_B1_MERGED_IN06_OFF",
       "ownerInputs": []
     },
     {

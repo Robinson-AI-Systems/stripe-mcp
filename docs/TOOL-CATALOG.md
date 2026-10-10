@@ -454,3 +454,7 @@ every dashboard-only owner setting. The universal tools reach every other Stripe
 has about 125; `read_only` about 115 (B-6 prints the exact numbers). In compact mode (`docs/designs/BATCH-C.md`)
 an agent loads only about 20 of them up front and reaches the rest through
 `stripe_search_tools` / `stripe_call`.
+
+## Implementation notes — B-2 (draft #21)
+
+The LIVE authorization helper is internal only. It does **not** register or expose a tool, enable a live connection, accept a live key, or change the planned 302-tool catalog. Until the owner-controlled activation flow exists, all external write doors remain disabled.
