@@ -52,6 +52,8 @@ describe('B-8c2 owner-only exact money authorization (TEST)',()=>{
     expect(preview.headers['Cache-Control']).toBe('no-store');
     expect(preview.body).toContain('ch_FAKE123');
     expect(preview.body).toContain('$0.01');
+    expect(preview.body).toContain('preview must be confirmed before');
+    expect(preview.body).toContain('at most 10 minutes after confirmation');
     expect(preview.body).toContain('TEST');
     const id=intentFrom(preview.body);
     expect(id).toBeTruthy();
