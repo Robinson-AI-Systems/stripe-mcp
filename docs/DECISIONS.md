@@ -42,3 +42,11 @@ designs, JIT cards, work index, owner inputs) so Sol 5.6 can implement it effici
 **2026-10-10 — Plan approved; public repository; no automated review (IN-00, IN-01).** Chris approved the plan, chose to
 keep the repository public (free CI, secret scanning on), and declined Codex reviews for this repo. Every PR carries a
 written self-review of the full diff against AI-PR-READ-FIRST instead.
+
+**2026-10-10 — One server per service, combined by Robinson's Toolkit (the hub).** Chris: build each toolset as its own
+solid server (Workspace, Stripe, and later his own Vercel, Neon and others — official connectors give less functionality
+and agents get different permissions with them), then make Robinson's Toolkit the single MCP/CLI/HTTPS front door. This
+server therefore follows the Robinson Tool Contract (RTC 1, in the hub repo), keeps passes and HTTPS doors (Batch R), and
+leaves the CLI, code SDK, local MCP, GitHub relay and agent recipes to the hub. Contract-generic code lives in
+`src/core/` so the hub can extract it into `robinson-mcp-core` (Batch A amendment). First Batch R archived in
+`docs/archive/batch-r-v1/`.

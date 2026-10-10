@@ -22,5 +22,5 @@ Validate coverage with `python3 docs/pr-cards/validate-index.py`.
 ## Effort guide for Sol 5.6
 
 Light: read tools in an area whose pattern already exists; docs cards. Medium: safety layer, guards, money tools, keys,
-login, relay, passes, universal tools, anything touching SQL. A Sonnet/Opus second opinion is optional and limited to one
+login, passes, universal tools, anything touching SQL. A Sonnet/Opus second opinion is optional and limited to one
 concrete question; no mandatory model switch.

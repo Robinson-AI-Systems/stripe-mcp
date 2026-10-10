@@ -69,7 +69,7 @@ secret, GitHub token or connection string), docs check (`scripts/check-docs-upda
 | Any tool | `npx vitest run tests/unit/<area>.test.js tests/unit/write-contract.test.js` |
 | A Stripe call | `npm run test:mock -- tests/mock/<area>.test.js` (starts `stripe-mock` via `scripts/stripe-mock.sh`, which downloads Stripe's release binary from GitHub when Docker is absent) |
 | SQL / `src/db.js` | `npm run test:db -- tests/db/<file>.test.js` (`scripts/local-postgres-test.sh`: disposable **localhost** Postgres, never Neon). If no Postgres binaries exist in your workspace, push and let CI run it; say so in the PR |
-| A door (HTTPS API, CLI, relay) | `npx vitest run tests/doors/` |
+| A door (HTTPS API, `stripe_call`) | `npx vitest run tests/doors/` |
 | Listing or descriptions | `node scripts/check-budgets.mjs --print` |
 
 ### 4c. Registries that break CI when you forget them
@@ -99,7 +99,7 @@ what is not included; CI runs used. Delete the resume note in the final commit.
 
 ## Step 7 — Review
 
-1. Money, keys, guards, auth, passes, relay, live mode: re-read `docs/AI-PR-READ-FIRST.md` and write one line per
+1. Money, keys, guards, auth, passes, live mode: re-read `docs/AI-PR-READ-FIRST.md` and write one line per
    applicable constraint in the PR.
 2. Freeze scope. There is no automated review in this repo (IN-01): inspect the whole diff yourself against
    AI-PR-READ-FIRST, write "Self-review: …" with every finding and its disposition, and fix all blocking findings in one

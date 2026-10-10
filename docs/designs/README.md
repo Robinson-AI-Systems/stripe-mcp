@@ -16,6 +16,6 @@ go in `CHANGES-SINCE-DESIGN.md`. New designs start from `TEMPLATE.md`.
 | P Project profiles | [BATCH-P](BATCH-P.md) | Approved 2026-10-10 (IN-00) |
 | W Workflows | [BATCH-W](BATCH-W.md) | Approved 2026-10-10 (IN-00) |
 | U Universal tools | [BATCH-U](BATCH-U.md) | Approved 2026-10-10 (IN-00) |
-| R Reach any agent | [BATCH-R](BATCH-R.md) | Approved 2026-10-10 (IN-00) |
+| R Hub-ready doors (RTC 1) | [BATCH-R](BATCH-R.md) | Approved 2026-10-10 (IN-00); amended 2026-10-10 (hub architecture) |
 | E Catalog, Stripe Tax, usage | [BATCH-E](BATCH-E.md) | Approved 2026-10-10 (IN-00) |
 | X Undo, smoke test, toolkit decision | [BATCH-X](BATCH-X.md) | Approved 2026-10-10 (IN-00) |
