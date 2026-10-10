@@ -6,7 +6,6 @@ const result = (value, isError = false) => ({
 });
 const allowedModes = new Set(['test']); // B-2 owns the deliberate live-mode activation.
 const allowedProfiles = new Set(['everyday', 'full']);
-const allowedReturn = new Set(['before', 'after', 'idempotencyKey']);
 
 /**
  * Define one fully guarded write procedure. A-5/B-1a do not register write
