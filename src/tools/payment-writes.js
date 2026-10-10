@@ -169,13 +169,13 @@ function build(def){
             confirm:true,off_session:true},opts);break;
         case 'payment_capture':
           await s.paymentIntents.capture(a.paymentId,{
-            ...(a.amountCents?{amount_to_capture:a.amountCents}:{})},opts);break;
+            amount_to_capture:a.amountCents??before.amount_capturable},opts);break;
         case 'payment_cancel':await s.paymentIntents.cancel(a.paymentId,{},opts);break;
         case 'payment_update':await s.paymentIntents.update(a.paymentId,payload,opts);break;
         case 'charge_update':await s.charges.update(a.chargeId,payload,opts);break;
         case 'payment_create_refund':
           created=await s.refunds.create({charge:before.id,
-            ...(a.amountCents?{amount:a.amountCents}:{}),
+            amount:a.amountCents??before._refundableCents,
             ...(a.reason?{reason:a.reason}:{})},opts);break;
         case 'payment_update_refund':await s.refunds.update(a.refundId,{metadata:a.metadata},opts);break;
         case 'payment_cancel_refund':await s.refunds.cancel(a.refundId,{},opts);break;
@@ -194,15 +194,16 @@ function build(def){
       if(!after)return false;
       switch(def.name){
         case 'payment_charge_saved_method':
-          return after.id===created?.id&&['succeeded','processing'].includes(after.status)&&
+          return after.id===created?.id&&after.status==='succeeded'&&
             after.amount===a.amountCents;
         case 'payment_capture':
-          return ['succeeded','processing'].includes(after.status);
+          return after.status==='succeeded';
         case 'payment_cancel':case 'setup_cancel':return after.status==='canceled';
         case 'payment_update':case 'charge_update':
           return same(after,a,['description','receiptEmail','metadata']);
         case 'payment_create_refund':
           return after.id===created?.id&&after.charge===_before.id&&
+            ['succeeded','pending','requires_action'].includes(after.status)&&
             after.amount===(a.amountCents??_before._refundableCents);
         case 'payment_update_refund':return same(after,a,['metadata']);
         case 'payment_cancel_refund':return after.status==='canceled';
