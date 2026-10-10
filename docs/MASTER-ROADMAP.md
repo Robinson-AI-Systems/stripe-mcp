@@ -14,7 +14,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 | 2 Safety | B → C | Every later tool is built on the safety layer and the context rules | IN-05 (daily limit default) |
 | 3 Everyday money | D → G → H | What Chris and his apps use most; G and H include the settings Appliance Desk needs | — |
 | 4 Projects | P → W | Appliance Desk readiness and the one-sentence jobs | IN-08, IN-09, IN-10 (Stripe dashboard decisions for the app) |
-| 5 Everything else | U → R | Universal access; other agents and workspaces | IN-07 (relay repo) |
+| 5 Everything else | U → R | Universal access; the contract doors Robinson's Toolkit (the hub) uses to reach this server | — |
 | 6 Later | E → X | Catalog/tax/usage matter for future projects; undo and smoke test close out | IN-12 (toolkit decision) |
 | Live | GO-LIVE-CHECKLIST | Only after Chris authorizes live per account | IN-06 |
 
@@ -46,6 +46,6 @@ the approved design; write the card when its predecessor is real.
 | P Project profiles | P-1 known_apps + Appliance Desk · P-2 record links · P-3 app readiness · P-4 project setup | JIT |
 | W Workflows | W-1 … W-10 (`designs/BATCH-W.md` §4 table) | JIT |
 | U Universal | U-1 | JIT |
-| R Reach | R-1 passes · R-2 HTTPS API · R-3 CLI · R-4 GitHub relay · R-5 recipes + real runs | JIT |
+| R Hub-ready doors (RTC 1) | R-1 passes · R-2 HTTPS API, manifest, OpenAPI · R-3 conformance in CI | JIT |
 | E Catalog etc. | E-1 … E-5 | JIT |
 | X Close-out | X-1 undo · X-2 smoke test · X-3 toolkit note | JIT |

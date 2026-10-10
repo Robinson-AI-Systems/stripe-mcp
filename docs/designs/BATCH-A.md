@@ -57,7 +57,7 @@ and the client refuses to construct a live client (`VERCEL_ENV !== 'production'`
 `assertPreviewStripeKey`.
 
 **A10. One-time secrets are shown on the setup page, never in chat.** A table `one_time_secrets` holds encrypted secrets
-Stripe returns once (webhook signing secrets, Batch G; sandbox passes, Batch R). A tool returns a link to
+Stripe returns once (webhook signing secrets, Batch G) and passes (Batch R). A tool returns a link to
 `/api/stripe/setup?show=<id>`; behind the passphrase, the page shows the secret once, for 10 minutes, then deletes it.
 
 ## 2. Schema (additive; A-2 creates these, later batches add their own)
@@ -175,4 +175,10 @@ Done when: a reviewer pretending to be Chris can follow it without a question.
 
 ## Amendments
 
-(Dated entries only.)
+**2026-10-10 — Contract-generic code goes in `src/core/` (Chris chose the hub architecture).** Everything that is not
+Stripe-specific — OAuth login and lockout, one-time secrets, `defineWrite`/`guard`, profiles, listing modes and
+meta-tools, result rules and handles, the error envelope, passes and the HTTPS doors — lives under `src/core/` and imports
+nothing from `src/stripe/`, `src/tools/` or the `stripe` package (a grep test in A-1's checks enforces it once `src/core/`
+exists). Stripe-specific pieces (client, keys, money table, app guard, Stripe error rules, tools) stay outside. The hub
+(Robinson's Toolkit, card K-3) extracts `src/core/` into the shared package `robinson-mcp-core` used by every Robinson
+server. No behavior changes.

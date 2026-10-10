@@ -17,10 +17,11 @@ the first being the Appliance Desk rental app (`docs/APP-NEEDS-APPLIANCE-DESK.md
 ## Code map (target; confirm the actual path before editing)
 
 `api/` Vercel functions (`mcp.js` connector, `oauth/*` login, `stripe/setup.js` key page, `tools/*` HTTPS API,
-`relay/github.js` relay webhook) · `src/stripe/` the only Stripe client, money-operation table, OpenAPI index ·
+`contract.js` RTC manifest) · `src/core/` contract-generic code (no Stripe imports; extracted later into
+`robinson-mcp-core`) · `src/stripe/` the only Stripe client, money-operation table, OpenAPI index ·
 `src/tools/` one module per area (`customers.js`, `payments.js`, …) plus `write.js` (safety layer), `guards*.js`,
 `app-guard.js`, `live-guard.js`, `summaries.js`, `errors.js`, `util.js`, `index.js` (registry layers) ·
-`src/db.js` all SQL · `packages/cli/` the `rstripe` tool · `tests/unit|db|mock|doors` · `scripts/` checks ·
+`src/db.js` all SQL · `tests/unit|db|mock|doors` · `scripts/` checks ·
 `vendor/stripe-openapi/` Stripe's published API description for the pinned version.
 
 ## One authority per fact

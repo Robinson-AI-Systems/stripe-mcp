@@ -36,7 +36,7 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 | `stripe_call` | Run any tool in the profile by name, through the same guards | as the tool | N | R |
 | `stripe_batch` | Up to 10 read calls in one round trip | — | N | R |
 | `stripe_get_result` | Page through a big result kept on the server behind a handle | — | N | R |
-| `stripe_create_sandbox_pass` | Make a short-lived pass for the HTTPS API / `rstripe` CLI (shown once on the setup page; test, read-only, 24 h, $0 by default) | C | N | F |
+| `stripe_create_pass` | Make a short-lived pass for the HTTPS API and Robinson's Toolkit (shown once on the setup page; test, read-only, 24 h, $0 by default; RTC §2) | C | N | F |
 | `stripe_where_is_setting` | Dashboard link and clicks for things Stripe has no API for (team members, two-step login, Radar rules, statement emails, resending a webhook) | — | N | R |
 
 ## Customers (`customer_*`) — 17

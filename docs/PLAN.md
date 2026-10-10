@@ -61,10 +61,10 @@ next bounded implementation.
 ## Batch U — Universal tools (`designs/BATCH-U.md`)
 - [ ] Four `api_*` tools; requests validated against Stripe's description; money detection with safe default; hand-built tools win; same guards.
 
-## Batch R — Reach any agent (`designs/BATCH-R.md`)
-- [ ] Sandbox passes; HTTPS API + OpenAPI; `rstripe` CLI, SDK, local MCP, skill; GitHub relay.
-- [ ] Same seven checks through all five doors.
-- [ ] Real runs green on a local machine, a GitHub-only cloud workspace, and a Vercel Sandbox.
+## Batch R — Hub-ready doors, RTC 1 (`designs/BATCH-R.md`)
+- [ ] Passes per RTC §2; HTTPS tool API, manifest and OpenAPI per RTC §1/§7.
+- [ ] Same seven write-contract checks through MCP, `stripe_call` and HTTPS.
+- [ ] RTC 1 conformance green in CI.
 
 ## Batch E — Catalog, Stripe Tax, usage, quotes, test clocks (`designs/BATCH-E.md`)
 - [ ] Every listed tool built; profiled apps' catalogs never touched; no legacy usage records; test clocks refuse live.

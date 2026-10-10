@@ -17,5 +17,5 @@ it does not work yet. This file is updated as features ship.
 | "Help me fight this dispute." | Gathers the evidence, drafts it, lists what you must add before the deadline | W |
 | "What changed in Stripe through Claude this week?" | The change log | B |
 | "Undo that." | Reverses the last change when it has a clean opposite; says plainly when it doesn't | X |
-| "Make a 24-hour read-only pass for Codex." | A pass shown once on your setup page, plus how the agent installs `rstripe` | R |
+| "Make a 24-hour read-only pass for Codex." | A pass shown once on your setup page; the agent uses it through Robinson's Toolkit (`rtool`) or the HTTPS API | R |
 | Anything else in Stripe | The universal tools find the right Stripe operation and run it with the same safety | U |

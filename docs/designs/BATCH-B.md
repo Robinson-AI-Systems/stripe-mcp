@@ -62,8 +62,8 @@ None (Batch A tables). `stripe_set_money_limit` updates `stripe_accounts.money_l
 ## 3. Shared primitives — the write-contract helper (`tests/helpers/write-contract.js`)
 
 `runWriteContract({ tool, args, fixtures, moneyCents?, appOwned?, inverse? })` runs the seven checks every write tool
-must pass, through every door that exists at the time (direct handler; `stripe_call` after C-2; HTTPS, CLI and relay
-after Batch R):
+must pass, through every door that exists at the time (direct handler; `stripe_call` after C-2; HTTPS after R-2; the hub's
+CLI and relay doors are tested in the hub):
 
 1. `dryRun: true` → no write call on fake Stripe; a preview change-log row.
 2. Without `confirm` (when needed) → nothing changed; plain "ask first" result.

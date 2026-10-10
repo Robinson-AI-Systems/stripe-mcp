@@ -773,7 +773,7 @@
     },
     {
       "id": "R-1",
-      "title": "Sandbox passes",
+      "title": "Passes (RTC 1)",
       "batch": "R",
       "design": "docs/designs/BATCH-R.md",
       "dependencies": [
@@ -791,7 +791,7 @@
     },
     {
       "id": "R-2",
-      "title": "HTTPS API and OpenAPI",
+      "title": "HTTPS tool API, manifest, OpenAPI",
       "batch": "R",
       "design": "docs/designs/BATCH-R.md",
       "dependencies": [
@@ -809,7 +809,7 @@
     },
     {
       "id": "R-3",
-      "title": "rstripe CLI, SDK, local MCP, skill",
+      "title": "RTC 1 conformance in CI",
       "batch": "R",
       "design": "docs/designs/BATCH-R.md",
       "dependencies": [
@@ -818,45 +818,9 @@
       "card": "docs/pr-cards/R-3.md",
       "status": "APPROVED",
       "migration": "none",
-      "budget": 700,
+      "budget": 100,
       "units": [
         "R-3"
-      ],
-      "readiness": "WRITE_CARD_AT_START",
-      "ownerInputs": []
-    },
-    {
-      "id": "R-4",
-      "title": "GitHub relay",
-      "batch": "R",
-      "design": "docs/designs/BATCH-R.md",
-      "dependencies": [
-        "R-3"
-      ],
-      "card": "docs/pr-cards/R-4.md",
-      "status": "APPROVED",
-      "migration": "relay_seen",
-      "budget": 600,
-      "units": [
-        "R-4"
-      ],
-      "readiness": "WRITE_CARD_AT_START",
-      "ownerInputs": []
-    },
-    {
-      "id": "R-5",
-      "title": "Agent setup recipes and real runs",
-      "batch": "R",
-      "design": "docs/designs/BATCH-R.md",
-      "dependencies": [
-        "R-4"
-      ],
-      "card": "docs/pr-cards/R-5.md",
-      "status": "APPROVED",
-      "migration": "none",
-      "budget": 200,
-      "units": [
-        "R-5"
       ],
       "readiness": "WRITE_CARD_AT_START",
       "ownerInputs": []
@@ -867,7 +831,7 @@
       "batch": "E",
       "design": "docs/designs/BATCH-E.md",
       "dependencies": [
-        "R-5"
+        "R-3"
       ],
       "card": "docs/pr-cards/E-1.md",
       "status": "APPROVED",

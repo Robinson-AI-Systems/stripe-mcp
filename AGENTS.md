@@ -39,7 +39,9 @@ and — through universal tools — every other Stripe API operation. It is **ge
 Chris builds (Appliance Desk today; YardSync, Cortiware and future projects later). Each app that runs its own Stripe
 billing gets a **project profile** (Batch P) so the server knows which Stripe records that app owns, which webhook events
 it needs and how to check its setup — and never fights it. Appliance Desk is the first profile. It is reached
-through a Claude connector, a plain HTTPS API, and the `rstripe` command-line tool. **Chris is not a developer:** every
+through a Claude connector and a plain HTTPS API, and it follows the **Robinson Tool Contract** (RTC 1) so that
+**Robinson's Toolkit** (`Robinson-AI-Systems/robinsons-toolkit`, the hub) can combine it with Chris's other servers into
+one MCP, CLI and HTTPS API for any agent. **Chris is not a developer:** every
 update, question or PR summary for him is plain English — what changed, how it was verified, what he must decide,
 what is next.
 
@@ -66,12 +68,12 @@ burned by overclaiming. A passing typecheck, a screenshot or a plan is not evide
 - Using a **live** Stripe key, enabling live mode, or any write in live mode — including from tests or scripts.
 - Moving real money in any mode outside a test: refunds, payouts, transfers, charges.
 - Buying anything (Stripe add-ons, domains, Vercel/Neon plans).
-- Putting any secret (Stripe key, webhook secret, passphrase, encryption key, sandbox pass, GitHub token) in code, docs,
+- Putting any secret (Stripe key, webhook secret, passphrase, encryption key, pass, GitHub token) in code, docs,
   tests, logs, PR text or a tool result. Fake keys only: `sk_test_FAKE…`, `rk_test_FAKE…`.
 - Changing anything outside this project: the Appliance Desk repo or its Vercel/Neon projects, the Google Workspace MCP,
   Robinson's Toolkit, other Vercel/Neon projects. Reading them for reference is fine.
 - Changing Stripe records a profiled app owns (Appliance Desk today), outside a test fixture.
-- Widening what a restricted key or a sandbox pass may do by default.
+- Widening what a restricted key or a pass may do by default.
 - Committing directly to `main`.
 
 ## Scope and owner decisions
@@ -96,7 +98,7 @@ page. Money is shown in dollars and cents; stored in integer cents.
 - **PR size:** about 500 production lines and 15 files, hard stop ~800 lines, at most one migration, one risk area
   (PLAYBOOK Step 3a).
 - **Model:** whichever model Chris selected does the work. Sol 5.6 is the routine implementer: light effort for an
-  already-tested pattern (a new read tool), medium for the safety layer, guards, money, keys, the relay, or anything
+  already-tested pattern (a new read tool), medium for the safety layer, guards, money, keys, passes, or anything
   unfamiliar. A missing decision is never solved by guessing.
 - **Branches:** `ai/<tool>/<topic>` from current `main`, or from the unmerged predecessor's branch when stacking.
 - **Use the web** for current Stripe API facts (reference, changelog for the pinned version) and MCP spec details;
@@ -109,7 +111,7 @@ page. Money is shown in dollars and cents; stored in integer cents.
 - **One push per CI cycle.** After a red run, read all failures, reproduce locally, fix them all, push once. "Flake" is
   not a cause; never skip, weaken or quarantine a test.
 - **The `ci` check is the single merge gate**, green at the exact head.
-- **Review:** read `docs/AI-PR-READ-FIRST.md` for anything touching money, keys, guards, auth, the relay or passes, and
+- **Review:** read `docs/AI-PR-READ-FIRST.md` for anything touching money, keys, guards, auth or passes, and
   record how each applicable constraint is honored. **This repo has no automated review** (Chris, 2026-10-10, IN-01):
   never wait for or request one. Before merging, inspect the whole diff yourself against AI-PR-READ-FIRST and write
   "Self-review: <findings and dispositions>" in the PR; fix blocking findings (security, money, data integrity,
@@ -139,13 +141,15 @@ page. Money is shown in dollars and cents; stored in integer cents.
 | Go-live switches | `docs/GO-LIVE-CHECKLIST.md` |
 | What Chris can ask for | `docs/OWNER-GUIDE.md` |
 | Money/secret constraints for PRs | `docs/AI-PR-READ-FIRST.md` |
+| The contract every Robinson server follows | `Robinson-AI-Systems/robinsons-toolkit` `docs/CONTRACT.md` (RTC 1) |
 | Audit of the older Stripe code | `docs/audits/2026-10-10-existing-stripe-code.md` |
 | Retired documents (reference only) | `docs/archive/` |
 
 ## Engineering rules for every change
 
 - **Code and tests change together.** Every write tool is built with `defineWrite` and passes the write-contract helper
-  through every door (MCP, `stripe_call`, HTTPS API, CLI, relay).
+  through every door this server has (MCP, `stripe_call`, HTTPS API). Contract-generic code lives in `src/core/` and
+  imports nothing Stripe-specific (Batch A amendment), so the hub can extract it into `robinson-mcp-core`.
 - **Stripe only through `src/stripe/client.js`** (official `stripe` library, pinned `STRIPE_API_VERSION`, idempotency key
   on every write). Never hand-build request bodies; never change the API version outside its own card.
 - **Money is integer cents**; shown with `_display` dollars. **Times stored UTC, shown America/Denver.**
