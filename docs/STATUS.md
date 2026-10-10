@@ -5,8 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-2 in progress, stacked PR #21 reconciled to merged B-1:** default-deny LIVE write guard, owner-only account state verification, ten-minute reauthentication predicate and fake-provider tests. Neither live activation nor Stripe money tools are exposed. Continue B-2 owner activation design without enabling it (IN-06 remains OFF). **B-1/#20 is MERGED**, IN-05 is approved.
-- **Next B-2:** PR #20 B-1 safety foundation has completed and is being merged. Owner IN-05 is approved: $500 USD per Stripe account per Colorado day, pooled across connections; an authenticated owner decision is mandatory for every AI money-out, plus a separate exact-transaction override above the budget. Owner approval browser UI is NOT active, so spending stays disabled. B-2 preparatory live guard is in draft PR #21, stacked on #20; sync it after #20 merges. No Stripe account/deployment/live mode configured.
+- **B-2a live guard delivered in PR #21; B-2b two-step activation next (IN-06 still off):** default-deny LIVE write guard, owner-only account state verification, ten-minute reauthentication predicate and fake-provider tests. Neither live activation nor Stripe money tools are exposed. Continue B-2 owner activation design without enabling it (IN-06 remains OFF). **B-1/#20 is MERGED**, IN-05 is approved.
+- **B-1 merged (#20):** Internal money safety foundation shipped. Owner IN-05 is approved: $500 USD per Stripe account per Colorado day, pooled across connections; an authenticated owner decision is mandatory for every AI money-out, plus a separate exact-transaction override above the budget. Owner approval browser UI is NOT active, so spending stays disabled. B-2 preparatory live guard is in draft PR #21, stacked on #20; sync it after #20 merges. No Stripe account/deployment/live mode configured.
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
 - **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
