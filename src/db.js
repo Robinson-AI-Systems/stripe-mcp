@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents'
 ]);
 
 let productionSql;
@@ -149,6 +149,46 @@ export function createDb(sql = getProductionSql()) {
         WHERE id = ${id} AND expires_at > now() AND viewed_at IS NULL
         RETURNING stripe_account, mode, kind, ciphertext`;
       return rows[0] || null;
+    },
+    async createLiveEnableIntent({ id, account, expiresAt }) {
+      if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account !== 'string' || !account || !(expiresAt instanceof Date) ||
+          !Number.isFinite(expiresAt.getTime())) {
+        throw new TypeError('Valid one-time live intent required');
+      }
+      const rows = await sql`INSERT INTO live_enable_intents
+        (id, stripe_account, expires_at) VALUES (${id}, ${account}, ${expiresAt})
+        RETURNING id`;
+      return rows.length === 1;
+    },
+    async getLiveEnableIntent(id) {
+      if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
+      const rows = await sql`SELECT i.id, i.stripe_account, a.label, i.expires_at
+        FROM live_enable_intents i JOIN stripe_accounts a ON a.id = i.stripe_account
+        WHERE i.id = ${id} AND i.consumed_at IS NULL AND i.expires_at > now()`;
+      return rows[0] || null;
+    },
+    // Only the origin/CSRF/password-protected owner setup POST may call this.
+    // The caller must also set the explicit owner-controlled IN-06 environment gate.
+    async consumeLiveEnableIntent({ id, allowActivation = false }) {
+      if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          allowActivation !== true) return false;
+      // Intention, live-key check, state flip and audit are one statement. An audit
+      // failure rolls back activation instead of creating an unaudited live mode.
+      const rows = await sql`WITH consumed AS (
+        UPDATE live_enable_intents SET consumed_at = now()
+          WHERE id = ${id} AND consumed_at IS NULL AND expires_at > now()
+          RETURNING stripe_account
+        ), activated AS (
+        UPDATE stripe_accounts SET live_enabled = TRUE
+          WHERE id = (SELECT stripe_account FROM consumed) AND live_key_enc IS NOT NULL
+          RETURNING id
+        )
+        INSERT INTO change_log (stripe_account, mode, tool, summary, dry_run)
+          SELECT id, 'live', 'stripe_enable_live',
+            'Owner independently approved LIVE mode for this account', FALSE
+          FROM activated RETURNING id`;
+      return rows.length === 1;
     },
     async requestMoneyApproval({ account, idempotencyKey, tool, description, amountCents, currency }) {
       if (![account,idempotencyKey,tool,description].every(v => typeof v === 'string' && v.length > 0) ||
@@ -359,6 +399,15 @@ export function createDb(sql = getProductionSql()) {
         ON money_reservations (stripe_account, request_key)`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
         ON money_reservations (stripe_account, local_day)`;
+      await sql`CREATE TABLE IF NOT EXISTS live_enable_intents (
+        id TEXT PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS live_enable_intents_expiry_idx
+        ON live_enable_intents (expires_at)`;
       await sql`CREATE TABLE IF NOT EXISTS money_approvals (
         id BIGSERIAL PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
