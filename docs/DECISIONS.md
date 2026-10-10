@@ -74,3 +74,16 @@ added to A-3; (2) a per-pass rate limit kept in memory does nothing on Vercel, w
 R-2 now uses a Postgres `rate_limits` table with an atomic upsert. Both are in AI-PR-READ-FIRST item 12.
 
 **2026-10-10 — Owner-only set-once authentication.** Chris instructed that this service is exclusively for his projects and should not repeatedly demand authorizations or manually generated tokens. A-3b uses one-hour access credentials with automatically rotated, hashed refresh credentials that remain valid until revoked (or the account/connector is deliberately disconnected); expiry of the access credential does not terminate refresh authorization. No persistent plaintext key; Stripe API keys remain encrypted in the separate A-5 key store. This is a personal-use security/usability tradeoff, not a blanket authorization for live or money-moving operations. The hosting MCP client controls whether it supports seamless background refresh.
+
+
+**2026-10-10 — IN-05 owner money policy approved, stronger than initial design.** Chris requires
+a standard **$500 USD per Stripe account per America/Denver calendar day**, shared by all AI
+connections (not $500 per connection). Every AI-initiated money-out transaction, regardless of
+size, needs an independently authenticated owner approval for the exact transaction. Going
+above the remaining daily allowance needs an additional explicit owner override for that
+specific request; this does not permanently raise the daily limit. No `confirm: true`, AI
+message, account selection or server-supplied boolean can substitute for the owner approval
+record. Authorization is single-use, amount-bound, idempotency-key-bound, expires and is
+consumed under the same serialized DB transaction as the money reservation. Until the
+authenticated approval UI is wired in a later card, money writes stay unavailable. IN-06
+live activation remains separately unapproved.
