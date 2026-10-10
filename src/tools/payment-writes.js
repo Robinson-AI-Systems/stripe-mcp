@@ -153,7 +153,7 @@ function build(def){
         return 'Completed setup cannot be canceled';
       return true;
     },
-    apply:async(a,ctx,{idempotencyKey})=>{
+    apply:async(a,ctx,{idempotencyKey,before})=>{
       const s=await getStripe(ctx),opts={idempotencyKey};
       const payload=Object.fromEntries(
         ['description','receiptEmail','metadata'].filter(k=>a[k]!==undefined)
@@ -161,8 +161,8 @@ function build(def){
       switch(def.name){
         case 'payment_charge_saved_method':
           created=await s.paymentIntents.create({amount:a.amountCents,currency:'usd',
-            customer:a.customerId,payment_method:(await s.customers.retrieve(a.customerId))
-              .invoice_settings.default_payment_method,description:a.description,
+            customer:a.customerId,payment_method:before._defaultMethod,
+            description:a.description,
             confirm:true,off_session:true},opts);break;
         case 'payment_capture':
           await s.paymentIntents.capture(a.paymentId,{
@@ -171,8 +171,7 @@ function build(def){
         case 'payment_update':await s.paymentIntents.update(a.paymentId,payload,opts);break;
         case 'charge_update':await s.charges.update(a.chargeId,payload,opts);break;
         case 'payment_create_refund':
-          created=await s.refunds.create({charge:a.chargeId||undefined,
-            payment_intent:a.paymentId||undefined,
+          created=await s.refunds.create({charge:before.id,
             ...(a.amountCents?{amount:a.amountCents}:{}),
             ...(a.reason?{reason:a.reason}:{})},opts);break;
         case 'payment_update_refund':await s.refunds.update(a.refundId,{metadata:a.metadata},opts);break;

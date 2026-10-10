@@ -15,6 +15,13 @@ export function profileCounts(registry,options={}) {
   return Object.fromEntries(CONNECTION_PROFILES.map(profile=>
     [profile,visibleTools(registry,profile,options).length]));
 }
+const guardedTestAreas=new Set(['customers','payments']);
+export function isGuardedTestWrite(tool,connection){
+  return connection?.mode==='test'&&tool?.writes===true&&
+    tool?.writeContract==='defineWrite-v1'&&
+    guardedTestAreas.has(tool.area)&&
+    isToolAllowed(tool,connection?.profile,{allowWrites:true});
+}
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
   'stripe_describe_tool','stripe_call','stripe_batch','stripe_get_result']);
 export function listingForConnection(registry,connection,override){
@@ -22,7 +29,7 @@ export function listingForConnection(registry,connection,override){
   const mode=['compact','catalog'].includes(override)?override:connection?.listing;
   const available=visibleTools(registry,connection?.profile,
     {allowWrites:connection?.mode==='test'}).filter(t=>t.writes===false||
-      (t.writeContract==='defineWrite-v1'&&t.area==='customers'));
+      isGuardedTestWrite(t,connection));
   return mode==='compact'?available.filter(t=>compactNames.has(t.name)||
     t.name==='api_search'||t.name.startsWith('workflow_')):available;
 }
