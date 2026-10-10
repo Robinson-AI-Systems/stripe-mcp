@@ -13,7 +13,7 @@ beforeAll(async () => {
   db = createDb(neonShapedQuery());
   await db.initSchema();
   await rawQuery('INSERT INTO stripe_accounts (id, label, money_limit_cents) VALUES ($1, $2, $3)',
-    ['acct_fake_budget', 'Fixture', 50000]);
+    ['acct_fakebudget', 'Fixture', 50000]);
   other = new pg.Client({ connectionString: url });
   await other.connect();
   await other.query('SET search_path TO "' + schema + '"');
@@ -29,7 +29,7 @@ afterAll(async () => {
 });
 
 describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => {
-  const account = 'acct_fake_budget';
+  const account = 'acct_fakebudget';
   const connection = 'owner-client-1';
   // Either independent database client can win the row lock. Subsequent
   // assertions must follow the actual winner instead of assuming once-A.

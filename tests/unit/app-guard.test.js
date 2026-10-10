@@ -7,9 +7,9 @@ import { findAppOwnership, protectAppOwnedTarget, annotateAppRead, APP_METADATA_
 const unpack = r => JSON.parse(r.content[0].text);
 
 function fixture({before,refund=false,ctxExtras={}}={}) {
-  const db=createFakeDb({accounts:[{id:'acct_APP_SAFE',label:'Fixture',money_limit_cents:50000}]});
+  const db=createFakeDb({accounts:[{id:'acct_APPSAFE',label:'Fixture',money_limit_cents:50000}]});
   const calls={written:0};
-  const ctx={db,connection:{stripeAccount:'acct_APP_SAFE',mode:'test',profile:'full'},
+  const ctx={db,connection:{stripeAccount:'acct_APPSAFE',mode:'test',profile:'full'},
     connectionId:'owner-app-guard',...ctxExtras};
   const op=defineWrite({
     name:refund?'stripe_refund_app_fixture':'stripe_update_app_fixture',
@@ -101,8 +101,8 @@ describe('B-3 default-deny app ownership guard',()=>{
       money:async(_a,_c,b)=>({amountCents:b.refundableCents,currency:'usd',targetId:'ch_FAKE1234',direction:'out',
         description:'Test refund'}),
       apply:async()=>{throw Error('MUST NOT APPLY');},readAfter:async()=>({}),verify:async()=>false});
-    const ctx={db:createFakeDb({accounts:[{id:'acct_APP_SAFE'}]}),
-      connection:{stripeAccount:'acct_APP_SAFE',mode:'test',profile:'full'},connectionId:'test'};
+    const ctx={db:createFakeDb({accounts:[{id:'acct_APPSAFE'}]}),
+      connection:{stripeAccount:'acct_APPSAFE',mode:'test',profile:'full'},connectionId:'test'};
     expect(unpack(await op.handler({dryRun:true},ctx)).error).toMatch(/Safe preview/);
   });
   it('refuses incomplete expanded/deleted customer objects and incomplete fetched snapshots',async()=>{

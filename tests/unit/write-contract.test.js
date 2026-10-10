@@ -13,11 +13,11 @@ runWriteContract({
   withMoney: true,
   args: { refundId: 're_fixture_real_handler' },
   fixtures: ({ appOwned, readBackMatches, approved, moneyCents, limitCents }) => {
-    const db = createFakeDb({ accounts: [{ id: 'acct_safe_fixture', label: 'Fixture',
+    const db = createFakeDb({ accounts: [{ id: 'acct_safefixture', label: 'Fixture',
       money_limit_cents: limitCents }] });
     const provider = { writes: [], afterCalls: 0 };
     const ctx = { db, connectionId: 'owner-client-fixture', moneyPolicyApproved: approved,
-      connection: { stripeAccount: 'acct_safe_fixture', mode: 'test', profile: 'full' } };
+      connection: { stripeAccount: 'acct_safefixture', mode: 'test', profile: 'full' } };
     return { provider, db, ctx, appOwned, readBackMatches, moneyCents };
   },
   tool: ({ provider, appOwned, readBackMatches, moneyCents }) => defineWrite({
