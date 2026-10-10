@@ -90,7 +90,7 @@ describe('B-8b2a owner-only connection removal',()=>{
       .toHaveLength(1);
     const f2=await createFixture({clock:()=>now});
     const p2=await f2.submit(prepare),id2=getId(p2.body);
-    now+=600001;
+    now+=11*60*1000; // Beyond the ten-minute server issuance window, not 1 ms at an earlier fixture timestamp.
     expect((await f2.submit({...confirm,id:id2})).statusCode).toBe(410);
     expect(await f2.db.getAccessToken('test_token_owner_one')).not.toBeNull();
   });
