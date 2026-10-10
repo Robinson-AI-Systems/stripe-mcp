@@ -87,8 +87,6 @@ const hosted=x=>safeHost(x,['checkout.stripe.com','billing.stripe.com','buy.stri
 const safePrice=(price,a)=>{
   if(price.active!==true||price.currency!=='usd'||!Number.isSafeInteger(price.unit_amount)||
     price.unit_amount<=0)return false;
-  if(a.outsideApp!==true&&Object.keys(price.metadata??{}).some(k=>APP_METADATA_KEYS.includes(k)))
-    return false;
   return true;
 };
 async function beforeFor(def,a,s){
@@ -143,6 +141,9 @@ function build(def){
       (def.name==='portal_update_configuration'?' WARNING: cancellation and plan policies may affect subscriptions.':''),
     targetGuard:(a,_ctx,b)=>{
       if(b.deleted)return 'Deleted target';
+      if(b._price&&a.outsideApp!==true&&
+        Object.keys(b._price.metadata??{}).some(k=>APP_METADATA_KEYS.includes(k)))
+        return 'Price is managed by an application';
       if(def.name==='checkout_expire'&&b.status!=='open')return 'Only an open Checkout session can expire';
       if(def.name==='paylink_activate'&&b.active===true)return 'Link already active';
       if(def.name==='paylink_deactivate'&&b.active===false)return 'Link already disabled';
