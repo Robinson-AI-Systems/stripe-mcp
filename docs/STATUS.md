@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **B-5 completed (PR #25); next B-6 profiles:** currency displays, Colorado-local dates, nested credential redaction and LIVE output banner integrated into shared tool result boundaries; reviewed B-4 errors now merged in #24. No live or payment tools activated.
+
 - **B-4 completed (PR #24); next B-5 result formatting:** plain-English Stripe errors integrated with the read-only MCP and guarded write adapter, retaining all B-3 ownership fixes. B-4 uses safe and human-readable Stripe SDK errors without exposing raw provider secrets. No new external money/live operations.
 
 - **B-3 completed in PR #23:** app-owned Stripe object guard is staged on `ai/gpt6/b-3-app-owned-record-guard` after B-2 (#21/#22). It denies changes to Appliance Desk-owned records unless explicitly overridden and allows the documented refund exception only through mandatory owner money consent. No tools registered or live money enabled. Next: B-4 plain-English errors (draft PR #24).

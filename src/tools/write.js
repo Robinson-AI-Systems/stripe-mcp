@@ -5,6 +5,7 @@ import { prepareMoney, reserveMoneyBeforeWrite, settleMoneyAfterWrite } from '..
 import { authorizeLiveWrite } from './live-guard.js';
 import { protectAppOwnedTarget } from './app-guard.js';
 import { toStripeToolError } from './errors.js';
+import { shapeToolResult } from './util.js';
 export function defineWrite(spec) {
   if (spec?.money && typeof spec.money !== 'function') throw new TypeError('Money spec must be a function');
   if (spec?.targetGuard !== undefined && typeof spec.targetGuard !== 'function') {
@@ -39,7 +40,7 @@ export function defineWrite(spec) {
     beforeApply: spec?.money ? reserveMoneyBeforeWrite : null,
     afterApply: spec?.money ? settleMoneyAfterWrite : null });
   return Object.freeze({...guarded, async handler(args,ctx) {
-    try { return await guarded.handler(args,ctx); }
+    try { return shapeToolResult(await guarded.handler(args,ctx), {mode:ctx?.connection?.mode}); }
     catch (error) {
       const formatted=toStripeToolError(error,{
         mode:ctx?.connection?.mode, requiredPermission:spec?.requiredPermission

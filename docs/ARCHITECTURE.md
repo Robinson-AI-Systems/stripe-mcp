@@ -88,3 +88,7 @@ Internal `src/tools/app-guard.js` detects the known Appliance Desk metadata keys
 ### B-4 safely translated Stripe errors (staged)
 
 `src/tools/errors.js` maps recognized Stripe SDK error classes to plain-English diagnostics and corrective actions, retains only sanitized request IDs/fields, and never returns raw provider messages or secrets. It is integrated in the current read-only MCP handler and guarded Stripe write adapter. Unknown errors preserve previous handling; no additional write door is exposed.
+
+### B-5 result shaping (under review)
+
+Read-only MCP results and guarded Stripe write results are postprocessed by a non-mutating, credential-redacting display layer. Original money minor units remain available with additive currency displays, and Unix timestamps get Denver-local companions. No changes to Stripe permissions or account authorization.

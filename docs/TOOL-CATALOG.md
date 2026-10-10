@@ -474,3 +474,7 @@ The app metadata guard is wired into the shared Stripe write adapter. This adds 
 ## B-4 safe errors (no new callable tools)
 
 Existing read handlers and guarded Stripe write adapters use safe, human-readable error formatting for recognized Stripe exceptions. No extra tool is exposed and money/authorization limits are unchanged.
+
+## B-5 display companions (internal utility)
+
+Tool results add human-readable amount/time values and mask sensitive keys. This does not expose any additional Stripe tool or allow writes.

@@ -209,13 +209,13 @@
         "B-4"
       ],
       "card": "docs/pr-cards/B-5.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 200,
       "units": [
         "B-5"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
