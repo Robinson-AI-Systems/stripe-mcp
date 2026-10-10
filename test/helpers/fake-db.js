@@ -20,6 +20,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const disableIntents = [];
   const defaultIntents = [];
   const limitIntents = [];
+  const moneyConsentIntents = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async listTables() { return [...createdTables].sort(); },
@@ -284,6 +285,51 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         tool:'stripe_revoke_connection',target:r.clientId,
         summary:'Owner revoked this account connection from the private setup page',
         dry_run:false,at:new Date(clock())});
+      return true;
+    },
+    async requestMoneyConsentIntent({id,account,idempotencyKey,expiresAt}) {
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id)||
+          !/^acct_[A-Za-z0-9]+$/.test(account)||
+          typeof idempotencyKey!=='string'||!idempotencyKey||
+          idempotencyKey.length>128||!(expiresAt instanceof Date))
+        throw new TypeError('Invalid owner consent intent');
+      const row=approvals.find(a=>a.account===account&&a.key===idempotencyKey&&
+        a.mode==='test'&&a.currency==='usd'&&a.target!==''&&
+        a.approvedAt===null&&a.consumedAt===null&&a.expiresAt>clock());
+      if(!row)return false;
+      moneyConsentIntents.push({id,account,key:idempotencyKey,tool:row.tool,
+        target:row.target,amountCents:row.amountCents,
+        expiresAt:expiresAt.getTime(),consumedAt:null});
+      return true;
+    },
+    async getMoneyConsentIntent(id) {
+      const i=moneyConsentIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      if(!i)return null;
+      const a=approvals.find(x=>x.account===i.account&&x.key===i.key&&
+        x.tool===i.tool&&x.target===i.target&&x.amountCents===i.amountCents&&
+        x.mode==='test'&&x.currency==='usd'&&x.approvedAt===null&&
+        x.consumedAt===null&&x.expiresAt>clock());
+      if(!a)return null;
+      return {id:i.id,stripe_account:i.account,request_key:i.key,tool:i.tool,
+        target:i.target,amount_cents:i.amountCents,
+        expires_at:new Date(i.expiresAt),description:a.description,
+        currency:'usd',mode:'test',
+        label:accountRows.get(i.account)?.label||i.account,
+        money_limit_cents:accountRows.get(i.account)?.money_limit_cents??50000};
+    },
+    async consumeMoneyConsentIntent(id) {
+      const i=moneyConsentIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
+      if(!i)return false;
+      const a=approvals.find(x=>x.account===i.account&&x.key===i.key&&
+        x.tool===i.tool&&x.target===i.target&&x.amountCents===i.amountCents&&
+        x.mode==='test'&&x.currency==='usd'&&x.approvedAt===null&&
+        x.consumedAt===null&&x.expiresAt>clock());
+      if(!a)return false;
+      i.consumedAt=clock();a.approvedAt=clock();
+      audit.push({id:audit.length+1,stripe_account:i.account,mode:'test',
+        tool:'owner_approve_money_request',target:i.target,
+        summary:'Owner independently approved one exact TEST money-out request',
+        amount_cents:i.amountCents,currency:'usd',dry_run:false,at:new Date(clock())});
       return true;
     },
     async requestMoneyApproval({account,idempotencyKey,tool,description,

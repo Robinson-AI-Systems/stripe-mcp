@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_consent_intents'
 ]);
 
 let productionSql;
@@ -353,6 +353,69 @@ export function createDb(sql = getProductionSql()) {
       FROM revoked LIMIT 1 RETURNING id`;
       return rows.length===1;
     },
+    async requestMoneyConsentIntent({id,account,idempotencyKey,expiresAt}) {
+      if (typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string'||!/^acct_[A-Za-z0-9]+$/.test(account)||
+          typeof idempotencyKey!=='string'||!idempotencyKey||
+          idempotencyKey.length>128||
+          !(expiresAt instanceof Date)||!Number.isFinite(expiresAt.getTime()))
+        throw new TypeError('Valid account, exact request key and owner intent required');
+      const rows=await sql`INSERT INTO owner_money_consent_intents
+        (id,stripe_account,request_key,tool,target,amount_cents,expires_at)
+        SELECT ${id},a.stripe_account,a.request_key,a.tool,a.target,a.amount_cents,
+          ${expiresAt} FROM money_approvals a
+        WHERE a.stripe_account=${account} AND a.request_key=${idempotencyKey}
+          AND a.mode='test' AND a.currency='usd' AND a.target <> ''
+          AND a.amount_cents>0 AND a.approved_at IS NULL
+          AND a.consumed_at IS NULL AND a.expires_at>now()
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getMoneyConsentIntent(id) {
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id))return null;
+      const rows=await sql`SELECT i.id,i.stripe_account,i.request_key,i.tool,i.target,
+          i.amount_cents,i.expires_at,a.description,a.currency,a.mode,
+          s.label,s.money_limit_cents
+        FROM owner_money_consent_intents i
+        JOIN money_approvals a ON a.stripe_account=i.stripe_account
+          AND a.request_key=i.request_key AND a.tool=i.tool AND a.target=i.target
+          AND a.amount_cents=i.amount_cents
+        JOIN stripe_accounts s ON s.id=i.stripe_account
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
+          AND a.approved_at IS NULL AND a.consumed_at IS NULL
+          AND a.mode='test' AND a.currency='usd' AND a.expires_at>now()
+        LIMIT 1`;
+      return rows[0]||null;
+    },
+    async consumeMoneyConsentIntent(id) {
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id))return false;
+      const rows=await sql`WITH granted AS (
+        UPDATE money_approvals a SET approved_at=now()
+        FROM owner_money_consent_intents i
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
+          AND a.stripe_account=i.stripe_account AND a.request_key=i.request_key
+          AND a.tool=i.tool AND a.target=i.target AND a.amount_cents=i.amount_cents
+          AND a.mode='test' AND a.currency='usd'
+          AND a.target <> '' AND a.approved_at IS NULL
+          AND a.consumed_at IS NULL AND a.expires_at>now()
+        RETURNING a.stripe_account,a.request_key,a.tool,a.target,a.amount_cents
+      ), consumed AS (
+        UPDATE owner_money_consent_intents i SET consumed_at=now()
+        FROM granted g
+        WHERE i.id=${id} AND i.stripe_account=g.stripe_account
+          AND i.request_key=g.request_key AND i.tool=g.tool
+          AND i.target=g.target AND i.amount_cents=g.amount_cents
+          AND i.consumed_at IS NULL AND i.expires_at>now()
+        RETURNING i.stripe_account,i.request_key,i.tool,i.target,i.amount_cents
+      )
+      INSERT INTO change_log (stripe_account,mode,tool,target,summary,
+          amount_cents,currency,dry_run)
+        SELECT stripe_account,'test','owner_approve_money_request',target,
+          'Owner independently approved one exact TEST money-out request',
+          amount_cents,'usd',FALSE
+        FROM consumed RETURNING id`;
+      return rows.length===1;
+    },
     async requestMoneyApproval({ account, idempotencyKey, tool, description,
       amountCents, currency, target = '', mode = 'test' }) {
       if (![account,idempotencyKey,tool,description].every(v => typeof v==='string' && v.length>0) ||
@@ -613,6 +676,19 @@ export function createDb(sql = getProductionSql()) {
         ON money_reservations (stripe_account, request_key)`;
       await sql`CREATE INDEX IF NOT EXISTS money_reservations_daily_idx
         ON money_reservations (stripe_account, local_day)`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_money_consent_intents (
+        id TEXT PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        request_key TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        target TEXT NOT NULL,
+        amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_money_consent_intents_expiry_idx
+        ON owner_money_consent_intents (expires_at)`;
       await sql`CREATE TABLE IF NOT EXISTS owner_money_limit_intents (
         id TEXT PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
