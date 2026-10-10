@@ -479,6 +479,6 @@ Existing read handlers and guarded Stripe write adapters use safe, human-readabl
 
 Tool results add human-readable amount/time values and mask sensitive keys. This does not expose any additional Stripe tool or allow writes.
 
-## B-6 profile exposure (no new tools)
+## B-6 profile counts (no new tools)
 
-Current read-only account tools are available to all three profiles; actual listed and callable counts appear on the home page. No write tools are exposed yet.
+The home page now gives counts for read_only, everyday and full based on currently available tools. Tool discovery cannot reveal unregistered or unauthorized writes.
