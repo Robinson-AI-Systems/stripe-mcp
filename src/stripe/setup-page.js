@@ -16,7 +16,7 @@ function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
@@ -120,8 +120,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<label><input type="checkbox" name="ownerLimitConsent" value="yes" required> I personally authorize changing the daily limit for this exact account.</label>' +
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<button type="submit">Set this account limit</button></form>' : '') +
-    '<h2>Pending money-out requests (owner review only)</h2>' +
-    '<p>This secure inbox does NOT approve, execute, refund or transfer money. It shows at most ten TEST-only verified requests. Each transaction will require an independently authenticated owner action in a later release.</p>' +
+    '<h2>Pending money-out requests (private TEST owner review)</h2>' +
+    '<p>Viewing requests never approves or executes money. Each grant requires a separate password-authenticated confirmation for one exact request; crossing the account daily limit requires a second separate confirmation. No LIVE or Stripe payment tool is enabled here.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="view-money-requests">' +
     '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
@@ -138,9 +138,48 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
         '; TEST mode; request key: ' + escapeHtml(item.request_key) +
         '; note: ' + escapeHtml(item.description) +
         '; expires: ' + escapeHtml(item.expiresLocal) +
-        '; status: ' + escapeHtml(item.approved_at ? 'Approved, not consumed' : 'Awaiting owner approval') +
+        '; status: ' + escapeHtml(item.approvedFresh ? (item.needsOverride ?
+          (item.allow_over_limit ? 'Owner approved with separate override' :
+            'Approved; separate over-limit owner action required') : 'Owner approved, not consumed') :
+            'Awaiting owner approval (or renewed approval)') +
+        (item.approvedFresh && (!item.needsOverride || item.allow_over_limit) ? '' :
+          '<form method="post" autocomplete="off">' + formHidden +
+          '<input type="hidden" name="action" value="request-money-decision">' +
+          '<input type="hidden" name="account" value="' + escapeHtml(moneyInbox.account) + '">' +
+          '<input type="hidden" name="requestKey" value="' + escapeHtml(item.request_key) + '">' +
+          '<input type="hidden" name="kind" value="' +
+            (item.approvedFresh ? 'override' : 'approve') + '">' +
+          '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+          '<button type="submit">Privately preview ' +
+            (item.approvedFresh ? 'separate over-limit confirmation' : 'individual approval') +
+            '</button></form>') +
         '</li>').join('') + '</ol>' : '<p>No verified pending requests.</p>') +
-      '<p>VIEW ONLY. No approval control is provided. B-8c2 will add an independently authenticated, transaction-specific approval.</p>' : '') +
+      '<p>Each preview is independent. Submitting the preview form does not grant approval.</p>' : '') +
+    (moneyDecisionIntent ? '<h2>Final owner confirmation — TEST ' +
+      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'OVER-LIMIT OVERRIDE' : 'INDIVIDUAL MONEY-OUT') +
+      '</h2><p>Exact account: ' + escapeHtml(moneyDecisionIntent.stripe_account) +
+      '; tool: ' + escapeHtml(moneyDecisionIntent.tool) +
+      '; Stripe-derived target: ' + escapeHtml(moneyDecisionIntent.target) +
+      '; amount: <strong>' + escapeHtml(usd(Number(moneyDecisionIntent.amount_cents))) +
+      ' USD</strong>; mode: TEST; request key: ' + escapeHtml(moneyDecisionIntent.request_key) +
+      '; preview must be confirmed before: ' + escapeHtml(new Intl.DateTimeFormat('en-US',{
+        timeZone:'America/Denver',dateStyle:'medium',timeStyle:'short'
+      }).format(new Date(Math.min(new Date(moneyDecisionIntent.expires_at).getTime(),
+        new Date(moneyDecisionIntent.request_expires_at).getTime())))) +
+      ' (earliest request or preview expiry). Once approved, the transaction authorization is usable for at most 10 minutes after confirmation and never beyond the original request expiry.</p><p>' + (moneyDecisionIntent.kind === 'override' ?
+        'This is a SECOND separate owner confirmation for spending above the account daily cap. It does not change the standing limit.' :
+        'This approval alone permits no operation above the daily cap; that would need a separate owner override.') +
+      ' No Stripe money moves through this page.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-money-decision">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(moneyDecisionIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerMoneyConsent" value="yes" required> I personally authorize ONLY this exact ' +
+      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'over-limit override' : 'TEST money-out request') +
+      ', account, Stripe target, amount and request key.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Confirm this ' +
+      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'separate override' : 'individual approval') +
+      '</button></form>' : '') +
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.env }) {
@@ -271,7 +310,11 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
               typeof row.target!=='string'||!row.target||
               typeof row.tool!=='string'||typeof row.request_key!=='string')
             throw Error('Invalid pending record');
-          return {...row,amount_cents:amount,expiresLocal:formatter.format(expires)};
+          const approvedTime=row.approved_at===null?NaN:new Date(row.approved_at).getTime();
+          const approvedFresh=Number.isFinite(approvedTime)&&
+            approvedTime<=Date.now()&&approvedTime>Date.now()-10*60*1000;
+          return {...row,amount_cents:amount,expiresLocal:formatter.format(expires),
+            approvedFresh,needsOverride:usedCents>limitCents-amount};
         });
         res.setHeader('Cache-Control','no-store');
         return send(res,200,htmlPage({csrf:cookie,
@@ -282,6 +325,46 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
           'Could not verify private pending money requests. No operation authorized.'}),
           'text/html; charset=utf-8');
       }
+    }
+    if (p.action === 'request-money-decision') {
+      // Only an authenticated owner can stage a preview; the SQL store copies
+      // every identity field from the provider-bound request, never the form.
+      const id=randomBytes(24).toString('base64url');
+      let staged=false;
+      try {
+        staged=await db.requestMoneyDecisionIntent({
+          id,account:p.account,idempotencyKey:p.requestKey,kind:p.kind,
+          expiresAt:new Date(Date.now()+10*60*1000)
+        });
+      } catch { staged=false; }
+      if(!staged)return send(res,409,htmlPage({csrf:cookie,result:
+        'This exact TEST request is missing, stale, already granted, or not eligible for this action. Reopen your private inbox.'}),
+        'text/html; charset=utf-8');
+      const moneyDecisionIntent=await db.getMoneyDecisionIntent(id);
+      if(!moneyDecisionIntent)return send(res,409,htmlPage({csrf:cookie,result:
+        'Request changed before the private review. No approval was granted.'}),
+        'text/html; charset=utf-8');
+      res.setHeader('Cache-Control','no-store');
+      return send(res,200,htmlPage({csrf:cookie,moneyDecisionIntent,
+        result:'Preview only. Recheck the full TEST transaction and independently confirm with your passphrase.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'confirm-money-decision') {
+      if(p.ownerMoneyConsent!=='yes')return send(res,400,htmlPage({csrf:cookie,result:
+        'Your explicit independent consent for this exact transaction is required.'}),
+        'text/html; charset=utf-8');
+      const intent=await db.getMoneyDecisionIntent(p.id);
+      if(!intent)return send(res,410,htmlPage({csrf:cookie,result:
+        'This owner intent is expired, used, altered or no longer eligible. No authorization granted.'}),
+        'text/html; charset=utf-8');
+      const granted=await db.consumeMoneyDecisionIntent(p.id);
+      res.setHeader('Cache-Control','no-store');
+      return send(res,granted?200:409,htmlPage({csrf:cookie,result:granted?
+        (intent.kind==='override'?
+          'You separately approved one over-limit TEST request. This is not a standing cap increase.' :
+          'You approved exactly one TEST money-out request. The shared daily cap and all further checks still apply.') :
+        'Another owner action or transaction changed this request. No new authorization granted.'}),
+        'text/html; charset=utf-8');
     }
     if (p.action === 'request-money-limit') {
       const newLimitCents=parseUsdCents(p.newLimitUsd);

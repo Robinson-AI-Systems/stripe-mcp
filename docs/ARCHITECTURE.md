@@ -3,7 +3,7 @@
 This file describes what **exists**, and is updated in the same PR that ships it (DRIFT-PROTOCOL checklist B). What the
 system is designed to become is in `docs/designs/`; do not copy design text here before it is built.
 
-As of 2026-10-10: Batch A and B-1–B-7 are merged, B-8a read tools merged (#28), and B-8b1 TEST permission re-probe is in PR #29. No server, Neon database, live key or Stripe account has been provisioned for production. No public write tool is enabled; account administration and independent owner money approvals remain unbuilt.
+As of 2026-10-10: Batch A and the TEST-side trust layer B-1–B-8c2 (#35) are merged. No server, Neon database, live key or real Stripe account is provisioned. Private per-transaction owner TEST approval is implemented; public Stripe write tools and LIVE activation remain disabled (IN-06).
 
 ## Infrastructure
 
@@ -22,7 +22,7 @@ here with its environments when A-5 ships. Never record values.
 
 ## Database tables
 
-A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **fourteen tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
+A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **fifteen tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
 
 | Table | Purpose |
 |---|---|
@@ -35,6 +35,7 @@ A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, 
 | `one_time_secrets` | Only ciphertext, expiry and single-view record |
 | `money_reservations` | Durable, per-account aggregate money-out reservation across ALL AI connections, Denver day, idempotency and conservative spend status (B-1) |
 | `money_approvals` | Single-use authenticated owner grant per money-out request, with separate above-limit owner override (B-1) |
+| `owner_money_decision_intents` | B-8c2 private TEST-only, short-lived exact provider-derived transaction snapshots; consumed with an atomic owner grant and change-log audit; never agent-facing |
 | `live_enable_intents` | Expiring, atomic owner live-enable intent, not usable while IN-06 is OFF (B-2) |
 | `owner_revoke_intents` | One-time private owner intent bound to a specific Stripe account and AI connection, expiring after ten minutes; consumed with atomic token revocation and audit (B-8b2a) |
 | `owner_disable_live_intents` | Ten-minute owner-only emergency LIVE-disable intent, consumed atomically with a one-way account disable and audit; cannot enable LIVE (B-8b2b1) |
@@ -72,8 +73,7 @@ and a separately authorized over-limit flag plus independent `override_approved_
 under the Stripe-account row lock. Its daily sum covers all connections of the
 same Stripe account; the owner's approval must be valid and is consumed inside
 the reservation procedure. No public or agent-side method can approve a request.
-The owner-authenticated approval interface belongs to B-8 and remains unavailable
-until independently tested; therefore no real money movement is enabled.
+Private TEST-only owner approvals are available in code via the protected setup page after #35, with one-use, transaction-identity-bound decisions and separate above-cap consent. No public money-writing tool or live provider operation is enabled.
 
 ### B-2b owner LIVE confirmation intent (IN-06 OFF)
 

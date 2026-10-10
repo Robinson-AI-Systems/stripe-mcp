@@ -19,6 +19,7 @@ it does not work yet. This file is updated as features ship.
 | "Make this my default Stripe account for new connections." | The private owner setup page previews the change and requires independent confirmation. Existing AI connection scopes do not change | B-8b2b2 |
 | "Change this account’s daily AI money-out limit." | A private owner setup page shows the old/new dollar cap and current daily spending, then requires separate owner confirmation. This NEVER authorizes an individual payment | B-8b2b3 |
 | "Show pending AI money-out requests for this account." | In the private owner setup page, re-enter your passphrase to see account-scoped TEST requests with exact targets, amounts and expiry. Viewing **never** approves or pays anything | B-8c1 |
+| "Approve this exact outgoing TEST request." | Once deployed, preview the request in the private page, verify the Stripe-derived target, account and cents, then re-enter your password and explicitly confirm one transaction. Above the daily limit, repeat with a **separate** over-limit confirmation. The page itself never sends funds | B-8c2 |
 | "Where do I set up Stripe receipt emails?" | Gives guided Dashboard steps, never pretends to change a setting | B-8a |
 | "Check my TEST Stripe key permissions again." | Safely re-probes restricted TEST-key read permissions only after a key is configured; credentials are never shown | B-8b1 / #29 |
 | "How's the money looking this month?" | Balance, payouts coming, money in and out, monthly recurring revenue, failed payments, disputes | W |

@@ -15,6 +15,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const audit = [];
   const reservations = [];
   const approvals = [];
+  const decisionIntents = [];
   const liveIntents = [];
   const revokeIntents = [];
   const disableIntents = [];
@@ -320,6 +321,67 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
             new Date(r.approvedAt):null,override_approved_at:r.overrideApprovedAt?
             new Date(r.overrideApprovedAt):null,allow_over_limit:r.allowOverLimit})));
     },
+
+    async requestMoneyDecisionIntent({id,account,idempotencyKey,kind,expiresAt}){
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]+$/.test(account)||
+        typeof idempotencyKey!=='string'||!idempotencyKey||idempotencyKey.length>250||
+        !['approve','override'].includes(kind)||!(expiresAt instanceof Date)||
+        expiresAt.getTime()<=clock()||expiresAt.getTime()>clock()+600000)
+        throw new TypeError('Valid owner decision required');
+      const m=approvals.find(r=>r.account===account&&r.key===idempotencyKey&&
+        r.mode==='test'&&r.target!==''&&r.consumedAt===null&&r.expiresAt>clock());
+      if(!m||!encryptedTestKeys.has(account))return false;
+      const usage=await this.getMoneyUsage({account,connection:'owner'});
+      const eligible=kind==='approve'
+        ? m.approvedAt===null||m.approvedAt<=clock()-600000
+        : m.approvedAt!==null&&m.approvedAt>clock()-600000&&
+          !m.allowOverLimit&&usage.used_cents>usage.limit_cents-m.amountCents;
+      if(!eligible)return false;
+      decisionIntents.push({id,account,key:m.key,tool:m.tool,target:m.target,
+        amountCents:m.amountCents,currency:m.currency,mode:m.mode,
+        requestExpiresAt:m.expiresAt,kind,expiresAt:expiresAt.getTime(),
+        consumedAt:null});
+      return true;
+    },
+    async getMoneyDecisionIntent(id){
+      const i=decisionIntents.find(r=>r.id===id&&r.consumedAt===null&&
+        r.expiresAt>clock()),m=i&&approvals.find(a=>a.account===i.account&&a.key===i.key);
+      if(!i||!m||!encryptedTestKeys.has(i.account)||m.consumedAt!==null||
+        m.expiresAt<=clock()||m.expiresAt!==i.requestExpiresAt||
+        !['tool','target','currency','mode'].every(k=>m[k]===i[k])||
+        m.amountCents!==i.amountCents||m.target===''||m.mode!=='test'||
+        (i.kind==='approve' ? m.approvedAt!==null&&m.approvedAt>clock()-600000
+          : m.approvedAt===null||m.approvedAt<=clock()-600000||m.allowOverLimit))
+        return null;
+      return {id:i.id,kind:i.kind,stripe_account:i.account,request_key:i.key,
+        tool:i.tool,target:i.target,amount_cents:i.amountCents,
+        currency:i.currency,mode:i.mode,
+        request_expires_at:new Date(i.requestExpiresAt),
+        expires_at:new Date(i.expiresAt)};
+    },
+    async consumeMoneyDecisionIntent(id){
+      const i=await this.getMoneyDecisionIntent(id);
+      if(!i)return false;
+      const row=decisionIntents.find(r=>r.id===id),
+        m=approvals.find(a=>a.account===row.account&&a.key===row.key);
+      if(row.kind==='override'){
+        const usage=await this.getMoneyUsage({account:row.account,connection:'owner'});
+        if(usage.used_cents<=usage.limit_cents-row.amountCents)return false;
+        m.allowOverLimit=true;
+        m.overrideApprovedAt=clock();
+      }else{
+        m.approvedAt=clock();
+        m.allowOverLimit=false;
+        m.overrideApprovedAt=null;
+      }
+      row.consumedAt=clock();
+      audit.push({id:audit.length+1,stripe_account:row.account,mode:'test',
+        tool:row.kind==='override'?'owner_override_money_out':'owner_approve_money_out',
+        target:row.target,amount_cents:row.amountCents,currency:'usd',
+        idempotency_key:row.key,dry_run:false,at:new Date(clock())});
+      return true;
+    },
     // Simulates authenticated owner action. Never expose this as an AI operation.
     async approveMoneyRequest({ account, idempotencyKey, allowOverLimit = false }) {
       if (allowOverLimit !== false) throw new TypeError('Separate owner override action required');
@@ -361,11 +423,13 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const approval = approvals.find(a => a.account === account && a.key === idempotencyKey);
       if (!approval || approval.amountCents !== amountCents || approval.currency !== currency ||
           approval.approvedAt === null || approval.consumedAt !== null ||
-          approval.expiresAt <= clock() || approval.approvedAt < clock() - 600000) {
+          approval.expiresAt <= clock() || approval.approvedAt < clock() - 600000 ||
+          !approval.target || approval.mode!=='test') {
         return { decision:'owner_approval_required', used_cents, limit_cents };
       }
       if (used_cents > limit_cents - amountCents &&
-          (!approval.allowOverLimit || approval.overrideApprovedAt === null)) {
+          (!approval.allowOverLimit || approval.overrideApprovedAt === null ||
+            approval.overrideApprovedAt<approval.approvedAt)) {
         return { decision:'limit_exceeded_override_required', used_cents, limit_cents };
       }
       approval.consumedAt=clock();
