@@ -16,7 +16,14 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
   if (typeof handler !== 'function') {
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
-  try { return shapeToolResult(await handler(args || {},{connection,db,permissionProbe}), {mode:connection.mode}); }
+  try {
+    const result=shapeToolResult(await handler(args || {},{connection,db,permissionProbe}), {mode:connection.mode});
+    if (Buffer.byteLength(JSON.stringify(result),'utf8')>8192) {
+      return {isError:true,content:[{type:'text',text:
+        'Result exceeds 8 KB; narrow the fields or page size. Nothing was silently truncated.'}]};
+    }
+    return result;
+  }
   catch (error) {
     return toStripeToolError(error,{mode:connection.mode}) ||
       {isError:true,content:[{type:'text',text:'Could not read account details; check server setup'}]};

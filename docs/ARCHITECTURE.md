@@ -104,7 +104,3 @@ Every registered tool has an explicit writes:boolean declaration. Money-out risk
 ### B-8a account-scoped read tools (in review)
 
 Change summaries and AI connection metadata are scoped to the authenticated Stripe account, without token hashes or raw snapshots; reads are bounded. Account status reports actual shared daily budget usage. Dashboard guidance is informational and does not change settings. No new money or LIVE permission is exposed.
-
-### B-8b1 server-only permission recheck (staged)
-
-The MCP handler injects a lazy TEST-only permission probe that decrypts the account key strictly on the server, executes safe Stripe list probes and writes only the permission result and verified timestamp to that account's record. Missing secrets fail the selected tool without breaking server startup. No raw key is passed through MCP and no live key can be loaded.
