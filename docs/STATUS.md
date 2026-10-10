@@ -5,6 +5,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **C-1 (#36 in review):** compact Stripe-object summaries, validated field projection, stable OAuth-connection scoped private 24-hour result handles with 8 KB response cap, the read-only `stripe_get_result` tool and MCP annotations. Fake/unit and disposable PostgreSQL tests added; exact-head CI/self-review required before merging. C-2 follows after C-1 merges.
+
 - **B-8c2 merged (#35):** carries B-8c1 (#34 merged), adds private two-stage owner consent for each exact TEST transaction and a separate password-authenticated owner over-limit override. New one-use decision intents bind Stripe-derived request identity. No money-moving Stripe tool is exposed. Unit, disposable PostgreSQL, mock and repository CI passed at reviewed head 27fd5de; owner-authenticated transaction consent is now code-complete, but provider money tools and LIVE remain OFF.
 - **Last merged:** #35 independent TEST owner consent, #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission

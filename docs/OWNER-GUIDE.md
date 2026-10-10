@@ -31,6 +31,7 @@ it does not work yet. This file is updated as features ship.
 | "Fix the Appliance Desk webhook." | Adds the two missing ACH events, after you confirm | P/W |
 | "Set up Stripe for my new project." | Webhook, portal, payment methods, branding, products if needed — previewed first | P |
 | "Help me fight this dispute." | Gathers the evidence, drafts it, lists what you must add before the deadline | W |
+| "Get the next page of that large Stripe result." | When a read exceeds 8 KB, the server gives a private result handle; this tool retrieves short pages through the same authenticated connection, never another agent’s connection | C-1 / #36 |
 | "What changed in Stripe through Claude recently?" | Read the authenticated account's safely paged, TEST-mode change summaries (no raw snapshots); advanced filtering is still planned | B-8a |
 | "Undo that." | Reverses the last change when it has a clean opposite; says plainly when it doesn't | X |
 | "Make a 24-hour read-only pass for Codex." | A pass shown once on your setup page; the agent uses it through Robinson's Toolkit (`rtool`) or the HTTPS API | R |

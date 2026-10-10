@@ -284,13 +284,13 @@
         "B-8"
       ],
       "card": "docs/pr-cards/C-1.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "result_store",
       "budget": 450,
       "units": [
         "C-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "C1_RESULT_HANDLES_IN_REVIEW_36",
       "ownerInputs": []
     },
     {
