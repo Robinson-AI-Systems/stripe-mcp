@@ -79,3 +79,12 @@ limit. Refunds ARE money-out: owner separately approves the exact
 provider-verified charge and amount even at $0.01, and separately
 overrides the daily cap when exceeded. This clarifies the original `$`
 shorthand without loosening any money-out approval or LIVE gate.
+
+### D-3 provider exception (2026-10-10)
+
+Stripe's official SDK creates but cannot retrieve billing portal sessions.
+The portal session creation operation verifies Stripe's returned session
+identity and hosted URL, then independently reads the provider's selected
+portal configuration. It must not invent a session GET. All other D-3
+writes use verified provider read-back. Hosted redirect addresses are
+server-owned matching-origin HTTPS settings, never AI arguments.

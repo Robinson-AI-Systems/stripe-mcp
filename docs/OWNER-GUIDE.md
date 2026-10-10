@@ -40,6 +40,9 @@ it does not work yet. This file is updated as features ship.
 | "Find a TEST payment and show why its charge failed." | Safe status, outcome and decline summaries, with no card or client secrets | D-2 |
 | "Refund the remaining amount of this TEST charge." | Provider amount verified before separate exact owner approval; extra override above daily cap | D-2 |
 | "Cancel a TEST refund that requires customer action." | Only refunds in requires_action can be canceled, after guarded preview and confirmation | D-2 |
+| "Send a TEST customer a hosted payment or card-setup page." | Owner-configured HTTPS return addresses, Stripe-hosted card/bank entry, no client secrets in tool results | D-3 / #39 |
+| "Deactivate this reusable TEST payment link." | Protected preview, explicit confirm and verified provider read-back | D-3 / #39 |
+| "Inspect or change the TEST customer portal policy." | Safe reads, owner-full profile plus confirmation for policy changes | D-3 / #39 |
 | "Get the next page of that large Stripe result." | When a read exceeds 8 KB, the server gives a private result handle; this tool retrieves short pages through the same authenticated connection, never another agent’s connection | C-1 / #36 |
 | "What changed in Stripe through Claude recently?" | Read the authenticated account's safely paged, TEST-mode change summaries (no raw snapshots); advanced filtering is still planned | B-8a |
 | "Undo that." | Reverses the last change when it has a clean opposite; says plainly when it doesn't | X |

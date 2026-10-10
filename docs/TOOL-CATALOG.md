@@ -9,7 +9,7 @@ read-back. Customer balance credits and debits require separately authenticated
 exact owner approval, even for $0.01. **LIVE remains OFF (IN-06)**. No Stripe
 account, hosted production infrastructure or real provider money action has
 been activated. Remaining catalog rows are planned; legacy compatibility is
-not required. The D-2 set (19 native payment, charge, refund and setup operations) merged in #38, with full exact-head CI and security self-review passing. Incoming charges/captures require explicit confirmation, and outgoing refunds separately require owner approval.
+not required. The D-2 set (19 native payment, charge, refund and setup operations) merged in #38, with full exact-head CI and security self-review passing. Incoming charges/captures require explicit confirmation, and outgoing refunds separately require owner approval. D-3's 16 hosted tools are in PR #39 pending exact-head CI; no LIVE use or client-secret exposure.
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
@@ -97,16 +97,16 @@ with raw payment method IDs and returned `client_secret` (replaced by
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `checkout_create_payment_link_for_customer` | A one-time hosted Checkout page for a customer and amount/prices, in the saved brand kit; returns the URL | P | F | E |
-| `checkout_create_setup_link` | Hosted page where a customer saves a card or bank account (replaces `stripe_onboard_customer`'s secret) | P | N | E |
-| `checkout_list` / `checkout_get` / `checkout_list_line_items` | Checkout sessions | — | C/C/N | R |
-| `checkout_expire` | Kill an open Checkout link | C | C | E |
-| `paylink_list` / `paylink_get` | Reusable payment links | — | C | R |
-| `paylink_create` / `paylink_update` | Create or change a reusable payment link | P | C | E |
-| `paylink_deactivate` / `paylink_activate` | Turn a link off or back on | P | C/N | E |
-| `portal_create_session` | Customer portal link for one customer | P | C | E |
-| `portal_list_configurations` / `portal_get_configuration` | What the portal lets customers do | — | C | R |
-| `portal_update_configuration` | Change what the portal allows (cancel, switch plan, update payment method) | C | N | F |
+| `checkout_create_payment_link_for_customer` | A one-time hosted Checkout page for a customer and amount/prices, in the saved brand kit; returns the URL | P | built #39 | E |
+| `checkout_create_setup_link` | Hosted page where a customer saves a card or bank account (replaces `stripe_onboard_customer`'s secret) | P | built #39 | E |
+| `checkout_list` / `checkout_get` / `checkout_list_line_items` | Checkout sessions | — | built #39 | R |
+| `checkout_expire` | Kill an open Checkout link | C | built #39 | E |
+| `paylink_list` / `paylink_get` | Reusable payment links | — | built #39 | R |
+| `paylink_create` / `paylink_update` | Create or change a reusable payment link | P | built #39 | E |
+| `paylink_deactivate` / `paylink_activate` | Turn a link off or back on | P | built #39 | E |
+| `portal_create_session` | Customer portal link for one customer | P | built #39 | E |
+| `portal_list_configurations` / `portal_get_configuration` | What the portal lets customers do | — | built #39 | R |
+| `portal_update_configuration` | Change what the portal allows (cancel, switch plan, update payment method) | C | built #39 | F |
 
 ## Subscriptions (`billing_*`) — 21
 

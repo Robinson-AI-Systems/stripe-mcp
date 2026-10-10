@@ -231,3 +231,20 @@ USD remainder and require exact independent owner authorization, with a
 second override above the shared $500 Colorado-day limit. Incoming
 charges/captures are confirmed but do not consume the outgoing limit.
 LIVE is OFF and no real provider operation has been executed.
+
+### D-3 — TEST hosted Checkout and customer portal
+
+Seven read tools and nine guarded mutations cover Checkout sessions, payment
+links and portal configurations. Customer card/US-bank setup occurs only on
+Stripe-hosted pages, never by returning a client secret. Three mandatory
+server-configured HTTPS URLs (`STRIPE_CHECKOUT_SUCCESS_URL`,
+`STRIPE_CHECKOUT_CANCEL_URL`, `STRIPE_PORTAL_RETURN_URL`)
+must share an owner-controlled origin; AI arguments cannot choose redirects.
+Missing return URLs fail closed; provider-hosted links are checked against
+Stripe-owned domains. All writes require the shared TEST-only contract and
+are forbidden from read_only, LIVE and indirect batching.
+
+Stripe's portal sessions have create but no retrieve endpoint: the session
+tool validates Stripe's returned identity/hosted URL and independently retrieves
+its selected portal configuration rather than inventing a read-back API.
+No LIVE activation or real provider operation occurred.

@@ -14,10 +14,11 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
 - **D-1 merged (#37):** 17 current-native TEST customer tools, approved and tested, with no old-toolkit compatibility.
-- **D-2 merged (#38):** 19 TEST native payment/charge/refund/setup tools (ten safe reads, nine guarded mutations); exact-head unit, DB, mock, repository and aggregate CI passed; seven-case real-handler matrix for all nine writes. Refunds require exact separately authenticated owner consent and over-limit override. No LIVE use, no legacy aliases. **Next: D-3 Checkout, payment links and portal.**
+- **D-2 merged (#38):** 19 TEST-native payment/refund/setup tools; money approval and full CI verified.
+- **D-3 in review (#39):** all 16 current-native TEST hosted Checkout, reusable paylink and portal operations (7 safe reads, 9 guarded writes). Server-controlled HTTPS returns and secret-safe setup; full mock, unit and write contract suite committed, exact-head CI required. Next D-4 subscriptions.
 - **IN-05:** $500 USD/account/Colorado day shared across AI connections,
   all money-out separately owner-approved, above limit a second override.
-  **IN-06 remains OFF.** 18 guarded TEST-only customer/payment write tools exist in code, including exact-owner-approved refund operations. No LIVE credentials, real provider money movement, paid infrastructure or operational deployment.
+  **IN-06 remains OFF.** 27 guarded TEST-only customer/payment/hosted write tools exist in code, including exact-owner-approved refund operations. No LIVE credentials, real provider money movement, paid infrastructure or operational deployment.
 - **Ordered batches:** A → B → C → D → V → G → H → P → W → U → R → E → X.
 
 ## Superseded historical branches
