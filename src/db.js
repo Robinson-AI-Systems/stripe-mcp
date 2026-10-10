@@ -7,7 +7,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents'
 ]);
 
 let productionSql;
@@ -421,6 +421,109 @@ export function createDb(sql = getProductionSql()) {
         RETURNING request_key`;
       return rows.length === 1;
     },
+
+    // These decisions are ONLY staged by the password/CSRF-protected owner page.
+    // Each intent snapshots the complete provider-derived TEST request identity;
+    // no browser field or AI argument supplies the amount or target.
+    async requestMoneyDecisionIntent({id,account,idempotencyKey,kind,expiresAt}) {
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]+$/.test(account)||
+        typeof idempotencyKey!=='string'||!idempotencyKey||idempotencyKey.length>250||
+        !['approve','override'].includes(kind)||!(expiresAt instanceof Date)||
+        !Number.isFinite(expiresAt.getTime())||expiresAt.getTime()<=Date.now()||
+        expiresAt.getTime()>Date.now()+600000) throw new TypeError('Valid TEST owner decision required');
+      const rows=await sql`INSERT INTO owner_money_decision_intents
+        (id,approval_id,stripe_account,request_key,tool,target,amount_cents,currency,mode,
+          request_expires_at,kind,expires_at)
+        SELECT ${id},m.id,m.stripe_account,m.request_key,m.tool,m.target,m.amount_cents,
+          m.currency,m.mode,m.expires_at,${kind},${expiresAt}
+        FROM money_approvals m JOIN stripe_accounts a ON a.id=m.stripe_account
+        WHERE m.stripe_account=${account} AND m.request_key=${idempotencyKey}
+          AND m.mode='test' AND m.target<>'' AND m.currency='usd'
+          AND m.consumed_at IS NULL AND m.expires_at>now() AND a.test_key_enc IS NOT NULL
+          AND ((
+            ${kind}='approve' AND (m.approved_at IS NULL OR
+              m.approved_at<=now()-interval '10 minutes')
+          ) OR (
+            ${kind}='override' AND m.approved_at>now()-interval '10 minutes'
+            AND m.allow_over_limit=FALSE AND
+            (SELECT COALESCE(SUM(r.amount_cents),0)::BIGINT
+              FROM money_reservations r WHERE r.stripe_account=a.id
+                AND r.local_day=(now() AT TIME ZONE 'America/Denver')::date
+                AND r.state<>'rejected') > a.money_limit_cents::BIGINT-m.amount_cents
+          ))
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getMoneyDecisionIntent(id) {
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id))return null;
+      const rows=await sql`SELECT i.id,i.kind,i.stripe_account,i.request_key,i.tool,i.target,
+          i.amount_cents,i.currency,i.mode,i.request_expires_at,i.expires_at
+        FROM owner_money_decision_intents i
+        JOIN money_approvals m ON m.id=i.approval_id
+        JOIN stripe_accounts a ON a.id=i.stripe_account
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
+          AND a.test_key_enc IS NOT NULL AND m.consumed_at IS NULL
+          AND m.expires_at>now() AND m.expires_at=i.request_expires_at
+          AND m.stripe_account=i.stripe_account AND m.request_key=i.request_key
+          AND m.tool=i.tool AND m.target=i.target AND m.amount_cents=i.amount_cents
+          AND m.currency=i.currency AND m.mode=i.mode AND m.mode='test'
+          AND m.target<>''
+          AND ((i.kind='approve' AND (m.approved_at IS NULL OR
+                m.approved_at<=now()-interval '10 minutes'))
+            OR (i.kind='override' AND m.approved_at>now()-interval '10 minutes'
+                AND m.allow_over_limit=FALSE))
+        LIMIT 1`;
+      return rows[0]||null;
+    },
+    async consumeMoneyDecisionIntent(id) {
+      if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id))return false;
+      // Single statement: concurrent owner browsers cannot consume an intent
+      // twice; audit failure rolls back both the grant and intent consumption.
+      // The account's current day cap is rechecked for a separate override.
+      const rows=await sql`WITH granted AS (
+        UPDATE money_approvals m
+        SET approved_at=CASE WHEN i.kind='approve' THEN now() ELSE m.approved_at END,
+          allow_over_limit=(i.kind='override'),
+          override_approved_at=CASE WHEN i.kind='override' THEN now() ELSE NULL END
+        FROM owner_money_decision_intents i, stripe_accounts a
+        WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
+          AND m.id=i.approval_id AND a.id=i.stripe_account
+          AND a.test_key_enc IS NOT NULL AND m.consumed_at IS NULL
+          AND m.expires_at>now() AND m.expires_at=i.request_expires_at
+          AND m.stripe_account=i.stripe_account AND m.request_key=i.request_key
+          AND m.tool=i.tool AND m.target=i.target AND m.amount_cents=i.amount_cents
+          AND m.currency=i.currency AND m.mode=i.mode AND m.mode='test'
+          AND m.target<>'' AND m.currency='usd'
+          AND ((
+            i.kind='approve' AND (m.approved_at IS NULL OR
+              m.approved_at<=now()-interval '10 minutes')
+          ) OR (
+            i.kind='override' AND m.approved_at>now()-interval '10 minutes'
+            AND m.allow_over_limit=FALSE AND
+            (SELECT COALESCE(SUM(r.amount_cents),0)::BIGINT FROM money_reservations r
+              WHERE r.stripe_account=a.id
+                AND r.local_day=(now() AT TIME ZONE 'America/Denver')::date
+                AND r.state<>'rejected') > a.money_limit_cents::BIGINT-m.amount_cents
+          ))
+        RETURNING i.id,i.kind,m.stripe_account,m.request_key,m.target,m.amount_cents
+      ), consumed AS (
+        UPDATE owner_money_decision_intents i SET consumed_at=now()
+        FROM granted g WHERE i.id=g.id AND i.consumed_at IS NULL
+        RETURNING i.id
+      )
+      INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run,
+        amount_cents,currency,idempotency_key)
+      SELECT g.stripe_account,'test',
+        CASE WHEN g.kind='override' THEN 'owner_override_money_out'
+          ELSE 'owner_approve_money_out' END,
+        g.target,CASE WHEN g.kind='override' THEN
+          'Owner separately approved this exact TEST transaction above the daily cap'
+          ELSE 'Owner independently approved this exact TEST money-out request' END,
+        FALSE,g.amount_cents,'usd',g.request_key
+      FROM granted g JOIN consumed c ON c.id=g.id RETURNING id`;
+      return rows.length===1;
+    },
     async reserveMoneyOut({ account, connection, idempotencyKey, amountCents, currency }) {
       if (![account, connection, idempotencyKey].every(x => typeof x === 'string' && x) ||
           !Number.isSafeInteger(amountCents) || amountCents <= 0 ||
@@ -752,6 +855,24 @@ export function createDb(sql = getProductionSql()) {
         WHERE consumed_at IS NULL AND target <> ''`;
       await sql`CREATE INDEX IF NOT EXISTS money_approvals_pending_idx
         ON money_approvals (stripe_account, expires_at) WHERE consumed_at IS NULL`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_money_decision_intents (
+        id TEXT PRIMARY KEY,
+        approval_id BIGINT NOT NULL REFERENCES money_approvals(id),
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        request_key TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        target TEXT NOT NULL,
+        amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
+        currency TEXT NOT NULL CHECK (currency='usd'),
+        mode TEXT NOT NULL CHECK (mode='test'),
+        request_expires_at TIMESTAMPTZ NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('approve','override')),
+        expires_at TIMESTAMPTZ NOT NULL,
+        consumed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_money_decision_expiry_idx
+        ON owner_money_decision_intents (expires_at)`;
       await sql`CREATE OR REPLACE FUNCTION reserve_money_out_guarded(
         p_account TEXT, p_connection TEXT, p_key TEXT, p_cents BIGINT, p_currency TEXT)
       RETURNS TABLE(decision TEXT, used_cents BIGINT, limit_cents BIGINT)
@@ -805,18 +926,20 @@ export function createDb(sql = getProductionSql()) {
         END IF;
         -- The approval is tied to this account, idempotency key and the exact
         -- provider-derived amount, then consumed atomically with the reservation.
-        SELECT amount_cents, currency, approved_at, allow_over_limit, override_approved_at, consumed_at, expires_at
+        SELECT amount_cents, currency, approved_at, allow_over_limit, override_approved_at, consumed_at, expires_at, target, mode
           INTO v_approval FROM money_approvals
           WHERE stripe_account = p_account AND request_key = p_key FOR UPDATE;
         IF NOT FOUND OR v_approval.amount_cents <> p_cents OR v_approval.currency <> p_currency
           OR v_approval.approved_at IS NULL OR v_approval.consumed_at IS NOT NULL
+          OR v_approval.target IS NULL OR v_approval.target='' OR v_approval.mode<>'test'
           OR v_approval.expires_at <= now()
           OR v_approval.approved_at < now() - interval '10 minutes' THEN
           decision := 'owner_approval_required';
           RETURN NEXT; RETURN;
         END IF;
         IF v_used > limit_cents - p_cents AND (v_approval.allow_over_limit IS NOT TRUE
-          OR v_approval.override_approved_at IS NULL) THEN
+          OR v_approval.override_approved_at IS NULL
+          OR v_approval.override_approved_at < v_approval.approved_at) THEN
           decision := 'limit_exceeded_override_required';
           RETURN NEXT; RETURN;
         END IF;
