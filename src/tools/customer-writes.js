@@ -105,8 +105,10 @@ function build(def){
         _taxId:await s.customers.retrieveTaxId(a.customerId,a.taxId)};
       return s.customers.retrieve(a.customerId);
     },
-    summarize:async(b,a)=>def.name+' on '+(a.customerId||'a new TEST customer')+
-      '; verify before/after; no LIVE operation permitted.'+
+    summarize:async(_b,a)=>'TEST MODE. '+def.name+' on '+
+      (a.customerId||'a new customer')+'; proposed fields: '+
+      Object.keys(a).filter(k=>!['dryRun','confirm','requestKey','outsideApp'].includes(k))
+        .join(', ')+'. Independently verify the provider read-back.'+
       (def.destructive?' WARNING: destructive action may not be reversible.':''),
     money:def.money?async(a,_ctx,b)=>({
       amountCents:a.creditCents??a.debitCents,currency:'usd',direction:'out',targetId:b.id,
