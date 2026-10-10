@@ -466,3 +466,7 @@ enable intent and separately authenticated owner setup confirmation are internal
 primitives, default-denied by `LIVE_MODE_OWNER_APPROVED` while IN-06 is not
 authorized. `stripe_enable_live` is still an unbuilt/ungated B-8 catalog item;
 no model call can reach these internals. Live keys remain unavailable.
+
+## B-3 app-owned protection (internal, no exposed tools)
+
+The app metadata guard is wired into the shared Stripe write adapter. This adds no new callable tools and does not change the tool catalog's built counts; B-8 and later batches will register guarded operations. Refund exceptions still require the mandatory owner-approved money contract.

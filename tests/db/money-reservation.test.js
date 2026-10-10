@@ -31,6 +31,9 @@ afterAll(async () => {
 describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => {
   const account = 'acct_fake_budget';
   const connection = 'owner-client-1';
+  // Either independent database client can win the row lock. Subsequent
+  // assertions must follow the actual winner instead of assuming once-A.
+  let winningRequestKey;
   const reserve = async (key, amountCents = 30000, client = db,
     allowOverLimit = false, selectedConnection = connection) => {
     await client.requestMoneyApproval({account, idempotencyKey:key,
@@ -44,22 +47,23 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
   it('does not let two serverless connections exceed the same limit', async () => {
     const pair = await Promise.all([reserve('once-A'), reserve('once-B', 30000, otherDb)]);
     expect(pair.map(x => x.decision).sort()).toEqual(['limit_exceeded_override_required', 'reserved']);
+    winningRequestKey = pair[0].decision === 'reserved' ? 'once-A' : 'once-B';
     expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(30000);
   });
   it('never charges the limit twice for a replay or a mismatched amount', async () => {
-    expect((await reserve('once-A')).decision).toBe('already_reserved');
-    expect((await reserve('once-A', 10000)).decision).toBe('request_conflict');
+    expect((await reserve(winningRequestKey)).decision).toBe('already_reserved');
+    expect((await reserve(winningRequestKey, 10000)).decision).toBe('request_conflict');
     expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(30000);
   });
   it('refuses unsafe reservation state transitions and never frees uncertain spend', async () => {
     expect(await db.settleMoneyReservation({ account, connection,
-      idempotencyKey: 'once-A', state: 'uncertain' })).toBe(true);
+      idempotencyKey: winningRequestKey, state: 'uncertain' })).toBe(true);
     expect(await db.settleMoneyReservation({ account, connection,
-      idempotencyKey: 'once-A', state: 'confirmed' })).toBe(false);
-    expect((await reserve('once-A')).decision).toBe('already_uncertain');
+      idempotencyKey: winningRequestKey, state: 'confirmed' })).toBe(false);
+    expect((await reserve(winningRequestKey)).decision).toBe('already_uncertain');
     expect(Number((await db.getMoneyUsage({ account, connection })).used_cents)).toBe(30000);
     await expect(db.settleMoneyReservation({ account, connection,
-      idempotencyKey: 'once-A', state: 'released' })).rejects.toThrow();
+      idempotencyKey: winningRequestKey, state: 'released' })).rejects.toThrow();
   });
   it('shares one account ceiling across AI connections, with an explicit extra override', async () => {
     const denied = await reserve('other-connection', 40000, db, false, 'owner-client-2');
@@ -92,7 +96,7 @@ describe('B-1b1 concurrent daily money-out reservation, no Stripe calls', () => 
     expect(constraints).toHaveLength(1);
     expect(constraints[0].definition).toContain('rejected');
     await db.initSchema();
-    expect((await reserve('once-A')).decision).toBe('already_uncertain');
+    expect((await reserve(winningRequestKey)).decision).toBe('already_uncertain');
   });
   it('requires a separate owner decision for every request even in TEST mode', async () => {
     const input={account,connection,idempotencyKey:'owner-not-approved',
