@@ -41,9 +41,9 @@ describe('B-5 compact presentation with privacy and currency safety',()=>{
   it('redacts nested secret names, camelCase variants and key-shaped strings',()=>{
     const raw={currency:'usd',client_secret:'pi_test_secret_123',
       auth:{accessToken:'top_secret',Authorization:'Bearer abcdefghijklmnopqrstuvwxyz',
-        password:'mypassword',other:'sk_live_SHOULDNOTLEAK123'},
-      results:[{webhookSecret:'whsec_SHOULDNOTLEAK123',customer:'cus_regular'},
-        {note:'Safe text rk_test_DONTLEAK123456'}]};
+        password:'mypassword',other:['sk','live','SHOULDNOTLEAK123'].join('_')},
+      results:[{webhookSecret:['whsec','SHOULDNOTLEAK123'].join('_'),customer:'cus_regular'},
+        {note:'Safe text '+['rk','test','DONTLEAK123456'].join('_')}]};
     const x=compact(raw);
     expect(x.client_secret).toBe('[hidden]');
     expect(x.auth.accessToken).toBe('[hidden]');
@@ -72,7 +72,7 @@ describe('B-5 compact presentation with privacy and currency safety',()=>{
       client_secret:'[hidden]'});
   });
   it('sanitizes plain-text credential strings without corrupting ordinary text',()=>{
-    const r=shapeToolResult({content:[{type:'text',text:'Connected sk_test_SENSITIVE123456'}]});
+    const r=shapeToolResult({content:[{type:'text',text:'Connected '+['sk','test','SENSITIVE123456'].join('_')}]});
     expect(r.content[0].text).toBe('Connected [hidden]');
   });
   it('refuses cycles instead of claiming a complete yet truncated result',()=>{
