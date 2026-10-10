@@ -19,7 +19,7 @@ const cases=[
   {name:'payment_cancel_refund',args:{refundId}},
   {name:'setup_cancel',args:{setupId}}
 ];
-function fixture({appOwned,readBackMatches,limitCents}){
+function fixture({appOwned,readBackMatches,limitCents},name){
   const provider={writes:[],afterCalls:0};
   const db=createFakeDb({accounts:[{id:'acct_safefixture',label:'Fixture',money_limit_cents:limitCents}]});
   const customer={id:customerId,object:'customer',metadata:appOwned?{agreementId:'ag_FAKE'}:{},
@@ -65,7 +65,7 @@ function fixture({appOwned,readBackMatches,limitCents}){
       }
     },
     charges:{
-      async retrieve(){return {...charge};},
+      async retrieve(){if(name==='charge_update')after();return {...charge};},
       async update(_id,params,opts){
         wrote(opts);if(readBackMatches)Object.assign(charge,params);
         return {...charge};
@@ -112,13 +112,13 @@ function fixture({appOwned,readBackMatches,limitCents}){
 for(const entry of cases){
   runWriteContract({withMoney:entry.withMoney===true,
     appOwnedAllowed:entry.appOwnedAllowed===true,
-    strictArgs:true,args:entry.args,fixtures:settings=>fixture(settings),
+    strictArgs:true,args:entry.args,fixtures:settings=>fixture(settings,entry.name),
     tool:()=>makePaymentWrite(entry.name)});
 }
 describe('D-2 all nine payment write doors',()=>{
   it.each(cases)('$name refuses READ ONLY, LIVE, and mixed batches before provider writes',
     async ({name,args})=>{
-      const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000});
+      const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},name);
       const invoke=(tool,input,conn)=>dispatchReadOnlyTool({registry,name:tool,args:input,
         connection:conn,db:f.db,services:f.ctx.services});
       const readOnly={...f.ctx.connection,profile:'read_only'};
