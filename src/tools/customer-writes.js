@@ -1,5 +1,5 @@
 // Customer TEST writes: all calls are through the shared owner-safe defineWrite contract.
-import {defineWrite} from './write.js';
+import {defineWrite,gone} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
 const profiles=['everyday','full'],full=['full'];
 const id={type:'string',pattern:'^cus_[A-Za-z0-9]{2,100}$'};
@@ -87,7 +87,7 @@ const changed=(obj,args,keys)=>keys.every(k=>args[k]===undefined||
     :obj[k]===args[k]));
 function build(def){
   let created=null;
-  return defineWrite({
+  const operation=defineWrite({
     name:def.name,
     read:async(a,ctx)=>{
       permittedArgs(def,a);
@@ -168,6 +168,15 @@ function build(def){
       return false;
     }
   });
+  // TEST is an invariant on the concrete operation itself, not just its MCP door.
+  return {...operation,handler:(args,ctx)=>
+    ctx?.connection?.mode==='test'?operation.handler(args,ctx):
+      gone('This customer mutation is available in TEST mode only')};
+}
+export function makeCustomerWrite(name){
+  const def=plans.find(x=>x.name===name);
+  if(!def)throw new TypeError('Unknown customer write');
+  return build(def);
 }
 export const tools=plans.map(def=>{
   const op=build(def);
