@@ -7,6 +7,10 @@ export const APP_METADATA_KEYS = Object.freeze([
 ]);
 export const APP_NAME = 'Robinson Appliance Rentals';
 const customerRef = object => object?.customer ?? object?.customer_id ?? object?.customerId;
+const completeCustomer = customer => customer && typeof customer === 'object' &&
+  !Array.isArray(customer) && customer.deleted !== true &&
+  customer.metadata && typeof customer.metadata === 'object' &&
+  !Array.isArray(customer.metadata);
 
 function markerOf(object) {
   const m=object?.metadata;
@@ -29,6 +33,9 @@ export async function findAppOwnership(before, ctx = {}) {
   const customer=customerRef(before);
   if (customer == null) return null;
   if (typeof customer==='object') {
+    if (!completeCustomer(customer)) {
+      return {unknown:true,reason:'Expanded customer metadata is missing or deleted'};
+    }
     const m=markerOf(customer);
     return m ? {app:APP_NAME,recordId:before.id ?? customer.id ?? null,...m,
       via:'customer'} : null;
@@ -41,7 +48,7 @@ export async function findAppOwnership(before, ctx = {}) {
   }
   try {
     const record=await ctx.getCustomer(customer);
-    if (!record || typeof record!=='object') throw Error('Missing customer');
+    if (!completeCustomer(record)) throw Error('Incomplete or deleted customer');
     const m=markerOf(record);
     return m ? {app:APP_NAME,recordId:before.id ?? customer,...m,via:'customer'} : null;
   } catch {
@@ -59,17 +66,15 @@ export function appOwnedDenial(marker) {
     label+'. Changing it outside the rental app could desynchronize billing. Use '+
     ownerScreen(marker)+' instead, or explicitly set outsideApp: true if appropriate.';
 }
-export async function protectAppOwnedTarget(args, ctx, before, {refundException=false}={}) {
+export async function protectAppOwnedTarget(args, ctx, before,
+  {refundException=false, returnOwnership=false}={}) {
   const ownership=await findAppOwnership(before,ctx);
   if (!ownership) return true;
   if (ownership.unknown) return appOwnedDenial(ownership);
-  if (refundException) return true; // The app reconciles refunds; B-1 owner money grant still applies.
+  if (refundException) return returnOwnership ?
+    {allowed:true,ownership} : true; // B-1 owner money grant remains mandatory.
   if (args?.outsideApp === true) return true;
   return appOwnedDenial(ownership);
-}
-export async function appRefundPreviewSuffix(before,ctx) {
-  const marker=await findAppOwnership(before,ctx);
-  return marker && !marker.unknown ? ' The rental app will see this refund and record it.' : '';
 }
 export async function annotateAppRead(object,ctx) {
   const marker=await findAppOwnership(object,ctx);

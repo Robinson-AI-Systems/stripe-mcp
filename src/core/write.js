@@ -59,13 +59,18 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
       }, true);
     }
     const before = await read(args, ctx);
+    let guardContext = null;
     if (targetGuard) {
       const allowed = await targetGuard(args, ctx, before);
-      if (allowed !== true) return respond({ done: false, error: 'App-owned record or unsafe target',
-        reason: typeof allowed === 'string' ? allowed : undefined }, true);
+      if (allowed !== true && allowed?.allowed !== true) {
+        return respond({ done: false, error: 'App-owned record or unsafe target',
+          reason: typeof allowed === 'string' ? allowed : undefined }, true);
+      }
+      // Per invocation, no mutable global state or second customer lookup.
+      guardContext = allowed === true ? null : { ownership:allowed.ownership };
     }
     const prepared = prepare ? await prepare(args, ctx, before) : null;
-    const summaryText = await summarize(before, args, ctx);
+    const summaryText = await summarize(before, args, ctx, guardContext);
     if (typeof summaryText !== 'string' || !summaryText || summaryText.length > 1024 ||
       (prepared !== null && (typeof prepared?.previewLine !== 'string' || !prepared.previewLine ||
        prepared.previewLine.length > 240))) {

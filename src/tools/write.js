@@ -3,23 +3,32 @@ import { defineWrite as defineCoreWrite } from '../core/write.js';
 import { idempotencyKey, classifyStripeWriteError } from '../stripe/client.js';
 import { prepareMoney, reserveMoneyBeforeWrite, settleMoneyAfterWrite } from '../money.js';
 import { authorizeLiveWrite } from './live-guard.js';
-import { protectAppOwnedTarget, appRefundPreviewSuffix } from './app-guard.js';
+import { protectAppOwnedTarget } from './app-guard.js';
 export function defineWrite(spec) {
   if (spec?.money && typeof spec.money !== 'function') throw new TypeError('Money spec must be a function');
+  if (spec?.targetGuard !== undefined && typeof spec.targetGuard !== 'function') {
+    throw new TypeError('Custom targetGuard must be a function');
+  }
+  if (typeof spec?.summarize !== 'function') {
+    throw new TypeError('The guarded write summary must be a function');
+  }
   if (spec?.appOwnedRefundAllowed === true && typeof spec.money !== 'function') {
     throw new TypeError('App-owned refund exception requires the guarded money contract');
   }
   const targetGuard = async (args, ctx, before) => {
-    const appDecision = await protectAppOwnedTarget(args, ctx, before,
-      { refundException:spec?.appOwnedRefundAllowed === true });
-    if (appDecision !== true) return appDecision;
-    return typeof spec?.targetGuard === 'function' ? spec.targetGuard(args, ctx, before) : true;
+    const appDecision = await protectAppOwnedTarget(args, ctx, before, {
+      refundException:spec?.appOwnedRefundAllowed === true,returnOwnership:true
+    });
+    if (appDecision !== true && appDecision?.allowed !== true) return appDecision;
+    const custom = spec?.targetGuard ? await spec.targetGuard(args,ctx,before) : true;
+    if (custom !== true) return custom;
+    return appDecision;
   };
-  const summarize = async (before, args, ctx) => {
+  const summarize = async (before, args, ctx, guarded) => {
     const original = await spec.summarize(before,args,ctx);
     if (typeof original !== 'string') return original;
-    return spec?.appOwnedRefundAllowed === true
-      ? original + await appRefundPreviewSuffix(before,ctx) : original;
+    return spec?.appOwnedRefundAllowed === true && guarded?.ownership
+      ? original + ' The rental app will see this refund and record it.' : original;
   };
   return defineCoreWrite({ ...spec, summarize, targetGuard, idempotency: idempotencyKey,
     classifyError: classifyStripeWriteError,

@@ -105,6 +105,39 @@ describe('B-3 default-deny app ownership guard',()=>{
       connection:{stripeAccount:'acct_APP_SAFE',mode:'test',profile:'full'},connectionId:'test'};
     expect(unpack(await op.handler({dryRun:true},ctx)).error).toMatch(/Safe preview/);
   });
+  it('refuses incomplete expanded/deleted customer objects and incomplete fetched snapshots',async()=>{
+    for(const customer of [{id:'cus_DELETED',deleted:true},{id:'cus_PARTIAL'}]) {
+      const x=fixture({before:{id:'sub_INCOMPLETE',metadata:{},customer}});
+      const result=unpack(await x.op.handler({outsideApp:true,confirm:true},x.ctx));
+      expect(result.done).toBe(false);
+      expect(result.reason).toMatch(/metadata is missing or deleted/);
+      expect(x.calls.written).toBe(0);
+    }
+    const x=fixture({before:{id:'sub_CHILD',metadata:{},customer:'cus_MISSING'},ctxExtras:{
+      getCustomer:async()=>({id:'cus_MISSING',deleted:true})
+    }});
+    expect(unpack(await x.op.handler({outsideApp:true,confirm:true},x.ctx)).reason)
+      .toMatch(/verification failed/);
+    expect(x.calls.written).toBe(0);
+  });
+  it('keeps the same customer ownership snapshot for refund guard and warning',async()=>{
+    let reads=0;
+    const x=fixture({refund:true,before:{id:'ch_CHILD',customer:'cus_REFUND_CHILD',
+      metadata:{},refundableCents:1000},ctxExtras:{
+      getCustomer:async()=>{reads++; if (reads>1) throw Error('second read differs');
+        return {id:'cus_REFUND_CHILD',metadata:{agreementId:'agr_child'}};}
+    }});
+    const preview=unpack(await x.op.handler({dryRun:true},x.ctx));
+    expect(preview.preview).toContain('The rental app will see this refund');
+    expect(reads).toBe(1);
+    expect(x.calls.written).toBe(0);
+  });
+  it('rejects malformed custom target guards at construction',()=>{
+    const spec={name:'stripe_bad_target_guard',read:async()=>({id:'safe'}),
+      summarize:async()=> 'Expected safe summary',apply:async()=>{},readAfter:async()=>({}),
+      verify:async()=>true,targetGuard:'no'};
+    expect(()=>defineWrite(spec)).toThrow(/targetGuard must be a function/);
+  });
   it('prevents claiming the refund exception on a non-money tool',()=>{
     expect(()=>defineWrite({name:'stripe_bad_refund',appOwnedRefundAllowed:true}))
       .toThrow(/money contract/);
