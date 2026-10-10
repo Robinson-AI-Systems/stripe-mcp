@@ -284,13 +284,13 @@
         "B-8"
       ],
       "card": "docs/pr-cards/C-1.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "result_store",
       "budget": 450,
       "units": [
         "C-1"
       ],
-      "readiness": "C1_RESULT_HANDLES_IN_REVIEW_36",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -302,13 +302,13 @@
         "C-1"
       ],
       "card": "docs/pr-cards/C-2.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "C-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {

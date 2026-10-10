@@ -183,3 +183,22 @@ list via protected POST, exact account-scoped, escaped account/tool/target/
 request/amount/expiry fields, actual Colorado-day shared usage and dollar
 limit. No payment or owner approval button exists. This stage DOES NOT
 expose real Stripe write handlers or grant owner spending authority.
+
+### Batch C — compact search and isolated result handles (#36)
+
+Every OAuth connector gets a server-created `result_scope` on the hashed
+token row, stable when the access/refresh hashes rotate but distinct even
+across rows sharing an AI client ID. `result_store` keeps *redacted* JSON
+in bounded UTF-8 fragments for 24 hours. Retrieval through
+`stripe_get_result` requires the same authenticated OAuth row's scope;
+expired handles and cross-connection requests are denied.
+
+Catalog listing is available to Claude AI clients; other clients default
+to compact. An owner can explicitly choose either mode during authorization,
+and `?listing=` overrides **presentation only**, never profile permissions.
+`stripe_search_tools`, `stripe_describe_tool`, `stripe_call`, and
+`stripe_batch` are server-owned progressive-disclosure tools.
+Indirect calls and batches reuse the same dispatcher, with all provider
+writes default denied (and read_only always protected); batches refuse
+any non-read call. All tool descriptions, schemas, listing sizes and
+100-row default output are checked by pinned gpt-tokenizer budgets.

@@ -7,7 +7,7 @@ are currently TEST/read-only. Six server tools are implemented by B-8b1
 `stripe_check_key_permissions` in #29). The other catalog rows are
 planned until their own cards merge. Guarded write internals exist but
 **no AI-accessible Stripe write or live money operation is enabled**.
-B-8 private owner TEST money approvals shipped in #35; all Stripe provider write doors and LIVE remain disabled (IN-06 OFF). C-1 adds the read-only `stripe_get_result` tool with connection-isolated result handles (#36 in review).
+B-8 private owner TEST money approvals shipped in #35; all Stripe provider write doors and LIVE remain disabled (IN-06 OFF). Batch C ships summaries, compact/catalog listing, scoped result handles and the four safe discovery tools in #36. No provider write surface is enabled.
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
@@ -42,11 +42,11 @@ D-1 adds `docs/TOOLKIT-NAME-MAP.md` mapping every old toolkit name to its new na
 | `stripe_set_money_limit` | Private owner-only per-account USD cap change; no AI-callable tool yet, every money-out still requires owner consent | C | private owner flow #33; MCP planned | F |
 | `stripe_recent_changes` | Account-scoped audit summaries without raw snapshots (advanced filters later) | — | built B-8a | R |
 | `stripe_undo_change` | Undo one change-log entry when it has a clean opposite; says plainly when it does not | C | N | E |
-| `stripe_search_tools` | Find tools by plain words; one line each with safety marks (compact mode's front door) | — | N | R |
-| `stripe_describe_tool` | Full instructions and arguments for one tool | — | N | R |
-| `stripe_call` | Run any tool in the profile by name, through the same guards | as the tool | N | R |
-| `stripe_batch` | Up to 10 read calls in one round trip | — | N | R |
-| `stripe_get_result` | Page through a big redacted result restricted to the same OAuth connection for 24 hours | — | built #36 (in review) | R |
+| `stripe_search_tools` | Find tools by plain words; one line each with safety marks (compact mode's front door) | — | built #36 | R |
+| `stripe_describe_tool` | Full instructions and arguments for one tool | — | built #36 | R |
+| `stripe_call` | Run any tool in the profile by name, through the same guards | as the tool | built #36 | R |
+| `stripe_batch` | Up to 10 read calls in one round trip | — | built #36 | R |
+| `stripe_get_result` | Page through a big redacted result restricted to the same OAuth connection for 24 hours | — | built #36 | R |
 | `stripe_create_pass` | Make a short-lived pass for the HTTPS API and Robinson's Toolkit (shown once on the setup page; test, read-only, 24 h, $0 by default; RTC §2) | C | N | F |
 | `stripe_where_is_setting` | Common dashboard-only setting guidance, no API write | — | built B-8a | R |
 

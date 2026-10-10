@@ -25,7 +25,7 @@ export function listingForConnection(registry,connection,override){
     t.name==='api_search'||t.name.startsWith('workflow_')):available;
 }
 export function publicToolInfo(tool) {
-  const {writes:_writes,profiles:_profiles,...rest}=tool;
+  const {writes:_writes,profiles:_profiles,area:_area,...rest}=tool;
   const schema=rest.inputSchema||{type:'object',properties:{},additionalProperties:false};
   const properties={...schema.properties};
   // Keep legacy specialist shapes unchanged. Generic read tools gain the

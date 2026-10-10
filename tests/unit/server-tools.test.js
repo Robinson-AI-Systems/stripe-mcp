@@ -19,7 +19,10 @@ describe('MCP metadata-tool safety boundary',()=>{
     expect(info.moneyTrackingStatus).toMatch(/Shared account-wide/);
     expect(JSON.stringify(info)).not.toContain('cipher-only');
     const list=await read(db,'stripe_list_accounts');
-    expect(JSON.parse(list.content[0].text).accounts).toEqual([{
+    const accountsResult=JSON.parse(list.content[0].text);
+    expect(accountsResult.hasMore).toBe(false);
+    expect(accountsResult.nextOffset).toBeNull();
+    expect(accountsResult.accounts).toEqual([{
       account:'acct_FAKESETUP',label:'My Project',isDefault:true,testConfigured:true,
       liveConfigured:false,liveEnabled:false
     }]);
@@ -35,5 +38,24 @@ describe('MCP metadata-tool safety boundary',()=>{
     expect(call.isError).toBe(true);
     expect(JSON.stringify(call)).not.toContain('should never run');
     expect((await read(db,'stripe_whoami','not-a-profile')).isError).toBe(true);
+  });
+  it('bounds account listings to at most 100, with explained next page',async()=>{
+    const db=createFakeDb({accounts:Array.from({length:40},(_,i)=>({
+      id:'acct_BATCH'+i,label:'Test account '+i}))});
+    const connection={stripeAccount:'acct_BATCH0',mode:'test',profile:'full'};
+    const page=await dispatchReadOnlyTool({registry,name:'stripe_list_accounts',
+      args:{limit:20,offset:0},connection,db});
+    const first=JSON.parse(page.content[0].text);
+    expect(first.accounts).toHaveLength(20);
+    expect(first.hasMore).toBe(true);
+    expect(first.nextOffset).toBe(20);
+    expect(first.pageHint).toMatch(/next page/);
+    const next=JSON.parse((await dispatchReadOnlyTool({registry,
+      name:'stripe_list_accounts',args:{limit:20,offset:20},connection,db}))
+      .content[0].text);
+    expect(next.accounts).toHaveLength(20);
+    expect(next.hasMore).toBe(false);
+    expect((await dispatchReadOnlyTool({registry,name:'stripe_list_accounts',
+      args:{limit:101},connection,db})).isError).toBe(true);
   });
 });
