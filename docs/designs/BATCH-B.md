@@ -121,3 +121,23 @@ Tests: per tool through the write-contract helper; enable-live alone never sets 
 ## Amendments
 
 (Dated entries only.)
+
+
+## Amendment — 2026-10-10, owner-approved IN-05
+
+**Supersedes B3 per-connection scope**: default budget is $500 USD per Stripe account
+per America/Denver calendar day, summed across all AI agent connections. Existing
+per-connection IDs remain for audit, but must not partition the cap or allow double-use
+of a request key across connections.
+
+**Adds mandatory independent approval**: for every AI-initiated money-out operation, the
+owner must authenticate through an owner-only page and approve an exact provider-derived
+amount, account, tool, target and idempotency key. `confirm:true` is only agent intent.
+An approval is single-use and expires; a replay never spends twice. A transaction that
+would push cumulative daily spend above the standard cap additionally requires a
+distinct explicit owner over-limit confirmation, bound to that same request. A one-time
+override does not change `money_limit_cents` or lift the limit for other operations.
+Rejected requests do not consume daily dollars, but retain spent request IDs. Unknown
+outcomes remain reserved until reconciled. Keep all provider writes unexposed until
+the secure approval flow is fully implemented and tested. This amendment was directly
+approved by Chris in the implementation conversation on 2026-10-10.
