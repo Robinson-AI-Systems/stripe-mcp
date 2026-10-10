@@ -18,5 +18,6 @@ export async function requireMcpToken(req, res, db, env = process.env) {
     return null;
   }
   return Object.freeze({ clientId: record.client_id, stripeAccount: record.stripe_account,
-    mode: record.mode, profile: record.profile, listing: record.listing });
+    mode: record.mode, profile: record.profile, listing: record.listing,
+    resultScope: record.result_scope });
 }
