@@ -217,3 +217,17 @@ confirmation, idempotency, audit and read-back. Customer credits also require
 separately authenticated exact-transaction owner approval and the shared daily
 spending cap. `stripe_call` reuses the direct dispatcher; `stripe_batch`
 remains read-only. No legacy agent names, aliases or adapters are built.
+
+### Batch D-2 — native TEST payments and refunds
+
+Nineteen payment, charge, refund and setup-intent operations share the
+OAuth-selected TEST Stripe client. Ten read tools produce bounded,
+allowlisted summaries without payment credentials or client secrets.
+Nine mutations use the full `defineWrite-v1` lifecycle, app ownership
+guard, explicit confirmation, stable idempotency and provider read-back;
+`stripe_call` delegates to the same dispatcher and `stripe_batch`
+remains read-only. Outgoing refunds first verify the charge's refundable
+USD remainder and require exact independent owner authorization, with a
+second override above the shared $500 Colorado-day limit. Incoming
+charges/captures are confirmed but do not consume the outgoing limit.
+LIVE is OFF and no real provider operation has been executed.

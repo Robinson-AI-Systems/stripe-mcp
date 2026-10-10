@@ -338,13 +338,13 @@
         "D-1"
       ],
       "card": "docs/pr-cards/D-2.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 450,
       "units": [
         "D-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "D2_19_NATIVE_PAYMENT_TOOLS_IN_REVIEW",
       "ownerInputs": []
     },
     {

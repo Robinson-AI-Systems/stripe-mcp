@@ -13,7 +13,8 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - **Last merged:** #37 D-1 native TEST customer tools, #36 complete Batch C, #35 independent TEST owner consent, #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
-- **D-1 merged (#37):** all 17 native TEST customer tools (8 reads, 9 guarded writes) with masked methods, safe addresses, credit/debit independent owner approval, app-owned protection and seven-case real-handler tests for every write. Exact-head unit, DB, Stripe-mock, check and aggregate CI and code review all passed. No legacy aliases. **Next: D-2 payments/refunds**.
+- **D-1 merged (#37):** 17 current-native TEST customer tools, approved and tested, with no old-toolkit compatibility.
+- **D-2 in review:** all 19 native TEST payment/charge/refund/setup tools, ten redacted reads and nine guarded writes; unit, nine-write contract, and Stripe-mock tests committed. Exact-head CI/review required before merge. D-3 checkout/portal is next.
 - **IN-05:** $500 USD/account/Colorado day shared across AI connections,
   all money-out separately owner-approved, above limit a second override.
   **IN-06 remains OFF.** Nine guarded TEST-only customer write tools exist in code. No LIVE credentials, real provider money movement, paid infrastructure or operational deployment.

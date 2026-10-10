@@ -68,3 +68,14 @@ Extra: regression tests for audit bugs 1, 3, 4 and 5 (preview endpoint, item per
 | Audit bugs 1, 3, 4, 5 cannot recur | D-4 regression tests |
 
 ## Amendments
+
+### D-2 monetary direction clarification (2026-10-10)
+
+Charging customers through an authorized saved method and capturing an
+authorization are incoming USD funds, not money-out. They require
+verified amounts, explicit confirmation, idempotency, audit and read-back;
+they do not consume the owner's outgoing $500 per-account Colorado-day
+limit. Refunds ARE money-out: owner separately approves the exact
+provider-verified charge and amount even at $0.01, and separately
+overrides the daily cap when exceeded. This clarifies the original `$`
+shorthand without loosening any money-out approval or LIVE gate.

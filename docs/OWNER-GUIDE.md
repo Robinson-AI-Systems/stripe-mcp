@@ -37,6 +37,9 @@ it does not work yet. This file is updated as features ship.
 | "Show saved cards and banks for this customer." | Only masked payment method details; no card numbers or secrets | D-1 / #37 |
 | "Update this customer's TEST contact details." | Protected preview, explicit confirm and app-owned-record restriction | D-1 / #37 |
 | "Give this customer a TEST credit." | Independent exact owner confirmation and shared daily money guard are required | D-1 / #37 |
+| "Find a TEST payment and show why its charge failed." | Safe status, outcome and decline summaries, with no card or client secrets | D-2 |
+| "Refund the remaining amount of this TEST charge." | Provider amount verified before separate exact owner approval; extra override above daily cap | D-2 |
+| "Cancel a TEST refund that requires customer action." | Only refunds in requires_action can be canceled, after guarded preview and confirmation | D-2 |
 | "Get the next page of that large Stripe result." | When a read exceeds 8 KB, the server gives a private result handle; this tool retrieves short pages through the same authenticated connection, never another agent’s connection | C-1 / #36 |
 | "What changed in Stripe through Claude recently?" | Read the authenticated account's safely paged, TEST-mode change summaries (no raw snapshots); advanced filtering is still planned | B-8a |
 | "Undo that." | Reverses the last change when it has a clean opposite; says plainly when it doesn't | X |
