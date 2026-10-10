@@ -6,6 +6,7 @@
     "B",
     "C",
     "D",
+    "V",
     "G",
     "H",
     "P",
@@ -394,12 +395,102 @@
       "ownerInputs": []
     },
     {
+      "id": "V-1",
+      "title": "Seed and runs",
+      "batch": "V",
+      "design": "docs/designs/BATCH-V.md",
+      "dependencies": [
+        "D-5"
+      ],
+      "card": "docs/pr-cards/V-1.md",
+      "status": "APPROVED",
+      "migration": "dev_tables",
+      "budget": 450,
+      "units": [
+        "V-1"
+      ],
+      "readiness": "WRITE_CARD_AT_START",
+      "ownerInputs": []
+    },
+    {
+      "id": "V-2",
+      "title": "Cleanup",
+      "batch": "V",
+      "design": "docs/designs/BATCH-V.md",
+      "dependencies": [
+        "V-1"
+      ],
+      "card": "docs/pr-cards/V-2.md",
+      "status": "APPROVED",
+      "migration": "none",
+      "budget": 450,
+      "units": [
+        "V-2"
+      ],
+      "readiness": "WRITE_CARD_AT_START",
+      "ownerInputs": []
+    },
+    {
+      "id": "V-3",
+      "title": "Trigger events",
+      "batch": "V",
+      "design": "docs/designs/BATCH-V.md",
+      "dependencies": [
+        "V-2"
+      ],
+      "card": "docs/pr-cards/V-3.md",
+      "status": "APPROVED",
+      "migration": "none",
+      "budget": 450,
+      "units": [
+        "V-3"
+      ],
+      "readiness": "WRITE_CARD_AT_START",
+      "ownerInputs": []
+    },
+    {
+      "id": "V-4",
+      "title": "Event forwarding",
+      "batch": "V",
+      "design": "docs/designs/BATCH-V.md",
+      "dependencies": [
+        "V-3"
+      ],
+      "card": "docs/pr-cards/V-4.md",
+      "status": "APPROVED",
+      "migration": "none",
+      "budget": 450,
+      "units": [
+        "V-4"
+      ],
+      "readiness": "WRITE_CARD_AT_START",
+      "ownerInputs": []
+    },
+    {
+      "id": "V-5",
+      "title": "Test clocks, subscription simulation, test cards",
+      "batch": "V",
+      "design": "docs/designs/BATCH-V.md",
+      "dependencies": [
+        "V-4"
+      ],
+      "card": "docs/pr-cards/V-5.md",
+      "status": "APPROVED",
+      "migration": "none",
+      "budget": 450,
+      "units": [
+        "V-5"
+      ],
+      "readiness": "WRITE_CARD_AT_START",
+      "ownerInputs": []
+    },
+    {
       "id": "G-1",
       "title": "Balance, payouts, top-ups, bank accounts, reports",
       "batch": "G",
       "design": "docs/designs/BATCH-G.md",
       "dependencies": [
-        "D-5"
+        "V-5"
       ],
       "card": "docs/pr-cards/G-1.md",
       "status": "APPROVED",
@@ -898,30 +989,12 @@
       "ownerInputs": []
     },
     {
-      "id": "E-5",
-      "title": "Test clocks",
-      "batch": "E",
-      "design": "docs/designs/BATCH-E.md",
-      "dependencies": [
-        "E-4"
-      ],
-      "card": "docs/pr-cards/E-5.md",
-      "status": "APPROVED",
-      "migration": "none",
-      "budget": 200,
-      "units": [
-        "E-5"
-      ],
-      "readiness": "WRITE_CARD_AT_START",
-      "ownerInputs": []
-    },
-    {
       "id": "X-1",
       "title": "Undo",
       "batch": "X",
       "design": "docs/designs/BATCH-X.md",
       "dependencies": [
-        "E-5"
+        "E-4"
       ],
       "card": "docs/pr-cards/X-1.md",
       "status": "APPROVED",

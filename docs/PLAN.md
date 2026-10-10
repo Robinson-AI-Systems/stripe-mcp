@@ -40,6 +40,11 @@ next bounded implementation.
 - [ ] No `client_secret` in any result; setup via hosted Checkout.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. `docs/TOOLKIT-NAME-MAP.md` complete.
 
+## Batch V — Developer tools (`designs/BATCH-V.md`)
+- [ ] Seed scenarios with every created object recorded; cleanup touches only recorded objects.
+- [ ] Real test events triggered; events forwarded to an app under development with valid signatures; private URLs refused.
+- [ ] Test clocks and subscription simulation; test cards; every tool refuses live mode.
+
 ## Batch G — Money out, disputes, risk, events, account (`designs/BATCH-G.md`)
 - [ ] Every listed tool built; Radar-rules question answered from Stripe's description.
 - [ ] Webhook signing secrets only via the one-time page.
@@ -52,8 +57,8 @@ next bounded implementation.
 ## Batch P — Project profiles (`designs/BATCH-P.md`)
 - [ ] `known_apps` with the Appliance Desk profile, each item traceable to the app's code.
 - [ ] App guard reads profiles and names the owning app.
-- [ ] `workflow_app_readiness` covers all 21 Appliance Desk rows; fixes are previewed and confirmed; never creates a profiled app's catalog.
-- [ ] `workflow_project_setup` for new projects, idempotent.
+- [ ] `workflow_app_readiness` covers all 21 rows of the example profile and works with an inline spec; fixes previewed and confirmed; never creates a profiled app's catalog.
+- [ ] `workflow_project_setup` for new projects, idempotent; `project_draft_profile` from codebase findings.
 
 ## Batch W — Workflows (`designs/BATCH-W.md`)
 - [ ] All 13 workflows; MRR correct per W3; webhook fix exact; all writes confirmed and logged.
@@ -66,8 +71,8 @@ next bounded implementation.
 - [ ] Same seven write-contract checks through MCP, `stripe_call` and HTTPS.
 - [ ] RTC 1 conformance green in CI.
 
-## Batch E — Catalog, Stripe Tax, usage, quotes, test clocks (`designs/BATCH-E.md`)
-- [ ] Every listed tool built; profiled apps' catalogs never touched; no legacy usage records; test clocks refuse live.
+## Batch E — Catalog, Stripe Tax, usage, quotes (`designs/BATCH-E.md`)
+- [ ] Every listed tool built; profiled apps' catalogs never touched; no legacy usage records.
 
 ## Batch X — Undo, smoke test, toolkit decision (`designs/BATCH-X.md`)
 - [ ] Undo for every clean opposite; read-only smoke report on test mode; toolkit decision note delivered.

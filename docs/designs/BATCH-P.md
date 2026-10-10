@@ -1,13 +1,14 @@
-# Design — Batch P: Project profiles (any app that runs billing on Stripe)
+# Design — Batch P: Project profiles (any app you build that runs billing on Stripe)
 
 Status: **APPROVED** (Chris, 2026-10-10, IN-00). Written 2026-10-10. Scope and acceptance: `docs/PLAN.md` → Batch P.
 Cards P-1 … P-4. Depends on Batches B, D, G, H.
 
-The Stripe MCP is general-purpose. Some of Chris's projects run their own Stripe billing in code (Appliance Desk today;
-YardSync and Cortiware later). For those, the server must know three things, or it will fight the app: which Stripe
-records the app owns, which webhook events it relies on, and how to check that Stripe is set up for it. A **project
-profile** holds exactly that. Projects that don't have their own billing code need no profile; they use the server
-directly (and `workflow_project_setup`).
+The Stripe MCP is a general development tool. Any app Chris builds — a business system, a prototype, another tool —
+may run its own Stripe billing in code. For such an app the server must know three things, or it will fight the app:
+which Stripe records the app owns, which webhook events it relies on, and how to check that Stripe is set up for it. A
+**project profile** holds exactly that. Profiles are **optional**: work that involves no app with its own billing code
+needs none. Appliance Desk is simply the first example profile (`docs/APP-NEEDS-APPLIANCE-DESK.md`); it was used to
+prove the design is complete, not to shape it.
 
 ## 0. Verify before starting
 
@@ -32,7 +33,8 @@ fail: leave subscription past due"), `record_links` (URL templates per metadata 
 **P3. Ownership is per profile.** The app guard (B-3) checks every profile on the connection's Stripe account and reports
 which app owns a record. No profile on an account → the guard is inactive there.
 
-**P4. `workflow_app_readiness(app, mode)`** checks every row of the profile and returns, per row: done / fixed (with confirm)
+**P4. `workflow_app_readiness(app | spec, mode)`** checks every row of a profile — or of an inline `spec` (events,
+payment methods, portal rules, key permissions) for a project that has no profile yet, e.g. one being built today — and returns, per row: done / fixed (with confirm)
 / needs you (link + numbered clicks) / needs a decision (`IN-xx`). It can fix, each previewed and confirmed: missing
 webhook events, payment methods off, portal allowing cancel or plan switch, branding (via Batch H). It never creates
 products, prices or tax rates for a profile with `owns_catalog`/`owns_tax_rates`.
@@ -43,6 +45,11 @@ what that project needs in Stripe: webhook endpoint with the events the project 
 portal configuration, payment method settings, brand kit, and — only when the project will not own its catalog —
 products and prices by lookup key. It finishes by writing a draft profile row (`status: draft`) and the text for the
 project's `APP-NEEDS-<APP>.md`, for Chris or the project's agent to commit in that project's repo.
+
+**P5b. `project_draft_profile(findings)`** turns what an agent found in a codebase (the Stripe calls, webhook event
+types, metadata keys and Checkout modes it uses — the `rtool` skill tells agents how to collect these with a few
+`grep`s) into a draft profile and `APP-NEEDS` text, so any existing project can be profiled in minutes. It never
+fetches code itself.
 
 **P6. App's own restricted key.** Readiness prints the exact permission list (from the profile) to tick when Chris
 creates the app's key in Stripe; Stripe has no API to create keys.
@@ -67,9 +74,10 @@ Results carry the app URL for a record (from `record_links`).
 ### P-3 — `workflow_app_readiness` (L, medium effort)
 Tests with fixtures for the 21 Appliance Desk rows: webhook missing two events → one confirmed fix → read-back; portal
 allows cancel → fix; ACH off → fix; owns_catalog → never creates products; guided rows return link + steps.
-### P-4 — `workflow_project_setup` (M)
+### P-4 — `workflow_project_setup` and `project_draft_profile` (M)
 Tests: a monthly-subscription project without its own catalog gets products/prices by lookup key (run twice → nothing
-new); a project with its own catalog gets none; the draft profile and doc text are returned, never committed elsewhere.
+new); a project with its own catalog gets none; the draft profile and doc text are returned, never committed elsewhere; findings with an unknown event type are
+reported, not guessed; readiness with an inline spec behaves like a profile.
 
 ## 5. Stop-and-ask points
 

@@ -8,7 +8,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - **Ready now:** A-1 — repository, test harness, CI and doc checks ([card](pr-cards/A-1.md)). Then A-2 … A-6 (JIT).
 - **Answered 2026-10-10:** IN-00 plan approved; IN-01 repository stays public, no automated (Codex) review — the
   implementer self-reviews every diff (AGENTS "Review").
-- **Queue:** A → B → C → D → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
+- **Queue:** A → B → C → D → V → G → H → P → W → U → R → E → X (`MASTER-ROADMAP.md`).
 
 ## Environment
 
@@ -17,6 +17,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
 
 ## Recent merges (newest first)
+
+**2026-10-10 — General development tool (docs PR):** Batch V developer tools added; test clocks moved from E; project
+profiles made optional and general; Appliance Desk framed as an example and completeness check.
 
 **2026-10-10 — Hub architecture (docs PR):** Batch R now provides only the Robinson Tool Contract doors (passes, HTTPS
 API, manifest, conformance); CLI, relay and recipes moved to Robinson's Toolkit. Contract-generic code goes in `src/core/`.

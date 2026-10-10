@@ -2,7 +2,7 @@
 
 Every tool this server will have, by area — the product scope. The implementing model builds exactly these;
 anything else goes in `docs/ROADMAP.md` and the PR report. Which batch builds each area: Server tools B-8/C-2/R-1/X-1,
-Customers…Invoices D, Catalog/Tax/Usage/quotes/test clocks E, Money out…Reports G, Branding H, Universal U,
+Customers…Invoices D, Catalog/Tax/Usage/quotes E, Developer tools and test clocks V, Money out…Reports G, Branding H, Universal U,
 Project profiles P, Workflows W. When a tool merges, its Origin cell gains `built #<PR>`.
 
 **Origin:** `C` carried over from the toolkit (port to the new conventions),
@@ -233,7 +233,7 @@ removing a payout bank account is done in the dashboard, which
 
 Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; G-3 checks).
 
-## Events and webhooks (`event_*`, `webhook_*`, `testclock_*`) — 15
+## Events and webhooks (`event_*`, `webhook_*`) — 11
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
@@ -245,7 +245,24 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `webhook_add_events` / `webhook_remove_events` | Add or remove event types without retyping the list | P / C | N | E |
 | `webhook_delete` | Delete an endpoint | C | C | F |
 | `webhook_check_signature` | Check a pasted test payload + signature header against an endpoint (paste the secret on the setup page, never in chat) | — | R | F |
-| `testclock_list` / `testclock_create` / `testclock_advance` / `testclock_delete` | Test clocks: run a test customer's subscription months ahead in minutes (test mode only) | — / P / P / C | N | F |
+
+## Developer tools (`dev_*`, `testclock_*`) — 16 (test mode only; `docs/designs/BATCH-V.md`)
+
+Building with Stripe on any project: realistic test data, precise cleanup, real test events, forwarding events into an
+app under development, and time travel. Every tool refuses on a live connection.
+
+| Tool | What it does | Safety | Origin | Profile |
+| --- | --- | --- | --- | --- |
+| `dev_seed` | Create realistic test data from named scenarios (store, subscriptions incl. past-due, disputes, ACH) or a plain description; every object recorded in a run | P | N | E |
+| `dev_list_runs` | Seed runs and what each created | — | N | R |
+| `dev_cleanup` | Remove exactly what a run created (customers, invoices voided, products/prices archived) | C | N | E |
+| `dev_reset_test_data` | Stripe's "delete all test data" — guided link and steps (no API) | — | N | E |
+| `dev_list_triggers` / `dev_trigger_event` | Make Stripe emit a real test event (~30 common types) by doing the real test-mode action | — / P | N | E |
+| `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | A target URL for an app under development; its signing secret shown once on the setup page | C / — / C | N | E |
+| `dev_forward_events` | Send real events (by ID, type or time) to a forwarder, correctly signed — replay into a local or preview app without the Stripe CLI | P | N | E |
+| `testclock_list` / `testclock_create` / `testclock_advance` / `testclock_delete` | Test clocks: move a test customer's time forward | — / P / P / C | N | E |
+| `dev_simulate_subscription` | Run a subscription for N months on a test clock and get the timeline of invoices, payments and events | P | N | E |
+| `dev_test_cards` | The right Stripe test card or bank account for a situation (success, decline, 3-D Secure, dispute, ACH) | — | N | R |
 
 ## Reports and account (`report_*`, `account_*`) — 10
 
@@ -300,16 +317,17 @@ Removed from `account_*` to avoid two tools doing one job:
 `account_update_profile` (now `brand_set_public_details` and
 `brand_set_statement_descriptor`).
 
-## Project profiles (`project_*`, readiness and setup) — 5
+## Project profiles (`project_*`, readiness and setup) — 6
 
-For projects whose own code runs Stripe billing (Appliance Desk today; YardSync, Cortiware later). See
-`docs/designs/BATCH-P.md` and `docs/APP-NEEDS-APPLIANCE-DESK.md` (the first profile).
+Optional, for any app you build whose own code runs Stripe billing. See `docs/designs/BATCH-P.md` and
+`docs/APP-NEEDS-APPLIANCE-DESK.md` (an example profile).
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
 | `project_list` / `project_get` | Profiled projects on this server and what each needs from Stripe | — | N | R |
 | `project_update_profile` | Change a profile (events, ownership keys, portal rules) after the project's own code changes | C | N | F |
-| `workflow_app_readiness` | Is Stripe set up for this project (test or live)? Every need: done / fixed (with confirm) / needs you (link + clicks) / needs a decision; prints the exact permission list for the project's own restricted key | C* (only when applying a fix) | N | E |
+| `project_draft_profile` | Draft a profile from what an agent found in a codebase (Stripe calls, events, metadata keys) | — | N | E |
+| `workflow_app_readiness` | Is Stripe set up for this project (test or live; a profile or an inline spec for a project being built)? Every need: done / fixed (with confirm) / needs you (link + clicks) / needs a decision; prints the exact permission list for the project's own restricted key | C* (only when applying a fix) | N | E |
 | `workflow_project_setup` | Start Stripe for a **new** project from a short plain description: webhook (secret via one-time page), portal, payment methods, brand kit, and products/prices only if the project won't create its own; returns a draft profile and the text for its `APP-NEEDS` file | C | N | F |
 
 ## Workflows (`workflow_*`) — 13
@@ -403,7 +421,7 @@ the result where Stripe lets it read the setting back.
 
 ## Totals
 
-283 hand-built tools plus the 4 universal `api_*` tools (287 in all; 303 with Connect). The universal tools reach every other Stripe operation. The `everyday` profile
+296 hand-built tools plus the 4 universal `api_*` tools (300 in all; 316 with Connect). The universal tools reach every other Stripe operation. The `everyday` profile
 has about 125; `read_only` about 115 (B-6 prints the exact numbers). In compact mode (`docs/designs/BATCH-C.md`)
 an agent loads only about 20 of them up front and reaches the rest through
 `stripe_search_tools` / `stripe_call`.
