@@ -11,7 +11,10 @@ import { readDetail,splitResult,resultPage } from '../tools/result-rules.js';
 
 export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} }) {
   const item = registry.tools.find(t => t.name === name);
-  if (!isToolAllowed(item,connection?.profile)) {
+  const guardedWrite=item?.writes===true&&item?.writeContract==='defineWrite-v1'&&
+    item?.area==='customers'&&connection?.mode==='test'&&
+    ['everyday','full'].includes(connection?.profile);
+  if (!isToolAllowed(item,connection?.profile,{allowWrites:guardedWrite})) {
     return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};
   }
   const handler = registry.handlers[name];
