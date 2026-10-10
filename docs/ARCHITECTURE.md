@@ -42,6 +42,10 @@ Six additive indexes support code/token expiry, login lockout, changes and secre
 
 A-3b provides `/api/oauth/register`, `/api/oauth/authorize`, `/api/oauth/token`, `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource`, `/api/mcp`, `/api` (status). OAuth access credentials expire after one hour; hashed refresh credentials persist until revocation and rotate on use. The MCP bearer token is not used with Stripe.
 
+## Safety (Batch B in progress)
+
+B-1a adds `src/core/write.js` and `src/tools/write.js` for an internal-only TEST-mode preview→confirmation→idempotency→read-back lifecycle and `src/db.js.recordChange` for existing `change_log` audit persistence. **No write tool is registered in the MCP yet; all money operations still fail closed.** B-1b owns daily money-out enforcement; B-2/B-3 add live/app ownership guards before any public write tools.
+
 ## Stripe API version
 
 `src/stripe/client.js` pins the official Stripe Node SDK (package lock: v23.0.0) to `2026-09-30.endive`. Keys are passed only from the encrypted store (planned A-5) and never held in this repo. Non-production deployments refuse live keys; test-only transport override cannot be selected by a production request. The exact published Stripe v2556 SDK OpenAPI description is vendored in 23 byte-preserving parts under `vendor/stripe-openapi/` due the GitHub write-size limit. `scripts/stripe-openapi.mjs` checks the reconstructed Git blob SHA-1 `509de1b4510d2c03ad8755d06778c1deb5619c7f`, version and path count before using it. `scripts/openapi-find.mjs` provides capped, read-only lookups and prints the SHA-256 on `--verify`; SOURCE.md preserves provenance.

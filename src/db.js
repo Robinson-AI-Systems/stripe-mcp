@@ -150,6 +150,23 @@ export function createDb(sql = getProductionSql()) {
         RETURNING stripe_account, mode, kind, ciphertext`;
       return rows[0] || null;
     },
+    async recordChange({ account = null, mode = 'test', connection = null, tool, target = null, summary,
+      before = null, after = null, dryRun = false, amountCents = null, currency = null,
+      direction = null, idempotencyKey = null, inverse = null }) {
+      if (typeof tool !== 'string' || !tool || typeof summary !== 'string' || !summary) {
+        throw new TypeError('Tool and safe summary required for audit record');
+      }
+      const rows = await sql`INSERT INTO change_log
+        (stripe_account, mode, connection, tool, target, summary,
+         before, after, dry_run, amount_cents, currency, direction, idempotency_key, inverse)
+        VALUES (${account}, ${mode}, ${connection}, ${tool}, ${target}, ${summary},
+          ${before === null ? null : JSON.stringify(before)}::jsonb,
+          ${after === null ? null : JSON.stringify(after)}::jsonb,
+          ${dryRun}, ${amountCents}, ${currency}, ${direction}, ${idempotencyKey},
+          ${inverse === null ? null : JSON.stringify(inverse)}::jsonb)
+        RETURNING id`;
+      return rows[0]?.id;
+    },
     async initSchema() {
       await sql`CREATE TABLE IF NOT EXISTS stripe_accounts (
         id TEXT PRIMARY KEY,
