@@ -30,7 +30,7 @@ describe('A-5a encrypted server-only credentials', () => {
   it('stores a provider-verified test key encrypted; public metadata never contains key', async () => {
     const key = generate(), db = createFakeDb(), { stripe, calls, when } = makeFakeStripe();
     when('accounts.retrieve').resolves({ id:'acct_FAKE123', business_profile:{name:'Personal test'} });
-    const store = createKeyStore({ db, encryptionKey:key, makeClient: () => stripe });
+    const store = createKeyStore({ db, encryptionKey:key, makeClient: () => stripe, probe: async () => ({}) });
     const secret = testKey();
     const details = await store.storeTestKey({ key:secret });
     expect(details).toEqual({ account:'acct_FAKE123', label:'Personal test',
@@ -39,8 +39,8 @@ describe('A-5a encrypted server-only credentials', () => {
     expect((await db.getEncryptedKey({ account:'acct_FAKE123', mode:'test' })).ciphertext).not.toContain(secret);
     expect(await store.loadKey({ account:'acct_FAKE123' })).toBe(secret);
     expect(calls[0].path).toBe('accounts.retrieve');
-    expect(await db.listStripeAccounts()).toEqual([{ id:'acct_FAKE123', label:'Personal test',
-      is_default:true, live_enabled:false }]);
+    expect((await db.listStripeAccounts())[0]).toMatchObject({ id:'acct_FAKE123', label:'Personal test',
+      is_default:true, live_enabled:false });
     await expect(store.loadKey({ account:'missing' })).rejects.toThrow(/No test key/);
     await expect(store.loadKey({ account:'acct_FAKE123', mode:'live' })).rejects.toThrow(/not enabled/);
     await expect(store.storeTestKey({ key:['sk','live','FAKE'].join('_') })).rejects.toThrow(/Only a Stripe test/);

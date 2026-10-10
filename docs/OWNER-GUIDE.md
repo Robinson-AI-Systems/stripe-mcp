@@ -11,7 +11,8 @@ it does not work yet. This file is updated as features ship.
 | "What happens to this subscription over 6 months?" | Runs it on a test clock and shows every invoice and event | V |
 | "Review my Stripe account." | Business details, what Stripe still needs from you, payouts, branding, security, fees — ok or needs attention | G |
 | "Add Sam to my Stripe team." / "Turn off Stripe's failed-payment emails." | Stripe has no API for these, so you get exact steps (or a browser walk-through with `rtool guide`), then it checks the result where it can | G |
-| "Who am I connected to in Stripe?" | Account, TEST or LIVE, your money limit and how much is used today | A/B |
+| "Who am I connected to in Stripe?" | Account, TEST or LIVE, profile and masked key; daily limit appears, but today’s usage is unavailable until B | A/B |
+| "Which Stripe test accounts have I connected?" | Lists account labels and connection status without revealing keys | A-5 |
 | "How's the money looking this month?" | Balance, payouts coming, money in and out, monthly recurring revenue, failed payments, disputes | W |
 | "Who didn't pay this week and why?" | Each failed payment, the reason in plain words, when Stripe retries, the link to send them | W |
 | "Refund the Hendersons' deposit." | Finds the right charge, shows the exact amount, asks you, refunds, confirms | W |

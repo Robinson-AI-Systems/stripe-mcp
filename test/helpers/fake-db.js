@@ -85,7 +85,9 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async countRecentFailedLogins(ip, minutes) {
       return attempts.filter((a) => a.ip === ip && !a.success && a.at > clock() - minutes * 60000).length;
     },
-    async listStripeAccounts() { return structuredClone([...accountRows.values()]); },
+    async listStripeAccounts() { return structuredClone([...accountRows.values()].map(a => ({
+      ...a, test_connected: encryptedTestKeys.has(a.id), live_connected: false
+    }))); },
     async getStripeAccount(id) { return structuredClone(accountRows.get(id) || null); },
     async saveTestKey({ account, label, ciphertext, kind, last4 }) {
       const before = accountRows.get(account) || { id: account, is_default: accountRows.size === 0,
