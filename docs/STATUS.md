@@ -6,7 +6,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 ## Next
 
 - **B-8c2 (PR #35, in review):** carries B-8c1 (#34 merged), adds private two-stage owner consent for each exact TEST transaction and a separate password-authenticated owner over-limit override. New one-use decision intents bind Stripe-derived request identity. No money-moving Stripe tool is exposed. Targeted unit and disposable PostgreSQL test files are committed; exact-head CI and self-review are required before merge.
-- **Last merged:** #33 money-cap owner management (`91236b8`), #32 default
+- **Last merged:** #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
 - **Next after B-8c2 merge:** C-1 result summaries, field metadata and handles. Batch B-8 remains IN_PROGRESS until B-8c2 exact-head green merge and Batch B drift-C closeout; C-1 cannot merge ahead of its prerequisite.
