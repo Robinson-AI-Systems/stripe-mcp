@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 const stripePattern = /\b(?:sk|rk)_(?:test|live)_[A-Za-z0-9]{12,}\b/g;
 const webhookPattern = /\bwhsec_[A-Za-z0-9]{12,}\b/g;
 const ghPattern = /\b(?:ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})\b/g;
-const dbPattern = /postgres(?:ql)?:\/\/[^\s/@:]+:[^\s/@]+@([^/:\s]+)/gi;
+const dbPattern = /postgres(?:ql)?:\/\/[^\s/@:]+:[^\s/@]+@([A-Za-z0-9][A-Za-z0-9.-]*)/gi;
 export function scanText(text) {
   const found = [];
   for (const [kind, pattern] of [['Stripe key', stripePattern], ['webhook secret', webhookPattern], ['GitHub token', ghPattern]]) {

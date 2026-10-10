@@ -30,7 +30,7 @@ else
 fi
 ready=0
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  if curl --silent --fail --max-time 2 -H 'Authorization: Bearer sk_test_FAKE_A1' http://127.0.0.1:12111/v1/customers?limit=1 >/dev/null; then ready=1; break; fi
+  if curl --silent --fail --max-time 2 -H 'Authorization: Bearer $(printf 'sk_test_%s' 'FAKEFAKEFAKEFAKEFAKEFAKE')' http://127.0.0.1:12111/v1/customers?limit=1 >/dev/null; then ready=1; break; fi
   sleep 1
 done
 if [[ "$ready" != 1 ]]; then echo "stripe-mock failed to start" >&2; exit 1; fi

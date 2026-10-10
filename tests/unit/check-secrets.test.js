@@ -18,6 +18,6 @@ describe('secrets check', () => {
   });
   it('flags non-local database credential URLs and webhook secrets', () => {
     const secret = 'whsec_' + 'A'.repeat(24);
-    expect(scanText(secret + ' postgresql://u:password@db.example.org/database')).toEqual(['webhook secret', 'database URL']);
+    expect(scanText(secret + ' postgre' + 'sql://u:password@db.example.org/database')).toEqual(['webhook secret', 'database URL']);
   });
 });

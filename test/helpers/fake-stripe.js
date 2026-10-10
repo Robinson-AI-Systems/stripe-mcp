@@ -30,5 +30,13 @@ export function makeFakeStripe({ livemode = false } = {}) {
 
 /** Use the official SDK's error hierarchy, not an ad hoc Error subclass. */
 export function stripeError(type = 'invalid_request_error', fields = {}) {
-  return Stripe.errors.generate({ type, message: 'Test Stripe error', ...fields });
+  const names = {
+    invalid_request_error: 'StripeInvalidRequestError',
+    card_error: 'StripeCardError',
+    api_error: 'StripeAPIError',
+    authentication_error: 'StripeAuthenticationError',
+    rate_limit_error: 'StripeRateLimitError'
+  };
+  const ErrorType = Stripe.errors[names[type] || 'StripeAPIError'];
+  return new ErrorType({ type, message: 'Test Stripe error', ...fields });
 }
