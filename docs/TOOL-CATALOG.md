@@ -1,13 +1,15 @@
 # Tool catalog
 
-**Implementation status (Batch B, 2026-10-10):** Registered server tools
-are currently TEST/read-only. Six server tools are implemented by B-8b1
-(`stripe_whoami`, `stripe_list_accounts`, `stripe_recent_changes`,
-`stripe_list_connections`, `stripe_where_is_setting`, and
-`stripe_check_key_permissions` in #29). The other catalog rows are
-planned until their own cards merge. Guarded write internals exist but
-**no AI-accessible Stripe write or live money operation is enabled**.
-B-8 private owner TEST money approvals shipped in #35; all Stripe provider write doors and LIVE remain disabled (IN-06 OFF). Batch C ships summaries, compact/catalog listing, scoped result handles and the four safe discovery tools in #36. No provider write surface is enabled.
+**Current implementation (2026-10-10):** Protected account tools and
+private owner money consent completed through #35; complete Batch C result
+handles and compact discovery merged #36; all 17 native TEST customer tools
+merged #37 (eight reads, nine `defineWrite-v1` guarded writes). Mutations
+require explicit confirmation, app-owned protection, idempotency, audit and
+read-back. Customer balance credits and debits require separately authenticated
+exact owner approval, even for $0.01. **LIVE remains OFF (IN-06)**. No Stripe
+account, hosted production infrastructure or real provider money action has
+been activated. Remaining catalog rows are planned; legacy compatibility is
+not required.
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
