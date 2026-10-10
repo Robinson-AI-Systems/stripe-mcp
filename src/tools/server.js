@@ -8,6 +8,8 @@ export const tools = [
     inputSchema:schema, annotations:{readOnlyHint:true}, writes:false, profiles },
   { name:'stripe_list_accounts', description:'List connected Stripe accounts and configured modes, without keys.',
     inputSchema:schema, annotations:{readOnlyHint:true}, writes:false, profiles },
+  { name:'stripe_check_key_permissions', description:'Recheck TEST key read permissions without revealing the Stripe key.',
+    inputSchema:schema,annotations:{readOnlyHint:true},writes:false,profiles },
   { name:'stripe_recent_changes', description:'Read safe audit summaries for the selected Stripe account, without snapshots.',
     inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:100},
       mode:{type:'string',enum:['test','live']}},additionalProperties:false},
@@ -44,6 +46,15 @@ export const handlers = {
     return ok({accounts:rows.map(row=>({account:row.id,label:row.label,isDefault:row.is_default===true,
       testConfigured:row.test_connected===true,liveConfigured:row.live_connected===true,
       liveEnabled:row.live_enabled===true}))});
+  },
+  async stripe_check_key_permissions(_args,{connection,permissionProbe}) {
+    if (connection?.mode!=='test' || !connection.stripeAccount ||
+        typeof permissionProbe!=='function') {
+      return fail('Only a configured TEST account with server-side key access may be checked');
+    }
+    const result=await permissionProbe({account:connection.stripeAccount,mode:'test'});
+    return ok({account:result.account,mode:result.mode,permissions:result.permissions,
+      checkedAt:result.checkedAt,source:'Fresh TEST key read-only Stripe probes'});
   },
   async stripe_recent_changes(args,{db,connection}) {
     if (!connection.stripeAccount) return fail('Select a Stripe account first');
