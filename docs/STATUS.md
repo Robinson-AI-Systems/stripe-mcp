@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **B-8b1 TEST-only permission re-probe in progress:** uses server-only encrypted key retrieval; safely reports and persists Stripe TEST read permissions, with unit and isolated PostgreSQL tests. B-8a #28 has merged; owner-admin writes and individual money approval UI remain later B-8 slices; LIVE stays OFF.
+- **B-8b1 completed in #29; B-8b2 owner-only administration next:** uses server-only encrypted key retrieval; safely reports and persists Stripe TEST read permissions, with unit and isolated PostgreSQL tests. B-8a #28 has merged; owner-admin writes and individual money approval UI remain later B-8 slices; LIVE stays OFF.
 
 - **B-8a safe read tools completed (#28); B-8b owner management next:** selected-account change summaries, connection metadata, daily shared budget usage and dashboard guidance. Owner-only mutations and LIVE remain disabled.
 
