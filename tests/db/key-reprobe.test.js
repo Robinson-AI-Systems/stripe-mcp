@@ -15,15 +15,15 @@ beforeAll(async()=>{
 afterAll(async()=>{await closeIsolatedSchema();});
 describe('B-8b1 durable permissions read-back',()=>{
   it('updates the selected encrypted TEST key record and nothing else',async()=>{
-    await db.saveTestKey({account:'acct_PG_PERMISSION',label:'Fixture',ciphertext:'fake-encrypted',
+    await db.saveTestKey({account:'acct_PGPERMISSION',label:'Fixture',ciphertext:'fake-encrypted',
       kind:'restricted',last4:'FAKE',permissions:{customers:'denied'}});
-    expect(await db.updateKeyPermissions({account:'acct_PG_PERMISSION',
+    expect(await db.updateKeyPermissions({account:'acct_PGPERMISSION',
       permissions:{customers:'ok',refunds:'denied'}})).toBe(true);
-    const row=await db.getStripeAccount('acct_PG_PERMISSION');
+    const row=await db.getStripeAccount('acct_PGPERMISSION');
     expect(row.key_permissions).toEqual({customers:'ok',refunds:'denied'});
     expect(await db.updateKeyPermissions({account:'acct_UNKNOWN',
       permissions:{customers:'ok'}})).toBe(false);
-    await expect(db.updateKeyPermissions({account:'acct_PG_PERMISSION',
+    await expect(db.updateKeyPermissions({account:'acct_PGPERMISSION',
       permissions:{refunds:'maybe'}})).rejects.toThrow();
   });
 });
