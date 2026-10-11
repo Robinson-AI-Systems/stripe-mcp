@@ -61,3 +61,7 @@ After connecting a TEST Stripe account, you can inspect and search invoices, lis
 ### D-5b — TEST invoice lifecycle (#45)
 
 With a securely connected TEST Stripe account, ask to finalize a manually controlled draft, generate a TEST `invoice.sent` event, charge a saved method for the exact verified balance, record an externally received payment, void/write off an unpaid invoice, or permanently delete a draft. Each requires a preview and explicit confirmation. **TEST-mode invoice sends do not deliver an actual email**, and test charges do not move real funds. Changes on app-owned invoices are refused unless deliberately authorized outside the app. LIVE stays OFF; the service is not deployed. Credit notes follow in D-5c.
+
+### D-5c — TEST credit notes (#46)
+
+Once securely connected to a TEST Stripe account, you can inspect credit notes, preview an exact reduction of an unpaid invoice or a credit/refund for a paid invoice, and request issuing or voiding a credit note. The server must compare the allocation to Stripe's official preview. Issuance always requires **a separate owner-authenticated, single-use approval for that exact credit amount**, even if the AI sets `confirm:true`. Above the account's shared $500 daily outgoing cap, the owner must separately override the limit. App-owned and subscription invoices default to their own workflows; refunded notes cannot be voided. LIVE remains OFF and no real credits can be created through this unprovisioned service.
