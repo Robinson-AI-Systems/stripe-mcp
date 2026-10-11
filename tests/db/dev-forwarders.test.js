@@ -71,15 +71,15 @@ describe('V-4b1 durable encrypted TEST forwarder store',()=>{
     })).toBeNull();
   });
   it('rejects invalid account/ID, unsafe URL, unordered filters or raw secret',async()=>{
-    for(const changes of [
+    for(const [i,changes] of [
       {accountId:'acct_bad !'},{id:'fwd_wrong'},
       {url:'http://127.0.0.1/private'},
       {url:'https://hooks.example.org/stripe?token=SECRET'},
       {types:['invoice.payment_failed','customer.created']},
       {types:['customer.created','customer.created']},
       {types:[]},{secretEnc:'not-encrypted'},{configDigest:'wrong'}
-    ])await expect(db.ensureDevForwarder({...row(),requestKey:'negative-'+
-      Object.keys(changes)[0]+String(Math.random()),...changes}))
+    ].entries())await expect(db.ensureDevForwarder({...row(),
+      requestKey:'negative-'+i,...changes}))
       .rejects.toThrow();
     await expect(db.listDevForwarders({accountId:account,limit:200}))
       .rejects.toThrow();
