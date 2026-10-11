@@ -8,7 +8,7 @@ it('G-4e pinned Stripe-native webhook update/delete parameters',async()=>{
   const updated=await s.webhookEndpoints.update(id,{description:'Updated TEST hook'},
     {idempotencyKey:'rmcp_webhook_update_mock_1234'});
   expect(updated.object).toBe('webhook_endpoint');
-  const deleted=await s.webhookEndpoints.del(id,
+  const deleted=await s.webhookEndpoints.del(id,{},
     {idempotencyKey:'rmcp_webhook_delete_mock_1234'});
   expect(deleted.deleted).toBe(true);
 });
