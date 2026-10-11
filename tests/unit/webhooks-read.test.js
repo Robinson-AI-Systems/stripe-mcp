@@ -41,7 +41,7 @@ describe('G-4b TEST webhook endpoint safe reads',()=>{
     expect(v.data[0]).toHaveProperty('enabledEventCount',2);
     expect(f.s.webhookEndpoints.list).toHaveBeenCalledWith({limit:2});
     expect(JSON.stringify(v)).not.toContain(secret);
-    for(const bad of [{limit:50},{starting_after:'we_BAD'},
+    for(const bad of [{limit:50},{starting_after:'not-a-webhook-id'},
       {token:secret},{fields:['secret']},{detail:'raw'}])
       expect((await f.call('webhook_list',bad)).isError).toBe(true);
   });
