@@ -24,7 +24,8 @@ describe('V-1a durable TEST seed run PostgreSQL',()=>{
     expect(SCHEMA_TABLES).toContain('dev_run_objects');
     await db.initSchema();
     const tables=await rawQuery("SELECT table_name FROM information_schema.tables WHERE table_schema=current_schema() AND table_name LIKE 'dev_%'");
-    expect(tables.map(x=>x.table_name).sort()).toEqual(['dev_run_objects','dev_runs']);
+    expect(tables.map(x=>x.table_name).sort())
+      .toEqual(['dev_forwarders','dev_run_objects','dev_runs']);
   });
   it('idempotently claims only one matching run per account/request and rejects plan drift',async()=>{
     const a={id:runId,account,connection:'agent-demo',requestKey,
