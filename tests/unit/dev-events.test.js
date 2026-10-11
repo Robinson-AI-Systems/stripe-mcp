@@ -70,6 +70,15 @@ function fixture({showEvent=false,foreign=false}={}){
           last_payment_error:{code:'card_declined',type:'card_error'}},o);
         throw Object.assign(new Error('TEST card declined'),{code:'card_declined'});
       }},
+    checkout:{sessions:{
+      create:async(b,o)=>creates('checkout.session','cs_test',{...b,
+        status:'open',payment_status:'unpaid',amount_total:3600,
+        currency:'usd',payment_intent:null,
+        url:'https://checkout.stripe.com/c/pay/cs_test_FAKE123'},o),
+      retrieve:async id=>get(id),
+      expire:async(id,_p,o)=>mutate('checkout.session',id,
+        {status:'expired',url:null},o)
+    }},
     charges:{retrieve:async id=>get(id)},
     disputes:{retrieve:async id=>get(id),
       list:async({charge,limit})=>{
@@ -118,14 +127,16 @@ function fixture({showEvent=false,foreign=false}={}){
       list:async({type,limit,...other})=>{
         calls.push({action:'events.list',type,limit,other});
         if(!visible)return {data:[],has_more:false};
-        const sourceType=type.startsWith('charge.dispute.')?'dispute':
+        const sourceType=type.startsWith('checkout.session.')?
+          'checkout.session':type.startsWith('charge.dispute.')?'dispute':
           type.startsWith('customer.subscription.')?
           'subscription':type.startsWith('payment_intent')?'payment_intent':
           type.split('.')[0],prefix=sourceType==='subscription'?'sub':
           sourceType==='customer'?'cus':
           sourceType==='payment_intent'?'pi':
           sourceType==='product'?'prod':
-          sourceType==='invoice'?'in':sourceType==='dispute'?'du':sourceType;
+          sourceType==='invoice'?'in':sourceType==='dispute'?'du':
+          sourceType==='checkout.session'?'cs_test':sourceType;
         const source=get(prefix+'_FAKE123');
         const event={object:'event',id:'evt_FAKE123',livemode:false,
           type,account,created:1700000000,data:{object:source}};
@@ -133,7 +144,8 @@ function fixture({showEvent=false,foreign=false}={}){
       },
       retrieve:async id=>{
         calls.push({action:'events.retrieve',id});
-        const sourceType=calledEvent.startsWith('charge.dispute.')?'du':
+        const sourceType=calledEvent.startsWith('checkout.session.')?
+          'cs_test':calledEvent.startsWith('charge.dispute.')?'du':
           calledEvent.startsWith('invoice.')?'in':
           calledEvent.startsWith('customer.subscription.')?
           'sub':calledEvent.startsWith('payment_intent.')?'pi':
@@ -148,6 +160,8 @@ function fixture({showEvent=false,foreign=false}={}){
   let calledEvent='customer.created';
   const realList=sdk.events.list;
   sdk.events.list=async a=>{calledEvent=a.type;return realList(a);};
+  db.getDevRunById=async({account:a,id})=>
+    a===account?[...runs.values()].find(x=>x.id===id)??null:null;
   db.getDevRun=async({account:a,requestKey})=>
     a===account?runs.get(a+':'+requestKey)??null:null;
   db.ensureDevRun=async({id,account:a,requestKey,scenario,size,
@@ -194,6 +208,17 @@ function fixture({showEvent=false,foreign=false}={}){
           {idempotencyKey:'stripe_async_dispute_fixture'});
       }
     },
+    completeCheckout:()=>{
+      const session=objects.get('cs_test_FAKE123');
+      if(!session)throw Error('Cannot pay without TEST Checkout Session');
+      const paid=creates('payment_intent','pi',{
+        customer:session.customer,amount:3600,currency:'usd',
+        confirm:true,payment_method:'pm_card_visa',
+        metadata:{rtc_run:session.client_reference_id}
+      },{idempotencyKey:'stripe_hosted_checkout_payment'});
+      objects.set(session.id,{...session,status:'complete',
+        payment_status:'paid',payment_intent:paid.id,url:null});
+    },
     foreign:()=>{alterTag=true;}};
 }
 describe('V-3a real TEST provider event generation',()=>{
@@ -207,7 +232,7 @@ describe('V-3a real TEST provider event generation',()=>{
       'customer.subscription.created','customer.subscription.deleted',
       'invoice.created','invoice.updated','invoice.finalized',
       'payment_intent.payment_failed','charge.dispute.created',
-      'invoice.payment_failed']);
+      'invoice.payment_failed','checkout.session.completed']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -226,7 +251,8 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(out.needsConfirmation).toBe(true);
     expect(f.calls).toHaveLength(0);
   });
-  it.each(triggerTypes.filter(t=>t!=='charge.dispute.created'))(
+  it.each(triggerTypes.filter(t=>
+    t!=='charge.dispute.created'&&t!=='checkout.session.completed'))(
     '%s requires observed matching provider event, with durable retry',async type=>{
     const f=fixture(),op=makeDevTriggerEventWrite(),args=input(type);
     const first=parse(await op.handler({...args,confirm:true},f.ctx));
@@ -467,6 +493,42 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(r.done).toBe(false);
     expect(f.ledger.get([...f.runs.values()][0].id)
       .some(x=>x.object_type==='event')).toBe(false);
+  });
+  it('keeps hosted TEST Checkout pending until real session and PI are paid and Event observed',async()=>{
+    const f=fixture(),a=input('checkout.session.completed');
+    const op=makeDevTriggerEventWrite();
+    const first=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(first.done).toBe(false);
+    const run=[...f.runs.values()][0];
+    expect(run.status).toBe('running');
+    expect(f.ledger.get(run.id).map(x=>x.object_type))
+      .toEqual(['product','price','customer','checkout_session']);
+    expect(f.objects.get('cs_test_FAKE123')).toMatchObject({
+      object:'checkout.session',status:'open',payment_status:'unpaid',
+      customer:'cus_FAKE123',amount_total:3600,
+      client_reference_id:run.id,metadata:{rtc_run:run.id}});
+    expect(f.calls.filter(x=>x.action==='create'&&
+      x.type==='payment_intent')).toHaveLength(0);
+    const count=f.calls.filter(x=>x.action==='create').length;
+    f.completeCheckout();
+    expect(f.objects.get('pi_FAKE123')).toMatchObject({
+      status:'succeeded',amount_received:3600,
+      metadata:{rtc_run:run.id}});
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done)
+      .toBe(false); // full payment still cannot prove Stripe Event
+    expect(f.ledger.get(run.id).at(-1).object_type).toBe('payment_intent');
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(count+1);
+    expect(f.ledger.get(run.id).at(-1).object_type).toBe('event');
+    expect(run.status).toBe('completed');
+  });
+  it('refuses unpaid Checkout even when an Event appears in provider listing',async()=>{
+    const f=fixture({showEvent:true}),a=input('checkout.session.completed');
+    const r=parse(await makeDevTriggerEventWrite().handler({...a,confirm:true},f.ctx));
+    expect(r.done).toBe(false);
+    expect([...f.ledger.values()][0].some(x=>x.object_type==='event'))
+      .toBe(false);
   });
   it('only payment_intent.succeeded previews synthetic incoming $36, never money-out',async()=>{
     const f=fixture(),a=input('payment_intent.succeeded');
