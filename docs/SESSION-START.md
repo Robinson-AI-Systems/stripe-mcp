@@ -21,7 +21,7 @@ Your session can end at any moment (the chat stops between actions), so the next
    - **Green and acceptance met → bring it up to date, then merge** (PLAYBOOK Steps 5 and 9): if
      `gh api "repos/$R/compare/main...<sha>" --jq .behind_by` is above 0, `git fetch origin main && git merge origin/main`,
      run the checks, push, and merge only when `ci` is green at that new head. **Pending →** build the next slice meanwhile.
-   - Review threads open → fix or answer each, then resolve.
+   - **Mandatory pre-merge review-thread gate:** retrieve all PR review threads (including outdated threads) and inspect their resolved state immediately before merge. Address every actionable comment, push fixes where needed, reply with the disposition and explicitly resolve the thread. **Do not merge with any unresolved review thread**, even when `ci` is green, a reviewer approved, or GitHub would otherwise permit the merge. If a thread cannot be resolved with available access, leave the PR open and report the exact blocker; never silently bypass it. If new commits or reviews arrive, inspect threads again before merging.
 3. Continue from the resume note's "Next step". Only when nothing of yours is open: §1 and the next card.
 
 ## 1. Find your place (2 minutes)
