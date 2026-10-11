@@ -1,6 +1,6 @@
 // G-2a: expose only minimal, verified TEST dispute identity and response deadlines.
 import {allProfiles,guarded,fail,local,pageResult,paging,ref} from './billing-shared.js';
-const id=s=>typeof s==='string'&&/^dp_[A-Za-z0-9]{2,100}$/.test(s);
+const id=s=>typeof s==='string'&&/^du_[A-Za-z0-9]{2,100}$/.test(s);
 const validTime=s=>Number.isSafeInteger(s)&&s>=946684800&&s<=4102444800;
 const failShape=s=>{throw new TypeError(s);};
 export function disputeSafe(d,now=Date.now()) {
@@ -37,7 +37,7 @@ const def=(name,description,props,required=[])=>({
   inputSchema:{type:'object',properties:props,required,additionalProperties:false}
 });
 const limit={type:'integer',minimum:1,maximum:100};
-const cursor={type:'string',pattern:'^dp_[A-Za-z0-9]{2,100}$'};
+const cursor={type:'string',pattern:'^du_[A-Za-z0-9]{2,100}$'};
 export const tools=[
   def('dispute_list','List TEST disputes, status, amounts, and Colorado evidence deadlines.',
     {limit,starting_after:cursor}),
