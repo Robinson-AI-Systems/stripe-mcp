@@ -36,7 +36,11 @@ export function defineWrite(spec) {
     classifyError: classifyStripeWriteError,
     modeGuard: (args, ctx) => authorizeLiveWrite({ args, ctx }),
     prepare: spec?.money ? async (args, ctx, before) =>
-      prepareMoney(await spec.money(args, ctx, before), ctx?.connection?.mode) : null,
+      (async () => {
+       const value = await spec.money(args, ctx, before);
+       if (value === null && spec.allowZeroPreview === true) return null;
+       return prepareMoney(value, ctx?.connection?.mode);
+     })() : null,
     beforeApply: spec?.money ? reserveMoneyBeforeWrite : null,
     afterApply: spec?.money ? settleMoneyAfterWrite : null });
   const declaredTool = Object.freeze({...guarded.tool,

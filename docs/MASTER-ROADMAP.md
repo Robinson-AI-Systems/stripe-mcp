@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Now:** B-8 owner approvals #35, full Batch C #36, D-1 native TEST customers #37, D-2 payments/refunds #38 and D-3 hosted Checkout/portal #39 are merged. **Next D-4** subscriptions and schedules; then D-5 invoices. Keep ~500-line coherent PRs and exact-head CI. Money-out requires independent owner consent and $500/account/Colorado-day cap; IN-06 LIVE stays OFF.
+**Now:** B-8 owner approvals #35, full Batch C #36, D-1 native TEST customers #37, D-2 payments/refunds #38 and D-3 hosted Checkout/portal #39 are merged. **Current D-4** subscriptions and schedules, first 14 of 21 tools in PR #40, remaining seven item/schedule mutations in immediate successor; then D-5 invoices. Merge only after exact-head green CI. Keep ~500-line coherent PRs and exact-head CI. Money-out requires independent owner consent and $500/account/Colorado-day cap; IN-06 LIVE stays OFF.
 
 ## Order and why
 

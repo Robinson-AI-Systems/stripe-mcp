@@ -374,13 +374,13 @@
         "D-3"
       ],
       "card": "docs/pr-cards/D-4.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 500,
       "units": [
         "D-4"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_PRESENT",
       "ownerInputs": []
     },
     {

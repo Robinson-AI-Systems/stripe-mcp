@@ -112,19 +112,20 @@ with raw payment method IDs and returned `client_secret` (replaced by
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `billing_list_subscriptions` / `billing_get_subscription` / `billing_search_subscriptions` | Subscriptions, with each item's current period (read from items, not the subscription) | — | F/F/R | R |
-| `billing_create_subscription` | Start a subscription on a saved payment method; preview shows the first charge and date | $ | F | E |
-| `billing_update_subscription` | Metadata, description, default payment method, billing anchor rules | P | C | E |
-| `billing_preview_change` | Exact price difference of a plan or quantity change, using `invoices/create_preview` | — | F | R |
+| `billing_list_subscriptions` / `billing_get_subscription` / `billing_search_subscriptions` | Subscriptions, with each item's current period (read from items, not the subscription) | — | built #40 | R |
+| `billing_create_subscription` | Start a subscription on a saved payment method; preview shows the first charge and date | $ | built #40 | E |
+| `billing_update_subscription` | Metadata, description, default payment method, billing anchor rules | P | built #40 | E |
+| `billing_preview_change` | Exact price difference of a plan or quantity change, using `invoices/create_preview` | — | built #40 | R |
 | `billing_change_plan` | Switch price or quantity with proration choice; preview is the exact amount | $ | F | E |
-| `billing_cancel_subscription` | Cancel now (with optional final invoice/proration) or at period end (done correctly, by update) | C | F | E |
-| `billing_undo_cancel` | Clear a scheduled cancel-at-period-end | P | N | E |
-| `billing_pause_collection` / `billing_resume_collection` | Pause or resume payment collection | C / P | C | E |
-| `billing_list_items` | Items on a subscription | — | C | R |
-| `billing_add_item` / `billing_update_item` / `billing_remove_item` | Item changes, each with proration preview | $ / $ / C | R/C/R | E |
+| `billing_cancel_subscription` | Cancel now (with optional final invoice/proration) or at period end (done correctly, by update) | C | built #40 | E |
+| `billing_undo_cancel` | Clear a scheduled cancel-at-period-end | P | built #40 | E |
+| `billing_pause_collection` / `billing_resume_collection` | Pause or resume payment collection | C / P | built #40 | E |
+| `billing_list_items` | Items on a subscription | — | built #40 | R |
+| `billing_add_item` / `billing_update_item` / `billing_remove_item` | Item changes, each with proration preview | $ / $ / C | D-4 remaining | E |
 | `billing_list_schedules` / `billing_get_schedule` | Subscription schedules | — | C | R |
-| `billing_create_schedule` / `billing_update_schedule` | Future plan changes | P | C | F |
-| `billing_release_schedule` / `billing_cancel_schedule` | End a schedule | C | C | F |
+| `billing_create_schedule` / `billing_update_schedule` | Future plan changes | P | D-4 remaining | F |
+| `billing_release_schedule` / `billing_cancel_schedule` | End a schedule | C | D-4 remaining | F |
+
 
 ## Usage billing (`meter_*`) — 16
 
