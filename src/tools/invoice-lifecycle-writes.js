@@ -1,6 +1,6 @@
 // D-5b current-native Stripe invoice lifecycle writes. TEST only; never expose raw invoices.
 import {defineWrite,gone} from './write.js';
-import {client,id,ownership,ref,writeProfiles,validateFields} from './billing-shared.js';
+import {client,id,ownership,writeProfiles,validateFields} from './billing-shared.js';
 import {lifecyclePreflight,lifecyclePreview,verifyLifecycleTransition}
   from './invoice-lifecycle-shared.js';
 

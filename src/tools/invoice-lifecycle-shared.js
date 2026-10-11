@@ -41,10 +41,10 @@ export function verifyLifecycleTransition(name,b,after,receipt) {
         after.auto_advance===false;
     case 'invoice_charge_now':
       return after.status==='paid'&&after.paid===true&&
-        after.amount_remaining===0&&after.amount_paid>=b.amount_remaining;
+        after.amount_remaining===0&&after.amount_paid-b.amount_paid>=b.amount_remaining;
     case 'invoice_mark_paid_outside_stripe':
       return after.status==='paid'&&after.paid_out_of_band===true&&
-        after.amount_remaining===0&&after.amount_paid>=b.amount_remaining;
+        after.amount_remaining===0&&after.amount_paid-b.amount_paid>=b.amount_remaining;
     case 'invoice_void':
       return after.status==='void'&&
         Number.isSafeInteger(after.status_transitions?.voided_at);
