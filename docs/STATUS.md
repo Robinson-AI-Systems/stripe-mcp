@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-1c3 independently owner-approved TEST payout reversal (#83 as-if-merged, CI pending):** eligible paid manual US bank payout reverse only, exact bank-target and Stripe amount from provider, B-8 owner grant, shared $500/day cap/second override, idempotency, independently verified reverse and original payout records. Bank debit, not equivalent to cancel; no LIVE or actual banking. Next G-1c4 top-up lifecycle, G-1d reports.
+
 - **G-1c2 TEST owner-approved manual payout creation (#82 as-if-merged; CI pending):** exact account and verified bank identity, checked USD source-type balance, full-only guarded write, independent authenticated owner grant, shared $500/day limit and override, idempotency and post-write payout read-back. No live payout or bank debit. Next G-1c3 bank-debit reversal, G-1c4 top-ups and G-1d reports.
 
 - **G-1c1 payout metadata and pending manual cancellation (#81 as-if-merged, exact-head CI pending):** TEST-only full-profile writes with defineWrite, confirmation, idempotency, app protection and provider read-back. No payout created, bank debited or money-out made. Next G-1c2 independent owner-approved payout creation/reversal, then G-1c3 top-ups and G-1d reports.
