@@ -30,6 +30,8 @@ Work happens in whatever workspace you were given (a cloud agent workspace, a Ve
 GitHub only as git commits pushed to an `ai/*` branch. Never copy source files through tool output.
 
 1. `git fetch origin && git status -sb && git log --oneline -5`; `npm ci` once per checkout.
+   **Before opening a new branch**, read existing PRs and their latest exact-head CI: a failed predecessor takes
+   priority over the next card and must be corrected without a new prompt.
 2. `sed -n '1,40p' docs/STATUS.md` → the **Next** section names the card.
 3. Resume note? `ls docs/pr-cards/*.progress.md 2>/dev/null` — if your card has one, continue from its "Next step".
    Do not restart work it lists as done.
@@ -75,7 +77,9 @@ Delete it in the card's final commit.
 - Every search has a path and `| head -50`. Only commands that finish by themselves; `timeout 600` for slow ones.
 - Pipe long output through `| tail -80`. Same command fails twice → change approach or record the blocker.
 - After ~10 reads/searches without an edit, make the smallest next edit.
-- CI and reviews: check once, act on what is new, then do other work.
+- CI and reviews: check once, act on what is new, then do other work. Red CI is actionable work, not a pause.
+- For new tool registrations, update registry, profile-count and discovery tests in the same commit;
+  lint plus pinned SDK/stripe-mock request-shape tests precede any claim that a tool works.
 
 ## 6. Keep moving: problems are not blockers
 

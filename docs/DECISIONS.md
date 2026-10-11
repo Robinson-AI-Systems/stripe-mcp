@@ -103,4 +103,4 @@ or owner-money approval gate, or the standalone-first architecture.
 with red CI although nothing blocked it. Its reasons: too much code before running tests; preventable CI errors (a wrong
 API parameter, lint, outdated test expectations); no rule forcing a red PR to be finished first; and chat sessions that
 end between actions. Added: SESSION-START §0 (finish open PRs first), §6 (problems vs real blockers, thin slices, a
-no-shell path with draft PRs, an exact recovery point at every push) and AGENTS rules 11–13.
+no-shell path with draft PRs, an exact recovery point at every push) and AGENTS rule 14 (rules 11–13 are the agent's own, added the same day).

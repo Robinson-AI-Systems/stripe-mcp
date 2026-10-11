@@ -248,3 +248,7 @@ Stripe's portal sessions have create but no retrieve endpoint: the session
 tool validates Stripe's returned identity/hosted URL and independently retrieves
 its selected portal configuration rather than inventing a read-back API.
 No LIVE activation or real provider operation occurred.
+
+## D-4 subscription operations (first PR #40, TEST only)
+
+The billing namespace exposes seven provider-backed read/preview tools and seven defineWrite-v1 guarded subscription mutation tools. Subscription current billing periods are taken exclusively from `items.data[]`. All billing changes use `invoices.createPreview`, with explicit nested subscription items, proration date and behavior; money-out credits are owner-approval gated by the existing per-account ledger. The TEST profile and indirect-call filter permits guarded billing writes but rejects batch writes and LIVE mode. Stripe read-back, never the mutation response, determines whether a write is reported as complete. Subscription item and schedule mutations remain in the immediate D-4 successor; no Stripe account or deployment was modified.

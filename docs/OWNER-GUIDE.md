@@ -48,3 +48,7 @@ it does not work yet. This file is updated as features ship.
 | "Undo that." | Reverses the last change when it has a clean opposite; says plainly when it doesn't | X |
 | "Make a 24-hour read-only pass for Codex." | A pass shown once on your setup page; the agent uses it through Robinson's Toolkit (`rtool`) or the HTTPS API | R |
 | Anything else in Stripe | The universal tools find the right Stripe operation and run it with the same safety | U |
+
+### D-4 TEST subscriptions (first PR #40)
+
+After the code is merged and a TEST Stripe account is connected, ask to list and inspect subscriptions, preview plan/quantity changes, or create, update, cancel, undo cancellation, and pause/resume collection. Destructive changes require explicit preview/confirmation; any credit producing a money-out action separately needs authenticated owner approval. This is **not** LIVE access. Item and schedule writes are part of the remaining D-4 PR.
