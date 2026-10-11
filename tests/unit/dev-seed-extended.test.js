@@ -47,14 +47,35 @@ function fixture({mismatch=false}={}){
       retrieve:async id=>get(id)
     },
     subscriptions:{
-      create:async(p,o)=>add('subscription','sub',{
-        ...p,status:'trialing',items:{data:[{price:p.items[0].price}]}
-      },o),
+      create:async(p,o)=>{
+        const active=p.trial_period_days===undefined;
+        const latestInvoice=active?'in_FAKEACTIVE'+(calls.length+1):null;
+        const sub=add('subscription','sub',{
+          ...p,status:active?'active':'trialing',latest_invoice:latestInvoice,
+          items:{data:[{price:p.items[0].price}]}
+        },o);
+        if(active)resources.set(latestInvoice,{
+          id:latestInvoice,object:'invoice',status:'paid',amount_paid:3600,
+          currency:'usd',customer:p.customer,metadata:{},livemode:false
+        });
+        return sub;
+      },
       retrieve:async id=>get(id),
       cancel:async(id,p,o)=>{
         if(!o?.idempotencyKey)throw Error('Subscription cancellation not idempotent');
         calls.push({action:'cancel',id,p});
         resources.set(id,{...get(id),status:'canceled'});
+        return get(id);
+      }
+    },
+    invoices:{
+      retrieve:async id=>get(id),
+      update:async(id,p,o)=>{
+        if(!o?.idempotencyKey)throw Error('Invoice tagging must be idempotent');
+        const prior=get(id);
+        if(prior.object!=='invoice')throw Error('Invoice not found');
+        calls.push({action:'update',type:'invoice',id,params:p,opts:o});
+        resources.set(id,{...prior,metadata:{...prior.metadata,...p.metadata}});
         return get(id);
       }
     }
@@ -141,6 +162,36 @@ describe('V-1b1 scoped realistic TEST seed scenarios',()=>{
     const count=f.calls.length;
     expect(parse(await makeDevSeedWrite().handler({...a,confirm:true},f.ctx)).done).toBe(true);
     expect(f.calls).toHaveLength(count);
+  });
+  it('creates an immediately paid, active TEST subscription and tracks the linked invoice',async()=>{
+    const f=fixture(),a=request('subscription-active','active-sub');
+    const preview=parse(await makeDevSeedWrite().handler({...a,dryRun:true},f.ctx));
+    expect(preview.preview).toContain('$36.00');
+    expect(parse(await makeDevSeedWrite().handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.map(x=>x.type)).toEqual([
+      'product','price','customer','subscription','invoice']);
+    expect(f.calls[2].params.payment_method).toBe('pm_card_visa');
+    expect(f.calls[3].params.trial_period_days).toBeUndefined();
+    const run=[...f.runMap.values()][0];
+    expect(run.status).toBe('completed');
+    const rows=await f.db.getDevRunObjects({account,id:run.id});
+    expect(rows.map(x=>x.object_type)).toEqual([
+      'product','price','customer','subscription','invoice']);
+    const invoice=f.resources.get(rows.at(-1).object_id);
+    expect(invoice.metadata.rtc_run).toBe(run.id);
+    const count=f.calls.length;
+    expect(parse(await makeDevSeedWrite().handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls).toHaveLength(count);
+  });
+  it('fails closed if active TEST invoice is not fully paid',async()=>{
+    const f=fixture(),a=request('subscription-active','bad-invoice');
+    const original=f.sdk.invoices.retrieve;
+    f.sdk.invoices.retrieve=async id=>({...await original(id),amount_paid:1});
+    const res=parse(await makeDevSeedWrite().handler({...a,confirm:true},f.ctx));
+    expect(res.done).toBe(false);
+    const run=[...f.runMap.values()][0];
+    expect(run.status).toBe('running');
+    expect((await f.db.getDevRunObjects({account,id:run.id})).length).toBe(4);
   });
   it('descriptions select one known safe scenario; rejects ambiguous or refund scenarios',()=>{
     expect(planSeed({description:'a simple one-time store sale',size:1,requestKey:'plain'},account)

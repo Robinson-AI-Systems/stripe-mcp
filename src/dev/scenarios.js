@@ -2,7 +2,7 @@
 import {createHash} from 'node:crypto';
 const sha=s=>createHash('sha256').update(s).digest('hex');
 export const seedScenarios=['catalog-starter','basic-store','subscription-trial',
-  'subscription-canceled','dispute-trigger','ach-awaiting-confirmation'];
+  'subscription-canceled','subscription-active','dispute-trigger','ach-awaiting-confirmation'];
 function chooseScenario(a){
   if((!!a?.scenario)===(!!a?.description))
     throw new TypeError('Select one named TEST scenario OR a plain description');
@@ -15,6 +15,11 @@ function chooseScenario(a){
   const d=a.description.toLowerCase();
   if(/refund|marketplace|connect|past.due|settle|reconcile/.test(d))
     throw new TypeError('That scenario requires the next consent-aware TEST builder slice');
+  if(/active subscription|paid subscription/.test(d)){
+    if(/trial|cancel|dispute|ach|bank|store|catalog/.test(d))
+      throw new TypeError('Description is ambiguous; select one TEST scenario');
+    return 'subscription-active';
+  }
   const matches=[
     [/dispute|chargeback/,'dispute-trigger'],
     [/ach|bank/,'ach-awaiting-confirmation'],
@@ -40,14 +45,19 @@ export function planSeed(a,account){
     steps.push({name:'product_'+i,type:'product',label:'RTC Test Product '+i,amountCents});
     steps.push({name:'price_'+i,type:'price',label:scenario==='catalog-starter'?
       'Monthly TEST price '+i:'RTC Test Price '+i,amountCents});
-    steps.push({name:'customer_'+i,type:'customer',label:'RTC Test Customer '+i});
+    steps.push({name:'customer_'+i,type:'customer',label:'RTC Test Customer '+i,
+      ...(scenario==='subscription-active'?{paymentMethod:'pm_card_visa'}:{})});
     if(['basic-store','dispute-trigger','ach-awaiting-confirmation'].includes(scenario))
       steps.push({name:'payment_'+i,type:'payment_intent',amountCents,
         ...(scenario==='dispute-trigger'?{testMethod:'pm_card_createDispute'}:{}),
         ...(scenario==='ach-awaiting-confirmation'?{testMethod:'ach'}:{})});
     if(scenario.startsWith('subscription-'))
       steps.push({name:'subscription_'+i,type:'subscription',
-        state:scenario==='subscription-trial'?'trialing':'canceled'});
+        state:scenario==='subscription-trial'?'trialing':
+          scenario==='subscription-canceled'?'canceled':'active',
+        ...(scenario==='subscription-active'?{amountCents}:{})});
+    if(scenario==='subscription-active')
+      steps.push({name:'invoice_'+i,type:'invoice',amountCents});
   }
   return {runId,scenario,size:a.size,steps,
     // Preserve the V-1a plan hash for old named catalog-starter retries. Other
@@ -55,7 +65,8 @@ export function planSeed(a,account){
     // per-step Stripe idempotency identity of an incomplete run.
     planDigest:sha(JSON.stringify(a.scenario==='catalog-starter'?steps:
       [steps,a.scenario??null,a.description??null])),expectedSteps:steps.length,
-    amountCents:steps.filter(x=>x.type==='payment_intent'&&x.testMethod!=='ach')
+    amountCents:steps.filter(x=>(x.type==='payment_intent'&&x.testMethod!=='ach')||
+      (x.type==='subscription'&&x.state==='active'))
       .reduce((sum,x)=>sum+x.amountCents,0)};
 }
 export function seedDescription(p){
@@ -66,8 +77,10 @@ export function seedDescription(p){
     ', run '+p.runId+'. Every Stripe object is tagged rtc_run, independently verified,'+
     ' and durably tracked for precise cleanup. '+(p.amountCents?
       'Synthetic incoming TEST card charges total $'+(p.amountCents/100).toFixed(2)+' USD. ':'')+
-    (p.scenario.startsWith('subscription-')?
-      'Subscriptions begin with free trials; no immediate invoice charge. ':'')+
+    (p.scenario==='subscription-active'?
+      'An immediately paid TEST invoice and active subscription must be verified. ':
+      p.scenario.startsWith('subscription-')?
+        'Subscriptions begin with free trials; no immediate invoice charge. ':'')+
     (p.scenario==='dispute-trigger'?
       'Uses Stripe test dispute card; a later dispute event is NOT yet verified. ':'')+
     (p.scenario==='ach-awaiting-confirmation'?
@@ -79,7 +92,8 @@ const idPatterns={
   price:/^price_[A-Za-z0-9]{2,100}$/,
   customer:/^cus_[A-Za-z0-9]{2,100}$/,
   payment_intent:/^pi_[A-Za-z0-9]{2,100}$/,
-  subscription:/^sub_[A-Za-z0-9]{2,100}$/
+  subscription:/^sub_[A-Za-z0-9]{2,100}$/,
+  invoice:/^in_[A-Za-z0-9]{2,100}$/
 };
 const ref=x=>typeof x==='string'?x:x?.id;
 async function retrieve(s,type,id){
@@ -89,6 +103,7 @@ async function retrieve(s,type,id){
     case 'customer':return s.customers.retrieve(id);
     case 'payment_intent':return s.paymentIntents.retrieve(id);
     case 'subscription':return s.subscriptions.retrieve(id);
+    case 'invoice':return s.invoices.retrieve(id);
     default:throw new TypeError('Unknown tracked TEST object type');
   }
 }
@@ -96,6 +111,11 @@ function verified(x,step,runId,dependencies){
   if(x?.metadata?.rtc_run!==runId||!idPatterns[step.type].test(x?.id??''))
     throw new TypeError('Independent Stripe read-back did not verify rtc_run provenance');
   switch(step.type){
+    case 'customer':
+      if(step.paymentMethod&&ref(x.invoice_settings?.default_payment_method)!==
+        step.paymentMethod)
+        throw new TypeError('TEST customer default payment method was not attached');
+      break;
     case 'price':
       if(x.currency!=='usd'||x.unit_amount!==step.amountCents||
         ref(x.product)!==dependencies.productId||
@@ -112,6 +132,12 @@ function verified(x,step,runId,dependencies){
           throw new TypeError('ACH setup was not verified as unconfirmed and unsettled');
       }else if(x.status!=='succeeded'||x.amount_received!==step.amountCents)
         throw new TypeError('TEST card charge did not independently succeed for full amount');
+      break;
+    case 'invoice':
+      if(x.currency!=='usd'||x.status!=='paid'||
+        x.amount_paid!==step.amountCents||
+        ref(x.customer)!==dependencies.customerId||x.livemode===true)
+        throw new TypeError('Active TEST invoice was not fully paid by the right customer');
       break;
     case 'subscription':
       if(x.status!==step.state||ref(x.customer)!==dependencies.customerId||
@@ -132,6 +158,7 @@ export async function executeSeed({plan,run,stripe,db,account,rootKey}){
     const productId=byStep.get('product_'+index)?.object_id;
     const priceId=byStep.get('price_'+index)?.object_id;
     const customerId=byStep.get('customer_'+index)?.object_id;
+    const subscriptionId=byStep.get('subscription_'+index)?.object_id;
     const dependencies={productId,priceId,customerId,
       recurring:!['basic-store','dispute-trigger','ach-awaiting-confirmation'].includes(plan.scenario)};
     const prior=byStep.get(step.name);
@@ -157,7 +184,11 @@ export async function executeSeed({plan,run,stripe,db,account,rootKey}){
           metadata},opts);break;
       case 'customer':
         created=await stripe.customers.create({name:step.label,
-          email:'rtc-test+'+plan.runId+'-'+index+'@example.test',metadata},opts);break;
+          email:'rtc-test+'+plan.runId+'-'+index+'@example.test',metadata,
+          ...(step.paymentMethod?{
+            payment_method:step.paymentMethod,
+            invoice_settings:{default_payment_method:step.paymentMethod}
+          }:{})},opts);break;
       case 'payment_intent':
         if(!customerId||!priceId)throw new TypeError('Verified customer/price required for TEST charge');
         created=await stripe.paymentIntents.create({
@@ -176,8 +207,28 @@ export async function executeSeed({plan,run,stripe,db,account,rootKey}){
           customer:customerId,items:[{price:priceId}],
           collection_method:'charge_automatically',
           billing_mode:{type:'flexible'},payment_behavior:'error_if_incomplete',
-          proration_behavior:'none',trial_period_days:7,metadata
+          proration_behavior:'none',
+          ...(step.state==='active'?{}:{trial_period_days:7}),metadata
         },opts);break;
+      case 'invoice':{
+        if(!subscriptionId||!customerId)
+          throw new TypeError('Verified subscription and customer must precede paid invoice');
+        const sub=await stripe.subscriptions.retrieve(subscriptionId);
+        if(sub?.status!=='active'||sub?.metadata?.rtc_run!==plan.runId||
+          ref(sub.customer)!==customerId)
+          throw new TypeError('Active run-owned subscription has not been verified');
+        const invoiceId=ref(sub.latest_invoice);
+        if(!idPatterns.invoice.test(invoiceId??''))
+          throw new TypeError('Active TEST subscription has no provider invoice');
+        const invoice=await stripe.invoices.retrieve(invoiceId);
+        if(invoice?.object!=='invoice'||invoice.status!=='paid'||
+          invoice.currency!=='usd'||invoice.amount_paid!==step.amountCents||
+          ref(invoice.customer)!==customerId)
+          throw new TypeError('Paid first invoice is not linked to verified TEST customer');
+        // The subscription creates this invoice automatically. Tag that exact
+        // linked provider invoice before recording it in the durable ledger.
+        created=await stripe.invoices.update(invoiceId,{metadata},opts);break;
+      }
       default:throw new TypeError('Unsupported provider creation step');
     }
     if(!created||!idPatterns[step.type].test(created.id??'')||
