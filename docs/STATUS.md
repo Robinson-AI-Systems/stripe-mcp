@@ -5,6 +5,12 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **Verified planning checkpoint (2026-10-11):** main `2a71f8a03845ad3bf8c8de9de4207a72596ace78`, #93 merged,
+  no open PRs at inspection. Next implementation is **G-2d** (separate irreversible submission/owner-approved acceptance).
+  [Implementation guides](implementation-guides/README.md) now provide inspected helper recipes, remaining-scope routes
+  and a proposed G-2d packet, including the missing `du_` money-target validator integration. No product code, owner
+  permissions or CI gates changed. Older as-if-merged entries below are historical checkpoints, not pending PR claims.
+
 - **G-2c secure TEST dispute evidence drafts (#93 as-if-merged, exact-head CI pending):** dispute_save_evidence stages validated draft fields with explicit submit:false; verifies same-account evidence files, protects app-owned charges and deadlines, then confirms exact provider read-back with no customer text leaked into the result. Next G-2d distinct irreversible submit_evidence and dispute_accept tools; dispute acceptance is money-out and must use independent owner approval, $500/day shared cap, and second override above cap. G-2b2 evidence import #92 merged green. No LIVE or actual money moved.
 
 - **G-2b2 secure public-source TEST dispute evidence import (#92 as-if-merged; exact-head CI pending):** file_upload_evidence uses the write preview/confirm/audit contract, pinned public IPv4 DNS, HTTPS only, verified redirects, 10 MiB cap and content signature. It creates only a verified Stripe dispute_evidence file; never attaches or submits evidence. G-2c guarded draft evidence save is next, G-2d explicit submit/accept after that. G-2b1 file metadata/link #91 merged green. LIVE and independent money-out approval unchanged.

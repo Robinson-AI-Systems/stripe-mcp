@@ -1,0 +1,59 @@
+# Remaining approved work — routes for JIT packets
+
+Baseline #93; this is **guidance**, not a reordered queue or executable future cards. Reconcile against STATUS,
+`work-index.json`, PLAN acceptance and each design's §0 before starting. Existing paths below are code; all new module,
+table or test names are **proposed** until a JIT card inspects real predecessors. Split large units by PLAYBOOK size/risk.
+Use RECIPES for shared validation; add the area's unit, stripe-mock and DB files when its card makes them real.
+
+## G — finish account operations
+
+| Unit / design heading | Existing integration and proposed work | Mapping / fixtures / inheritance |
+| --- | --- | --- |
+| G-2d / G4 disputes | Existing `dispute-evidence-draft.js`, `dispute-reads.js`, `money.js`, DB owner grants. Proposed `dispute-finalize.js`. Detailed packet: G-2d-WORKED-EXAMPLE | Submission → disputes.update `{submit:true}`; acceptance → disputes.close. Distinct previews, independent retrieve, irreversible/no inverse. Acceptance grant binds dispute ID and disputed amount. Draft never submits; successor inherits tested terminal operations |
+| G-3 / G-3 Radar and Identity | Native module pattern, `client`, projections, `defineWrite`; proposed `risk.js`/writes split and `identity.js` | Verify exact Radar review/value-list and Identity SDK methods first; rules have no assumed endpoint. Fixtures: open/closed review, value list pagination, missing permissions, Identity secret sentinel. Read summaries only, never verification client_secret or identity document bytes. Gate any financial effect through existing money rules; G-4 inherits registry/safety metadata |
+| G-4 / G2–G3 + G-4 | `dev-forward-events.js`, `dev-forwarders.js`, `core/one-time-secrets.js`, private setup and `meta.js`; proposed native event/webhook modules | endpoint URL/events → pinned SDK payload; add/remove events = read current → union/difference → update → retrieve exact set. Fixture `[invoice.paid] + customer.updated` retains existing event; removing absent event is safe. Create secret only to private one-time handoff; result/audit never raw secret. Signed original TEST replay remains distinct from native webhook administration |
+| G-5 / G5 and G-5 | `money-schedule-write.js`, `money-bank-reads.js`, `server.js` setting map; proposed account-settings module | Argument → exact nested settings/config field, preserve unrelated values. TEST own-account refusal → `done:false` + guided steps; later read proves change, not owner assertion alone. ACH/config/domain fixtures allowed/denied/unreadable; bank numbers never arguments. H inherits per-setting API-vs-guided evidence |
+| G-6 / G6 and G-6 | `server.js` (`stripe_where_is_setting`), permission/connection readers, existing projections; proposed admin module | Map observed setting → ok/needs_attention/not_readable + `{setting,url,steps,expected,verifyWith?}`. Every verifyWith must name registered real reader. No API for key creation/team/closing assumed; closing steps only. Fixture permission refusal is unreadable, never healthy. Complete PLAN evidence and drift C before H |
+
+## H and P — branding and project knowledge
+
+| Unit / design heading | Existing integration and proposed work | Mapping / fixtures / inheritance |
+| --- | --- | --- |
+| H-1 / H1–H4, §2/§4 | Existing `checkout-writes.js`, `file-links-write.js`, `evidence-upload.js` network pattern, `src/db.js`. Proposed brand modules and `brand_kits` | Account/mode → brand_kits PK; named kit settings → verified `branding_settings` for server-created pages, explicit call overrides win. Purpose must change to verified logo/icon, not reuse evidence upload unchanged. Non-square icon/invalid descriptor denied before upload/update; refusal returns guidance. Existing app-created pages untouched. Test kit + override + repeat run; P/W inherit applied-kit helper and exact ownership boundary |
+| P-1 / P1–P3, §2 | Existing `app-guard.js`, `src/db.js`, APP-NEEDS-APPLIANCE-DESK. Proposed known_apps accessors/profile seed | `metadata_keys`, stripe_accounts and active status → per-account ownership resolver. Two profiles/account, unrelated account, inactive/no profile, parent-only marker. Trace each seed key/event to source file; no real account IDs committed. Guard semantics drift needs reviewed amendment; P-2/3 inherit schema/resolver |
+| P-2 / P-2 | Existing result shaping + P-1 real resolver; proposed record-link helper | metadata key/value → profile record_links template and base_url. Encode identifier, bounded URL, no arbitrary secret value substitution. Fixture missing key yields no link; two profiles use correct owner link. P-3 inherits safe link projection |
+| P-3 / P4 | Existing guarded dispatcher + shipped G/H modules; proposed readiness workflow | Each of 21 profile rows → observed/fixed/needs-you/decision. Missing 2 webhook events → union only after confirm + read-back; portal cancellation enabled → exact fix; owns_catalog → 0 product/price/tax mutations. Unknown/unreadable ≠ passed. No inline Stripe writes; P-4 inherits per-row observations and guarded fixes |
+| P-4 / P5–P6 | P-3 readiness + actual catalog primitive coverage (check before coding); proposed draft/setup workflow | Findings → draft profile and APP-NEEDS text, never fetch or commit other repos. Project without owns_catalog → lookup-key reuse; second run 0 duplicates. Unknown event type reported. **Dependency to reconcile JIT:** native E catalog is later; use a shipped approved primitive or deliver approved area prerequisite first per W stop rule, never secretly inline provider writes |
+
+## W — workflow packets (design §4)
+
+All workflows call **wrapped registry handlers**, not Stripe directly. Existing dispatcher/meta tools are the reuse
+point. A time-budget helper is **not established by the target design**: inspect shipped code, then propose its path
+in the first W card. 50-second budget returns partial observations plus continuation, not completed claims.
+
+| Units | Mapping and deterministic fixtures | Completion / inherited facts |
+| --- | --- | --- |
+| W-1 money snapshot | Balance transactions by Denver calendar window, separate currency sums. MRR fixture: quarterly USD 3000 cents × quantity 2 × 80% = 1600 cents/month; yearly EUR 12000 = 1000 EUR cents/month, never combine. Trials separate; metered/tiered excluded and explained | Empty, 2 pages, interval_count, discount duration, DST boundary and budget exhaustion. Subsequent workflows inherit time/paging/currency conventions |
+| W-2 failed payments/customer overview | Existing invoice/payment/customer projections → readable decline/retry + verified hosted invoice link + P record link | No inferred retries from absent provider data; empty/declined/app-owned/2-page fixtures |
+| W-3–W-5 refund/cancel/change | Existing payment_create_refund, subscription cancellation and billing_preview_change → plan of exact IDs/cents/prorations | Ambiguous customer match refuses; no confirm → 0 writes. Each optional refund still independent owner grant. Partial multi-action result records only verified children; not one blanket money approval |
+| W-6 dispute kit | P metadata links + G-2 verified draft tools → receipt/agreement references and missing evidence list | 0 submit/accept from assembling kit; deadline shown, inaccessible agreement reported. Inherits G-2 no-private-evidence output rules |
+| W-7–W-8 webhook health/go-live | G webhook readers + P readiness → per-profile required event sets / TEST-LIVE comparison | Missing 2 events repaired exactly; unknown account unreadable, no implicit live writes/catalog copy for owns_catalog. IN-06 still owner gate |
+| W-9 month close/catalog/find | Existing reports/export + eligible catalog primitives → private browser export handoff and lookup-key plan | Existing G-1 export streams only to owner browser; never invent CSV URL. Reconcile older W design's “download link” wording to this security boundary. Find pagination and multi-currency close fixtures |
+| W-10 brand business | H kit/settings/page tools → per-item observed/fixed/needs-you | Second run changes nothing, finishes with verified TEST Checkout link; no changes to pages the app owns |
+
+## U, R, E, X — complete coverage and doors
+
+| Unit / design heading | Existing integration and proposed work | Mapping / fixtures / inheritance |
+| --- | --- | --- |
+| U-1 / U1–U6 | Existing `scripts/stripe-openapi.mjs`, SDK client, `meta.js`, guards/money. Proposed `src/tools/universal.js`, `src/stripe/openapi-index.js`, money-operations and hand-built-map | operationId → exact pinned method/path/schema → rawRequest only after version/idempotency proof. Unknown params/money-like unclassified operation refused or gated per design; known native refund redirects to payment_create_refund. Store fixture operation set/seed for deterministic 25 GET/10 POST mock tests; don't use nondeterministic random coverage. Exact guard/read-back mapping required per allowed write |
+| R-1 / R1, §2 | Existing core OAuth/hash/revoke/one-time secrets and DB; proposed pass handlers | kind/pass fields → hashed token row, defaults TEST/read_only/24h/$0/no writes. 365 days only for_hub choice. One-time secret, expiry/revoke and indirect-write refusal tests. No hub runtime dependency; R-2 inherits token-to-connection resolver |
+| R-2 / R2, §2 | Existing registry/dispatcher/result store; proposed api/tools, results, whoami, contract endpoints and shared rate_limits | Pass row → mode/profile/areas/allow_writes; connector bearer not a pass. 150 concurrent requests on 2 instances → exactly 120 pass/30 rate_limited with Retry-After; configured 5 → sixth denied. SQL atomic increment, never read/update or memory counter. Envelope/≤30 OpenAPI ops/counts real-registry fixtures |
+| R-3 / R3 | Existing full CI and door tests once R-2 ships; external hub conformance package only if available | Contract version/package verified at start. Local fake-provider conformance participates in ci; absence recorded and local equivalent coverage retained, never blocks standalone server per approved R3 |
+| E-1–E-2 / E1–E3 | Existing dev-seed SDK catalog patterns + P ownership resolver; proposed catalog/promotion modules | Price lookup_key reuse; update only mutable nickname/key/metadata/active. Provider read-back exact fields; app-owned catalog/tax changes refused; nonowned warning. Coupon amounts/currency, entitlement paging and duplicate lookup fixtures |
+| E-3–E-4 / E4, §4 | Existing U validation/native write pattern; proposed meters/tax/quotes modules | Published meter events only, no legacy usage records. Credit grants/financial quote actions require provider-derived classification, not name-based “non-money”. Missing entitlement/permissions → unavailable, never invented tax total. Fixtures duplicate meter event, wrong currency, immutable field, quote lifecycle; exact pinned mock request per method |
+| X-1 / X1 | Existing change_log/inverse and dispatcher; proposed undo tool | change ID → stored inverse → wrapped handler with preview/confirm. Irreversible money/deletion/submission refuses; no direct SDK bypass. Metadata restore fixture and undo-of-undo verify exact read-back |
+| X-2 / X2 | Existing registry/read schemas and TEST guard; proposed scripts/smoke-readonly.mjs | Required args need account-specific owner-supplied TEST fixtures; do not guess IDs or invoke writes. Reject LIVE before requests. Audit names every read tool, passed/gap + reason; real smoke requires connected TEST account, simulation cannot replace it |
+
+At each batch closure reconcile PLAN item by item, then run drift C. Carry exact exports, fixture paths, unresolved
+provider restrictions and owner smoke evidence into CHANGES-SINCE-DESIGN or the eligible successor card. Future paths
+in this table are suggestions; only actual shipped code becomes an inheritance guarantee.

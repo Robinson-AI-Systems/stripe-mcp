@@ -37,6 +37,9 @@ GitHub only as git commits pushed to an `ai/*` branch. Never copy source files t
    Do not restart work it lists as done.
 4. Read your card (`docs/pr-cards/<ID>.md`). If the roadmap says JIT (no card yet), write it first from the design
    (`docs/pr-cards/README.md`, 40–100 lines). Read only what the card's "Read only these" list says.
+5. For implementation detail, select one recipe or remaining-work row from
+   [implementation guides](implementation-guides/README.md). Reconcile its baseline and proposed paths in drift A;
+   the card should link only the sections it uses, not require reading all guides.
 
 ## 2. Never do these without Chris (AGENTS "Hard limits")
 

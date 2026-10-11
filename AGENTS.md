@@ -7,6 +7,8 @@ Modelled on `christcr2012/appliance-desk` `AGENTS.md` (2026-10-09), which is how
 
 **Implementing an approved PR card?** Read `docs/SESSION-START.md` (one page) and the card, then work. Open the
 sections below when a step names them.
+For exact existing helpers, mapping/fixture recipes and JIT execution packets, use
+`docs/implementation-guides/README.md` to select one relevant section; these aids do not change approved scope or rules.
 
 **Other sessions** (design, planning, review): this file → `docs/START-HERE.md` → `docs/STATUS.md` →
 `docs/MASTER-ROADMAP.md` → the relevant `docs/PLAN.md` section and design headings.

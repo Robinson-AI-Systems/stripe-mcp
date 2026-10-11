@@ -19,6 +19,16 @@ Designs govern behavior; cards cannot silently override them.
 
 Validate coverage with `python3 docs/pr-cards/validate-index.py`.
 
+## Concrete execution packet
+
+Use [RECIPES §1](../implementation-guides/RECIPES.md#1-card-packet) for the compact packet format. Each new card must
+identify existing versus proposed paths, argument-to-SDK/SQL/read-back mappings, ordered steps, fixture initial states
+and expected outcomes (including zero-write failures), focused runnable checks and successor inheritance. Link applicable
+recipe sections instead of repeating rules. The [remaining-work route map](../implementation-guides/REMAINING.md) helps
+locate current patterns; it is not permission to prewrite distant cards. The
+[G-2d example](../implementation-guides/G-2d-WORKED-EXAMPLE.md) demonstrates the next slice at its dated baseline.
+Reconcile the real predecessor and in-flight work before promoting any proposed packet into a card.
+
 ## Effort guide for Sol 5.6
 
 Light: read tools in an area whose pattern already exists; docs cards. Medium: safety layer, guards, money tools, keys,

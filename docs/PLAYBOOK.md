@@ -24,6 +24,9 @@ At most two unmerged implementation PRs in one chain.
 
 ## Step 2 — Inventory before coding
 
+Use [implementation recipes](implementation-guides/RECIPES.md#2-native-tool-recipe) for inspected helpers and interfaces,
+then confirm only the relevant paths against today's code. The card's mapping/fixture packet avoids repeating discovery.
+
 `grep` the area (`src/tools/<area>.js`, `src/stripe/`, `tests/unit/<area>*`). Reuse existing helpers (`defineWrite`,
 `guard`, `gone`, `summaries`, `listAll`, write-contract helper). For a new Stripe call, look the operation up in Stripe's
 description first: `node scripts/openapi-find.mjs "create refund"` (built in A-4) and the official reference page; cite

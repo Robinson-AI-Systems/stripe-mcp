@@ -13,6 +13,8 @@ the first being the Appliance Desk rental app (`docs/APP-NEEDS-APPLIANCE-DESK.md
 4. Next card, then its named design headings and code. If JIT, write the short card from the design first;
    [drift protocol](implementation-contracts/DRIFT-PROTOCOL.md) applies every time.
 5. PLAN's acceptance for the batch and PLAYBOOK's verification commands.
+6. Need concrete mappings or fixture patterns? Select one section from
+   [implementation guides](implementation-guides/README.md); existing paths and proposed paths are labeled separately.
 
 ## Code map (target; confirm the actual path before editing)
 
