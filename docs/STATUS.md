@@ -38,6 +38,10 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Recent merges (newest first)
 
+**2026-10-10 — CI cadence (docs + CI config PR, by Claude):** SESSION-START §6 rule "one complete CI run per fix batch"
+(never push while the PR's run is in progress); CI now cancels an obsolete PR run when a newer push arrives. Next action
+unchanged.
+
 **2026-10-10 — #30 B-8b2a private connection revoke:** protected owner
 preview and final consent, expiring one-time intent, atomic account/client
 token revocation and audit. Does not expose a public AI write operation.
