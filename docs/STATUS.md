@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-5c2 guarded TEST clock advance PR #76 (as-if-merged; exact-head CI pending):** dev_simulate_subscription supports action=advance/inspect for one monthly cycle with exact selected-account provider readback and SQL at-most-once protection. No invoice/paid claim from clock state. **Next V-5c3** monthly invoice/payment and event reconciliation so cycle 2/3 can be unlocked.
+
 - **V-5b restoration correction #75 (as-if-merged; exact-head CI pending):** PR #74's tree accidentally omitted the previously merged #73 simulation setup implementation, tests, and catalog. Restoring those exact reviewed #73 files and registry/count expectations. The V-5c1 monthly ledger remains untouched. Next V-5c2 guarded advance, after exact-head CI. No provider/money action.
 - **V-5c1 durable month advancement intent PR #74 (as-if-merged; CI pending):** additive selected-account dev_simulation_cycles table reserves only sequential 1–3 monthly intents for completed TEST simulation runs, records 'uncertain' before any future Stripe clock advance, and accepts only precise provider-ready clock/invoice/PI evidence to mark observed. Same key cannot authorize a second clock movement. **V-5c2 next:** connect this ledger to guarded dev_simulate_subscription phase actions and independently inspect actual invoices/payments/events.
 - **Pending external TEST acceptance:** real hosted Checkout and owned HTTPS webhook require enrollment; neither claimed.
