@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Now:** B-8 owner approvals #35, full Batch C #36, D-1 native TEST customers #37, D-2 payments/refunds #38 and D-3 hosted Checkout/portal #39 are merged. **D-4** all 21 TEST-native subscription/item/schedule tools in PR #40 and PR #42; **D-5a #43** invoice reads/drafts merged; D-5b #45 merged; D-5c #46 merged; V-1a #47 merged; V-1b1 #48 merged; V-1b2 owner-approved TEST seed refund PR #49 pending CI; V-1b3 remaining simulations next. Merge only after exact-head green CI. Keep ~500-line coherent PRs and exact-head CI. Money-out requires independent owner consent and $500/account/Colorado-day cap; IN-06 LIVE stays OFF.
+**Now:** B-8 owner approvals #35, full Batch C #36, D-1 native TEST customers #37, D-2 payments/refunds #38 and D-3 hosted Checkout/portal #39 are merged. **D-4** all 21 TEST-native subscription/item/schedule tools in PR #40 and PR #42; **D-5a #43** invoice reads/drafts merged; D-5b #45 merged; D-5c #46 merged; V-1a #47 merged; V-1b1 #48 merged; V-1b2 #49 merged; V-1b3 dispute/ACH setup PR #50 pending exact-head CI; V-1b4 verified outcomes next. Merge only after exact-head green CI. Keep ~500-line coherent PRs and exact-head CI. Money-out requires independent owner consent and $500/account/Colorado-day cap; IN-06 LIVE stays OFF.
 
 ## Order and why
 
@@ -40,8 +40,8 @@ the approved design; write the card when its predecessor is real.
 | A Foundation | A-1 repo, CI, checks · A-2 schema · A-3 login · A-4 Stripe client + OpenAPI index · A-5 key store, setup page, one-time secrets · A-6 DEPLOY.md | A-1 (#9), A-2 (#10), A-3 (#11/#12), A-4 (#13/#14), A-5 (#15/#16), A-6 (#17): complete |
 | B Trust | B-1 safety + money · B-2 live guard · B-3 app guard · B-4 errors · B-5 shaping · B-6 profiles · B-7 check-writes · B-8 server tools | Complete through #35; LIVE gate remains OFF |
 | C Context | C-1 small results · C-2 listing modes + budgets | Both merged in #36 |
-| D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | D-1 #37, D-2 #38 and D-3 #39 merged; D-4 #40 + #42 complete ; D-5a #43 merged; D-5b #45 merged; D-5c #46 merged; V-1a #47 merged; V-1b1 #48 merged; V-1b2 #49 pending CI; V-1b3 NEXT |
-| V Developer tools | V-1 seed + runs · V-2 cleanup · V-3 trigger events · V-4 event forwarding · V-5 test clocks, simulation, test cards | V-1a #47 merged; V-1b1 #48 merged; V-1b2 independent refund #49 pending CI; V-1b3 simulations next |
+| D Everyday money | D-1 customers · D-2 payments/refunds · D-3 checkout/links/portal · D-4 subscriptions · D-5 invoices/credit notes | D-1 #37, D-2 #38 and D-3 #39 merged; D-4 #40 + #42 complete ; D-5a #43 merged; D-5b #45 merged; D-5c #46 merged; V-1a #47 merged; V-1b1 #48 merged; V-1b2 #49 merged; V-1b3 #50 pending CI; V-1b4 NEXT |
+| V Developer tools | V-1 seed + runs · V-2 cleanup · V-3 trigger events · V-4 event forwarding · V-5 test clocks, simulation, test cards | V-1a #47 merged; V-1b1 #48 merged; V-1b2 #49 merged; V-1b3 dispute/ACH PR #50 pending CI; V-1b4 next |
 | G Money out & account | G-1 balance/payouts/reports · G-2 disputes · G-3 Radar/Identity · G-4 events/webhooks · G-5 account settings · G-6 owner and administration | JIT |
 | H Branding | H-1 branding and setup | JIT |
 | P Project profiles | P-1 known_apps + Appliance Desk · P-2 record links · P-3 app readiness · P-4 project setup | JIT |

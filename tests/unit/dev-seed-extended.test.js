@@ -41,7 +41,9 @@ function fixture({mismatch=false}={}){
     },
     paymentIntents:{
       create:async(p,o)=>add('payment_intent','pi',{
-        ...p,status:'succeeded',amount_received:p.amount},o),
+        ...p,status:p.confirm===false?'requires_confirmation':'succeeded',
+        amount_received:p.confirm===false?0:p.amount,
+        payment_method_types:p.payment_method_types??['card']},o),
       retrieve:async id=>get(id)
     },
     subscriptions:{
@@ -157,4 +159,42 @@ describe('V-1b1 scoped realistic TEST seed scenarios',()=>{
     expect((await f.db.getDevRunObjects({account,
       id:[...f.runMap.values()][0].id})).length).toBe(3);
   });
+  it('dispute-trigger uses the dedicated TEST card without falsely claiming a confirmed dispute',async()=>{
+    const f=fixture(),a=request('dispute-trigger','disputed');
+    expect(parse(await makeDevSeedWrite().handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    const call=f.calls.find(x=>x.type==='payment_intent');
+    expect(call.params.payment_method).toBe('pm_card_createDispute');
+    expect(call.params.confirm).toBe(true);
+    expect(f.calls.some(x=>x.type==='refund')).toBe(false);
+  });
+  it('ACH scenario saves an unconfirmed TEST bank-capable intent and never claims settlement',async()=>{
+    const f=fixture(),a=request('ach-awaiting-confirmation','bank');
+    const preview=parse(await makeDevSeedWrite().handler({...a,dryRun:true},f.ctx));
+    expect(preview.preview).toContain('NOT a settled bank debit');
+    expect(parse(await makeDevSeedWrite().handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    const pi=f.calls.find(x=>x.type==='payment_intent');
+    expect(pi.params.confirm).toBe(false);
+    expect(pi.params.payment_method_types).toEqual(['us_bank_account']);
+    const actual=[...f.resources.values()].find(x=>x.object==='payment_intent');
+    expect(actual.status).toBe('requires_confirmation');
+    expect(actual.amount_received).toBe(0);
+  });
+  it('rejects a provider that falsely reports a bank debit as settled',async()=>{
+    const f=fixture(),a=request('ach-awaiting-confirmation','bank-mismatch');
+    const original=f.sdk.paymentIntents.retrieve;
+    f.sdk.paymentIntents.retrieve=async id=>({...await original(id),
+      status:'succeeded',amount_received:3600});
+    const result=parse(await makeDevSeedWrite().handler({...a,confirm:true},f.ctx));
+    expect(result.done).toBe(false);
+    expect([...f.runMap.values()][0].status).toBe('running');
+  });
+  it('maps bank/dispute descriptions only when unambiguous',()=>{
+    expect(planSeed({description:'Create a dispute',size:1,requestKey:'dd'},account)
+      .scenario).toBe('dispute-trigger');
+    expect(planSeed({description:'Create an ACH example',size:1,requestKey:'aa'},account)
+      .scenario).toBe('ach-awaiting-confirmation');
+    expect(()=>planSeed({description:'refund then ACH settle',size:1,requestKey:'xx'},account))
+      .toThrow(/next consent-aware/);
+  });
+
 });

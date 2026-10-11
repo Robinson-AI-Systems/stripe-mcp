@@ -265,7 +265,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `dev_seed` | Tracked TEST catalog, one-time store payment, and trial/canceled subscription scenarios; refund/dispute/ACH follow V-1b2 | P | built #47/#48 | E |
+| `dev_seed` | Tracked TEST catalog/store/trials, dispute-trigger test cards and unconfirmed ACH setup; settled event simulations remain | P | built #47/#48/#50 | E |
 | `dev_list_runs` | Account-scoped seed runs and exact recorded object counts | — | built #47 | R |
 | `dev_seed_refund` | One owner-approved full refund of a run-owned TEST store charge, with verified ledger entry | $ | built #49 | E |
 | `dev_cleanup` | Remove exactly what a run created (customers, invoices voided, products/prices archived) | C | N | E |
