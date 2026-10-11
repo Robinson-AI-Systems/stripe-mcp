@@ -224,7 +224,7 @@ removing a payout bank account is done in the dashboard, which
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `dispute_list` / `dispute_get` | Disputes, with evidence deadline in Colorado time and days left | — | C | R |
+| `dispute_list` / `dispute_get` | Safe TEST dispute status, amount and Colorado response deadline; no private evidence | — | built #90 | R |
 | `dispute_save_evidence` | Save draft evidence (not submitted) | P | F | E |
 | `dispute_submit_evidence` | Submit evidence (final; Stripe allows one submission) | C | R | E |
 | `dispute_accept` | Accept (lose) the dispute | C | C | E |
