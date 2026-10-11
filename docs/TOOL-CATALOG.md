@@ -213,7 +213,7 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `money_get_payout_schedule` / `money_set_payout_schedule` | TEST own-account schedule read (built #80); change is planned with owner guard | — / C | built read #80; write pending | F |
 | `money_list_bank_accounts` | TEST own-account payout destinations, last4 only; explicit unavailable on Connect-only API denial | — | built #80 | R |
 | `money_list_topups` / `money_get_topup` | TEST top-up reads, no bank/source leakage | — | built #79 | F |
-| `money_create_topup` / `money_cancel_topup` | Top-ups | $ / C | C | F |
+| `money_create_topup` / `money_cancel_topup` | TEST synthetic-bank top-up (owner approved) / pending cancel | $ / C | built #84 (CI pending); real bank OFF | F |
 
 Removed on purpose: `stripe_create_bank_account`, `stripe_verify_bank_account`,
 `stripe_delete_bank_account` (bank numbers never pass through chat; adding or

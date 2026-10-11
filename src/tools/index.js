@@ -32,4 +32,5 @@ import * as moneyBankReads from './money-bank-reads.js';
 import * as moneyPayoutWrites from './money-payout-writes.js';
 import * as moneyPayoutCreate from './money-payout-create.js';
 import * as moneyPayoutReverse from './money-payout-reverse.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect,devCleanup,devEvents,devForwarders,devForwardEvents,devTestCards,devSubscriptionSim,moneyReads,moneyBankReads,moneyPayoutWrites,moneyPayoutCreate,moneyPayoutReverse]);
+import * as moneyTopupWrites from './money-topup-writes.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect,devCleanup,devEvents,devForwarders,devForwardEvents,devTestCards,devSubscriptionSim,moneyReads,moneyBankReads,moneyPayoutWrites,moneyPayoutCreate,moneyPayoutReverse,moneyTopupWrites]);
