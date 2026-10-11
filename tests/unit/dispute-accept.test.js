@@ -20,7 +20,8 @@ function fixture({amount=8500,limit=50000,record={},chargeMetadata={},uncertain=
     customers:{retrieve:vi.fn(async()=>({id:'cus_TEST1234',object:'customer',metadata:{}}))}};
   const db=createFakeDb({accounts:[{id:account,money_limit_cents:limit}]});
   const ctx={db,connectionId:'acceptance-client',
-    connection:{stripeAccount:account,mode:'test',profile:'everyday'},
+    connection:{stripeAccount:account,mode:'test',profile:'everyday',
+      resultScope:'authenticated-scope'},
     services:{stripeForConnection:async()=>provider}};
   const call=a=>makeDisputeAccept().handler(a,ctx);
   return {provider,db,ctx,call};
