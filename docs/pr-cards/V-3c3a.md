@@ -1,6 +1,6 @@
 # V-3c3a — Verified declined PaymentIntent TEST event
 
-Status: IN PROGRESS. Design: docs/designs/BATCH-V.md §4/V-3.
+Status: MERGED (as-if-merged documentation; CI and PR review gate still required). Design: docs/designs/BATCH-V.md §4/V-3.
 Predecessor: V-3c2 #62 merged. Baseline: latest main after #62.
 Risk: safe incoming TEST failure, authentic generated event evidence; no LIVE or money-out.
 Budget: about 120 production lines; no migrations.
