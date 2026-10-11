@@ -1,5 +1,4 @@
-import {describe,it,expect,vi} from 'vitest';
-import {randomBytes} from 'node:crypto';
+import {describe,it,expect} from 'vitest';
 import {makeDevForwarderCreateWrite,makeDevForwarderDeleteWrite,handlers,tools}
   from '../../src/tools/dev-forwarders.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
@@ -86,9 +85,9 @@ describe('V-4b2 forwarder management contracts',()=>{
     expect(f.rows.size).toBe(1);
     expect(f.stats()).toMatchObject({encrypted:original,issuances:1,lookups:1});
     expect(first.forwarderId).toMatch(/^fwd_/);
-    const different=await f.create.handler({...params,url:'https://different.example.org/hook',
-      confirm:true},f.ctx);
-    expect(different.isError===true||message(different).done===false).toBe(true);
+    await expect(f.create.handler({...params,
+      url:'https://different.example.org/hook',confirm:true},f.ctx))
+      .rejects.toThrow(/Retry key/);
     expect(f.rows.size).toBe(1);
   });
   it('refuses private DNS, invalid URL, unsorted duplicates and LIVE preflight',async()=>{
