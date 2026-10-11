@@ -62,8 +62,8 @@ describe('G-3a safe Radar reads',()=>{
     const wrong=()=>f.run('radar_list_list_items',{valueListId:'rsl_OTHER'});
     const foreign=await wrong();
     expect(foreign.isError).toBe(true);
-    await expect(f.run('radar_list_reviews',{starting_after:'issfr_BAD'})).rejects.toThrow();
-    await expect(f.run('radar_get_review',{reviewId:'prv_MISMATCH'})).rejects.toThrow();
+    expect((await f.run('radar_list_reviews',{starting_after:'issfr_BAD'})).isError).toBe(true);
+    expect((await f.run('radar_get_review',{reviewId:'prv_MISMATCH'})).isError).toBe(true);
     expect(()=>reviewSafe({...review,livemode:true})).toThrow();
     expect(()=>valueItemSafe({...item,value_list:'rsl_?' })).toThrow();
   });

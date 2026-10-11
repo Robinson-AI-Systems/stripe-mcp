@@ -85,7 +85,8 @@ function check(a,allowed,required=[],prefix){
 async function list(a,ctx,path,prefix,shape,more={}){
   return ctx?.connection?.mode!=='test'?fail('Radar reads require TEST mode'):
     guarded(ctx,async s=>{
-      check(a,['limit','starting_after',...Object.keys(more)],Object.keys(more),prefix);
+      check(a,['limit','starting_after',...(more.value_list?['valueListId']:[])],
+        more.value_list?['valueListId']:[],prefix);
       const result=await path(s).list({...paging(a),...more});
       return pageResult(result,shape);
     });
