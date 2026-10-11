@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-1d2 guarded TEST report-run creation (#86 as-if-merged, CI pending):** full-only preview/confirm/audit/idempotency, provider type-availability/interval validation, asynchronous create/read-back and exact job ID/status, no fabricated completed report or CSV URL. Next G-1e payout schedule setter; then report export and G-1 completion/G-2.
+
 - **G-1d1 TEST report types and runs (#85 as-if-merged; CI pending):** read-only provider report catalog (bounded sorted cursor), run history/status and exact result file ID; explicitly no fictitious signed download URL. Next G-1d2 guarded report generation and download guidance, then G-1 completion/G-2.
 
 - **G-1c4 TEST synthetic-bank top-up create/pending cancel (#84 as-if-merged; CI pending):** no default/unverified real bank; fixed Stripe `btok_us_verified` TEST token, independently authenticated owner approval for bank-debit nature, shared daily cap and separate override, idempotent native SDK and read-back. Any non-synthetic source remains unavailable until separate design and owner authorization. Next G-1d reports.
