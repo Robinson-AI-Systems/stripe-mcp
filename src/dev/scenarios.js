@@ -96,8 +96,7 @@ export function planSeed(a,account){
       .reduce((sum,x)=>sum+x.amountCents,0)};
 }
 export function seedDescription(p){
-  if(p.scenario==='subscription-past-due')return
-    'TEST MODE. Create '+p.size+' RTC-owned test clocks, monthly subscriptions, '+
+  if(p.scenario==='subscription-past-due')return 'TEST MODE. Create '+p.size+' RTC-owned test clocks, monthly subscriptions, '+
     'seven-day free trials and attached fail-on-charge TEST methods. Independently '+
     'record trial invoices; advance each clock eight days, then only complete run '+
     p.runId+' if Stripe confirms every past_due subscription and attempted unpaid '+
