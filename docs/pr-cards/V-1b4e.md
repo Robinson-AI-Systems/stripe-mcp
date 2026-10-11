@@ -20,6 +20,10 @@ Parent V-1, approved Batch V §1/4. Baseline main 45fb44356c85466e3d8608e1788ccc
 - No money-out operations; underlying separate owner approval and $500 per account Denver-day limit remain unmodified. No LIVE, unauthorized app-owned payments, PII, bank credentials, migrations or spending.
 - Tests include real guarded handler preview/confirmation/identity/failures, test-only refusal, read-back mismatch, and pinned Stripe SDK stripe-mock confirmation and matching event cases. All required CI green on exact head before merge.
 
+## Merge review resolution
+
+- Review P1 on PR #55: earlier generic `isGuardedTestWrite` allowlisted customers/payments/checkout/billing but not developer. Thus new and pre-existing `dev_seed`, `testclock_*`, and `dev_seed_refund` could be registered but denied through the normal MCP/`stripe_call` dispatcher. Add the `developer` area only within the existing TEST-mode + `defineWrite-v1` + write-permitted profile gate (no generic bypass). New indirect tests invoke the real `dev_confirm_seed_ach` handler via both direct dispatch and `stripe_call`, reject LIVE/read_only and fake writes, preserve read-only `stripe_batch`.
+
 ## Remaining V-1
 
 Bank payment succeeded and real Stripe event can be observed; no assertion that real bank settlement occurred. Marketplace TEST scenario must be capability-verified before creation, with separate money-out approval for any transfer/payout. V-1 remains IN_PROGRESS until gated marketplace and end-to-end acceptance are complete; then V-2.
