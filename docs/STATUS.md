@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-4b (#104 as-if-merged, exact-head CI pending):** native TEST webhook endpoint list/get, bounded event names/count and HTTPS origin-only destination. Raw URL path/query, metadata and one-time signing secret are never exposed. **Next G-4c guarded add/remove enabled event subscriptions**, preserving all unrelated event types and app ownership. LIVE stays off; connected TEST smoke pending.
+
+
 - **G-4a (#103 as-if-merged; CI pending):** native TEST Event list/get/undelivered, only whitelisted event summary and safe reference IDs. delivery_success=false is a provider filter, not app processing proof. Next G-4b webhook metadata reads, then guarded event subscriptions and private owner-only signing secret handoff. No connected TEST smoke, LIVE or money-out.
 
 
