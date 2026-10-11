@@ -54,9 +54,9 @@ describe('tool registry', () => {
       'money_list_bank_accounts','money_get_payout_schedule',
       'money_update_payout','money_cancel_payout','money_create_payout','money_reverse_payout',
       'money_create_topup','money_cancel_topup',
-      'report_list_types','report_list_runs','report_get_run','report_run','money_set_payout_schedule','report_get_result_file','dispute_list','dispute_get','file_list','file_get','file_create_link'
+      'report_list_types','report_list_runs','report_get_run','report_run','money_set_payout_schedule','report_get_result_file','dispute_list','dispute_get','file_list','file_get','file_create_link','file_upload_evidence'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(75);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(76);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
