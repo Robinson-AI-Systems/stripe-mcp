@@ -1,7 +1,8 @@
 // Account-scoped TEST scenario plans and durable, idempotent Stripe execution.
 import {createHash} from 'node:crypto';
 const sha=s=>createHash('sha256').update(s).digest('hex');
-export const seedScenarios=['catalog-starter','basic-store','subscription-trial','subscription-canceled'];
+export const seedScenarios=['catalog-starter','basic-store','subscription-trial',
+  'subscription-canceled','dispute-trigger','ach-awaiting-confirmation'];
 function chooseScenario(a){
   if((!!a?.scenario)===(!!a?.description))
     throw new TypeError('Select one named TEST scenario OR a plain description');
@@ -12,9 +13,11 @@ function chooseScenario(a){
   if(typeof a.description!=='string'||a.description.length<3||
     a.description.length>256)throw new TypeError('Bounded TEST scenario description required');
   const d=a.description.toLowerCase();
-  if(/refund|dispute|bank|ach|marketplace|connect|past.due/.test(d))
+  if(/refund|marketplace|connect|past.due|settle|reconcile/.test(d))
     throw new TypeError('That scenario requires the next consent-aware TEST builder slice');
   const matches=[
+    [/dispute|chargeback/,'dispute-trigger'],
+    [/ach|bank/,'ach-awaiting-confirmation'],
     [/cancel(?:led|ed|ation)?|ended subscription/,'subscription-canceled'],
     [/trial|subscription|renewal/,'subscription-trial'],
     [/store|one.time|sale|payment|charge/,'basic-store'],
@@ -38,8 +41,10 @@ export function planSeed(a,account){
     steps.push({name:'price_'+i,type:'price',label:scenario==='catalog-starter'?
       'Monthly TEST price '+i:'RTC Test Price '+i,amountCents});
     steps.push({name:'customer_'+i,type:'customer',label:'RTC Test Customer '+i});
-    if(scenario==='basic-store')
-      steps.push({name:'payment_'+i,type:'payment_intent',amountCents});
+    if(['basic-store','dispute-trigger','ach-awaiting-confirmation'].includes(scenario))
+      steps.push({name:'payment_'+i,type:'payment_intent',amountCents,
+        ...(scenario==='dispute-trigger'?{testMethod:'pm_card_createDispute'}:{}),
+        ...(scenario==='ach-awaiting-confirmation'?{testMethod:'ach'}:{})});
     if(scenario.startsWith('subscription-'))
       steps.push({name:'subscription_'+i,type:'subscription',
         state:scenario==='subscription-trial'?'trialing':'canceled'});
@@ -50,7 +55,7 @@ export function planSeed(a,account){
     // per-step Stripe idempotency identity of an incomplete run.
     planDigest:sha(JSON.stringify(a.scenario==='catalog-starter'?steps:
       [steps,a.scenario??null,a.description??null])),expectedSteps:steps.length,
-    amountCents:steps.filter(x=>x.type==='payment_intent')
+    amountCents:steps.filter(x=>x.type==='payment_intent'&&x.testMethod!=='ach')
       .reduce((sum,x)=>sum+x.amountCents,0)};
 }
 export function seedDescription(p){
@@ -63,7 +68,11 @@ export function seedDescription(p){
       'Synthetic incoming TEST card charges total $'+(p.amountCents/100).toFixed(2)+' USD. ':'')+
     (p.scenario.startsWith('subscription-')?
       'Subscriptions begin with free trials; no immediate invoice charge. ':'')+
-    'No real funds, automatic refund, dispute, ACH debit or LIVE operations.';
+    (p.scenario==='dispute-trigger'?
+      'Uses Stripe test dispute card; a later dispute event is NOT yet verified. ':'')+
+    (p.scenario==='ach-awaiting-confirmation'?
+      'Creates an unconfirmed ACH-capable intent, NOT a settled bank debit. ':'')+
+    'No real funds, automatic refunds, verified dispute outcome, ACH settlement or LIVE operations.';
 }
 const idPatterns={
   product:/^prod_[A-Za-z0-9]{2,100}$/,
@@ -94,10 +103,15 @@ function verified(x,step,runId,dependencies){
         throw new TypeError('Stripe TEST price amount/product/type differs from plan');
       break;
     case 'payment_intent':
-      if(x.status!=='succeeded'||x.currency!=='usd'||
-        x.amount!==step.amountCents||x.amount_received!==step.amountCents||
+      if(x.currency!=='usd'||x.amount!==step.amountCents||
         ref(x.customer)!==dependencies.customerId)
-        throw new TypeError('Stripe TEST card charge did not independently succeed for the planned customer/amount');
+        throw new TypeError('Stripe TEST payment amount/customer mismatch');
+      if(step.testMethod==='ach'){
+        if(!['requires_confirmation','requires_payment_method','requires_action'].includes(x.status)||
+          x.amount_received!==0||!x.payment_method_types?.includes('us_bank_account'))
+          throw new TypeError('ACH setup was not verified as unconfirmed and unsettled');
+      }else if(x.status!=='succeeded'||x.amount_received!==step.amountCents)
+        throw new TypeError('TEST card charge did not independently succeed for full amount');
       break;
     case 'subscription':
       if(x.status!==step.state||ref(x.customer)!==dependencies.customerId||
@@ -119,7 +133,7 @@ export async function executeSeed({plan,run,stripe,db,account,rootKey}){
     const priceId=byStep.get('price_'+index)?.object_id;
     const customerId=byStep.get('customer_'+index)?.object_id;
     const dependencies={productId,priceId,customerId,
-      recurring:plan.scenario!=='basic-store'};
+      recurring:!['basic-store','dispute-trigger','ach-awaiting-confirmation'].includes(plan.scenario)};
     const prior=byStep.get(step.name);
     if(prior){
       if(prior.object_type!==step.type||!idPatterns[step.type].test(prior.object_id))
@@ -138,7 +152,8 @@ export async function executeSeed({plan,run,stripe,db,account,rootKey}){
         if(!productId)throw new TypeError('Recorded TEST product must precede price');
         created=await stripe.prices.create({product:productId,currency:'usd',
           unit_amount:step.amountCents,
-          ...(plan.scenario==='basic-store'?{}:{recurring:{interval:'month'}}),
+          ...(['basic-store','dispute-trigger','ach-awaiting-confirmation'].includes(plan.scenario)?
+            {}:{recurring:{interval:'month'}}),
           metadata},opts);break;
       case 'customer':
         created=await stripe.customers.create({name:step.label,
@@ -147,8 +162,13 @@ export async function executeSeed({plan,run,stripe,db,account,rootKey}){
         if(!customerId||!priceId)throw new TypeError('Verified customer/price required for TEST charge');
         created=await stripe.paymentIntents.create({
           customer:customerId,amount:step.amountCents,currency:'usd',
-          payment_method:'pm_card_visa',confirm:true,metadata,
-          description:'Synthetic tracked TEST store payment'
+          ...(step.testMethod==='ach'?{
+            payment_method:'pm_usBankAccount',payment_method_types:['us_bank_account'],
+            confirm:false,description:'Unconfirmed TEST ACH-capable setup, no bank debit'
+          }:{payment_method:step.testMethod??'pm_card_visa',confirm:true,
+            description:step.testMethod==='pm_card_createDispute'?
+              'TEST card selected for later dispute event':'Synthetic tracked TEST store payment'}),
+          metadata
         },opts);break;
       case 'subscription':
         if(!customerId||!priceId)throw new TypeError('Verified customer/price required for TEST subscription');
