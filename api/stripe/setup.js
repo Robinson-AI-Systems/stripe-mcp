@@ -2,6 +2,7 @@ import { createDb } from '../../src/db.js';
 import { createKeyStore } from '../../src/keys.js';
 import { createOneTimeStore } from '../../src/core/one-time-secrets.js';
 import { createSetupHandler } from '../../src/stripe/setup-page.js';
+import { createReportDownloader } from '../../src/stripe/report-download.js';
 
 export default async function handler(req, res) {
   try {
@@ -12,7 +13,8 @@ export default async function handler(req, res) {
     const configured = req.method === 'POST';
     const keyStore = configured ? createKeyStore({ db }) : null;
     const oneTimeStore = configured ? createOneTimeStore({ db }) : null;
-    return await createSetupHandler({ db, keyStore, oneTimeStore })(req, res);
+    return await createSetupHandler({ db, keyStore, oneTimeStore,
+      reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
       error: 'temporarily_unavailable', description: 'Configure the private Stripe MCP server before setup'
