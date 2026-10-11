@@ -108,3 +108,18 @@ or the source's possibly signed query. Private Drive links that require
 login and Drive confirmation pages are not accessible and fail closed.
 **Uploading does not attach or submit evidence to a dispute.**
 Avoid importing personal data unless you have the right to provide it.
+
+## Stage TEST dispute evidence without submitting it
+
+Call `dispute_get` for the exact `du_...` ID, amount, status and
+Colorado evidence deadline. Upload any PDF/PNG/JPEG using
+`file_upload_evidence` and retain its private `file_...` ID. To stage draft
+evidence, call `dispute_save_evidence` with the dispute ID and selected fields
+(such as `productDescription`, `uncategorizedText` or `receiptFileId`).
+Review the preview, then independently confirm the TEST write. The API is
+called with **`submit:false`**; saving a draft never sends evidence to the bank.
+The result confirms only field names, verified submission count and staged
+state; sensitive evidence text is not echoed. An already submitted or past-due
+dispute cannot be staged. Actual evidence submission and accepting a loss are
+separate tools yet to be implemented, and accepting a loss will require
+independent owner money-out authorization.
