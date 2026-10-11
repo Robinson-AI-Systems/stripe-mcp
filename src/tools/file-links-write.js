@@ -15,7 +15,7 @@ function validate(a) {
     throw new TypeError('A future expiry between 1 minute and 24 hours is required');
 }
 export function makeFileLinkWrite(){
-  let newId=null,verifiedLink=null;
+  let newId=null;
   const operation=defineWrite({
     name:'file_create_link',
     read:async(a,ctx)=>{
@@ -37,8 +37,7 @@ export function makeFileLinkWrite(){
       newId=result.id;
     },
     readAfter:async(_a,ctx)=>{
-      verifiedLink=newId?(await client(ctx)).fileLinks.retrieve(newId):null;
-      return verifiedLink;
+      return newId?(await client(ctx)).fileLinks.retrieve(newId):null;
     },
     verify:(before,after,a)=>after?.object==='file_link'&&after.id===newId&&
       (typeof after.file==='string'?after.file:after.file?.id)===before.id&&
@@ -48,12 +47,21 @@ export function makeFileLinkWrite(){
   });
   return {...operation,async handler(args,ctx){
     const result=await operation.handler(args,ctx);
-    if(result?.isError||!verifiedLink)return result;
+    if(result?.isError)return result;
     const body=JSON.parse(result.content[0].text);
-    if(body.confirmed!==true)return result;
+    if(body.confirmed!==true||!newId)return result;
+    // Link creation was verified by defineWrite; re-read before emitting a URL.
+    const verified=await (await client(ctx)).fileLinks.retrieve(newId);
+    const valid=verified?.object==='file_link'&&verified.id===newId&&
+      (typeof verified.file==='string'?verified.file:verified.file?.id)===args.fileId&&
+      verified.expires_at===args.expiresAt&&verified.expired===false&&
+      typeof verified.url==='string'&&
+      /^https:\/\/files\.stripe\.com\/links\/[-A-Za-z0-9_]+$/.test(verified.url);
+    if(!valid)return {...result,isError:true,content:[{type:'text',text:JSON.stringify({
+      done:false,confirmed:false,error:'Created public link verification changed; URL withheld'
+    })}]};
     return {...result,content:[{type:'text',text:JSON.stringify({...body,
-      publicUrl:verifiedLink.url,expiresAt:verifiedLink.expires_at,
-      scope:'public_brand_asset_only'})}]};
+      publicUrl:verified.url,expiresAt:verified.expires_at,scope:'public_brand_asset_only'})}]};
   }};
 }
 export const tools=[{...makeFileLinkWrite().tool,

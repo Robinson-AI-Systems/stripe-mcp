@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {makeFileLinkWrite,tools,handlers} from '../../src/tools/file-links-write.js';
+import {tools,handlers} from '../../src/tools/file-links-write.js';
 import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 const id='file_FAKE1234',link='link_FAKE1234';
