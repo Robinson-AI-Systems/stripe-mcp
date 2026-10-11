@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-1b4f TEST Connect onboarding PR #56 (as-if-merged, exact-head CI/review outstanding):** Native TEST-only dev_connect_readiness independently probes selected platform identity and Connect account listing. New marketplace-onboarding seed creates real tagged TEST buyer/catalog and Express seller account records only when Connect is available, verifies all objects/transfer capability state, tracks every provider ID for future cleanup, and creates no charges, transfers, payouts or application fees. Seller onboarding is NOT declared complete; money-out still requires independent owner authorization. Next: V-1 acceptance/remaining gaps, then V-2 cleanup, V-3/V-4/V-5.
+
+
 - **V-1b4e guarded synthetic ACH confirmation PR #55 (as-if-merged; exact-head CI/review pending):** Added TEST-only dev_confirm_seed_ach for precisely run-owned unconfirmed bank intents, with audited preview/confirm, Stripe-native idempotent confirmation, independent status/cents/customer checks, and bounded exact payment_intent.succeeded event matching in dev_verify_outcomes. No bank settlement claimed, no LIVE, owner-approved money-out rules unchanged. V-1 remaining: capability-gated TEST Connect marketplace, then acceptance/cleanup.
 
 

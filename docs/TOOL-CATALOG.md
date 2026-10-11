@@ -258,15 +258,16 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `webhook_delete` | Delete an endpoint | C | C | F |
 | `webhook_check_signature` | Check a pasted test payload + signature header against an endpoint (paste the secret on the setup page, never in chat) | — | R | F |
 
-## Developer tools (`dev_*`, `testclock_*`) — 19 (test mode only; `docs/designs/BATCH-V.md`)
+## Developer tools (`dev_*`, `testclock_*`) — 20 (test mode only; `docs/designs/BATCH-V.md`)
 
 Building with Stripe on any project: realistic test data, precise cleanup, real test events, forwarding events into an
 app under development, and time travel. Every tool refuses on a live connection.
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `dev_seed` | Tracked TEST catalog/store, trial/canceled/paid-active and resumable clocked past-due subscriptions, dispute trigger, unconfirmed ACH | P | built #47/#48/#50/#52/#54 | E |
+| `dev_seed` | Tracked TEST catalog/store, subscriptions, dispute/ACH fixtures and Connect-gated seller onboarding (no money movement) | P | built #47/#48/#50/#52/#54/#56 | E |
 | `dev_list_runs` | Account-scoped seed runs and exact recorded object counts | — | built #47 | R |
+| `dev_connect_readiness` | Verify selected TEST platform Connect API access and actual capability state; no transfers/payouts | — | built #56 | R |
 | `dev_seed_refund` | One owner-approved full refund of a run-owned TEST store charge, with verified ledger entry | $ | built #49 | E |
 | `dev_confirm_seed_ach` | Confirm an unconfirmed run-owned TEST ACH intent and verify Stripe processing/action/success; no settlement assertion | P | built #55 | E |
 | `dev_verify_outcomes` | Verify actual run-owned TEST dispute events, ACH state and exact succeeded event; never infer settlement or webhook delivery | — | built #51/#55 | R |
