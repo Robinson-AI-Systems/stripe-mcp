@@ -1,15 +1,16 @@
 // V-1a current-native TEST tracked developer catalog seeding.
 import {defineWrite,gone} from './write.js';
 import {client,writeProfiles} from './billing-shared.js';
-import {planSeed,seedDescription,executeSeed,safeSeedScenario}
+import {planSeed,seedDescription,executeSeed,seedScenarios}
   from '../dev/scenarios.js';
 const profiles=['read_only','everyday','full'];
 const reply=x=>({content:[{type:'text',text:JSON.stringify(x)}]});
-const scenario={type:'string',enum:[safeSeedScenario]};
+const scenario={type:'string',enum:seedScenarios};
+const description={type:'string',minLength:3,maxLength:256};
 const size={type:'integer',minimum:1,maximum:5};
 const retry={type:'string',minLength:1,maxLength:128};
 const op=defineWrite({
-  name:'dev_seed',
+  name:'dev_seed',allowZeroPreview:true,
   read:async(a,ctx)=>{
     if(ctx?.connection?.mode!=='test'||!ctx?.connection?.stripeAccount)
       throw new TypeError('Developer seeding is only available in TEST mode');
@@ -17,7 +18,7 @@ const op=defineWrite({
       typeof ctx.db?.getDevRunObjects!=='function')
       throw new TypeError('Durable TEST run store is unavailable');
     if(!a||Object.keys(a).some(k=>![
-      'scenario','size','requestKey','dryRun','confirm'
+      'scenario','description','size','requestKey','dryRun','confirm'
     ].includes(k)))throw new TypeError('Unsupported seed argument');
     const plan=planSeed(a,ctx.connection.stripeAccount);
     const prior=await ctx.db.getDevRun({
@@ -28,6 +29,10 @@ const op=defineWrite({
     return {id:plan.runId,metadata:{},...plan,_prior:prior};
   },
   summarize:b=>seedDescription(b),
+  money:async(_a,_ctx,b)=>b.amountCents>0?{
+    amountCents:b.amountCents,currency:'usd',direction:'in',targetId:b.runId,
+    description:'Synthetic incoming TEST store card payments (tracked run)'
+  }:null,
   targetGuard:(_a,_ctx,b)=>b._prior?.status==='uncertain'?
     'Run has an uncertain outcome; manual review required':true,
   apply:async(a,ctx,{before,idempotencyKey})=>{
@@ -53,10 +58,10 @@ const op=defineWrite({
 });
 export const tools=[
   {...op.tool,area:'developer',profiles:writeProfiles,
-    description:'Seed tracked TEST catalog products, recurring prices and synthetic customers.',
-    inputSchema:{type:'object',properties:{scenario,size,requestKey:retry,
+    description:'Seed verified TEST products, customers, one-time payments and trial subscriptions.',
+    inputSchema:{type:'object',properties:{scenario,description,size,requestKey:retry,
       confirm:{type:'boolean'},dryRun:{type:'boolean'}},
-      required:['scenario','size','requestKey'],additionalProperties:false}},
+      required:['size','requestKey'],additionalProperties:false}},
   {name:'dev_list_runs',area:'developer',writes:false,profiles,
     description:'List account-scoped TEST developer seed runs and recorded object counts.',
     annotations:{readOnlyHint:true},

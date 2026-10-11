@@ -4,6 +4,7 @@ const accountId=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]+$/.test(x);
 const digest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const key=x=>typeof x==='string'&&x.length>0&&x.length<=128;
 const scenario=x=>typeof x==='string'&&/^[a-z][a-z0-9-]{2,40}$/.test(x);
+const idPrefixes={product:'prod',price:'price',customer:'cus',payment_intent:'pi',subscription:'sub'};
 export async function initDevRunTables(sql){
   await sql`CREATE TABLE IF NOT EXISTS dev_runs (
     id TEXT PRIMARY KEY,
@@ -69,9 +70,9 @@ export function createDevRunStore(sql){
     async recordDevRunObject({account,id,stepName,objectType,objectId}){
       if(!accountId(account)||!runId(id)||
         typeof stepName!=='string'||!/^[a-z0-9_-]{1,70}$/.test(stepName)||
-        !['product','price','customer'].includes(objectType)||
+        !idPrefixes[objectType]||
         typeof objectId!=='string'||
-        !/^(?:prod|price|cus)_[A-Za-z0-9]{2,100}$/.test(objectId))
+        !new RegExp('^'+idPrefixes[objectType]+'_[A-Za-z0-9]{2,100}$').test(objectId))
         throw new TypeError('Verified provider-created run object required');
       const rows=await sql`WITH eligible AS (
         SELECT id FROM dev_runs

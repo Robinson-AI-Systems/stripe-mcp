@@ -66,4 +66,19 @@ describe('V-1a durable TEST seed run PostgreSQL',()=>{
     await expect(db.listDevRuns({account,limit:1000})).rejects.toThrow();
     expect(await db.getDevRun({account:other,requestKey})).toBeNull();
   });
+  it('accepts only correctly typed payment and subscription IDs from tracked TEST runs',async()=>{
+    const run='run_'+'c'.repeat(24),key='extended-seed-run';
+    await db.ensureDevRun({id:run,account,connection:'agent-dev',
+      requestKey:key,scenario:'basic-store',size:1,planDigest:'d'.repeat(64)});
+    expect(await db.recordDevRunObject({account,id:run,stepName:'payment_1',
+      objectType:'payment_intent',objectId:'pi_FAKE1234'})).toBe(true);
+    expect(await db.recordDevRunObject({account,id:run,stepName:'subscription_1',
+      objectType:'subscription',objectId:'sub_FAKE1234'})).toBe(true);
+    await expect(db.recordDevRunObject({account,id:run,stepName:'wrong',
+      objectType:'payment_intent',objectId:'prod_FAKE1234'}))
+      .rejects.toThrow(/Verified provider-created/);
+    expect(await db.getDevRunObjects({account:other,id:run})).toEqual([]);
+    expect((await db.getDevRunObjects({account,id:run})).length).toBe(2);
+  });
+
 });

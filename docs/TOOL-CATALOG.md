@@ -265,7 +265,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `dev_seed` | V-1a tracked TEST catalog-starter (products, prices, synthetic customers), full scenarios follow V-1b; every ID recorded | P | built #47 (V-1a) | E |
+| `dev_seed` | Tracked TEST catalog, one-time store payment, and trial/canceled subscription scenarios; refund/dispute/ACH follow V-1b2 | P | built #47/#48 | E |
 | `dev_list_runs` | Account-scoped seed runs and exact recorded object counts | — | built #47 | R |
 | `dev_cleanup` | Remove exactly what a run created (customers, invoices voided, products/prices archived) | C | N | E |
 | `dev_reset_test_data` | Stripe's "delete all test data" — guided link and steps (no API) | — | N | E |
