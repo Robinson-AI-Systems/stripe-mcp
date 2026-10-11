@@ -259,3 +259,8 @@ Future subscription schedules require verified fixed recurring USD prices and a 
 ## D-5a TEST invoices and manual drafts (#43)
 
 The invoice read namespace uses the pinned `invoices.list/retrieve/search/createPreview` and `invoicePayments.list` SDK routes with bounded customer/status/search paging, redacted compact invoice and payment projections and no `client_secret`. Five draft changes use real `defineWrite` with TEST-only connection, app ownership check, preview/confirm/idempotency/readback: `invoices.create/update` and `invoiceItems.create/update/delete`. Manual invoices disable auto-advance and exclude pending unrelated line items. The accounting preflight refuses invoices whose USD totals would be affected by automatic tax, discounts, customer credits, subscription lines or missing totals rather than assuming unchanged charges. No finalization, payment, LIVE use or monetary owner consent occurs in these draft-only tools; D-5b/c own those operations.
+
+
+## D-5b — native TEST invoice lifecycle (PR #45)
+
+Seven invoice lifecycle write handlers use `defineWrite`, official pinned Stripe SDK invoice methods, exact account/customer verification, idempotency, audit, and independent provider retrieval. Deletion requires a definite Stripe 404 `resource_missing`; uncertain outcomes are not reported as confirmed. Finalization uses `auto_advance:false`, and charge-now verifies the saved payment method belongs to the customer and exact provider-derived amount in cents. Its money spec is inbound, never a bypass for owner money-out approval. TEST send produces the `invoice.sent` event without delivering email. All operations are TEST-only and app ownership guarded. No infrastructure/keys created and LIVE OFF.

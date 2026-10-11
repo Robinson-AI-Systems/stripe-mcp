@@ -12,4 +12,5 @@ import * as billingWrites from './billing-writes.js';
 import * as billingItemScheduleWrites from './billing-item-schedule-writes.js';
 import * as invoiceReads from './invoices.js';
 import * as invoiceWrites from './invoice-writes.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites]);
+import * as invoiceLifecycleWrites from './invoice-lifecycle-writes.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites]);

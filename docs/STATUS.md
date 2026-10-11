@@ -5,7 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **D-5a #43 merged (as-if-merged documentation; exact-head green required):** five native TEST invoice reads and five guarded manual draft workflows; all five have real-handler seven-case contract tests, pinned SDK stripe-mock, and conservative draft accounting gates. Next: **D-5b** invoice lifecycle, then **D-5c** credit notes. LIVE remains OFF.
+- **D-5b invoice lifecycle PR #45 (as-if-merged; exact-head CI required):** seven TEST native lifecycle writes (delete draft, finalize, send test event, charge open invoice, mark paid outside Stripe, void, mark uncollectible). Each uses verified Stripe state/balances, guarded preview/confirm, stable idempotency, app ownership restriction and independent read-back; incoming charges use a money-in spec and cannot spend the owner's outgoing allowance. TEST invoice.sent does not deliver real email. Next **D-5c** credit notes. LIVE remains OFF; no real account is deployed.
+
+- **D-5a #43 merged (exact-head green c893d78; merge 90a49c0):** five native TEST invoice reads and five guarded manual draft workflows; all five have real-handler seven-case contract tests, pinned SDK stripe-mock, and conservative draft accounting gates. Next: **D-5b** invoice lifecycle, then **D-5c** credit notes. LIVE remains OFF.
 
 - **D-4 merged in implementation PRs #40 and #42:** all 21 current-native TEST subscription, item and schedule tools. Seven D-4b guarded writes now have real-handler contract tests, pinned Stripe SDK mock coverage, current-phase preservation, app ownership enforcement and per-transaction owner consent for credit outcomes. **Next: D-5** invoices/credit notes after green #42 merge. LIVE remains OFF.
 
