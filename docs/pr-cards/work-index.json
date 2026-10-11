@@ -464,13 +464,13 @@
         "V-3"
       ],
       "card": "docs/pr-cards/V-4.md",
-      "status": "APPROVED",
-      "migration": "none",
+      "status": "IN_PROGRESS",
+      "migration": "dev_forwarders",
       "budget": 450,
       "units": [
         "V-4"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_READY",
       "ownerInputs": []
     },
     {
