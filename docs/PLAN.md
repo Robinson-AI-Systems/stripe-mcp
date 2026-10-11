@@ -41,6 +41,7 @@ next bounded implementation.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
+- [ ] V-1b4b1 (#52): verified paid active TEST subscription plus provider-linked paid invoice ID, no fabricated past-due status; V-1b4b2 test clock/renewal, ACH transitions and gated Connect still remain.
 - [ ] V-1b4a (#51): account-scoped TEST provider verification of actual dispute-created events and ACH payment statuses, without inferring event absence, webhook delivery or settlement. V-1b4b still needs real active/past-due, ACH progression and gated Connect fixtures.
 - [ ] V-1b3 (#50): tagged TEST dispute-triggering card payments and *unconfirmed* ACH-capable intents; do not report asynchronous dispute/ACH settlement before provider/event verification. V-1b4 real test-clock/active/past-due outcomes still remain.
 - [ ] V-1b2 (#49): separate TEST store refund with provider-verified charge, owner-authenticated single-use money-out approval, daily account cap and durable ledger. V-1b3 dispute/ACH/overdue scenarios remain.
