@@ -1,13 +1,15 @@
 // Curated real Stripe TEST events from actual audited provider actions.
 // No fake CLI fixture or simulated event success response.
 import {createHash} from 'node:crypto';
+import {mutationTypes,requiresTriggerMutation,mutateEventSource,
+  assertMutatedEvent} from './triggers-updates.js';
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const bad=x=>{throw new TypeError(x);};
 const id=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').test(v);
 const ref=x=>typeof x==='string'?x:x?.id;
 export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
-  'payment_intent.succeeded'
+  'payment_intent.succeeded',...mutationTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent'};
@@ -28,8 +30,8 @@ export function planTrigger(a,account){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=a.type==='price.created'?['product','price']:
-    a.type==='payment_intent.succeeded'?['customer','payment_intent']:
+  const types=a.type.startsWith('price.')?['product','price']:
+    a.type.startsWith('payment_intent.')?['customer','payment_intent']:
     [a.type.split('.')[0]];
   const steps=types.map(type=>({name:type+'_1',type}))
     .concat([{name:'event_1',type:'event'}]);
@@ -48,8 +50,11 @@ function verifyFixture(plan,step,x,objects){
     x.unit_amount!==3600||x.type!=='one_time'))
     bad('TEST event price differs from exact immutable plan');
   if(step.type==='payment_intent'&&(
-    x.amount!==3600||x.amount_received!==3600||x.currency!=='usd'||
-    x.status!=='succeeded'||ref(x.customer)!==
+    x.amount!==3600||x.amount_received!==
+      (plan.type==='payment_intent.canceled'?0:3600)||x.currency!=='usd'||
+    (plan.type==='payment_intent.canceled'?
+      !['requires_confirmation','canceled'].includes(x.status):
+      x.status!=='succeeded')||ref(x.customer)!==
       objects.get('customer_1')?.object_id))
     bad('Stripe did not independently confirm full TEST card payment');
   return x;
@@ -60,10 +65,12 @@ function matchingEvent(e,plan,account,target){
     e.livemode===false&&(!e.account||e.account===account)&&
     object?.object===target.type&&object.id===target.id&&
     object.metadata?.rtc_run===plan.runId&&
+    assertMutatedEvent(plan,object)&&
     (target.type!=='payment_intent'||(
-      object.status==='succeeded'&&object.amount===3600&&
-      object.amount_received===3600&&object.currency==='usd'&&
-      ref(object.customer)===target.customer));
+      object.status===(plan.type==='payment_intent.canceled'?
+        'canceled':'succeeded')&&object.amount===3600&&
+      object.amount_received===(plan.type==='payment_intent.canceled'?0:3600)&&
+      object.currency==='usd'&&ref(object.customer)===target.customer));
 }
 export async function findGeneratedEvent(s,plan,account,target){
   let cursor=null;
@@ -119,7 +126,8 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
           if(!id(customer,'cus'))bad('Verified TEST event customer must precede payment');
           made=await s.paymentIntents.create({
             customer,amount:3600,currency:'usd',payment_method:'pm_card_visa',
-            confirm:true,metadata,description:'Tracked synthetic TEST event charge'
+            confirm:plan.type!=='payment_intent.canceled',metadata,
+            description:'Tracked synthetic TEST event charge'
           },opts);break;
         }
         default:bad('Unsupported TEST event action');
@@ -137,6 +145,15 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         throw Error('Created TEST provider object could not be durably recorded');
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
+    }
+    if(requiresTriggerMutation(plan,step)){
+      // Every object ID is durably recorded and independently verified BEFORE
+      // the next mutation; repeat actions reuse stable Stripe idempotency.
+      await mutateEventSource(s,plan,step,after,rootKey);
+      const changed=await read(s,step.type,resourceId);
+      verifyFixture(plan,step,changed,byStep);
+      if(!assertMutatedEvent(plan,changed))
+        bad('Stripe TEST mutation has not independently reached its target state');
     }
   }
   const target=plan.steps.at(-2);

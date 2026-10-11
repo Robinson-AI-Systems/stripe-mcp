@@ -41,6 +41,7 @@ next bounded implementation.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
+- [ ] V-3b (#60): real TEST customer.updated, product.updated, price.updated and payment_intent.canceled events via idempotent native provider actions and exact event/read-back verification. More billing/dispute/Checkout types V-3c remain.
 - [ ] V-3a (#59): real TEST event trigger actions for customer.created, product.created, price.created, payment_intent.succeeded; exact metadata/amount/account/event retrieval and durable event ID required. V-3b more genuine event types remain.
 - [ ] V-2b (#58): independent zero-balance/inactive Connect seller and dependency-free TEST clock deletion, with exact provider deleted confirmation; V-2 closure after CI and V-3 next.
 - [ ] V-2a (#57): account-scoped TEST cleanup, global exact provider ownership preflight, independently verified cancellation/archival/voiding, honest retained/uncertain results, and owner-only Dashboard test reset guidance. V-2b clock/Connect dependency cleanup remains.

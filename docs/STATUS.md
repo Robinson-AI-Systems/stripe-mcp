@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-3b genuine TEST update/cancel event PR #60 (as-if-merged; exact-head CI/review pending):** Added customer.updated, product.updated, price.updated and payment_intent.canceled by actual native Stripe TEST mutations on tagged, run-owned source objects. Mutations are idempotent and independently read back, and emitted Events must match actual post-mutation attributes, selected account, rtc_run and exact provider IDs. Unconfirmed synthetic TEST PI cancellation never cancels processing or paid intents. V-3c harder subscription/billing/dispute/Checkout event flows remain; V-3 stays IN_PROGRESS. LIVE OFF, independent money-out approvals unchanged.
+
+
 - **V-3a genuine TEST event triggers PR #59 (as-if-merged, exact-head CI/review pending):** Native dev_list_triggers and guarded dev_trigger_event expose only four implemented real Stripe event actions: customer.created, product.created, price.created and payment_intent.succeeded. Each source object is created and independently read, tagged and durably run-tracked; Stripe Event must be independently listed and retrieved with matching TEST account/object/run/amount before marking completed. Delayed event means an incomplete resumable run, never fake success. V-2 cleanup recognizes immutable event ledger IDs and retains them. V-3b additional genuine billing/dispute/Checkout events follows; V-4 only after V-3 completion. LIVE OFF; money-out controls unchanged.
 
 
