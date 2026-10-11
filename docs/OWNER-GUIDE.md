@@ -95,3 +95,16 @@ file contents or Stripe authorization URLs are returned. `file_create_link`
 requires a full-profile preview and confirmation, expires within 24 hours and
 only works for public brand logos/icons. It **cannot** share dispute evidence,
 finance reports or identity documents. G-2 evidence upload/submission follows.
+
+## Import private dispute evidence from a public HTTPS source (TEST)
+
+Use `file_upload_evidence` with `sourceUrl` (a publicly downloadable
+`https://` file or public Google Drive share link) and a safe `filename`
+ending in `.pdf`, `.png`, `.jpg` or `.jpeg`. Preview first, then
+explicitly confirm; the server downloads a verified file of no more than
+10 MiB and uploads it privately to the connected TEST Stripe account.
+Only the Stripe file ID is returned, not file bytes, a sensitive download URL,
+or the source's possibly signed query. Private Drive links that require
+login and Drive confirmation pages are not accessible and fail closed.
+**Uploading does not attach or submit evidence to a dispute.**
+Avoid importing personal data unless you have the right to provide it.
