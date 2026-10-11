@@ -1,5 +1,5 @@
 // Current native TEST invoice reads and explicit provider preview. All results are safe projections.
-import {allProfiles,id,paging,pageResult,client,guarded,checkId,ref,local,
+import {allProfiles,id,paging,pageResult,guarded,checkId,ref,local,
   positiveTotal} from './billing-shared.js';
 const page={limit:{type:'integer',minimum:1,maximum:100},
   starting_after:{type:'string',minLength:2,maxLength:110}};

@@ -33,9 +33,11 @@ describe('tool registry', () => {
       'billing_add_item','billing_update_item','billing_remove_item',
       'billing_create_schedule','billing_update_schedule',
       'billing_release_schedule','billing_cancel_schedule',
-      'invoice_list','invoice_get','invoice_search','invoice_list_payments','invoice_preview'
+      'invoice_list','invoice_get','invoice_search','invoice_list_payments','invoice_preview',
+      'invoice_create_draft','invoice_update_draft','invoice_add_line',
+      'invoice_update_line','invoice_remove_line'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(41);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(46);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
