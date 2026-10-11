@@ -120,7 +120,7 @@ function fixture({badInvoice=false}={}){
     const sub=get('sub_FAKE1');
     put('sub_FAKE1','subscription',{...sub,status:paid?'active':'past_due',
       latest_invoice:'in_FAILED1'});
-    put('in_FAILED1','invoice',{customer,currency:'usd,status:paid?'paid':'open',
+    put('in_FAILED1','invoice',{customer,currency:'usd',status:paid?'paid':'open',
       amount_due:3600,amount_remaining:paid?0:3600,amount_paid:paid?3600:0,
       attempted,attempt_count:attempted?1:0,metadata:{}});
   }
