@@ -32,6 +32,8 @@ export async function initDevSimulationCycleTables(sql){
     UNIQUE(run_id,request_key),
     CHECK((state='observed')=(observed_at IS NOT NULL))
   )`;
+  await sql`ALTER TABLE dev_simulation_cycles ADD COLUMN IF NOT EXISTS event_id TEXT`;
+  await sql`ALTER TABLE dev_simulation_cycles ADD COLUMN IF NOT EXISTS event_type TEXT`;
   await sql`CREATE INDEX IF NOT EXISTS dev_simulation_cycles_state
     ON dev_simulation_cycles(run_id,state,cycle)`;
 }
@@ -41,7 +43,7 @@ export function createDevSimulationCycleStore(sql){
       scope({accountId,runId});
       const rows=await sql`SELECT c.cycle,c.request_key,c.target_frozen_time,
         c.state,c.invoice_id,c.invoice_status,c.payment_intent_id,
-        c.payment_status,c.observed_clock_time,c.attempted_at,c.observed_at
+        c.payment_status,c.event_id,c.event_type,c.observed_clock_time,c.attempted_at,c.observed_at
         FROM dev_simulation_cycles c JOIN dev_runs r ON r.id=c.run_id
         WHERE r.stripe_account=${accountId} AND r.id=${runId}
           AND r.scenario='subscription-simulation'
@@ -51,7 +53,8 @@ export function createDevSimulationCycleStore(sql){
         state:x.state,invoiceId:x.invoice_id??null,
         invoiceStatus:x.invoice_status??null,
         paymentIntentId:x.payment_intent_id??null,
-        paymentStatus:x.payment_status??null,
+        paymentStatus:x.payment_status??null,eventId:x.event_id??null,
+        eventType:x.event_type??null,
         observedClockTime:x.observed_clock_time===null?null:Number(x.observed_clock_time),
         attemptedAt:x.attempted_at??null,observedAt:x.observed_at??null
       }));
@@ -106,14 +109,17 @@ export function createDevSimulationCycleStore(sql){
     async observeDevSimulationCycle({
       accountId,runId,cycle,requestKey,targetFrozenTime,
       observedClockTime,invoiceId,invoiceStatus,paymentIntentId=null,
-      paymentStatus='unavailable'
+      paymentStatus='unavailable',eventId,eventType
     }){
       scope({accountId,runId});
       if(!Number.isInteger(cycle)||cycle<1||cycle>3||
         !key(requestKey)||!unix(targetFrozenTime)||
         observedClockTime!==targetFrozenTime||
         !invoice(invoiceId)||!payment(paymentIntentId)||
-        !['paid','open','void','uncollectible'].includes(invoiceStatus)||
+        !['paid','open'].includes(invoiceStatus)||
+        typeof eventId!=='string'||!/^evt_[A-Za-z0-9]{2,100}$/.test(eventId)||
+        !['invoice.paid','invoice.payment_succeeded','invoice.payment_failed'].includes(eventType)||
+        (invoiceStatus==='paid')===(eventType==='invoice.payment_failed')||
         !['succeeded','requires_payment_method','requires_action',
           'processing','canceled','unavailable'].includes(paymentStatus)||
         (invoiceStatus==='paid'&&paymentStatus!=='succeeded'))
@@ -122,7 +128,7 @@ export function createDevSimulationCycleStore(sql){
         SET state='observed',invoice_id=${invoiceId},
           invoice_status=${invoiceStatus},
           payment_intent_id=${paymentIntentId},
-          payment_status=${paymentStatus},
+          payment_status=${paymentStatus},event_id=${eventId},event_type=${eventType},
           observed_clock_time=${observedClockTime},
           observed_at=now()
         FROM dev_runs r WHERE c.run_id=r.id
