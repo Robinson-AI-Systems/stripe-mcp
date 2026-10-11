@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-5b native account_list_capabilities (#115 as-if-merged, CI pending):** TEST-only verified own-account capability statuses, bounded safe paging and permission-denied guidance; no inferred ACH/Checkout enablement, no raw requirements, no LIVE. Next G-5c own-account payment-method settings read and controlled trial; G-5 remains IN_PROGRESS. Connected Stripe TEST provider smoke is still pending.
+
 - **G-5a native account_get (#114 as-if-merged; exact-head CI pending):** selected TEST own-account safe read of payment readiness, requirement counts and Denver deadline with no unfiltered provider object. Restricted-key permission denial reports not-readable; LIVE and foreign account refused. Next G-5b capability safe reads, then settings trial and guided operations. Connected TEST smoke pending; LIVE OFF.
 
 - **G-4 automated acceptance and G-5 handoff (#113 as-if-merged, exact-head CI pending):** event and native webhook tool scope from #103–#105 and #108–#112 reconciled with unit, mock, DB and guarded-write checks. G-4 implementation complete with **real connected TEST-account smoke NOT VERIFIED**; the external G-4 test evidence remains unchecked. Next G-5a safe TEST account profile reader, then capability and payment-method settings. LIVE disabled and every independent money-out approval unchanged.
