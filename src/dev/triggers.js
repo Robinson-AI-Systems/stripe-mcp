@@ -58,7 +58,7 @@ export function planTrigger(a,account){
     [a.type.split('.')[0]];
   const steps=types.map(type=>({name:type+'_1',type}))
     .concat([{name:'event_1',type:'event'}]);
-  return {runId,scenario:'event-'+a.type.replaceAll('_','-').replace('.','-'),
+  return {runId,scenario:'event-'+a.type.replaceAll('_','-').replaceAll('.','-'),
     type:a.type,steps,size:1,expectedSteps:steps.length,
     planDigest:hash(JSON.stringify([a.type,steps])),amountCents:
       a.type==='payment_intent.succeeded'||isDisputeEvent(a.type)?3600:0};
