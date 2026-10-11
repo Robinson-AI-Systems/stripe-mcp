@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-3b first guarded Radar mutations (#98 as-if-merged; exact-head CI pending):** full-profile TEST review approval and new value-list creation now use distinct defineWrite preview/confirm/idempotency/independent read-back, app-owned payment guard and safe alias preflight. Next **G-3c** list/item lifecycle deletions/additions; then Identity. No LIVE.
+
+
 - **G-3a Radar safe TEST reads (#97 as-if-merged; exact-head CI pending):** warning/review/status and value-list/item IDs now use six SDK read paths with strict TEST identity/pagination and no IP, email, card, secret or sensitive list values in results. Radar rule endpoint remains intentionally absent. Next **G-3b** guarded Radar review and value-list mutations, then Identity. No LIVE.
 
 
