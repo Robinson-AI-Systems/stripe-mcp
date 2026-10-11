@@ -287,7 +287,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
 | `report_list_types` | Complete TEST report type catalog, exact periods, paged | — | built #85 (CI pending) | R |
-| `report_run` / `report_get_run` / `report_list_runs` | Guarded TEST generation pending; TEST run status/result file ID readers built #85. Signed file URLs never invented | P / — / — | get/list built #85 (CI pending); run pending | R |
+| `report_run` / `report_get_run` / `report_list_runs` | Guarded TEST report job request (not completion); status and result file ID reads; no invented signed URLs | P / — / — | run built #86 (CI pending); get/list #85 | F for run; R reads |
 | `account_get` | Business profile, branding, statement descriptor, charges/payouts enabled, what Stripe still needs and by when | — | C | R |
 | `account_list_capabilities` | Payment method capabilities | — | C | R |
 | `account_list_payment_method_settings` / `account_update_payment_method_settings` | Which payment methods Checkout offers (for example turning ACH on) | — / C | N | F |
