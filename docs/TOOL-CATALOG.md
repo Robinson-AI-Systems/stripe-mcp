@@ -273,7 +273,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_verify_outcomes` | Verify actual run-owned TEST dispute events, ACH state and exact succeeded event; never infer settlement or webhook delivery | — | built #51/#55 | R |
 | `dev_cleanup` | Safely clean recorded TEST IDs, with zero-balance seller and dependency-free clock deletion; immutable money retained | C | built #57/#58 | E |
 | `dev_reset_test_data` | Owner-guided TEST Dashboard reset, no fake bulk-delete API | — | V-2a #57 | R |
-| `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (sixteen types through V-3c3c; additional curated types later) | — / P | V-3a #59 / V-3b #60 / V-3c1 #61 / V-3c2 #62 / V-3c3a #63 / V-3c3b #64 / V-3c3c (native failed invoice); more pending | E |
+| `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (seventeen types through V-3c3d; additional curated types later) | — / P | V-3a #59 / V-3b #60 / V-3c1 #61 / V-3c2 #62 / V-3c3a #63 / V-3c3b #64 / V-3c3c #65 / V-3c3d (hosted native TEST Checkout); more pending | E |
 | `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | A target URL for an app under development; its signing secret shown once on the setup page | C / — / C | N | E |
 | `dev_forward_events` | Send real events (by ID, type or time) to a forwarder, correctly signed — replay into a local or preview app without the Stripe CLI | P | N | E |
 | `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
@@ -500,3 +500,5 @@ Home now displays read_only, everyday, and full counts for the tools currently e
 ## B-7 guard metadata (internal, no additional tools)
 
 Guarded write adapter declares a provider-derived money specification when one exists. The CI checker refuses missing writes, confirmation and money metadata. No money operation has been registered externally.
+
+- **dev_get_checkout_test_url** (TEST only, read-only): returns Stripe-hosted payment URL for a precisely run-owned, still-open TEST checkout_session, checked against exact account/metadata/customer; genuine hosted payment must be completed by an operator/browser. No server SDK operation completes Stripe Checkout. URL stops on paid/expired session; retry the original dev_trigger_event requestKey to independently observe completed Event.
