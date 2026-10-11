@@ -14,7 +14,7 @@ export function prepareMoney(value, mode = 'test') {
     value.description.length > 150 || /[\r\n]/.test(value.description) ||
     (value.direction === 'out' &&
       (typeof value.targetId !== 'string' ||
-      !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt)_[A-Za-z0-9]{2,100}$/.test(value.targetId)))) {
+      !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(value.targetId)))) {
     throw new TypeError('Verified USD money amount and short safe description required');
   }
   const verb = value.direction === 'out' ? 'Money out' : value.direction === 'in' ? 'Money in' : 'Money change';

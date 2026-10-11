@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-2d2 acceptance (#96 as-if-merged; exact-head CI pending):** ordinary USD TEST dispute acceptance now requires independently authenticated owner money-out consent bound to exact du_ dispute and provider-derived cents, shared $500/account/Denver-day cap and distinct owner override above it. Uses irreversible disputes.close, no refund, with lost read-back; unapproved, uncertain or app-owned targets fail closed. G-2 code-complete pending real Stripe TEST evidence; **next G-3 Radar and Identity**. LIVE remains OFF.
+
+
 - **G-2d1 submission (#95 as-if-merged, exact-head CI pending):** independently confirmed TEST-only irreversible staged evidence submission uses a complete field inventory, verifies file purpose and dispute deadline, protects app-owned charge/customer, and re-reads provider submission count/status. No private evidence enters previews/results/audit. Next **G-2d2** separately owner-approved dispute acceptance with dispute-ID money-target validation, shared $500/day cap and independent above-cap override. No LIVE or real TEST account smoke.
 
 

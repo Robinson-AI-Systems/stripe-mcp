@@ -227,7 +227,7 @@ removing a payout bank account is done in the dashboard, which
 | `dispute_list` / `dispute_get` | Safe TEST dispute status, amount and Colorado response deadline; no private evidence | — | built #90 | R |
 | `dispute_save_evidence` | Confirmed TEST-only draft evidence with submit:false and exact read-back; never submitted to bank | P | built #93 | E |
 | `dispute_submit_evidence` | Irreversible confirmed TEST evidence submission, safe full-field preview | C | built #95 | E |
-| `dispute_accept` | Accept (lose) the dispute | C | C | E |
+| `dispute_accept` | Irreversible ordinary TEST dispute loss; exact owner-approved money out and $500/day cap | $ | built #96 | E |
 | `file_upload_evidence` | Confirmed TEST upload of public PDF/PNG/JPEG or shared Drive file (10 MiB, SSRF defense); never submits dispute | P | built #92 | E |
 | `file_list` / `file_get` / `file_create_link` | Safe TEST file metadata and confirmed time-limited public BRAND links only; never link private evidence | — / — / P | built #91 | R reads; F link |
 

@@ -296,7 +296,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
           !/^acct_[A-Za-z0-9]+$/.test(account) ||
           !Number.isSafeInteger(amountCents)||amountCents<=0||currency!=='usd'||
           description.length>240||mode!=='test'||typeof target!=='string'||
-          (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt)_[A-Za-z0-9]{2,100}$/.test(target)))
+          (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(target)))
         throw new TypeError('Invalid provider money approval request');
       if(!accountRows.has(account))return false;
       let row=approvals.find(a=>a.account===account&&a.key===idempotencyKey);
