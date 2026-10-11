@@ -274,7 +274,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_cleanup` | Safely clean recorded TEST IDs, with zero-balance seller and dependency-free clock deletion; immutable money retained | C | built #57/#58 | E |
 | `dev_reset_test_data` | Owner-guided TEST Dashboard reset, no fake bulk-delete API | — | V-2a #57 | R |
 | `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (seventeen types through V-3c3d; additional curated types later) | — / P | V-3a #59 / V-3b #60 / V-3c1 #61 / V-3c2 #62 / V-3c3a #63 / V-3c3b #64 / V-3c3c #65 / V-3c3d (hosted native TEST Checkout); more pending | E |
-| `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | A target URL for an app under development; its signing secret shown once on the setup page | C / — / C | N | E |
+| `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | Guarded TEST register/list/soft-delete. A target's signing secret is shown only via owner-password-protected one-time setup page; no MCP secret exposure. Outbound sending is V-4c. | C / — / C | built V-4b2 | E |
 | `dev_forward_events` | Send real events (by ID, type or time) to a forwarder, correctly signed — replay into a local or preview app without the Stripe CLI | P | N | E |
 | `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
 | `testclock_create` / `testclock_advance` | Create or advance guarded TEST clocks; async advance is only confirmed when provider ready | P / P | built #53 | E |
