@@ -1,10 +1,11 @@
 // Account-scoped TEST scenario plans and durable, idempotent Stripe execution.
 import {createHash} from 'node:crypto';
 import {executeLateSubscription} from './late-subscription.js';
+import {executeMarketplaceSeed} from './marketplace.js';
 const sha=s=>createHash('sha256').update(s).digest('hex');
 export const seedScenarios=['catalog-starter','basic-store','subscription-trial',
   'subscription-canceled','subscription-active','subscription-past-due',
-  'dispute-trigger','ach-awaiting-confirmation'];
+  'marketplace-onboarding','dispute-trigger','ach-awaiting-confirmation'];
 function chooseScenario(a){
   if((!!a?.scenario)===(!!a?.description))
     throw new TypeError('Select one named TEST scenario OR a plain description');
@@ -15,8 +16,13 @@ function chooseScenario(a){
   if(typeof a.description!=='string'||a.description.length<3||
     a.description.length>256)throw new TypeError('Bounded TEST scenario description required');
   const d=a.description.toLowerCase();
-  if(/refund|marketplace|connect|settle|reconcile/.test(d))
+  if(/refund|settle|reconcile/.test(d))
     throw new TypeError('That scenario requires the next consent-aware TEST builder slice');
+  if(/marketplace|connect/.test(d)){
+    if(/refund|transfer|payout|dispute|ach|bank|charge|settle/.test(d))
+      throw new TypeError('Marketplace transfers or payment simulation needs separate owner-safe tools');
+    return 'marketplace-onboarding';
+  }
   if(/past.due|overdue|failed renewal/.test(d)){
     if(/ach|bank|refund|dispute|store|catalog/.test(d))
       throw new TypeError('Description is ambiguous; select one TEST scenario');
@@ -46,6 +52,20 @@ export function planSeed(a,account){
     throw new TypeError('Choose size 1–5 and a stable TEST requestKey');
   const scenario=chooseScenario(a);
   const runId='run_'+sha(JSON.stringify([account,a.requestKey])).slice(0,24);
+  if(scenario==='marketplace-onboarding'){
+    if(a.frozenTime!==undefined)
+      throw new TypeError('Marketplace onboarding does not accept TEST clocks');
+    const steps=[];
+    for(let i=1;i<=a.size;i++){
+      steps.push({name:'product_'+i,type:'product',amountCents:3500+i*100});
+      steps.push({name:'price_'+i,type:'price',amountCents:3500+i*100});
+      steps.push({name:'customer_'+i,type:'customer'});
+      steps.push({name:'connected_account_'+i,type:'connected_account'});
+    }
+    return {runId,scenario,size:a.size,steps,
+      planDigest:sha(JSON.stringify([steps,a.scenario??null,a.description??null])),
+      expectedSteps:steps.length,amountCents:0};
+  }
   if(scenario==='subscription-past-due'){
     if(!Number.isSafeInteger(a.frozenTime)||a.frozenTime<946684800||
       a.frozenTime+8*86400>4102444800)
@@ -96,6 +116,12 @@ export function planSeed(a,account){
       .reduce((sum,x)=>sum+x.amountCents,0)};
 }
 export function seedDescription(p){
+  if(p.scenario==='marketplace-onboarding')return 'TEST MODE. Create exactly '+
+    p.size+' Connect Express seller account(s) with verified TEST catalog, '+
+    'buyer and one-time USD price records. Requires independent Connect API '+
+    'readiness before writes. Seller onboarding and transfers are NOT complete; '+
+    'no charges, application fees, transfers, payouts, or real money. Run '+
+    p.runId+'; all IDs durably recorded for precise cleanup.';
   if(p.scenario==='subscription-past-due')return 'TEST MODE. Create '+p.size+' RTC-owned test clocks, monthly subscriptions, '+
     'seven-day free trials and attached fail-on-charge TEST methods. Independently '+
     'record trial invoices; advance each clock eight days, then only complete run '+
@@ -180,6 +206,8 @@ function verified(x,step,runId,dependencies){
   }
 }
 export async function executeSeed({plan,run,stripe,db,account,rootKey}){
+  if(plan.scenario==='marketplace-onboarding')
+    return executeMarketplaceSeed({plan,run,stripe,db,account,rootKey});
   if(plan.scenario==='subscription-past-due')
     return executeLateSubscription({plan,run,stripe,db,account,rootKey});
   if(run.status==='completed')return run;
