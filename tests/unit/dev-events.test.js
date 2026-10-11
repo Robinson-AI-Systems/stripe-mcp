@@ -16,7 +16,7 @@ function fixture({showEvent=false,foreign=false}={}){
     if(!opts?.idempotencyKey)throw Error('Missing Stripe idempotency');
     if(byKey.has(opts.idempotencyKey))return byKey.get(opts.idempotencyKey);
     const id=prefix+'_FAKE123',obj={id,object:type,livemode:false,...body};
-    if(type==='price')obj.type='one_time';
+    if(type==='price')obj.type=body.recurring?'recurring':'one_time';
     if(type==='payment_intent'){
       obj.status=body.confirm===false?'requires_confirmation':'succeeded';
       obj.amount_received=body.confirm===false?0:body.amount;
@@ -52,12 +52,27 @@ function fixture({showEvent=false,foreign=false}={}){
     paymentIntents:{create:async(b,o)=>creates('payment_intent','pi',b,o),
       retrieve:async id=>get(id),
       cancel:async(id,_params,o)=>mutate('payment_intent',id,{status:'canceled'},o)},
+    subscriptions:{
+      create:async(b,o)=>{
+        const invoice=creates('invoice','in',{status:'paid',amount_paid:0,
+          currency:'usd',customer:b.customer,metadata:{}},
+          {idempotencyKey:o.idempotencyKey+'_autoinvoice'});
+        return creates('subscription','sub',{...b,status:'trialing',
+          latest_invoice:invoice.id,items:{data:[{price:b.items[0].price}]}},o);
+      },
+      retrieve:async id=>get(id),
+      cancel:async(id,_params,o)=>mutate('subscription',id,{status:'canceled'},o)
+    },
+    invoices:{retrieve:async id=>get(id),
+      update:async(id,b,o)=>mutate('invoice',id,b,o)},
     events:{
       list:async({type,limit,...other})=>{
         calls.push({action:'events.list',type,limit,other});
         if(!visible)return {data:[],has_more:false};
-        const sourceType=type.startsWith('payment_intent')?'payment_intent':
-          type.split('.')[0],prefix=sourceType==='customer'?'cus':
+        const sourceType=type.startsWith('customer.subscription.')?
+          'subscription':type.startsWith('payment_intent')?'payment_intent':
+          type.split('.')[0],prefix=sourceType==='subscription'?'sub':
+          sourceType==='customer'?'cus':
           sourceType==='payment_intent'?'pi':
           sourceType==='product'?'prod':sourceType;
         const source=get(prefix+'_FAKE123');
@@ -67,7 +82,11 @@ function fixture({showEvent=false,foreign=false}={}){
       },
       retrieve:async id=>{
         calls.push({action:'events.retrieve',id});
-        const source=[...objects.values()].at(-1);
+        const sourceType=calledEvent.startsWith('customer.subscription.')?
+          'sub':calledEvent.startsWith('payment_intent.')?'pi':
+          calledEvent.startsWith('product.')?'prod':
+          calledEvent.startsWith('price.')?'price':'cus';
+        const source=get(sourceType+'_FAKE123');
         return {object:'event',id:'evt_FAKE123',livemode:false,
           type:calledEvent,account,data:{object:source}};
       }
@@ -122,7 +141,8 @@ describe('V-3a real TEST provider event generation',()=>{
       .toEqual(triggerTypes);
     expect(triggerTypes).toEqual(['customer.created','product.created',
       'price.created','payment_intent.succeeded','customer.updated',
-      'product.updated','price.updated','payment_intent.canceled']);
+      'product.updated','price.updated','payment_intent.canceled',
+      'customer.subscription.created','customer.subscription.deleted']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -183,6 +203,49 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
     expect(f.calls.filter(c=>c.action==='create')).toHaveLength(saved);
     expect(f.calls.filter(c=>c.action==='mutate')).toHaveLength(1);
+  });
+  it.each(['customer.subscription.created','customer.subscription.deleted'])(
+    'records real TEST trial invoice and verifies %s from provider',async type=>{
+      const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
+      expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+      const run=[...f.runs.values()][0];
+      expect(run.status).toBe('running');
+      expect(f.ledger.get(run.id).map(x=>x.object_type)).toEqual([
+        'product','price','customer','subscription','invoice']);
+      expect(f.objects.get('in_FAKE123')).toMatchObject({
+        status:'paid',amount_paid:0,metadata:{rtc_run:run.id}});
+      expect(f.objects.get('sub_FAKE123')).toMatchObject({
+        status:type.endsWith('.deleted')?'canceled':'trialing',
+        metadata:{rtc_run:run.id}});
+      if(type.endsWith('.deleted')){
+        expect(f.calls.filter(x=>x.action==='mutate'&&
+          x.type==='subscription')).toHaveLength(1);
+      }else expect(f.calls.filter(x=>x.action==='mutate'&&
+        x.type==='subscription')).toHaveLength(0);
+      const created=f.calls.filter(x=>x.action==='create').length;
+      f.showEvents();
+      const finished=parse(await op.handler({...a,confirm:true},f.ctx));
+      expect(finished.done).toBe(true);
+      expect(f.calls.filter(x=>x.action==='create')).toHaveLength(created);
+      expect(f.ledger.get(run.id).at(-1)).toMatchObject({
+        object_type:'event',object_id:'evt_FAKE123'});
+      expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    });
+  it('cannot create a subscription event when Stripe does not supply a trial invoice',async()=>{
+    const f=fixture();
+    const create=f.sdk.subscriptions.create;
+    f.sdk.subscriptions.create=async(b,o)=>{
+      const sub=await create(b,o);
+      const without={...sub,latest_invoice:null};
+      f.objects.set(sub.id,without);return without;
+    };
+    const out=parse(await makeDevTriggerEventWrite().handler({
+      ...input('customer.subscription.created'),confirm:true},f.ctx));
+    expect(out.done).toBe(false);
+    expect([...f.runs.values()][0].status).toBe('running');
+    const rows=[...f.ledger.values()][0];
+    expect(rows.some(x=>x.object_type==='invoice')).toBe(false);
+    expect(rows.some(x=>x.object_type==='subscription')).toBe(true);
   });
   it('only payment_intent.succeeded previews synthetic incoming $36, never money-out',async()=>{
     const f=fixture(),a=input('payment_intent.succeeded');
