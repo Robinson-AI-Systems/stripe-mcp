@@ -1,6 +1,6 @@
 // TEST time-travel primitives required for real subscription renewal scenarios.
 import {defineWrite,gone} from './write.js';
-import {client,guarded,reply,allProfiles,writeProfiles} from './billing-shared.js';
+import {client,guarded,allProfiles,writeProfiles} from './billing-shared.js';
 const clockId=x=>typeof x==='string'&&/^clock_[A-Za-z0-9]{2,100}$/.test(x);
 const freeze=x=>Number.isSafeInteger(x)&&x>=946684800&&x<=4102444800;
 const ownName=x=>typeof x==='string'&&x.startsWith('RTC DEV ')&&x.length<=80;

@@ -20,7 +20,8 @@ function fixture(opts={}){
       map.set(clockId,value);idempotency.set(o.idempotencyKey,value);return value;
     },
     retrieve:async id=>{
-      calls.push(['retrieve',id]);return {...(map.get(id)??clock),...opts.read};
+      calls.push(['retrieve',id]);return {...(map.get(id)??clock),...opts.read,
+        ...(opts.readAfter&&calls.some(x=>x[0]==='advance')?opts.readAfter:{})};
     },
     advance:async(id,p,o)=>{
       if(!o?.idempotencyKey)throw Error('idempotency required');
@@ -79,7 +80,7 @@ describe('V-1b4c guarded TEST clock dependency',()=>{
       targetFrozenTime:frozenTime+86400,frozenTime});
   });
   it('confirms completion only if Stripe independently reports ready at target',async()=>{
-    const f=fixture({read:{status:'ready',frozen_time:frozenTime+86400}});
+    const f=fixture({readAfter:{status:'ready',frozen_time:frozenTime+86400}});
     const result=parse(await makeTestClockWrite('advance').handler({
       clockId,frozenTime:frozenTime+86400,confirm:true},f.ctx));
     expect(result.done).toBe(true);
