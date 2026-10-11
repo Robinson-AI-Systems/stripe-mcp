@@ -518,13 +518,13 @@
         "G-1"
       ],
       "card": "docs/pr-cards/G-2.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "G-2"
       ],
-      "readiness": "CARD_READY",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
