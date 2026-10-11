@@ -265,8 +265,8 @@ app under development, and time travel. Every tool refuses on a live connection.
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `dev_seed` | Create realistic test data from named scenarios (store, subscriptions incl. past-due, disputes, ACH) or a plain description; every object recorded in a run | P | N | E |
-| `dev_list_runs` | Seed runs and what each created | — | N | R |
+| `dev_seed` | V-1a tracked TEST catalog-starter (products, prices, synthetic customers), full scenarios follow V-1b; every ID recorded | P | built #47 (V-1a) | E |
+| `dev_list_runs` | Account-scoped seed runs and exact recorded object counts | — | built #47 | R |
 | `dev_cleanup` | Remove exactly what a run created (customers, invoices voided, products/prices archived) | C | N | E |
 | `dev_reset_test_data` | Stripe's "delete all test data" — guided link and steps (no API) | — | N | E |
 | `dev_list_triggers` / `dev_trigger_event` | Make Stripe emit a real test event (~30 common types) by doing the real test-mode action | — / P | N | E |

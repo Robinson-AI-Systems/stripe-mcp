@@ -41,6 +41,7 @@ next bounded implementation.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
+- [ ] V-1a (#47): account-scoped durable `dev_runs` and `dev_run_objects`, real TEST-only catalog-starter seeding and run listing implemented pending exact-head CI; V-1b full scenarios remain before V-1 acceptance.
 - [ ] Seed scenarios with every created object recorded; cleanup touches only recorded objects.
 - [ ] Real test events triggered; events forwarded to an app under development with valid signatures; private URLs refused.
 - [ ] Test clocks and subscription simulation; test cards; every tool refuses live mode.

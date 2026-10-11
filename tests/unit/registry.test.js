@@ -40,9 +40,10 @@ describe('tool registry', () => {
       'invoice_charge_now','invoice_mark_paid_outside_stripe',
       'invoice_void','invoice_mark_uncollectible',
       'creditnote_list','creditnote_get','creditnote_preview',
-      'creditnote_create','creditnote_void'
+      'creditnote_create','creditnote_void',
+      'dev_seed','dev_list_runs'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(55);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(56);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

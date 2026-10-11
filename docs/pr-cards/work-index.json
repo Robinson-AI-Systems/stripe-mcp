@@ -410,13 +410,13 @@
         "D-5"
       ],
       "card": "docs/pr-cards/V-1.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "dev_tables",
       "budget": 450,
       "units": [
         "V-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_READY",
       "ownerInputs": []
     },
     {
