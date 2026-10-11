@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-5c1 payment-method configuration reader (#116 as-if-merged; CI pending):** read-only native TEST per-configuration method status with owner identity, pagination, safe projection and honest permission-denied fallback. No connected TEST credential smoke; do not infer Checkout enablement. Next guarded G-5c2 update with independent provider re-read; G-5 IN_PROGRESS, LIVE OFF.
+
 - **G-5b native account_list_capabilities (#115 as-if-merged, CI pending):** TEST-only verified own-account capability statuses, bounded safe paging and permission-denied guidance; no inferred ACH/Checkout enablement, no raw requirements, no LIVE. Next G-5c own-account payment-method settings read and controlled trial; G-5 remains IN_PROGRESS. Connected Stripe TEST provider smoke is still pending.
 
 - **G-5a native account_get (#114 as-if-merged; exact-head CI pending):** selected TEST own-account safe read of payment readiness, requirement counts and Denver deadline with no unfiltered provider object. Restricted-key permission denial reports not-readable; LIVE and foreign account refused. Next G-5b capability safe reads, then settings trial and guided operations. Connected TEST smoke pending; LIVE OFF.

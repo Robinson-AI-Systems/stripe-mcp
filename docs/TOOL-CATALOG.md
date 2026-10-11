@@ -291,7 +291,8 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `report_get_result_file` | Verify a completed TEST run's finance_report_run file metadata only; private contents URL never returned | — | built #88; owner-only browser-only CSV delivery #89 (no AI content or URL) | R |
 | `account_get` | Verified own TEST account status, requirements count and safe country/currency; no private owner details or bank data | — | built #114 | R |
 | `account_list_capabilities` | TEST own-account capability statuses; explicit unreadable guidance when Stripe refuses an own-account capability-list call | — | built #115 | R |
-| `account_list_payment_method_settings` / `account_update_payment_method_settings` | Which payment methods Checkout offers (for example turning ACH on) | — / C | N | F |
+| `account_list_payment_method_settings` | Whitelisted native TEST configuration preference and availability reads; 403/404 are unreadable, not disabled | — | built #116 | R |
+| `account_update_payment_method_settings` | Guarded TEST configuration changes, exact provider readback and own-account permission fallback | C | N | F |
 | `account_list_apple_pay_domains` / `account_add_apple_pay_domain` | Apple Pay domains | — / P | N | F |
 
 ## Owner and administration (`admin_*`, guided settings) — 6 tools + guided settings (`docs/designs/BATCH-G.md` G-6)
