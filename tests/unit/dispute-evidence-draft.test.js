@@ -95,7 +95,10 @@ describe('G-2c TEST dispute draft, never submit',()=>{
       productDescription:'safe',confirm:true},{...f.ctx,
       connection:{...f.ctx.connection,mode:'live'}});
     expect(live.isError).toBe(true);
-    const readOnly=await f.call({disputeId:id,productDescription:'safe',confirm:true});
-    expect(readOnly.done).toBeUndefined();
+    const readOnly=await handlers.dispute_save_evidence({
+      disputeId:id,productDescription:'safe',confirm:true},{
+      ...f.ctx,connection:{...f.ctx.connection,profile:'read_only'}});
+    expect(readOnly.isError).toBe(true);
+    expect(f.s.disputes.update).not.toHaveBeenCalled();
   });
 });
