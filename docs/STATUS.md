@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-3c1 native TEST subscription lifecycle events PR #61 (as-if-merged; exact-head CI/review pending):** Real customer.subscription.created and customer.subscription.deleted events from 7-day trial subscriptions using verified recurring TEST price/customer and durably tagged provider-generated zero-dollar invoice. Only independently observed Stripe Event with matching subscription/account/run/customer/price and correct trialing/canceled state completes. Cancellation creates no final invoice, charge, refund or payout. V-3c2 billing/dispute/Checkout events remain; V-4 follows V-3. LIVE OFF, $500/day and independent owner money-out approval unchanged.
+
+
 - **V-3b genuine TEST update/cancel event PR #60 (as-if-merged; exact-head CI/review pending):** Added customer.updated, product.updated, price.updated and payment_intent.canceled by actual native Stripe TEST mutations on tagged, run-owned source objects. Mutations are idempotent and independently read back, and emitted Events must match actual post-mutation attributes, selected account, rtc_run and exact provider IDs. Unconfirmed synthetic TEST PI cancellation never cancels processing or paid intents. V-3c harder subscription/billing/dispute/Checkout event flows remain; V-3 stays IN_PROGRESS. LIVE OFF, independent money-out approvals unchanged.
 
 
