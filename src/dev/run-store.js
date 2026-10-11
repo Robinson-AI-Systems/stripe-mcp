@@ -79,10 +79,13 @@ export function createDevRunStore(sql){
       ), inserted AS (
         INSERT INTO dev_run_objects(run_id,step_name,object_type,object_id)
         SELECT id,${stepName},${objectType},${objectId} FROM eligible
-        ON CONFLICT DO NOTHING RETURNING run_id
+        ON CONFLICT DO NOTHING RETURNING step_name,object_type,object_id
       )
+      SELECT step_name,object_type,object_id FROM inserted
+      UNION ALL
       SELECT step_name,object_type,object_id FROM dev_run_objects
-      WHERE run_id=${id} AND step_name=${stepName}`;
+      WHERE run_id=${id} AND step_name=${stepName}
+        AND NOT EXISTS (SELECT 1 FROM inserted)`;
       return rows.length===1&&rows[0].object_type===objectType&&
         rows[0].object_id===objectId;
     },
