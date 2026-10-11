@@ -10,7 +10,7 @@ const issue={invoiceId:invoice,amountCents:8500,
   reason:'order_change',allocation:'reduce_unpaid'};
 const voidArgs={creditNoteId:credit};
 const parse=r=>JSON.parse(r.content[0].text);
-function fixture({appOwned=false,readBackMatches=true,limitCents=10000},kind){
+function fixture({appOwned=false,readBackMatches=true,limitCents=10000}){
   const metadata=appOwned?{agreementId:'ag_FAKE1234'}:{};
   const db=createFakeDb({accounts:[{id:'acct_safefixture',
     label:'Fixture',money_limit_cents:limitCents}]});
