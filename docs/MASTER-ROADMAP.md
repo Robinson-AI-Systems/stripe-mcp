@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Now:** B-8 owner approvals #35, full Batch C #36, D-1 native TEST customers #37, D-2 payments/refunds #38 and D-3 hosted Checkout/portal #39 are merged. **D-4** all 21 TEST-native subscription/item/schedule tools in PR #40 and PR #42; **D-5a #43** invoice reads/drafts merged; D-5b #45 merged; D-5c #46 merged; V-1a #47 merged; V-1b1 #48 merged; V-1b2 #49 merged; V-1b3 dispute/ACH setup PR #50 pending exact-head CI; V-1b4 verified outcomes next. Merge only after exact-head green CI. Keep ~500-line coherent PRs and exact-head CI. Money-out requires independent owner consent and $500/account/Colorado-day cap; IN-06 LIVE stays OFF.
+**Now:** B-8 owner approvals #35, full Batch C #36, D-1 native TEST customers #37, D-2 payments/refunds #38 and D-3 hosted Checkout/portal #39 are merged. **D-4** all 21 TEST-native subscription/item/schedule tools in PR #40 and PR #42; **D-5a #43** invoice reads/drafts merged; D-5b #45 merged; D-5c #46 merged; V-1a #47 merged; V-1b1 #48 merged; V-1b2 #49 merged; V-1 seed and provider-verified scenarios through #56 merged; V-2a tracked TEST cleanup #57 in progress; dependency-aware V-2b, V-3, V-4 and V-5 next. Merge only after exact-head green CI. Keep ~500-line coherent PRs and exact-head CI. Money-out requires independent owner consent and $500/account/Colorado-day cap; IN-06 LIVE stays OFF.
 
 ## Order and why
 

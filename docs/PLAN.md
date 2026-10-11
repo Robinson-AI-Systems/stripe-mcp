@@ -41,6 +41,7 @@ next bounded implementation.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
+- [ ] V-2a (#57): account-scoped TEST cleanup, global exact provider ownership preflight, independently verified cancellation/archival/voiding, honest retained/uncertain results, and owner-only Dashboard test reset guidance. V-2b clock/Connect dependency cleanup remains.
 - [ ] V-1b4f (#56): selected-account TEST Connect readiness, durable verified Express seller onboarding and buyer/catalog fixtures. No transfer or payout; only report observed capability state. V-1 complete acceptance and remaining live-Connect financial workflows are separate.
 - [ ] V-1b4e (#55): guarded run-owned synthetic TEST ACH confirmation plus actual matching succeeded Stripe event checks; bank settlement never invented. V-1 next: Connect-capability-gated marketplace seed and complete acceptance.
 - [ ] V-1b4d (#54): real clocked 7-day trial with attachable decline TEST method; provider-ready clock and observed past_due attempted unpaid renewal invoice are mandatory before durable completion. Remaining V-1: controlled ACH lifecycle and gated Connect marketplace.

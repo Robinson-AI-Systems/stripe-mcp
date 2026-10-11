@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-2a TEST cleanup PR #57 (as-if-merged; exact-head CI/review outstanding):** dev_cleanup uses only account-scoped ledger IDs, verifies every TEST provider object and run provenance before mutation, then independently verifies eligible cancellation/void/archive/delete actions and marks only exact DB rows cleaned. Per-object retained/uncertain results protect paid invoices, refunds, succeeded payments, TEST clocks and Connect sellers. dev_reset_test_data supplies owner-guided Stripe Dashboard steps, not a false reset. V-2b dependency-aware cleanup follows; LIVE off and independent owner approval rules untouched.
+
+
 - **V-1b4f TEST Connect onboarding PR #56 (as-if-merged, exact-head CI/review outstanding):** Native TEST-only dev_connect_readiness independently probes selected platform identity and Connect account listing. New marketplace-onboarding seed creates real tagged TEST buyer/catalog and Express seller account records only when Connect is available, verifies all objects/transfer capability state, tracks every provider ID for future cleanup, and creates no charges, transfers, payouts or application fees. Seller onboarding is NOT declared complete; money-out still requires independent owner authorization. Next: V-1 acceptance/remaining gaps, then V-2 cleanup, V-3/V-4/V-5.
 
 
