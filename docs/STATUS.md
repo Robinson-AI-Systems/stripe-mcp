@@ -5,6 +5,11 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-5a TEST fixture catalog #72 (as-if-merged, exact-head CI pending):** read-only dev_test_cards exposes current Stripe-published TEST PaymentMethod IDs for success, card declines, 3DS and ACH scenarios, no PAN, no SDK writes, no LIVE. Existing native testclock tools #53 are reused. **Next V-5b:** guarded 3-month synthetic TEST subscription simulation.
+- **Acceptance evidence pending, NOT a coding blocker:** V-4 automated validation passed in PRs #67–#71, but no enrolled Stripe TEST account and owned HTTPS endpoint have been provided for a real provider-to-webhook smoke. V-3 genuine hosted Checkout completion also awaits TEST browser action. Do not claim either was demonstrated. docs/pr-cards/V-4-acceptance.md.
+
+## Historical implementation checkpoints (not the current queue)
+
 - **V-4c2 durable guarded original TEST event replay (PR #71 as-if-merged; CI pending):** adds account-scoped atomic replay and per-event reservation tables. dev_forward_events requires preview, confirm and exact retry key, only TEST originals and active selected-account forwarder, TLS/DNS checks on EACH POST, no redirects, and durable per-event accepted/rejected/uncertain receipts. A retry of an attempted requestKey cannot resend; application processing is never inferred from HTTP receipt. Next V-4 acceptance mapping, then V-5. No LIVE, money-out, app-owned provider mutation or spend.
 
 - **V-4c1 genuine TEST Event replay primitives (as-if-merged; exact-head CI/review pending):** original Stripe v1 Events selected by explicit event IDs or bounded since/type cursor; independently retrieve and verify exact TEST Event, account, type and timestamp. Each outbound HTTPS request freshly verifies all DNS answers are globally public, pins the chosen address in TLS while keeping original hostname/SNI, signs exact bytes with Stripe HMAC and never follows redirects. HTTP 2xx means target accepted, NOT that its app processed it. No public MCP delivery tool yet: V-4c2 adds guarded dev_forward_events and durable replay receipts. LIVE and money-out stay OFF.

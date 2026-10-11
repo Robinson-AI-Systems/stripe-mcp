@@ -280,7 +280,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `testclock_create` / `testclock_advance` | Create or advance guarded TEST clocks; async advance is only confirmed when provider ready | P / P | built #53 | E |
 | `testclock_delete` | Delete a TEST clock after validating dependent records and destructive impact | C | planned V-5 | F |
 | `dev_simulate_subscription` | Run a subscription for N months on a test clock and get the timeline of invoices, payments and events | P | N | E |
-| `dev_test_cards` | The right Stripe test card or bank account for a situation (success, decline, 3-D Secure, dispute, ACH) | — | N | R |
+| `dev_test_cards` | Published TEST-only synthetic card/ACH PaymentMethod IDs, not card or bank numbers; safe case filters and pagination, no provider call | — | built #72 | R |
 
 ## Reports and account (`report_*`, `account_*`) — 10
 
