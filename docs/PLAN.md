@@ -66,6 +66,7 @@ next bounded implementation.
 - [ ] Test clocks and subscription simulation; test cards; every tool refuses live mode.
 
 ## Batch G — Money out, disputes, risk, events, account (`designs/BATCH-G.md`)
+- [x] G-3 (#97–#102): TEST-only Radar/Identity reads and guarded lifecycle; Stripe Radar rules are Dashboard-only. Automated five-gate CI complete; external TEST account smoke remains unverified.
 - [ ] Every listed tool built; Radar-rules question answered from Stripe's description.
 - [ ] Webhook signing secrets only via the one-time page.
 - [ ] Account settings: by API where Stripe allows (trial recorded), otherwise guided with read-back.

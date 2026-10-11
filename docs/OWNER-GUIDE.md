@@ -123,3 +123,7 @@ state; sensitive evidence text is not echoed. An already submitted or past-due
 dispute cannot be staged. Actual evidence submission and accepting a loss are
 separate tools yet to be implemented, and accepting a loss will require
 independent owner money-out authorization.
+
+### G-3 — TEST-only Radar and Identity (#97–#102)
+
+When a TEST Stripe account is securely connected with the necessary key permissions, the server can read safe fraud warnings, reviews and Radar value-list identifiers without exposing IP/email/card values; approving reviews or changing lists requires full-profile write confirmation and provider read-back. It can list verification session states, issue a Stripe-hosted Identity verification URL, cancel input-pending sessions and **request irreversible redaction** separately. Only the verified Stripe-hosted link is returned, never Identity reports, documents or client secrets. Redaction may process for several days and must not be described as completed until Stripe confirms `redacted`. These features have automated CI evidence, **not** connected TEST-account smoke evidence. LIVE is disabled.

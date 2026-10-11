@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-3 Radar/Identity acceptance closed (#102 as-if-merged, CI pending):** #97–#101 merged, 16 native TEST Radar/Identity tools (11 Radar and five Identity). Registry, privacy, guarded-write, profile, app protection, native stripe-mock, DB and exact-head CI evidence reviewed in the batch closure note. **Next: G-4a safe event list/get/undelivered**, then G-4 webhook reads and guarded endpoint administration. Provider-connected TEST smoke for G-3 and earlier V/G remains pending, not passed. LIVE stays OFF; owner-approved money-out policy unchanged.
+
+
 - **G-3e (#101 as-if-merged; exact-head CI/review pending):** distinct guarded TEST Identity cancellation and irreversible redaction request, with provider state preflights, idempotency, private data withheld and independently re-read outcome. Stripe redaction may remain processing up to four days; no premature completed-erasure claim. **Next:** G-3 batch closure (DRIFT C), then G-4 events/webhooks JIT. LIVE disabled; genuine Stripe TEST smoke remains pending.
 
 
