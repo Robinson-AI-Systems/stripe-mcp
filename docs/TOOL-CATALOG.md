@@ -249,8 +249,8 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `event_list` / `event_get` | Recent events (type, object, related app record) | — | C | R |
-| `event_list_undelivered` | Events whose webhook delivery has not succeeded | — | N | R |
+| `event_list` / `event_get` | Safe bounded TEST Event summaries, no embedded customer/payment data | — | built #103 | R |
+| `event_list_undelivered` | TEST Events with provider delivery_success=false; no app processing claim | — | built #103 | R |
 | `webhook_list` / `webhook_get` | Endpoints and the events each sends | — | C | R |
 | `webhook_create` | New endpoint; Stripe's signing secret is **never put in chat**: the result gives a link to view it once on the server's setup page, to paste into the project's hosting settings | C | C | F |
 | `webhook_update` | URL, description, enabled/disabled | C | C | F |
