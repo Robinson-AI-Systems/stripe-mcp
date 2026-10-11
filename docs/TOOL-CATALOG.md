@@ -271,7 +271,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_seed_refund` | One owner-approved full refund of a run-owned TEST store charge, with verified ledger entry | $ | built #49 | E |
 | `dev_confirm_seed_ach` | Confirm an unconfirmed run-owned TEST ACH intent and verify Stripe processing/action/success; no settlement assertion | P | built #55 | E |
 | `dev_verify_outcomes` | Verify actual run-owned TEST dispute events, ACH state and exact succeeded event; never infer settlement or webhook delivery | — | built #51/#55 | R |
-| `dev_cleanup` | Verify and safely clean selected recorded TEST IDs; report retained/uncertain money and dependent records | C | V-2a #57 (V-2b pending) | E |
+| `dev_cleanup` | Safely clean recorded TEST IDs, with zero-balance seller and dependency-free clock deletion; immutable money retained | C | built #57/#58 | E |
 | `dev_reset_test_data` | Owner-guided TEST Dashboard reset, no fake bulk-delete API | — | V-2a #57 | R |
 | `dev_list_triggers` / `dev_trigger_event` | Make Stripe emit a real test event (~30 common types) by doing the real test-mode action | — / P | N | E |
 | `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | A target URL for an app under development; its signing secret shown once on the setup page | C / — / C | N | E |
