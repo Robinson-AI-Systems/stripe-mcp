@@ -31,7 +31,8 @@ export function isGlobalForwardAddress(address){
 
 export function parseForwardUrl(input){
   if(typeof input!=='string'||input.length<1||input.length>2048||
-    /[\u0000-\u001f\u007f\\]/.test(input))
+    [...input].some(c=>c.charCodeAt(0)<32||c.charCodeAt(0)===127||
+      c.charCodeAt(0)===92))
     reject('Invalid webhook target URL');
   let u;
   try{u=new URL(input);}catch{reject('Invalid webhook target URL');}
