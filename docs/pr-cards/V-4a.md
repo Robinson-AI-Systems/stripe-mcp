@@ -21,7 +21,7 @@ No migration; about 130 production lines, 2–3 files.
 | Stripe events from source are arbitrary | LIVE or foreign events are not supported in Batch V | Only account verified Stripe TEST events in later execution card |
 
 ## This PR
-- Strict forwarded URL parser: HTTPS 443, ordinary DNS hostname, reject localhost/private syntaxes, userinfo/fragment, Unicode controls, nonstandard port, .local/.internal/.test/etc.
+- Strict forwarded URL parser: HTTPS 443, ordinary DNS hostname, reject localhost/private syntaxes, userinfo, fragment **or query**, Unicode controls, nonstandard port, .local/.internal/.test/etc.
 - Injectable asynchronous DNS resolver; fail closed for empty/invalid responses and any private/reserved IPv4 or IPv6, including mapped/translation. Return pinned address information; caller must never resolve again.
 - Stripe native HMAC signature with second timestamp, bytes preserved. Guarded exact event ID/type/object and TEST flag; payload size bound; no raw secret in results/logs.
 - Unit tests DNS, SSRF, signature verification with official Stripe SDK constructEvent, timestamp, body tampering and size guard; no provider writes or secrets.
