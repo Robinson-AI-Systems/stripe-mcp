@@ -403,7 +403,7 @@
     },
     {
       "id": "V-1",
-      "title": "Seed and runs",
+      "title": "Seed and runs (Connect onboarding slice #56; final acceptance pending)",
       "batch": "V",
       "design": "docs/designs/BATCH-V.md",
       "dependencies": [

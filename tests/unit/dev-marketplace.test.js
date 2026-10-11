@@ -113,7 +113,7 @@ describe('V-1b4f Connect-gated TEST marketplace',()=>{
     const f=fixture();
     const v=parse(await makeDevSeedWrite().handler({...a,dryRun:true},f.ctx));
     expect(v.preview).toContain('no charges');
-    expect(v.preview).toContain('not complete');
+    expect(v.preview).toContain('NOT complete');
     expect(f.calls.filter(x=>x.op==='create')).toHaveLength(0);
     expect(f.runs.size).toBe(0);
   });
