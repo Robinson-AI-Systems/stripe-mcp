@@ -29,7 +29,7 @@ function fixture({direct=true,readBackMatches=true,appOwned=false}={}){
 const args={configuration:id,method:'us_bank_account',preference:'on'};
 describe('G-5c2 independent guarded payment settings writes',()=>{
   runWriteContract({withMoney:false,strictArgs:true,args,
-    tool:makeMethodPreferenceWrite,fixtures:fixture,appOwnedAllowed:true});
+    tool:makeMethodPreferenceWrite,fixtures:fixture});
   it('uses guarded write metadata and exact registry full-only permission',()=>{
     expect(tools[0]).toMatchObject({writes:true,profiles:['full'],
       name:'account_update_payment_method_settings',writeContract:'defineWrite-v1'});
