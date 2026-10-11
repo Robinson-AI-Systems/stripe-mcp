@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-5d1 native TEST Apple Pay payment-domain reads (#118 as-if-merged, CI pending):** bounded Stripe paymentMethodDomains list with exact TEST identity, safe domain/status projection and honest permission fallback. Stripe's modern payment_method_domains replaces stale Apple Pay-only API terminology. Next guarded add-domain G-5d2; no connected TEST smoke or LIVE.
+
 - **G-5c2 guarded TEST payment-method preference update (#117 as-if-merged, CI pending):** strict direct configuration, preview/confirm/retry, independently re-read selected method, Dashboard fallback on provider refusal. No real own-account Stripe TEST smoke, LIVE disabled. Next G-5d Apple Pay domain reads then guarded addition; G-5 IN_PROGRESS.
 
 - **G-5c1 payment-method configuration reader (#116 as-if-merged; CI pending):** read-only native TEST per-configuration method status with owner identity, pagination, safe projection and honest permission-denied fallback. No connected TEST credential smoke; do not infer Checkout enablement. Next guarded G-5c2 update with independent provider re-read; G-5 IN_PROGRESS, LIVE OFF.
