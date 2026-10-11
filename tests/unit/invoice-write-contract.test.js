@@ -18,7 +18,7 @@ const scenarios=[
   {name:'invoice_remove_line',args:{invoiceId:invoice,lineItemId:item}}
 ];
 const plain=r=>JSON.parse(r.content[0].text);
-function fixture({appOwned=false,readBackMatches=true,limitCents=10000},name){
+function fixture({appOwned=false,readBackMatches=true,limitCents=10000},_name){
   const marker=appOwned?{agreementId:'ag_FAKE1234'}:{};
   const provider={writes:[],afterCalls:0,payloads:[]};
   const db=createFakeDb({accounts:[{id:'acct_safefixture',

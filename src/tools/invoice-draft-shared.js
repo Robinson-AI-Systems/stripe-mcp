@@ -1,6 +1,6 @@
 // D-5 TEST invoice draft invariants. Never take provider write authority from caller data.
 import {APP_METADATA_KEYS} from './app-guard.js';
-import {ref,checkId,positiveTotal} from './billing-shared.js';
+import {ref,positiveTotal} from './billing-shared.js';
 const methods=new Set(['charge_automatically','send_invoice']);
 const allStatus=new Set(['draft','open','paid','void','uncollectible']);
 export const invoiceText=max=>({type:'string',minLength:1,maxLength:max});
