@@ -106,6 +106,9 @@ export function makeDevForwarderCreateWrite({encryptionKey}={}){
       Array.isArray(after.types)&&after.types.join('|')===before.types.join('|')
   });
   return {...op,async handler(a,ctx){
+    // An identical retry must never inherit a previous invocation's reveal URL.
+    inserted=null;
+    setupPath=null;
     if(ctx?.connection?.mode!=='test')return gone('Forwarder creation is TEST only');
     const response=await op.handler(a,ctx);
     if(!setupPath||response?.isError)return response;
