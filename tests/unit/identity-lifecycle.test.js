@@ -51,8 +51,8 @@ describe('G-3e independent TEST-only Identity cancellation/redaction',()=>{
       done:true,confirmed:true});
     expect(f.api.redact).toHaveBeenCalledWith(id,{},
       {idempotencyKey:expect.stringMatching(/^rmcp_identity_redact_session_/)});
-    const safe=(await handlers.identity_redact_session({sessionId:id,dryRun:true},f.ctx));
-    expect(safe.isError).toBeTruthy();
+    await expect(handlers.identity_redact_session({sessionId:id,dryRun:true},f.ctx))
+      .rejects.toThrow(/unredacted TEST Identity session/);
     expect(JSON.stringify(await f.db.listAuditForTest())).not.toContain(privateValue);
   });
   it('wrong statuses, wrong IDs and unknown args produce zero provider writes',async()=>{
@@ -82,9 +82,9 @@ describe('G-3e independent TEST-only Identity cancellation/redaction',()=>{
     const f=fixture();
     for(const t of tools){
       const blocked=await dispatchReadOnlyTool({registry,name:t.name,
-        args:{sessionId:id,confirm:true},db:f.db,connection:f.ctx.connection,
+        args:{sessionId:id},db:f.db,connection:f.ctx.connection,
         services:f.ctx.services});
-      expect(blocked.isError).toBe(true);
+      expect(parse(blocked).needsConfirmation).toBe(true);
       const live=await handlers[t.name]({sessionId:id,confirm:true},
         {...f.ctx,connection:{...f.ctx.connection,mode:'live'}});
       expect(live.isError).toBe(true);
