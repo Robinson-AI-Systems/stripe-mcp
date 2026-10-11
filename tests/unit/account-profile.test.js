@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {accountSafe,tools,handlers} from '../../src/tools/account-profile.js';
+import {tools,handlers} from '../../src/tools/account-profile.js';
 import {registry} from '../../src/tools/index.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 const id='acct_ACCOUNTSAFE',privacy='PRIVATE_TAX_AND_BANK_VALUE';
