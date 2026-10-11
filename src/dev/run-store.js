@@ -4,6 +4,8 @@ const accountId=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]+$/.test(x);
 const digest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const key=x=>typeof x==='string'&&x.length>0&&x.length<=128;
 const scenario=x=>typeof x==='string'&&/^[a-z][a-z0-9-]{2,40}$/.test(x);
+const idPrefixes={product:'prod',price:'price',customer:'cus',
+  payment_intent:'pi',subscription:'sub'};
 export async function initDevRunTables(sql){
   await sql`CREATE TABLE IF NOT EXISTS dev_runs (
     id TEXT PRIMARY KEY,
@@ -69,9 +71,54 @@ export function createDevRunStore(sql){
     async recordDevRunObject({account,id,stepName,objectType,objectId}){
       if(!accountId(account)||!runId(id)||
         typeof stepName!=='string'||!/^[a-z0-9_-]{1,70}$/.test(stepName)||
-        !['product','price','customer'].includes(objectType)||
+        !idPrefixes[objectType]||
         typeof objectId!=='string'||
-        !/^(?:prod|price|cus)_[A-Za-z0-9]{2,100}$/.test(objectId))
+        !new RegExp('^'+idPrefixes[objectType]+'_[A-Za-z0-9]{2,100}
+        throw new TypeError('Verified provider-created run object required');
+      const rows=await sql`WITH eligible AS (
+        SELECT id FROM dev_runs
+        WHERE id=${id} AND stripe_account=${account} AND status='running'
+      ), inserted AS (
+        INSERT INTO dev_run_objects(run_id,step_name,object_type,object_id)
+        SELECT id,${stepName},${objectType},${objectId} FROM eligible
+        ON CONFLICT DO NOTHING RETURNING step_name,object_type,object_id
+      )
+      SELECT step_name,object_type,object_id FROM inserted
+      UNION ALL
+      SELECT step_name,object_type,object_id FROM dev_run_objects
+      WHERE run_id=${id} AND step_name=${stepName}
+        AND NOT EXISTS (SELECT 1 FROM inserted)`;
+      return rows.length===1&&rows[0].object_type===objectType&&
+        rows[0].object_id===objectId;
+    },
+    async completeDevRun({account,id,expectedSteps}){
+      if(!accountId(account)||!runId(id)||!Number.isInteger(expectedSteps)||
+        expectedSteps<1||expectedSteps>50)
+        throw new TypeError('Exact expected seeded object count required');
+      const rows=await sql`UPDATE dev_runs r SET status='completed',completed_at=now()
+        WHERE r.id=${id} AND r.stripe_account=${account} AND r.status='running'
+          AND (SELECT count(*)::integer FROM dev_run_objects o
+            WHERE o.run_id=r.id AND o.cleaned=FALSE)=${expectedSteps}
+        RETURNING r.id`;
+      if(rows.length)return true;
+      const prior=await sql`SELECT id FROM dev_runs WHERE id=${id}
+        AND stripe_account=${account} AND status='completed'`;
+      return prior.length===1;
+    },
+    async listDevRuns({account,limit=20,offset=0}){
+      if(!accountId(account)||!Number.isInteger(limit)||limit<1||limit>50||
+        !Number.isInteger(offset)||offset<0||offset>100000)
+        throw new TypeError('Bounded account-scoped runs query required');
+      return sql`SELECT r.id,r.scenario,r.size,r.status,r.created_at,r.completed_at,
+        count(o.object_id)::integer AS object_count
+        FROM dev_runs r LEFT JOIN dev_run_objects o ON o.run_id=r.id
+        WHERE r.stripe_account=${account}
+        GROUP BY r.id ORDER BY r.created_at DESC,r.id DESC
+        LIMIT ${limit} OFFSET ${offset}`;
+    }
+  };
+}
+).test(objectId))
         throw new TypeError('Verified provider-created run object required');
       const rows=await sql`WITH eligible AS (
         SELECT id FROM dev_runs
