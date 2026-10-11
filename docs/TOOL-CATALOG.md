@@ -231,7 +231,7 @@ removing a payout bank account is done in the dashboard, which
 | `file_upload_evidence` | Confirmed TEST upload of public PDF/PNG/JPEG or shared Drive file (10 MiB, SSRF defense); never submits dispute | P | built #92 | E |
 | `file_list` / `file_get` / `file_create_link` | Safe TEST file metadata and confirmed time-limited public BRAND links only; never link private evidence | — / — / P | built #91 | R reads; F link |
 
-## Risk and identity (`radar_*`, `identity_*`) — 18
+## Risk and identity (`radar_*`, `identity_*`) — 16
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
