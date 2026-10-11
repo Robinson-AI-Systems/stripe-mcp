@@ -59,7 +59,7 @@ function fixture({appOwned=false,readBackMatches=true,credit=false,limitCents=10
         lines:{data:credit?[{amount:-8500,
           parent:{subscription_item_details:{proration:true}}}]:[]}};
     }},
-    subscriptions:{retrieve:async()=>base},
+    subscriptions:{retrieve:async()=>{if(provider.writes.length)provider.afterCalls++;return base;}},
     subscriptionItems:{
       async create(args,opts){
         record('add',args,opts);

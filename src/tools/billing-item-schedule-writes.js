@@ -3,8 +3,9 @@
 import {defineWrite,gone} from './write.js';
 import {previewMoney} from './billing-writes.js';
 import {client,ref,id,quantity,timestamp,proration,ownership,validateFields,
-  ensureSubscription,safeRecurringPrice,positiveTotal,previewSafe,previewChange,
+  ensureSubscription,safeRecurringPrice,previewSafe,previewChange,
   writeProfiles,fullProfiles} from './billing-shared.js';
+import {planScheduleUpdate,verifyScheduleUpdate} from './billing-schedule-plan.js';
 
 const sub={subscriptionId:id('sub')},item={itemId:id('si')};
 const schedule={scheduleId:id('sub_sched')};
@@ -28,8 +29,9 @@ const defs=[
       iterations,endBehavior,billingMode,...life},
     required:['customerId','priceId','quantity','startAt','iterations','endBehavior','billingMode'],
     kind:'scheduleCreate',money:true,full:true},
-  {name:'billing_update_schedule',description:'Change a not-started TEST schedule price, quantity or duration; preview before commit.',
-    props:{...schedule,priceId:id('price'),quantity,iterations,endBehavior,...life},
+  {name:'billing_update_schedule',description:'Change a pending or future active TEST schedule phase, preserving its current phase and previewing the change.',
+    props:{...schedule,priceId:id('price'),quantity,iterations,endBehavior,
+      effectiveAt:timestamp,replaceFuture:{type:'boolean'},...life},
     required:['scheduleId','priceId','quantity','iterations','endBehavior'],
     kind:'scheduleUpdate',money:true,full:true},
   {name:'billing_release_schedule',description:'Release an existing TEST schedule, leaving its underlying subscription in place.',
@@ -112,31 +114,34 @@ async function beforeFor(d,a,s){
   }
   const b=validSchedule(await s.subscriptionSchedules.retrieve(a.scheduleId));
   if(d.kind==='scheduleUpdate'){
-    if(b.status!=='not_started'||b.phases.length!==1||
-      !future(b.start_date)||!b.billing_mode?.type)
-      throw new TypeError('Only simple future not-started schedules can be edited safely');
+    const patch=planScheduleUpdate(b,a);
     await priceFor(s,a.priceId);
-    b._phases=[phase(a.priceId,a.quantity,a.iterations)];
+    if(patch.active){
+      await priceFor(s,patch.phases[0].items[0].price);
+    }
+    b._phases=patch.phases;
     b._preview=await schedulePreview(s,ref(b.customer),b._phases,
-      b.start_date,b.billing_mode.type,b.id);
+      patch.effectiveAt,b.billing_mode.type,b.id);
   }
-  if(d.name==='billing_cancel_schedule'&&b.status==='active'&&a.prorate===true){
+  if(d.name==='billing_cancel_schedule'&&b.status==='active'&&
+    (a.prorate===true||a.invoiceNow===true)){
     if(!ref(b.subscription))throw new TypeError('Active schedule subscription unknown');
     const invoice=await s.invoices.createPreview({
       subscription:ref(b.subscription),currency:'usd',
-      subscription_details:{cancel_now:true,proration_behavior:'create_prorations'}
+      subscription_details:{cancel_now:true,proration_behavior:
+        a.prorate?'create_prorations':'none'}
     });
-    b._preview=previewSafe(invoice,null,'create_prorations');
+    b._preview=previewSafe(invoice,null,a.prorate?'create_prorations':'none');
   }
   return b;
 }
 function ensureGood(d,a,b){
   if(b.deleted)return 'Deleted Stripe target';
   if(d.kind==='item'&&b.items.has_more)return 'Subscription item list incomplete';
-  if(d.kind==='scheduleUpdate'&&b.status!=='not_started')
-    return 'Schedule already started';
-  if(d.name==='billing_release_schedule'&&b.status!=='active')
-    return 'Only active subscription schedules can be released';
+  if(d.kind==='scheduleUpdate'&&!['not_started','active'].includes(b.status))
+    return 'Schedule cannot be edited in its current status';
+  if(d.name==='billing_release_schedule'&&!pendingStatus.has(b.status))
+    return 'Only pending or active subscription schedules can be released';
   if(d.name==='billing_cancel_schedule'&&!pendingStatus.has(b.status))
     return 'Schedule is not cancelable';
   if(d.kind==='scheduleCreate'&&!future(a.startAt))
@@ -237,11 +242,7 @@ function build(d){
             after.phases?.[0]?.items?.some(i=>
               ref(i.price)===a.priceId&&i.quantity===a.quantity);
         case 'billing_update_schedule':
-          return after.id===b.id&&after.start_date===b.start_date&&
-            after.end_behavior===a.endBehavior&&
-            after.phases?.[0]?.iterations===a.iterations&&
-            after.phases?.[0]?.items?.some(i=>
-              ref(i.price)===a.priceId&&i.quantity===a.quantity);
+          return verifyScheduleUpdate(b,after,a);
         case 'billing_release_schedule':
           return after.id===b.id&&after.status==='released';
         case 'billing_cancel_schedule':
