@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import {createWebhookCreationStore,initWebhookCreationTables} from './webhooks/create-store.js';
 import { hashToken } from './core/oauth.js';
 import {createDevRunStore,initDevRunTables} from './dev/run-store.js';
 import {createDevForwarderStore,initDevForwarderTables}
@@ -14,7 +15,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents'
 ]);
 
 let productionSql;
@@ -31,6 +32,7 @@ function getProductionSql() {
 export function createDb(sql = getProductionSql()) {
   if (typeof sql !== 'function') throw new TypeError('A SQL tagged-template function is required');
   return {
+    ...createWebhookCreationStore(sql),
     ...createDevRunStore(sql),
     ...createDevForwarderStore(sql),
     ...createDevForwarderReplayStore(sql),
@@ -1011,7 +1013,8 @@ export function createDb(sql = getProductionSql()) {
       await sql`CREATE INDEX IF NOT EXISTS login_attempts_window_idx ON login_attempts (ip, attempted_at)`;
       await sql`CREATE INDEX IF NOT EXISTS change_log_account_time_idx ON change_log (stripe_account, at DESC)`;
       await sql`CREATE INDEX IF NOT EXISTS one_time_secrets_expiration_idx ON one_time_secrets (expires_at)`;
-      await initDevRunTables(sql);
+      await initWebhookCreationTables(sql);
+       await initDevRunTables(sql);
       await initDevForwarderTables(sql);
       await initDevForwarderReplayTables(sql);
       await initDevSimulationCycleTables(sql);
