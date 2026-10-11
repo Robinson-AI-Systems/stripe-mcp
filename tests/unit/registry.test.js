@@ -57,9 +57,10 @@ describe('tool registry', () => {
       'report_list_types','report_list_runs','report_get_run','report_run','money_set_payout_schedule','report_get_result_file','dispute_list','dispute_get','file_list','file_get','file_create_link','file_upload_evidence','dispute_save_evidence','dispute_submit_evidence','dispute_accept',
       'radar_list_fraud_warnings','radar_get_fraud_warning','radar_list_reviews',
       'radar_get_review','radar_list_value_lists','radar_list_list_items',
-      'radar_approve_review','radar_create_value_list'
+      'radar_approve_review','radar_create_value_list',
+      'radar_delete_value_list','radar_add_list_item','radar_remove_list_item'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(81);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(84);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
