@@ -14,7 +14,9 @@ const payload=JSON.stringify({id:'evt_SAFEVERIFIED',object:'event',livemode:fals
 const signature=(text=payload,s=secret,t=Math.floor(Date.now()/1000))=>
   sdk.webhooks.generateTestHeaderString({payload:text,secret:s,timestamp:t});
 function fixture(){
-  const db=createFakeDb({accounts:[{id:account,test_connected:true}]});
+  const db=createFakeDb({accounts:[{id:account}]});
+  // Fake TEST connectivity intentionally derives from encrypted key persistence.
+  db.saveTestKey({account,label:'Fixture',ciphertext:'test-ciphertext',kind:'restricted',last4:'FAKE'});
   const store=createWebhookSignatureStore({db,encryptionKey:randomBytes(32)});
   const keyStore={loadKey:async({account:a,mode})=>{
     expect(a).toBe(account);expect(mode).toBe('test');return key;}};
