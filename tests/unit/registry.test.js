@@ -62,9 +62,9 @@ describe('tool registry', () => {
       'identity_list_sessions','identity_get_session','identity_create_session',
       'identity_cancel_session','identity_redact_session',
       'event_list','event_get','event_list_undelivered',
-      'webhook_list','webhook_get','webhook_add_events','webhook_remove_events','webhook_create','webhook_update','webhook_delete','webhook_check_signature','account_get','account_list_capabilities','account_list_payment_method_settings'
+      'webhook_list','webhook_get','webhook_add_events','webhook_remove_events','webhook_create','webhook_update','webhook_delete','webhook_check_signature','account_get','account_list_capabilities','account_list_payment_method_settings','account_update_payment_method_settings'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(92);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(93);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
