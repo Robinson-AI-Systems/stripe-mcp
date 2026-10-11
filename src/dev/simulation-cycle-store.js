@@ -8,7 +8,6 @@ const payment=x=>x===null||typeof x==='string'&&
   /^pi_[A-Za-z0-9]{2,100}$/.test(x);
 const key=x=>typeof x==='string'&&x.length>=1&&x.length<=128;
 const unix=x=>Number.isSafeInteger(x)&&x>=946684800&&x<=4102444800;
-const states=['reserved','uncertain','observed'];
 function scope({accountId,runId}){
   if(!account(accountId)||!run(runId))
     error('An exact selected-account TEST simulation run is required');
