@@ -67,7 +67,7 @@ describe('G-4e guarded native webhook maintenance',()=>{
     expect(parse(await f.remove(basic)).needsConfirmation).toBe(true);
     expect(f.sdk.webhookEndpoints.del).not.toHaveBeenCalled();
     expect(parse(await f.remove({...basic,confirm:true}))).toMatchObject({done:true,confirmed:true});
-    expect(f.sdk.webhookEndpoints.del).toHaveBeenCalledWith(id,
+    expect(f.sdk.webhookEndpoints.del).toHaveBeenCalledWith(id,{},
       {idempotencyKey:expect.stringMatching(/^rmcp_webhook_delete_/)});
     const never=fixture({uncertain:true});
     expect(parse(await never.remove({...basic,confirm:true})).confirmed).toBe(false);
@@ -79,8 +79,12 @@ describe('G-4e guarded native webhook maintenance',()=>{
     expect(stale.sdk.webhookEndpoints.update).not.toHaveBeenCalled();
     for(const options of [{owned:true},{app:'ca_APPFAKE'},{connect:true}]){
       const f=fixture(options);
-      const response=await f.update({...basic,description:'new',confirm:true});
-      expect(response.isError).toBe(true);
+      if(options.owned){
+        const response=await f.update({...basic,description:'new',confirm:true});
+        expect(response.isError).toBe(true);
+      }else{
+        await expect(f.update({...basic,description:'new',confirm:true})).rejects.toThrow();
+      }
       expect(f.sdk.webhookEndpoints.update).not.toHaveBeenCalled();
     }
     const live=await handlers.webhook_delete({...basic,confirm:true},{
