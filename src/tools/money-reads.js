@@ -1,5 +1,5 @@
 // G-1a: TEST-only Stripe account money reads. No bank numbers or raw provider objects.
-import {allProfiles,guarded,paging,pageResult,ref,local,checkId} from './billing-shared.js';
+import {allProfiles,guarded,paging,pageResult,ref,local,checkId,fail} from './billing-shared.js';
 
 const error=x=>{throw new TypeError(x);};
 const cents=x=>Number.isSafeInteger(x)&&Math.abs(x)<=1000000000000;
@@ -150,3 +150,9 @@ export const handlers={
     return safeTopup(await stripe.topups.retrieve(checkId(a.topupId,'tu')));
   })
 };
+
+// Fail-closed before reaching provider on LIVE, even for direct handler calls.
+for(const [name,handler] of Object.entries(handlers)){
+  handlers[name]=(a,ctx)=>ctx?.connection?.mode!=='test'?
+    fail('TEST-only financial account read'):handler(a,ctx);
+}
