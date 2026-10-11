@@ -2,7 +2,7 @@ import {describe,it,expect,vi} from 'vitest';
 import {tools,handlers} from '../../src/tools/dispute-reads.js';
 import {registry} from '../../src/tools/index.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
-const id='dp_FAKE1234';
+const id='du_FAKE1234';
 const dispute={object:'dispute',id,livemode:false,amount:2565,
   currency:'usd',created:1680203749,status:'needs_response',
   charge:'ch_FAKE1234',payment_intent:'pi_FAKE1234',reason:'fraudulent',
@@ -46,7 +46,7 @@ describe('G-2a safe TEST dispute reads',()=>{
     expect((await f.call('dispute_list',{unrecognized:true})).isError).toBe(true);
     expect((await handlers.dispute_get({disputeId:id},{...f.ctx,
       connection:{...f.ctx.connection,mode:'live'}})).isError).toBe(true);
-    f.s.disputes.retrieve.mockResolvedValue({...dispute,id:'dp_DIFFERENT'});
+    f.s.disputes.retrieve.mockResolvedValue({...dispute,id:'du_DIFFERENT'});
     expect((await f.call('dispute_get',{disputeId:id})).isError).toBe(true);
     f.s.disputes.list.mockResolvedValue({data:[{...dispute,livemode:true}],has_more:false});
     expect((await f.call('dispute_list')).isError).toBe(true);
