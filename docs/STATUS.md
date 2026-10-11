@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-4d2 native webhook create (#109 as-if-merged; exact-head CI pending):** TEST-only full-profile guarded native Stripe webhook creation is backed by G-4d1's durable exact retry ledger. Owner password/CSRF setup page alone reveals the ten-minute single-use signing secret; MCP exposes only the setup path. No LIVE, money-out or connected TEST smoke. **Next G-4e:** guarded endpoint update/delete and signature verification, then G-4 closure.
+
 - **G-4d1 webhook creation retry ledger (#108 as-if-merged; exact-head CI pending):** additive per-account immutable request-key/configuration reservation and verified endpoint-ID completion. No signing secrets are stored in this ledger and no native webhook create is exposed yet. **Next G-4d2** guarded native create and owner-only single-use signing-secret handoff. Connected TEST smoke pending; LIVE disabled.
 
 - **G-4c (#105 as-if-merged; exact-head CI pending):** distinct guarded TEST webhook event-subscription add/remove. Provider list is fully read, exact union/difference applied with Stripe-native idempotency and verified readback; wildcard, empty subscription, app/Connect ownership, stale plans and secret-bearing audit are refused. **Next G-4d:** secure owner-only one-time signing secret handoff for guarded webhook create. G-4 remains IN_PROGRESS. No connected Stripe TEST account smoke; LIVE disabled and owner money-out policy unchanged.
