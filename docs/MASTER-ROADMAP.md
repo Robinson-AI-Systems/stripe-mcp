@@ -4,7 +4,7 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 
 ## What is next
 
-**Now (2026-10-11):** D and V-1/V-2 are merged; V-3 native TEST workflows implemented through #66 (real hosted Checkout browser completion still needs an enrolled TEST account); V-4 signed original TEST Event forwarding, encrypted one-time owner secret handoff, account-scoped replay ledger and pinned TLS merged #67–#71, automated acceptance passed. **V-5a #72** publishes a safe read-only TEST PaymentMethod reference catalog; **V-5b #73** adds guarded TEST simulation setup; **next V-5c** completes three-month invoice/payment verification using existing native test clocks #53. Merge only after exact-head green CI; no LIVE/spending/app-owned writes, and independently owner-approved money-out remains mandatory.
+**Now (2026-10-11):** D and V-1/V-2 are merged; V-3 native TEST workflows implemented through #66 (real hosted Checkout browser completion still needs an enrolled TEST account); V-4 signed original TEST Event forwarding, encrypted one-time owner secret handoff, account-scoped replay ledger and pinned TLS merged #67–#71, automated acceptance passed. **V-5a #72** publishes a safe read-only TEST PaymentMethod reference catalog; **V-5b #73**, restored #75, plus V-5c ledger #74, guarded advance #76, verified invoices/Events #77 and fake-provider three-month acceptance #78 complete automated V-5; **next G-1** (provider-hosted smoke still pending) using existing native test clocks #53. Merge only after exact-head green CI; no LIVE/spending/app-owned writes, and independently owner-approved money-out remains mandatory.
 
 ## Order and why
 
