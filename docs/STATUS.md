@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-3a genuine TEST event triggers PR #59 (as-if-merged, exact-head CI/review pending):** Native dev_list_triggers and guarded dev_trigger_event expose only four implemented real Stripe event actions: customer.created, product.created, price.created and payment_intent.succeeded. Each source object is created and independently read, tagged and durably run-tracked; Stripe Event must be independently listed and retrieved with matching TEST account/object/run/amount before marking completed. Delayed event means an incomplete resumable run, never fake success. V-2 cleanup recognizes immutable event ledger IDs and retains them. V-3b additional genuine billing/dispute/Checkout events follows; V-4 only after V-3 completion. LIVE OFF; money-out controls unchanged.
+
+
 - **V-2b safe TEST seller/clock cleanup #58 (as-if-merged, CI/review pending):** TEST Express seller deletion requires verified inactive charges/payouts, incomplete onboarding and zero connected-account balances. TEST clock deletion requires all run-owned customer/subscription rows cleaned plus no attached customers on Stripe. A delete receipt is not enough; require independent tombstone or exact 404 resource_missing before marking ledger cleaned. V-2 closure pending; V-3 event triggers next. LIVE off; owner-approved money-out limit unchanged.
 
 
