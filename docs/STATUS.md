@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-5 automated three-month acceptance PR #78 (as-if-merged; exact-head CI/review pending):** one stateful fake Stripe provider runs 3 monthly clock advances, 3 independently retrieved paid invoices/PI and original Events, validates exact timelines, at-most-once retries and delayed/declined branches. Prior V-5a–V-5c code #72–#77 remains. **Next G-1:** balance, payouts and financial reports, subject to mandatory independent owner consent for any money out.
+- **External evidence still pending (not coding blockers):** real Stripe TEST-hosted Checkout (#V-3) and public signed webhook target (#V-4), and actual provider three-month renewal. No genuine account smoke results have been invented; LIVE stays OFF.
+
 - **V-5c3 TEST monthly billing reconciliation PR #77 (as-if-merged; exact-head CI pending):** guarded dev_simulate_subscription action=observe verifies exact TEST clock, recurring price/subscription, unique paid/open invoice, invoice-payment allocation, linked PaymentIntent and independently retrieved original Event. Only complete evidence makes the month observed, allowing the next month; missing evidence stays uncertain. Next: V-5 sequential three-month acceptance and Batch V documentation.
 - **External TEST smoke still pending:** no enrolled Stripe TEST account or owned public HTTPS webhook target for real provider-to-app demonstration. No LIVE or money-out requested.
 

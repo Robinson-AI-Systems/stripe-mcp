@@ -482,13 +482,13 @@
         "V-4"
       ],
       "card": "docs/pr-cards/V-5.md",
-      "status": "IN_PROGRESS",
-      "migration": "none",
+      "status": "MERGED",
+      "migration": "dev_simulation_cycles",
       "budget": 450,
       "units": [
         "V-5"
       ],
-      "readiness": "CARD_READY",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
