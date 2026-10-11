@@ -32,7 +32,8 @@ describe('tool registry', () => {
       'billing_pause_collection','billing_resume_collection',
       'billing_add_item','billing_update_item','billing_remove_item',
       'billing_create_schedule','billing_update_schedule',
-      'billing_release_schedule','billing_cancel_schedule'
+      'billing_release_schedule','billing_cancel_schedule',
+      'invoice_list','invoice_get','invoice_search','invoice_list_payments','invoice_preview'
     ]);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(41);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);

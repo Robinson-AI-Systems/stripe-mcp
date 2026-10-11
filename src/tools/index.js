@@ -10,4 +10,5 @@ import * as checkoutWrites from './checkout-writes.js';
 import * as billingReads from './billing.js';
 import * as billingWrites from './billing-writes.js';
 import * as billingItemScheduleWrites from './billing-item-schedule-writes.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites]);
+import * as invoiceReads from './invoices.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads]);
