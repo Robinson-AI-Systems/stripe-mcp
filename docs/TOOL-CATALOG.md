@@ -258,7 +258,7 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `webhook_delete` | Delete an endpoint | C | C | F |
 | `webhook_check_signature` | Check a pasted test payload + signature header against an endpoint (paste the secret on the setup page, never in chat) | — | R | F |
 
-## Developer tools (`dev_*`, `testclock_*`) — 16 (test mode only; `docs/designs/BATCH-V.md`)
+## Developer tools (`dev_*`, `testclock_*`) — 17 (test mode only; `docs/designs/BATCH-V.md`)
 
 Building with Stripe on any project: realistic test data, precise cleanup, real test events, forwarding events into an
 app under development, and time travel. Every tool refuses on a live connection.
@@ -267,6 +267,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | --- | --- | --- | --- | --- |
 | `dev_seed` | Tracked TEST catalog, one-time store payment, and trial/canceled subscription scenarios; refund/dispute/ACH follow V-1b2 | P | built #47/#48 | E |
 | `dev_list_runs` | Account-scoped seed runs and exact recorded object counts | — | built #47 | R |
+| `dev_seed_refund` | One owner-approved full refund of a run-owned TEST store charge, with verified ledger entry | $ | built #49 | E |
 | `dev_cleanup` | Remove exactly what a run created (customers, invoices voided, products/prices archived) | C | N | E |
 | `dev_reset_test_data` | Stripe's "delete all test data" — guided link and steps (no API) | — | N | E |
 | `dev_list_triggers` / `dev_trigger_event` | Make Stripe emit a real test event (~30 common types) by doing the real test-mode action | — / P | N | E |
