@@ -142,7 +142,7 @@ export function previewSafe(invoice,effectiveAt,behavior){
       .filter(i=>i.parent?.subscription_item_details?.proration===true)
       .map(i=>({amountCents:i.amount,description:i.description??null}))};
 }
-export async function previewChange(s,sub,items,at,behavior){
+export async function previewChange(s,sub,items,at,behavior,{billingAnchor=null}={}){
   ensureSubscription(sub);
   if(!Number.isSafeInteger(at)||at<946684800||at>4102444800)
     throw new TypeError('Provide explicit valid effectiveAt');
@@ -150,7 +150,9 @@ export async function previewChange(s,sub,items,at,behavior){
     throw new TypeError('Explicit prorationBehavior required');
   const invoice=await s.invoices.createPreview({
     customer:ref(sub.customer),subscription:sub.id,currency:'usd',
-    subscription_details:{items,proration_date:at,proration_behavior:behavior}
+    subscription_details:{items,proration_behavior:behavior,
+      ...(behavior==='none'?{}:{proration_date:at}),
+      ...(billingAnchor?{billing_cycle_anchor:{type:billingAnchor}}:{})}
   });
   return previewSafe(invoice,at,behavior);
 }

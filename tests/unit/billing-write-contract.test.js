@@ -167,6 +167,49 @@ describe('D-4 billing reads and fail-closed financial invariants',()=>{
       id:itemId,price:newPrice,quantity:2}]);
     expect(observed[0].subscription_details.proration_date).toBe(effectiveAt);
   });
+  it('previews the actual billing-anchor reset with matching proration date',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},
+      'billing_update_subscription');
+    let payload;
+    f.sdk.invoices.createPreview=async input=>{payload=input;return {
+      currency:'usd',total:2500,amount_due:2500,lines:{data:[]}};};
+    const op=makeBillingWrite('billing_update_subscription');
+    const result=await op.handler({subscriptionId:subId,billingAnchor:'now',
+      prorationBehavior:'create_prorations',effectiveAt,dryRun:true},f.ctx);
+    expect(data(result).preview).toContain('2500 cents USD');
+    expect(payload.subscription_details.billing_cycle_anchor).toEqual({type:'now'});
+    expect(payload.subscription_details.proration_date).toBe(effectiveAt);
+    expect(f.provider.writes).toHaveLength(0);
+  });
+  it('models cancellation with cancel_now before owner credit classification',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},
+      'billing_cancel_subscription');
+    let payload;
+    f.sdk.invoices.createPreview=async input=>{payload=input;return {
+      currency:'usd',total:2500,amount_due:2500,lines:{data:[{amount:-5500,
+        parent:{subscription_item_details:{proration:true}}}]}};};
+    const op=makeBillingWrite('billing_cancel_subscription');
+    const result=await op.handler({subscriptionId:subId,timing:'now',
+      invoiceNow:true,prorate:true,dryRun:true},f.ctx);
+    expect(data(result).preview).toContain('$55.00 USD');
+    expect(payload.subscription_details).toEqual({cancel_now:true,
+      proration_behavior:'create_prorations'});
+    expect(f.provider.writes).toHaveLength(0);
+  });
+  it('does not send proration_date with disabled prorations',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},
+      'billing_change_plan');
+    let previewPayload=null;
+    f.sdk.invoices.createPreview=async input=>{previewPayload=input;return {
+      currency:'usd',total:8500,amount_due:8500,lines:{data:[]}};};
+    const op=makeBillingWrite('billing_change_plan');
+    const args={subscriptionId:subId,itemId,priceId:newPrice,quantity:2,
+      effectiveAt,prorationBehavior:'none'};
+    await op.handler({...args,confirm:true},f.ctx);
+    expect(previewPayload.subscription_details.proration_behavior).toBe('none');
+    expect(previewPayload.subscription_details).not.toHaveProperty('proration_date');
+    expect(f.provider.writes).toHaveLength(1);
+  });
   it('cannot bypass TEST writes through stripe_call or stripe_batch',async()=>{
     const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},
       'billing_cancel_subscription');

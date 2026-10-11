@@ -97,13 +97,14 @@ async function preflight(def,a,s){
   if(n==='billing_update_subscription'&&a.billingAnchor==='now'){
     before._preview=await previewChange(s,before,before.items.data.map(i=>({
       id:i.id,price:ref(i.price),quantity:i.quantity
-    })),a.effectiveAt,a.prorationBehavior);
+    })),a.effectiveAt,a.prorationBehavior,{billingAnchor:'now'});
   }
   if(n==='billing_cancel_subscription'&&a.timing==='now'&&a.prorate){
     // Final invoice behavior can issue credits: fail closed if provider preview
     // cannot establish a safe USD amount. No guessed final amount.
     const invoice=await s.invoices.createPreview({subscription:before.id,
-      customer:ref(before.customer),currency:'usd'});
+      customer:ref(before.customer),currency:'usd',
+      subscription_details:{cancel_now:true,proration_behavior:'create_prorations'}});
     before._preview=previewSafe(invoice,null,'create_prorations');
   }
   return before;
@@ -184,13 +185,15 @@ function build(def){
             ...(a.metadata?{metadata:a.metadata}:{}),
             ...(a.defaultPaymentMethod?{default_payment_method:a.defaultPaymentMethod}:{}),
             ...(a.billingAnchor?{billing_cycle_anchor:a.billingAnchor,
-              proration_behavior:a.prorationBehavior,proration_date:a.effectiveAt,
+              proration_behavior:a.prorationBehavior,
+              ...(a.prorationBehavior==='none'?{}:{proration_date:a.effectiveAt}),
               payment_behavior:'error_if_incomplete'}:{})
           },opts);break;
         case 'billing_change_plan':
           await s.subscriptions.update(b.id,{
             items:[b._proposal],proration_behavior:a.prorationBehavior,
-            proration_date:a.effectiveAt,payment_behavior:'error_if_incomplete'
+            ...(a.prorationBehavior==='none'?{}:{proration_date:a.effectiveAt}),
+            payment_behavior:'error_if_incomplete'
           },opts);break;
         case 'billing_cancel_subscription':
           if(a.timing==='period_end')

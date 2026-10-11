@@ -25,6 +25,17 @@ describe('D-4 official Stripe 23.0.0 subscription requests',()=>{
       subscription_details:{items:[{id:si,price,quantity:2}],
         proration_date:1791676800,proration_behavior:'create_prorations'}
     })).object).toBe('invoice');
+    // Preview an actual anchor reset and an immediate cancellation credit.
+    expect((await s.invoices.createPreview({subscription:sub,currency:'usd',
+      subscription_details:{billing_cycle_anchor:{type:'now'},
+        items:[{id:si,price,quantity:1}],proration_date:1791676800,
+        proration_behavior:'create_prorations'}})).object).toBe('invoice');
+    expect((await s.invoices.createPreview({subscription:sub,currency:'usd',
+      subscription_details:{cancel_now:true,
+        proration_behavior:'create_prorations'}})).object).toBe('invoice');
+    expect((await s.invoices.createPreview({subscription:sub,currency:'usd',
+      subscription_details:{items:[{id:si,price,quantity:2}],
+        proration_behavior:'none'}})).object).toBe('invoice');
   });
   it('creates and changes native subscriptions with pinned request shape',async()=>{
     const s=stripe();
