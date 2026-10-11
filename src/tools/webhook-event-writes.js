@@ -6,7 +6,8 @@ import {webhookSafe} from './webhooks-read.js';
 
 const invalid=message=>{throw new TypeError(message);};
 const endpoint={type:'string',pattern:'^we_[A-Za-z0-9]{2,100}$'};
-const props={endpointId:endpoint,outsideApp:{type:'boolean'}};
+const props={endpointId:endpoint,events:{type:'array'},
+  outsideApp:{type:'boolean'}};
 const controls={dryRun:{type:'boolean'},confirm:{type:'boolean'},
   requestKey:{type:'string',minLength:1,maxLength:128}};
 const isEvent=v=>typeof v==='string'&&v.length<=100&&
