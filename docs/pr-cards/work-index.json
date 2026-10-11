@@ -500,13 +500,13 @@
         "V-5"
       ],
       "card": "docs/pr-cards/G-1.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "G-1"
       ],
-      "readiness": "CARD_READY",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
