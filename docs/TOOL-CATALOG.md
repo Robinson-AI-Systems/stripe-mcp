@@ -255,7 +255,7 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `webhook_create` | Guarded TEST endpoint, durable immutable retry; Stripe signing secret only on the independently authenticated one-time owner setup page, never in chat | C | built #109 | F |
 | `webhook_update` | URL, description, enabled/disabled | C | C | F |
 | `webhook_add_events` / `webhook_remove_events` | Confirmed TEST set union/difference preserving unrelated subscriptions, exact provider read-back | P / C | built #105 | E |
-| `webhook_delete` | Delete an endpoint | C | C | F |
+| `webhook_delete` | Guarded native TEST webhook deletion with provider tombstone verification | C | built #110 | F |
 | `webhook_check_signature` | Check a pasted test payload + signature header against an endpoint (paste the secret on the setup page, never in chat) | — | R | F |
 
 ## Developer tools (`dev_*`, `testclock_*`) — 23 (test mode only; `docs/designs/BATCH-V.md`)
