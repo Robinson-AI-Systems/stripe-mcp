@@ -176,7 +176,7 @@ describe('V-2a guarded cleanup, exact provider read-back, and retained money',()
     const f=fixture();
     const row=f.rows.find(x=>x.object_type==='price');
     expect(()=>verifyCleanupIdentity(f.run,row,{...f.get(row.object_id),
-      id:'price_SPOOF'})).toThrow(/identity/);
+      id:'price_SPOOF'})).toThrow(/ownership or type/);
   });
   it('full TEST reset is owner-guided and never executes provider deletion',async()=>{
     const f=fixture();
