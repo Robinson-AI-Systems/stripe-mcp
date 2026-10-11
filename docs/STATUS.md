@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-2b1 guarded TEST file metadata and public-brand links (#91 as-if-merged, exact-head CI pending):** file_list/get return purpose-allowlisted metadata with no provider URLs; file_create_link is full-only guarded, expiring, and restricted to brand icons/logos (never dispute evidence). G-2b2 remote evidence import next, followed by drafting and submitting evidence. G-2a dispute reads #90 merged green; G-1 closed #89. LIVE and owner money-out policy unchanged.
+
 - **G-2a TEST dispute list/get (#90 as-if-merged, exact-head CI pending):** New read_only summaries of validated disputes, money in minor units, Colorado evidence deadlines and days left, submission count, safe status; no raw evidence or cardholder details. New G-2 index/card and downstream G-2b secure evidence handling next. G-1g secure browser CSV merged #89 (five checks green). LIVE remains off; owner approval/limit unchanged.
 
 - **G-1g owner-authenticated TEST CSV export (#89 as-if-merged; exact-head CI pending):** The private setup page now requires owner passphrase, origin/CSRF and a valid connected TEST account before streaming a strictly verified report CSV (5 MiB limit) directly to the browser. MCP never sees contents, provider URLs or keys. G-1 is implementation-complete pending required CI and owner-connected TEST verification. **Next G-2 dispute read tools and separate evidence handling.** No LIVE or actual account activity. Session limit: 5 merged PRs then recursive handoff.
