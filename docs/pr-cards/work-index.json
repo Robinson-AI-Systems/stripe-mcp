@@ -554,13 +554,13 @@
         "G-3"
       ],
       "card": "docs/pr-cards/G-4.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "G-4"
       ],
-      "readiness": "CARD_READY",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -578,7 +578,7 @@
       "units": [
         "G-5"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_READY",
       "ownerInputs": []
     },
     {
