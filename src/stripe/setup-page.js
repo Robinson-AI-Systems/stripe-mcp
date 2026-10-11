@@ -22,6 +22,14 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
     '<style>body{font:16px system-ui,sans-serif;max-width:500px;margin:4vh auto;padding:16px}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
     '<h1>Robinson Stripe MCP — private setup</h1>' +
+    '<h2>Download a verified TEST report CSV</h2>' +
+    '<p>For the owner only. The CSV is delivered directly to this browser after password verification; file contents and authentication links never enter AI chat. Limit: 5 MB.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="download-report">' +
+    '<label>Stripe account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label>Completed TEST report run ID<input name="run" pattern="frr_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Download private CSV</button></form>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
     (result ? '<p role="status">' + escapeHtml(result) + '</p>' : '') +
     (revealed ? '<h2>One-time secret — copy it now</h2><pre>' + escapeHtml(revealed) +
@@ -182,7 +190,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '</button></form>' : '') +
     '</body></html>';
 }
-export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.env }) {
+export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, env = process.env }) {
   return async function setup(req, res) {
     if (!only(res, req, ['GET','POST'])) return;
     let origin;
@@ -224,6 +232,28 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, env = process.e
     if (login.status !== 'ok') {
       return send(res, 401, htmlPage({ csrf:cookie, result:'Incorrect administrator passphrase.' }),
         'text/html; charset=utf-8');
+    }
+    if (p.action === 'download-report') {
+      // Password, lockout, Origin and CSRF checks above must precede key decryption.
+      if (typeof reportDownload !== 'function') return send(res,503,htmlPage({csrf:cookie,
+        result:'Private CSV delivery is not configured.'}),'text/html; charset=utf-8');
+      try {
+        const file=await reportDownload({account:p.account,run:p.run});
+        if(!Buffer.isBuffer(file?.bytes)||
+           !/^stripe-report-frr_[A-Za-z0-9]{2,100}\.csv$/.test(file.filename))
+          throw new TypeError('Unverified report file');
+        res.setHeader('Cache-Control','no-store, private, max-age=0');
+        res.setHeader('X-Content-Type-Options','nosniff');
+        res.setHeader('Content-Type','text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition','attachment; filename="'+file.filename+'"');
+        // Consume the page token on successful delivery so the same form cannot be reused.
+        res.setHeader('Set-Cookie','stripe_setup_csrf=; Max-Age=0; Path=/api/stripe/setup; HttpOnly; Secure; SameSite=Strict');
+        return res.status(200).send(file.bytes);
+      } catch {
+        return send(res,404,htmlPage({csrf:cookie,
+          result:'Verified TEST report CSV unavailable. Check the account, run status, and key permissions.'}),
+          'text/html; charset=utf-8');
+      }
     }
     if (p.action === 'add-key') {
       try {
