@@ -14,6 +14,9 @@ import {failedPaymentEventTypes,isFailedPaymentEvent,verifyFailedPayment,
 import {disputeEventTypes,isDisputeEvent,verifiedDisputeCharge,
   verifiedDisputeObject,findActualDispute,matchesDisputeEvent}
   from './triggers-disputes.js';
+import {invoiceFailureTypes,isInvoiceFailureEvent,verifyFailedInvoiceSource,
+  verifyFailedInvoiceItem,ensureFailedInvoicePayment,matchesInvoiceFailureEvent}
+  from './triggers-invoice-failure.js';
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const bad=x=>{throw new TypeError(x);};
 const id=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').test(v);
@@ -21,13 +24,15 @@ const ref=x=>typeof x==='string'?x:x?.id;
 export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
   'payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
-  ...invoiceEventTypes,...failedPaymentEventTypes,...disputeEventTypes
+  ...invoiceEventTypes,...failedPaymentEventTypes,...disputeEventTypes,
+  ...invoiceFailureTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice',
-  charge:'charge',dispute:'dispute'};
+  charge:'charge',dispute:'dispute',invoice_item:'invoiceitem'};
 const prefix={customer:'cus',product:'prod',price:'price',
-  payment_intent:'pi',subscription:'sub',invoice:'in',charge:'ch',dispute:'du'};
+  payment_intent:'pi',subscription:'sub',invoice:'in',charge:'ch',dispute:'du',
+  invoice_item:'ii'};
 const read=async(s,type,providerId)=>{
   switch(type){
     case 'customer':return s.customers.retrieve(providerId);
@@ -38,6 +43,7 @@ const read=async(s,type,providerId)=>{
     case 'invoice':return s.invoices.retrieve(providerId);
     case 'charge':return s.charges.retrieve(providerId);
     case 'dispute':return s.disputes.retrieve(providerId);
+    case 'invoice_item':return s.invoiceItems.retrieve(providerId);
     default:bad('Unsupported TEST provider fixture');
   }
 };
@@ -48,7 +54,9 @@ export function planTrigger(a,account){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=isDisputeEvent(a.type)?
+  const types=isInvoiceFailureEvent(a.type)?
+    ['customer','invoice','invoice_item']:
+    isDisputeEvent(a.type)?
     ['customer','payment_intent','charge','dispute']:
     isInvoiceEvent(a.type)?['customer','invoice']:
     isSubscriptionEvent(a.type)?
@@ -93,9 +101,13 @@ function verifyFixture(plan,step,x,objects){
     verifiedDisputeCharge(plan,x,objects);
   if(isDisputeEvent(plan.type)&&step.type==='dispute')
     verifiedDisputeObject(plan,x,objects);
+  if(isInvoiceFailureEvent(plan.type)&&step.type==='invoice_item')
+    verifyFailedInvoiceItem(plan,x,objects);
   if(step.type==='subscription')verifySubscriptionObject(plan,x,objects);
   if(step.type==='invoice'){
-    if(isInvoiceEvent(plan.type))verifyInvoiceFixture(plan,x,objects);
+    if(isInvoiceFailureEvent(plan.type))
+      verifyFailedInvoiceSource(plan,x,objects);
+    else if(isInvoiceEvent(plan.type))verifyInvoiceFixture(plan,x,objects);
     else if(x.status!=='paid'||x.amount_paid!==0||x.currency!=='usd'||
       ref(x.customer)!==objects.get('customer_1')?.object_id)
       bad('Automatically created TEST trial invoice was not verified');
@@ -113,6 +125,7 @@ function matchingEvent(e,plan,account,target){
     assertMutatedEvent(plan,object)&&
     matchingSubscriptionEvent(plan,object,target)&&
     matchesInvoiceEvent(plan,object,target)&&
+    matchesInvoiceFailureEvent(plan,object,target)&&
     matchesFailedPaymentEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
       object.status===(isFailedPaymentEvent(plan.type)?
@@ -202,6 +215,16 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
           if(!made)return db.getDevRun({account,requestKey:run.request_key});
           break;
         }
+        case 'invoice_item':{
+          const customer=byStep.get('customer_1')?.object_id;
+          const invoice=byStep.get('invoice_1')?.object_id;
+          if(!id(customer,'cus')||!id(invoice,'in'))
+            bad('Recorded TEST invoice and customer required before line');
+          made=await s.invoiceItems.create({customer,invoice,amount:3600,
+            currency:'usd',description:'Synthetic declined TEST invoice charge',
+            metadata},opts);
+          break;
+        }
         case 'subscription':{
           const customer=byStep.get('customer_1')?.object_id;
           const price=byStep.get('price_1')?.object_id;
@@ -212,14 +235,16 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
             metadata},opts);break;
         }
         case 'invoice':{
-          if(isInvoiceEvent(plan.type)){
+          if(isInvoiceEvent(plan.type)||isInvoiceFailureEvent(plan.type)){
             const customer=byStep.get('customer_1')?.object_id;
             if(!id(customer,'cus'))
               bad('TEST event invoice requires verified synthetic customer');
             made=await s.invoices.create({customer,currency:'usd',
-              auto_advance:false,collection_method:'send_invoice',
-              days_until_due:30,pending_invoice_items_behavior:'exclude',
-              metadata},opts);
+              auto_advance:false,
+              collection_method:isInvoiceFailureEvent(plan.type)?
+                'charge_automatically':'send_invoice',
+              ...(isInvoiceFailureEvent(plan.type)?{}:{days_until_due:30}),
+              pending_invoice_items_behavior:'exclude',metadata},opts);
             break;
           }
           const subscriptionId=byStep.get('subscription_1')?.object_id;
@@ -247,6 +272,12 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
     }
+    if(isInvoiceFailureEvent(plan.type)&&step.type==='invoice_item'){
+      await ensureFailedInvoicePayment(s,plan,byStep,rootKey);
+      const afterAttempt=await s.invoices.retrieve(
+        byStep.get('invoice_1')?.object_id);
+      verifyFailedInvoiceSource(plan,afterAttempt,byStep,true);
+    }
     if(isFailedPaymentEvent(plan.type)&&step.type==='payment_intent'){
       await ensureFailedPayment(s,plan,after,
         byStep.get('customer_1')?.object_id,rootKey);
@@ -271,7 +302,9 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
   }
   await cancelTrialSubscription(s,plan,byStep,rootKey);
   const target=isSubscriptionEvent(plan.type)?
-    plan.steps.find(step=>step.type==='subscription'):plan.steps.at(-2);
+    plan.steps.find(step=>step.type==='subscription'):
+    isInvoiceFailureEvent(plan.type)?
+    plan.steps.find(step=>step.type==='invoice'):plan.steps.at(-2);
   const targetId=byStep.get(target.name)?.object_id;
   const customer=byStep.get('customer_1')?.object_id;
   if(!id(targetId,prefix[target.type]))bad('No verified TEST event source exists');
