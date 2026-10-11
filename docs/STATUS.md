@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-5a native account_get (#114 as-if-merged; exact-head CI pending):** selected TEST own-account safe read of payment readiness, requirement counts and Denver deadline with no unfiltered provider object. Restricted-key permission denial reports not-readable; LIVE and foreign account refused. Next G-5b capability safe reads, then settings trial and guided operations. Connected TEST smoke pending; LIVE OFF.
+
 - **G-4 automated acceptance and G-5 handoff (#113 as-if-merged, exact-head CI pending):** event and native webhook tool scope from #103–#105 and #108–#112 reconciled with unit, mock, DB and guarded-write checks. G-4 implementation complete with **real connected TEST-account smoke NOT VERIFIED**; the external G-4 test evidence remains unchecked. Next G-5a safe TEST account profile reader, then capability and payment-method settings. LIVE disabled and every independent money-out approval unchanged.
 
 - **G-4e2 credential lifecycle (#112 as-if-merged, CI pending):** private authenticated owner removal of stored TEST signing credentials, fail-closed verification after removal, and tested encrypted rotation. Next: G-4 final automated acceptance, then G-5 code work. Connected TEST smoke remains pending; LIVE OFF.
