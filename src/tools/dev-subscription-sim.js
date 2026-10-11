@@ -61,7 +61,7 @@ export function makeSimulationSetupWrite(){
 }
 export const tools=[{
   ...makeSimulationSetupWrite().tool,area:'developer',profiles:writeProfiles,
-  description:'Guarded TEST subscription simulation setup: tracked test clock, monthly recurring price, attached synthetic card, one-day trial. Monthly advancement follows in V-5c.',
+  description:'Guarded TEST subscription setup: tracked clock, monthly price, synthetic card and one-day trial. Monthly advancement follows in V-5c.',
   inputSchema:{type:'object',properties:{
     months:{type:'integer',minimum:1,maximum:3},
     amountCents:{type:'integer',minimum:100,maximum:50000},

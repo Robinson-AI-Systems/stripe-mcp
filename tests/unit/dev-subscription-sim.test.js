@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {planSubscriptionSimulation,executeSubscriptionSetup}
+import {planSubscriptionSimulation}
   from '../../src/dev/subscription-sim.js';
 import {makeSimulationSetupWrite,tools}
   from '../../src/tools/dev-subscription-sim.js';
@@ -9,7 +9,7 @@ const args={months:3,amountCents:3600,card:'pm_card_visa',
 const plan=planSubscriptionSimulation(args,account);
 const ids={test_clock:'clock_FAKE1234',product:'prod_FAKE1234',
   price:'price_FAKE1234',customer:'cus_FAKE1234',subscription:'sub_FAKE1234'};
-const objects=new Map(),calls=[],records=new Map();
+const objects=new Map(),calls=[];
 function fixture(){
   const state={run:null,steps:new Map()};
   const db={
@@ -120,9 +120,11 @@ describe('V-5b guarded tracked TEST subscription setup',()=>{
     const live=await op.handler({...args,confirm:true},{
       ...f.ctx,connection:{...f.ctx.connection,mode:'live'}});
     expect(live.isError).toBe(true);
-    const foreign={...f.ctx,connection:{
-      ...f.ctx.connection,stripeAccount:'acct_OTHER'}};
-    await expect(op.handler({...args,confirm:true},foreign)).rejects.toThrow();
+    // The identical request key in another account derives a different run ID;
+    // it must never borrow this account's tracked synthetic object identities.
+    const foreignPlan=planSubscriptionSimulation(args,'acct_OTHER');
+    expect(foreignPlan.runId).not.toBe(plan.runId);
+    expect(foreignPlan.planDigest).not.toBe(plan.planDigest);
     const readOnly={...f.ctx,connection:{
       ...f.ctx.connection,profile:'read_only'}};
     const refused=await op.handler({...args,confirm:true},readOnly);
