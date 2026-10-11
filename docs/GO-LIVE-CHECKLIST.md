@@ -8,6 +8,15 @@ Legend: **Owner** = only Chris · **Agent** = Claude can do it once you say go.
 
 Follow the owner-friendly [DEPLOY.md](DEPLOY.md) for each setup step. The checklist below remains unchecked until each step is actually verified.
 
+## Hosted page launch gates (D-3 — not yet satisfied)
+
+- [ ] Configure and verify three nonsecret TEST-mode HTTPS redirect URLs
+  on the same owner-controlled origin, as described in `DEPLOY.md`.
+- [ ] Confirm card and US bank credentials are collected only by Stripe's
+  hosted pages and no tool or chat returns a client secret.
+- [ ] Review TEST portal cancellation/plan-change policies before allowing
+  policy mutation; owner-full profile and confirm are required.
+
 ## 1. The server itself
 
 | Done | Item | Where / how | Today | How you know it worked |

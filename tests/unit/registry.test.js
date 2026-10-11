@@ -19,9 +19,14 @@ describe('tool registry', () => {
       'charge_search','payment_list_refunds','payment_get_refund','setup_list','setup_get',
       'payment_charge_saved_method','payment_capture','payment_cancel',
       'payment_update','charge_update','payment_create_refund',
-      'payment_update_refund','payment_cancel_refund','setup_cancel'
+      'payment_update_refund','payment_cancel_refund','setup_cancel',
+      'checkout_list','checkout_get','checkout_list_line_items',
+      'paylink_list','paylink_get','portal_list_configurations','portal_get_configuration',
+      'checkout_create_payment_link_for_customer','checkout_create_setup_link',
+      'checkout_expire','paylink_create','paylink_update','paylink_deactivate',
+      'paylink_activate','portal_create_session','portal_update_configuration'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(18);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(27);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

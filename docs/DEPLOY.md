@@ -4,6 +4,16 @@
 
 This is a personal tool for your projects. The normal process is **set it up once, connect your AI agent once, then let OAuth refresh credentials automatically**. You should not have to keep creating API keys or signing in for routine use. An agent app may impose its own renewal or reconnection rules; we cannot override those.
 
+## Hosted Checkout and portal return URLs (D-3; not deployed)
+
+Before using TEST hosted payment/setup/portal tools, set these three
+**nonsecret** Vercel environment variables to approved HTTPS URLs with paths
+on the **same owner-controlled origin**:
+`STRIPE_CHECKOUT_SUCCESS_URL`, `STRIPE_CHECKOUT_CANCEL_URL`, and
+`STRIPE_PORTAL_RETURN_URL`. Redirect destinations cannot be specified by
+AI tool arguments; missing/mismatched values prevent writes. No LIVE Stripe
+operation or paid deployment is authorized by this instruction.
+
 ## What you need
 
 - A GitHub account with access to `Robinson-AI-Systems/stripe-mcp`.

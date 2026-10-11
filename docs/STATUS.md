@@ -10,14 +10,15 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 - **Batch C / C-1 + C-2 (#36 merged):** compact Stripe-object summaries, safe dotted fields (including list items), stable refresh-safe private 24-hour result handles, 8 KB output cap, actual tokenizer-based listing/schema budgets, progressive tool search/describe/call, read-only batch execution, and compact/catalog profiles. Unit, isolated PostgreSQL, mock and full CI passed at prior head 35c4275; exact-head checks required for final docs/pagination commit. No Stripe provider writes or LIVE activation.
 
 - **B-8c2 merged (#35):** carries B-8c1 (#34 merged), adds private two-stage owner consent for each exact TEST transaction and a separate password-authenticated owner over-limit override. New one-use decision intents bind Stripe-derived request identity. No LIVE money-moving tool is exposed; TEST refunds are guarded by the owner grant and account-wide limit. Unit, disposable PostgreSQL, mock and repository CI passed at reviewed head 27fd5de; owner-authenticated transaction consent is now code-complete, but provider money tools and LIVE remain OFF.
-- **Last merged:** #38 D-2 TEST payments/refunds, #37 D-1 native TEST customer tools, #36 complete Batch C, #35 independent TEST owner consent, #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
+- **Last merged:** #39 D-3 hosted Checkout and portal, #38 D-2 TEST payments/refunds, #37 D-1 native TEST customer tools, #36 complete Batch C, #35 independent TEST owner consent, #34 provider-bound private money inbox (`d7df84f`), #33 owner money cap, #32 default
   account, #31 OFF-only LIVE disable, #30 revoke, #29 TEST permission
   re-probe, #28 scoped reads; B-1–B-7 completed.
 - **D-1 merged (#37):** 17 current-native TEST customer tools, approved and tested, with no old-toolkit compatibility.
-- **D-2 merged (#38):** 19 TEST native payment/charge/refund/setup tools (ten safe reads, nine guarded mutations); exact-head unit, DB, mock, repository and aggregate CI passed; seven-case real-handler matrix for all nine writes. Refunds require exact separately authenticated owner consent and over-limit override. No LIVE use, no legacy aliases. **Next: D-3 Checkout, payment links and portal.**
+- **D-2 merged (#38):** 19 TEST-native payment/refund/setup tools; money approval and full CI verified.
+- **D-3 merged (#39):** 16 native TEST hosted Checkout/payment-link/portal tools (7 safe reads, 9 guarded writes), server-approved redirects, no client secrets; nine-write contract suite, mock and full exact-head CI passed. Portal create verified through returned session and read-back of portal configuration. **Next D-4 subscriptions and schedules.**
 - **IN-05:** $500 USD/account/Colorado day shared across AI connections,
   all money-out separately owner-approved, above limit a second override.
-  **IN-06 remains OFF.** 18 guarded TEST-only customer/payment write tools exist in code, including exact-owner-approved refund operations. No LIVE credentials, real provider money movement, paid infrastructure or operational deployment.
+  **IN-06 remains OFF.** 27 guarded TEST-only customer/payment/hosted write tools exist in code, including exact-owner-approved refund operations. No LIVE credentials, real provider money movement, paid infrastructure or operational deployment.
 - **Ordered batches:** A → B → C → D → V → G → H → P → W → U → R → E → X.
 
 ## Superseded historical branches
