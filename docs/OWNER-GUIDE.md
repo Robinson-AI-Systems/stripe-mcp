@@ -57,3 +57,7 @@ After the code is merged and a TEST Stripe account is connected, ask to list and
 ### D-5a TEST invoice drafts (PR #43)
 
 After connecting a TEST Stripe account, you can inspect and search invoices, list payments allocated to an invoice, preview the next customer invoice, create a manual unfinalized invoice, change its description/metadata and add/update/remove positive USD draft items. Draft operations never finalize, send or collect money. Invoices with taxes, discounts, credits or subscription/app ownership require their native Stripe or owning-application workflows; the server refuses ambiguous changes. LIVE remains OFF. Invoice finalization/payment and credit notes come in D-5b/c.
+
+### D-5b — TEST invoice lifecycle (#45)
+
+With a securely connected TEST Stripe account, ask to finalize a manually controlled draft, generate a TEST `invoice.sent` event, charge a saved method for the exact verified balance, record an externally received payment, void/write off an unpaid invoice, or permanently delete a draft. Each requires a preview and explicit confirmation. **TEST-mode invoice sends do not deliver an actual email**, and test charges do not move real funds. Changes on app-owned invoices are refused unless deliberately authorized outside the app. LIVE stays OFF; the service is not deployed. Credit notes follow in D-5c.
