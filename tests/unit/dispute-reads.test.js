@@ -9,7 +9,7 @@ const dispute={object:'dispute',id,livemode:false,amount:2565,
   evidence_details:{due_by:1680403749,past_due:false,
     has_evidence:true,submission_count:0},
   evidence:{billing_address:'PRIVATE CUSTOMER ADDRESS',customer_email_address:'private@example.test'},
-  payment_method_details:{card:{last4:'1234'}}};
+  payment_method_details:{card:{last4:'9876'}}};
 const parse=r=>JSON.parse(r.content[0].text);
 function fixture() {
   const s={disputes:{list:vi.fn(async()=>({data:[dispute],has_more:false})),
@@ -35,7 +35,7 @@ describe('G-2a safe TEST dispute reads',()=>{
       needsResponse:true});
     expect(r.has_more).toBe(false);
     const serialized=JSON.stringify(r);
-    for(const secret of ['PRIVATE CUSTOMER ADDRESS','private@example.test','1234'])
+    for(const secret of ['PRIVATE CUSTOMER ADDRESS','private@example.test','9876'])
       expect(serialized).not.toContain(secret);
     expect(parse(await f.call('dispute_get',{disputeId:id})).id).toBe(id);
   });
