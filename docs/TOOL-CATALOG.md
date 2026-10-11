@@ -229,7 +229,7 @@ removing a payout bank account is done in the dashboard, which
 | `dispute_submit_evidence` | Submit evidence (final; Stripe allows one submission) | C | R | E |
 | `dispute_accept` | Accept (lose) the dispute | C | C | E |
 | `file_upload_evidence` | Upload a document from a Google Drive link or a public URL as dispute evidence | P | R | E |
-| `file_list` / `file_get` / `file_create_link` | Files | — / — / P | C | R |
+| `file_list` / `file_get` / `file_create_link` | Safe TEST file metadata and confirmed time-limited public BRAND links only; never link private evidence | — / — / P | built #91 | R reads; F link |
 
 ## Risk and identity (`radar_*`, `identity_*`) — 16
 

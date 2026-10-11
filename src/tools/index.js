@@ -38,4 +38,6 @@ import * as reportRunWrites from './report-run-write.js';
 import * as scheduleWrites from './money-schedule-write.js';
 import * as reportResultFile from './report-result-file.js';
 import * as disputeReads from './dispute-reads.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect,devCleanup,devEvents,devForwarders,devForwardEvents,devTestCards,devSubscriptionSim,moneyReads,moneyBankReads,moneyPayoutWrites,moneyPayoutCreate,moneyPayoutReverse,moneyTopupWrites,reportReads,reportRunWrites,scheduleWrites,reportResultFile,disputeReads]);
+import * as fileReads from './file-reads.js';
+import * as fileLinks from './file-links-write.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect,devCleanup,devEvents,devForwarders,devForwardEvents,devTestCards,devSubscriptionSim,moneyReads,moneyBankReads,moneyPayoutWrites,moneyPayoutCreate,moneyPayoutReverse,moneyTopupWrites,reportReads,reportRunWrites,scheduleWrites,reportResultFile,disputeReads,fileReads,fileLinks]);
