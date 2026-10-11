@@ -21,4 +21,5 @@ import * as devVerify from './dev-verify.js';
 import * as testClocks from './testclocks.js';
 import * as devAchConfirm from './dev-ach-confirm.js';
 import * as devConnect from './dev-connect.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect]);
+import * as devCleanup from './dev-cleanup.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect,devCleanup]);
