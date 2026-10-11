@@ -109,7 +109,7 @@ async function preflight(def,a,s){
   }
   return before;
 }
-function previewMoney(p,what,target){
+export function previewMoney(p,what,target){
   if(!p||p.currency!=='usd')throw new TypeError('Verified financial preview unavailable');
   const credit=(p.prorationLines??[]).filter(l=>l.amountCents<0)
     .reduce((n,l)=>n-l.amountCents,0);
