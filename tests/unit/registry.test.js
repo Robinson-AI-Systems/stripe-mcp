@@ -46,9 +46,10 @@ describe('tool registry', () => {
       'dev_confirm_seed_ach','dev_connect_readiness',
       'dev_cleanup','dev_reset_test_data',
       'dev_get_checkout_test_url','dev_list_triggers','dev_trigger_event',
-      'dev_create_forwarder','dev_list_forwarders','dev_delete_forwarder'
+      'dev_create_forwarder','dev_list_forwarders','dev_delete_forwarder',
+      'dev_forward_events'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(64);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(65);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
