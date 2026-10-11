@@ -1,5 +1,5 @@
 // G-6a: owner-facing guided settings with no fabricated account state or writes.
-import {DASHBOARD_SETTINGS,DASHBOARD_SECTION,SETTING_READERS,whereIsSetting} from '../data/dashboard-map.js';
+import {DASHBOARD_SETTINGS,DASHBOARD_SECTION,whereIsSetting} from '../data/dashboard-map.js';
 import {handlers as accountHandlers} from './account-profile.js';
 import {reply,fail,allProfiles} from './billing-shared.js';
 const categories=['account','payments','billing','security','tax','developers','other'];
