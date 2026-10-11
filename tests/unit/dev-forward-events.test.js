@@ -1,5 +1,4 @@
-import {describe,it,expect,vi} from 'vitest';
-import {randomBytes} from 'node:crypto';
+import {describe,it,expect} from 'vitest';
 import {EventEmitter} from 'node:events';
 import {encryptSecret} from '../../src/core/crypto.js';
 import {makeDevForwardEventsWrite,tools}
