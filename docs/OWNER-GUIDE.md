@@ -81,3 +81,7 @@ After a `basic-store` TEST run creates a simulated successful card payment, call
 ### V-1b3 — TEST dispute-trigger cards and pending ACH setups (#50)
 
 `dev_seed` accepts the TEST-only scenarios `dispute-trigger` (synthetic charge using Stripe's dispute-triggering test payment method) and `ach-awaiting-confirmation` (an unconfirmed bank-capable payment intent). They are tagged and tracked by run, with exact Stripe read-back. A dispute-triggered charge is **not proof a later dispute event has arrived**, and an ACH intent requiring confirmation is **not a bank debit or settlement**. Inspect actual Stripe events/settlements once the later V-1b4 and V-3/V-5 workflows are implemented. Neither scenario moves real funds or bypasses owner refunds/overrides. LIVE is disabled.
+
+## Owner-only TEST report CSV downloads
+
+Find a completed TEST report using `report_list_runs`, `report_get_run` and `report_get_result_file`. These MCP tools expose safe metadata, never private URLs or CSV bytes. Open `/api/stripe/setup` directly in your own browser, then fill in the connected TEST Stripe account ID, report run ID (`frr_...`) and your administrator passphrase under **Download a verified TEST report CSV**. Same-origin CSRF, password lockout, account and file verification protect this browser-only attachment. Maximum file size: 5 MiB. Download larger or unavailable reports directly in your authenticated Stripe Dashboard. Never paste financial CSVs or administrator secrets into an AI chat. LIVE stays off.
