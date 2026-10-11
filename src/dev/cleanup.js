@@ -3,18 +3,21 @@ import {APP_METADATA_KEYS} from '../tools/app-guard.js';
 import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
-  connected_account:'acct',event:'evt'};
+  connected_account:'acct',event:'evt',charge:'ch',dispute:'du'};
 const order={subscription:0,invoice:1,payment_intent:2,customer:3,price:4,
-  product:5,refund:6,event:7,connected_account:8,test_clock:9};
+  product:5,refund:6,charge:7,dispute:8,event:9,
+  connected_account:10,test_clock:11};
 const types={product:'product',price:'price',customer:'customer',
   subscription:'subscription',invoice:'invoice',payment_intent:'payment_intent',
-  refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock',event:'event'};
+  refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock',
+  event:'event',charge:'charge',dispute:'dispute'};
 const valid=(value,prefix)=>typeof value==='string'&&
   new RegExp('^'+prefix+'_[A-Za-z0-9]{2,100}$').test(value);
 const fail=x=>{throw new TypeError(x);};
 const maps={product:'products',price:'prices',customer:'customers',
   subscription:'subscriptions',invoice:'invoices',payment_intent:'paymentIntents',
-  refund:'refunds',connected_account:'accounts',event:'events'};
+  refund:'refunds',connected_account:'accounts',event:'events',
+  charge:'charges',dispute:'disputes'};
 const fetch=async(s,row)=>row.object_type==='test_clock'?
   s.testHelpers.testClocks.retrieve(row.object_id):
   s[maps[row.object_type]].retrieve(row.object_id);
@@ -63,7 +66,7 @@ export async function prepareCleanup(a,ctx){
   if(count>35)fail('Choose individual runId for more than 35 objects');
   return {account,runs,count};
 }
-export function verifyCleanupIdentity(run,row,obj){
+export function verifyCleanupIdentity(run,row,obj,rows=[]){
   const type=row.object_type;
   if(!obj||typeof obj!=='object'||Array.isArray(obj)||
     obj.id!==row.object_id||obj.livemode===true||
@@ -74,9 +77,25 @@ export function verifyCleanupIdentity(run,row,obj){
     if(obj.name!=='RTC DEV RUN '+run.id+' '+row.step_name.split('_').at(-1))
       fail('Clock does not match immutable run provenance');
   }else if(type==='event'){
-    if(obj.data?.object?.metadata?.rtc_run!==run.id||
+    const generatedDispute=rows.find(r=>r.object_type==='dispute');
+    if(generatedDispute&&obj.type==='charge.dispute.created'){
+      const charge=rows.find(r=>r.object_type==='charge');
+      if(obj.data?.object?.id!==generatedDispute.object_id||
+        obj.data.object.object!=='dispute'||
+        obj.data.object.charge!==charge?.object_id||
+        obj.data.object.amount!==3600||obj.data.object.currency!=='usd'||
+        (obj.account&&obj.account!==run.stripe_account))
+        fail('Dispute Event does not match exact linked TEST ledger IDs');
+    }else if(obj.data?.object?.metadata?.rtc_run!==run.id||
       (obj.account&&obj.account!==run.stripe_account))
       fail('Recorded TEST event source no longer matches its selected run');
+  }else if(type==='charge'||type==='dispute'){
+    const payment=rows.find(r=>r.object_type==='payment_intent');
+    const charge=rows.find(r=>r.object_type==='charge');
+    if(type==='charge'&&obj.payment_intent!==payment?.object_id||
+      type==='dispute'&&obj.charge!==charge?.object_id||
+      obj.amount!==3600||obj.currency!=='usd')
+      fail('Financial evidence does not link to exact run-owned TEST records');
   }else if(!(type==='customer'&&obj.deleted===true)&&
     obj.metadata?.rtc_run!==run.id)
     fail('Provider rtc_run ownership differs from recorded TEST run');
@@ -122,7 +141,7 @@ async function safeOperation(s,row,was,key,ctx,run){
     // dependents and require the separate V-2b risk-reviewed deletion paths.
     case 'connected_account':return cleanupTestConnectSeller(s,was,opts);
     case 'test_clock':return cleanupTestClock(s,was,ctx,run.id,opts);
-    case 'refund':case 'event':return false;
+    case 'refund':case 'event':case 'charge':case 'dispute':return false;
     default:fail('Unrecognized cleanup type');
   }
 }
@@ -132,7 +151,7 @@ export async function executeCleanup(a,ctx,s,key){
   // Globally preflight provenance before mutating even the FIRST record.
   for(const {run,rows} of runs)for(const row of rows.filter(r=>!r.cleaned)){
     const object=await fetch(s,row);
-    verifyCleanupIdentity(run,row,object);
+    verifyCleanupIdentity(run,row,object,rows);
     before.set(run.id+':'+row.step_name,object);
   }
   const outcomes=[];
