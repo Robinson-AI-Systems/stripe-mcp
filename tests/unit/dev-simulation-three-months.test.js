@@ -59,7 +59,7 @@ function threeMonthProvider({failMonth=null,withholdEventMonth=null}={}){
       parent:{subscription_details:{subscription:ids.subscription}}};
   }
   function originalEvent(index){
-    const invoice=state.invoices[index],number=index+1;
+    const invoice=state.invoices[0],number=index+1;
     return {id:'evt_FAKE'+number,object:'event',livemode:false,
       account:acct,type:number===failMonth?
         'invoice.payment_failed':'invoice.payment_succeeded',
