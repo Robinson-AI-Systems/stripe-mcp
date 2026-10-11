@@ -279,7 +279,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
 | `testclock_create` / `testclock_advance` | Create or advance guarded TEST clocks; async advance is only confirmed when provider ready | P / P | built #53 | E |
 | `testclock_delete` | Delete a TEST clock after validating dependent records and destructive impact | C | planned V-5 | F |
-| `dev_simulate_subscription` | Guarded TEST setup, one-cycle clock advance and inspect; 1–3 months. Paid invoices and events are not confirmed until V-5c3 | P | setup #73; advance #76; timeline pending | E |
+| `dev_simulate_subscription` | Guarded TEST setup, one-cycle clock advance, inspect and independently verify exact renewal invoice, PaymentIntent and original Stripe Event; 1–3 months | P | setup #73; advance #76; observation #77 | E |
 | `dev_test_cards` | Published TEST-only synthetic card/ACH PaymentMethod IDs, not card or bank numbers; safe case filters and pagination, no provider call | — | built #72 | R |
 
 ## Reports and account (`report_*`, `account_*`) — 10

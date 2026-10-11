@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-5c3 TEST monthly billing reconciliation PR #77 (as-if-merged; exact-head CI pending):** guarded dev_simulate_subscription action=observe verifies exact TEST clock, recurring price/subscription, unique paid/open invoice, invoice-payment allocation, linked PaymentIntent and independently retrieved original Event. Only complete evidence makes the month observed, allowing the next month; missing evidence stays uncertain. Next: V-5 sequential three-month acceptance and Batch V documentation.
+- **External TEST smoke still pending:** no enrolled Stripe TEST account or owned public HTTPS webhook target for real provider-to-app demonstration. No LIVE or money-out requested.
+
 - **V-5c2 guarded TEST clock advance PR #76 (as-if-merged; exact-head CI pending):** dev_simulate_subscription supports action=advance/inspect for one monthly cycle with exact selected-account provider readback and SQL at-most-once protection. No invoice/paid claim from clock state. **Next V-5c3** monthly invoice/payment and event reconciliation so cycle 2/3 can be unlocked.
 
 - **V-5b restoration correction #75 (as-if-merged; exact-head CI pending):** PR #74's tree accidentally omitted the previously merged #73 simulation setup implementation, tests, and catalog. Restoring those exact reviewed #73 files and registry/count expectations. The V-5c1 monthly ledger remains untouched. Next V-5c2 guarded advance, after exact-head CI. No provider/money action.

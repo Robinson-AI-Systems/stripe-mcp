@@ -31,6 +31,8 @@ describe('V-5c1 atomic monthly TEST simulation ledger',()=>{
     expect(keys).toContain('target_frozen_time');
     expect(keys).not.toContain('secret_enc');
     expect(keys).not.toContain('event_payload');
+    expect(keys).toContain('event_id');
+    expect(keys).toContain('event_type');
   });
   it('reserves once with a stable immutable retry key for the selected account',async()=>{
     expect(await db.getDevSimulationCycles({accountId:other,runId:id})).toEqual([]);
@@ -59,7 +61,7 @@ describe('V-5c1 atomic monthly TEST simulation ledger',()=>{
   it('never infers success from clock alone; requires matching invoice and payment',async()=>{
     const good={...base,observedClockTime:base.targetFrozenTime,
       invoiceId:'in_TEST001',invoiceStatus:'paid',
-      paymentIntentId:'pi_TEST001',paymentStatus:'succeeded'};
+      paymentIntentId:'pi_TEST001',paymentStatus:'succeeded',eventId:'evt_TEST001',eventType:'invoice.payment_succeeded'};
     for(const change of [
       {observedClockTime:base.targetFrozenTime+1},
       {invoiceId:'in_FAKE!'},
@@ -74,7 +76,7 @@ describe('V-5c1 atomic monthly TEST simulation ledger',()=>{
     expect(await db.observeDevSimulationCycle(good)).toBe(false);
     expect((await db.getDevSimulationCycles({accountId:account,runId:id}))[0])
       .toMatchObject({state:'observed',invoiceId:'in_TEST001',
-        invoiceStatus:'paid',paymentStatus:'succeeded'});
+        invoiceStatus:'paid',paymentStatus:'succeeded',eventId:'evt_TEST001'});
   });
   it('unlocks exactly one subsequent month and keeps its own uncertain state',async()=>{
     const second={...base,cycle:2,requestKey:'cycle-two',
