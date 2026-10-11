@@ -258,7 +258,7 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `webhook_delete` | Delete an endpoint | C | C | F |
 | `webhook_check_signature` | Check a pasted test payload + signature header against an endpoint (paste the secret on the setup page, never in chat) | — | R | F |
 
-## Developer tools (`dev_*`, `testclock_*`) — 18 (test mode only; `docs/designs/BATCH-V.md`)
+## Developer tools (`dev_*`, `testclock_*`) — 19 (test mode only; `docs/designs/BATCH-V.md`)
 
 Building with Stripe on any project: realistic test data, precise cleanup, real test events, forwarding events into an
 app under development, and time travel. Every tool refuses on a live connection.
@@ -268,7 +268,8 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_seed` | Tracked TEST catalog/store, trial/canceled/paid-active and resumable clocked past-due subscriptions, dispute trigger, unconfirmed ACH | P | built #47/#48/#50/#52/#54 | E |
 | `dev_list_runs` | Account-scoped seed runs and exact recorded object counts | — | built #47 | R |
 | `dev_seed_refund` | One owner-approved full refund of a run-owned TEST store charge, with verified ledger entry | $ | built #49 | E |
-| `dev_verify_outcomes` | Verify real TEST dispute-created events and ACH provider payment state for a tracked run; never infer bank settlement or webhook delivery | — | built V-1b4a (#51) | R |
+| `dev_confirm_seed_ach` | Confirm an unconfirmed run-owned TEST ACH intent and verify Stripe processing/action/success; no settlement assertion | P | built #55 | E |
+| `dev_verify_outcomes` | Verify actual run-owned TEST dispute events, ACH state and exact succeeded event; never infer settlement or webhook delivery | — | built #51/#55 | R |
 | `dev_cleanup` | Remove exactly what a run created (customers, invoices voided, products/prices archived) | C | N | E |
 | `dev_reset_test_data` | Stripe's "delete all test data" — guided link and steps (no API) | — | N | E |
 | `dev_list_triggers` / `dev_trigger_event` | Make Stripe emit a real test event (~30 common types) by doing the real test-mode action | — / P | N | E |

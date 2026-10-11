@@ -41,6 +41,7 @@ next bounded implementation.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
+- [ ] V-1b4e (#55): guarded run-owned synthetic TEST ACH confirmation plus actual matching succeeded Stripe event checks; bank settlement never invented. V-1 next: Connect-capability-gated marketplace seed and complete acceptance.
 - [ ] V-1b4d (#54): real clocked 7-day trial with attachable decline TEST method; provider-ready clock and observed past_due attempted unpaid renewal invoice are mandatory before durable completion. Remaining V-1: controlled ACH lifecycle and gated Connect marketplace.
 - [ ] V-1b4c (#53): early, approved V-5 TEST clock create/list/advance prerequisite with provider verified ready state; destructive delete/full simulator remain under V-5. V-1b4d must now verify actual past_due subscription renewals and async ACH/Connect scenarios.
 - [ ] V-1b4b1 (#52): verified paid active TEST subscription plus provider-linked paid invoice ID, no fabricated past-due status; V-1b4b2 test clock/renewal, ACH transitions and gated Connect still remain.
