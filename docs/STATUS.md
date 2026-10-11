@@ -5,9 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **D-4 #40 merged at b5d1477:** 14 guarded TEST-native subscription tools. The final head `6f4f63d` passed all five CI checks; three review threads were resolved after correcting cancellation/anchor previews and disabled proration dates. **Next D-4b:** seven remaining item/schedule mutations on `ai/gpt6/d-4b-items-schedules` (not merged, no PR yet). No LIVE access. Anti-stall recovery instructions committed and in main.
+- **D-4 complete in implementation PRs #40 and #42 (as-if-merged PR #42 pending exact-head CI):** all 21 current-native TEST subscription, item and schedule tools. Seven D-4b guarded writes now have real-handler contract tests, pinned Stripe SDK mock coverage, current-phase preservation, app ownership enforcement and per-transaction owner consent for credit outcomes. **Next: D-5** invoices/credit notes after green #42 merge. LIVE remains OFF.
 
-- **D-4b draft branch:** item add/update/remove and schedule create/update/release/cancel implementations have an UNVERIFIED work-in-progress tree. Tests, mock shapes, and accepted live-schedule update semantics still required before PR. D-5 follows after full D-4 acceptance. No LIVE writes or real Stripe credentials enabled.
+- **D-4b PR #42:** implementation, regression tests and document reconciliation on `ai/gpt6/d-4b-items-schedules`. Merge only after exact-head `ci` green, every review thread handled and self-review. If CI is red, fix without interruption; precise recovery notes remain in D-4.progress.md until merge.
 
 
 - **Owner decision (IN-12 answered):** old toolkits are *only* historical feature-completeness references. Build the full current native Stripe MCP, **without** legacy names, aliases, adapters, old-agent integration or retirement/relay work. X-3 and the legacy name-map deliverable are removed from Batch X, the plan and work index; decision is recorded in `docs/DECISIONS.md`. No reduction to current feature coverage.
