@@ -41,6 +41,8 @@ GitHub only as git commits pushed to an `ai/*` branch. Never copy source files t
    [implementation guides](implementation-guides/README.md). Reconcile its baseline and proposed paths in drift A;
    the card should link only the sections it uses, not require reading all guides.
 
+**GitHub REST fallback (no usable local shell):** Use the connected GitHub REST interface for repository reads, branch creation, file/tree/commit writes, PRs, exact-head check-runs, job logs/annotations, review threads and expected-head merges. REST calls **do not execute local tests**. Run repository tests through the PR's ordinary GitHub Actions CI; never describe them as locally passed. For example, inspect `GET /repos/{owner}/{repo}/commits/{sha}/check-runs`, `GET /repos/{owner}/{repo}/actions/runs?head_sha={sha}` and the failed run's jobs/annotations. If the connector has separate read/write actions, prefer those; do not assume an arbitrary REST fetch supports writes. Follow the same exact-head CI, secret, test, review, draft-PR and merge gates as a shell workflow. Keep the CI workflow unchanged and do not use a direct commit to `main` as a shortcut.
+
 ## 2. Never do these without Chris (AGENTS "Hard limits")
 
 A live Stripe key or any live-mode write; moving real money; buying anything; a secret anywhere in code, docs, tests,
