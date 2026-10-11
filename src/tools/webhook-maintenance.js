@@ -50,7 +50,7 @@ export function makeWebhookMaintenance(kind){
           {lookup:ctx.services.webhookDnsLookup}:{});
       return record;
     },
-    summarize:(record,a)=>{
+    summarize:(record,_a)=>{
       const origin=new URL(record.url).origin;
       if(kind==='delete')return 'TEST MODE. Delete native webhook '+record.id+
         ' at '+origin+'. This stops Stripe deliveries to that endpoint.'+
@@ -66,7 +66,7 @@ export function makeWebhookMaintenance(kind){
         reject('App-owned webhook endpoint or unknown ownership');
       if(!same(before,current))reject('Webhook changed after preview; refuse stale mutation');
       if(kind==='delete'){
-        const result=await s.webhookEndpoints.del(a.endpointId,{idempotencyKey});
+        const result=await s.webhookEndpoints.del(a.endpointId,{}, {idempotencyKey});
         if(result?.id!==a.endpointId||result?.deleted!==true)
           reject('Stripe did not acknowledge exact webhook deletion');
         return;
