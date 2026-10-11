@@ -148,7 +148,15 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
   if(old&&(old.object_type!=='event'||old.cleaned!==false||
     !id(old.object_id,'evt')))
     bad('TEST event ledger has inconsistent identity');
-  const eventId=await findGeneratedEvent(s,plan,account,signature);
+  // If the exact event ID is already durably tracked, retrieve it directly;
+  // a retained event may have fallen outside the recent bounded event list.
+  let eventId;
+  if(old){
+    const previous=await s.events.retrieve(old.object_id);
+    if(!matchingEvent(previous,plan,account,signature))
+      bad('Previously tracked TEST event no longer verifies');
+    eventId=old.object_id;
+  }else eventId=await findGeneratedEvent(s,plan,account,signature);
   if(!eventId)return db.getDevRun({account,requestKey:run.request_key});
   if(old&&old.object_id!==eventId)
     bad('Previously recorded TEST event identity unexpectedly changed');
