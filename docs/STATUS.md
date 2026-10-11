@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-5b clocked TEST subscription setup PR #73 (as-if-merged, exact-head CI pending):** dev_simulate_subscription now creates only isolated synthetic TEST clock, product, recurring price, clocked customer and free-trial subscription, each independently verified and durably run-tracked for V-2 cleanup. 1–3 months, amount and synthetic card explicitly selected. No actual invoice charge/renewal claimed. **Next V-5c:** advance one month at a time, verify READY state and exact invoices, payment and event timeline.
+- **Still pending external acceptance evidence:** hosted real TEST Checkout completion and genuine target HTTP smoke require TEST enrollment. Neither has been claimed completed.
+
 - **V-5a TEST fixture catalog #72 (as-if-merged, exact-head CI pending):** read-only dev_test_cards exposes current Stripe-published TEST PaymentMethod IDs for success, card declines, 3DS and ACH scenarios, no PAN, no SDK writes, no LIVE. Existing native testclock tools #53 are reused. **Next V-5b:** guarded 3-month synthetic TEST subscription simulation.
 - **Acceptance evidence pending, NOT a coding blocker:** V-4 automated validation passed in PRs #67–#71, but no enrolled Stripe TEST account and owned HTTPS endpoint have been provided for a real provider-to-webhook smoke. V-3 genuine hosted Checkout completion also awaits TEST browser action. Do not claim either was demonstrated. docs/pr-cards/V-4-acceptance.md.
 

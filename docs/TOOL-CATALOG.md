@@ -279,7 +279,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
 | `testclock_create` / `testclock_advance` | Create or advance guarded TEST clocks; async advance is only confirmed when provider ready | P / P | built #53 | E |
 | `testclock_delete` | Delete a TEST clock after validating dependent records and destructive impact | C | planned V-5 | F |
-| `dev_simulate_subscription` | Run a subscription for N months on a test clock and get the timeline of invoices, payments and events | P | N | E |
+| `dev_simulate_subscription` | Guarded TEST simulation setup creates five run-tracked synthetic clock/catalog/customer/trial-subscription objects; months 1–3. Monthly invoices/payments and timeline are V-5c, NOT yet asserted | P | built setup #73; timeline pending | E |
 | `dev_test_cards` | Published TEST-only synthetic card/ACH PaymentMethod IDs, not card or bank numbers; safe case filters and pagination, no provider call | — | built #72 | R |
 
 ## Reports and account (`report_*`, `account_*`) — 10
