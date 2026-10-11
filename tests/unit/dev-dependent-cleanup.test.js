@@ -48,7 +48,7 @@ function fixture({balanceCents=0,externalCustomer=false,enableSeller=false,
         return {...objects.get(id)};
       }
     },
-    balance:{retrieve:async options=>{
+    balance:{retrieve:async (_params,options)=>{
       calls.push('balance_read');
       expect(options.stripeAccount).toBe(seller);
       return {object:'balance',

@@ -7,7 +7,7 @@ const sdk=()=>makeStripeClient({key,mode:'test'},{
 const opts={idempotencyKey:'rmcp_dependent_cleanup_123'};
 describe('V-2b current-native pinned TEST dependent deletion calls',()=>{
   it('reads connected-account balance through the Stripe-Account option',async()=>{
-    const balance=await sdk().balance.retrieve({stripeAccount:'acct_FAKE123'});
+    const balance=await sdk().balance.retrieve({},{stripeAccount:'acct_FAKE123'});
     expect(balance.object).toBe('balance');
   });
   it('deletes an exact connected seller using pinned native account API',async()=>{

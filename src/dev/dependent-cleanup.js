@@ -24,7 +24,7 @@ export async function cleanupTestConnectSeller(s,account,opts){
     account.details_submitted!==false||
     !['inactive','pending'].includes(account.capabilities?.transfers)||
     typeof s.balance?.retrieve!=='function')return false;
-  const balance=await s.balance.retrieve({stripeAccount:account.id});
+  const balance=await s.balance.retrieve({},{stripeAccount:account.id});
   if(!zeroBalances(balance))return false;
   const acknowledgment=await s.accounts.del(account.id,{},opts);
   if(acknowledgment?.object!=='account'||acknowledgment.id!==account.id||
