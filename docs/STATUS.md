@@ -5,12 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **PR #40 CI correction in progress at a0b43b2:** first CI run revealed a Stripe SDK string-shape error
-  (`billing_cycle_anchor`), four lint errors, and stale expected tool counts in three unit suites. These are
-  ordinary fixable failures, not an owner gate. Correcting in one batch; wait for exact-head green before merge.
-  Anti-stall instructions strengthened to require CI-first recovery and honest execution checkpoints.
+- **D-4 merged in implementation PRs #40 and #42:** all 21 current-native TEST subscription, item and schedule tools. Seven D-4b guarded writes now have real-handler contract tests, pinned Stripe SDK mock coverage, current-phase preservation, app ownership enforcement and per-transaction owner consent for credit outcomes. **Next: D-5** invoices/credit notes after green #42 merge. LIVE remains OFF.
 
-- **D-4 in progress — PR #40 (first of two substantial slices):** seven TEST subscription/schedule reads and seven guarded subscription writes built with item periods, native invoice previews and exact read-back. Remaining D-4: three item and four schedule mutations in the immediate successor PR; then D-5. **These statements describe the tree in PR #40, not yet a merged or deployed capability.** No LIVE writes or real Stripe credentials enabled.
+- **D-4b PR #42:** all seven guarded item/schedule writes validated, with exact-head CI, app ownership and owner-consent regression evidence, and a self-review. Next D-5 invoices and credit notes.
 
 
 - **Owner decision (IN-12 answered):** old toolkits are *only* historical feature-completeness references. Build the full current native Stripe MCP, **without** legacy names, aliases, adapters, old-agent integration or retirement/relay work. X-3 and the legacy name-map deliverable are removed from Batch X, the plan and work index; decision is recorded in `docs/DECISIONS.md`. No reduction to current feature coverage.

@@ -49,6 +49,6 @@ it does not work yet. This file is updated as features ship.
 | "Make a 24-hour read-only pass for Codex." | A pass shown once on your setup page; the agent uses it through Robinson's Toolkit (`rtool`) or the HTTPS API | R |
 | Anything else in Stripe | The universal tools find the right Stripe operation and run it with the same safety | U |
 
-### D-4 TEST subscriptions (first PR #40)
+### D-4 TEST subscriptions and schedules (PRs #40 + #42)
 
-After the code is merged and a TEST Stripe account is connected, ask to list and inspect subscriptions, preview plan/quantity changes, or create, update, cancel, undo cancellation, and pause/resume collection. Destructive changes require explicit preview/confirmation; any credit producing a money-out action separately needs authenticated owner approval. This is **not** LIVE access. Item and schedule writes are part of the remaining D-4 PR.
+After the code is merged and a TEST Stripe account is connected, ask to list and inspect subscriptions, preview plan/quantity changes, or create, update, cancel, undo cancellation, and pause/resume collection. Destructive changes require explicit preview/confirmation; any credit producing a money-out action separately needs authenticated owner approval. This is **not** LIVE access. You can also add/update/remove subscription items, create future schedules, update their future phases, release schedules or cancel them. An active schedule's current phase cannot be silently modified; replacing existing future phases requires an explicit choice. Changes remain TEST-only and require provider previews/read-back.
