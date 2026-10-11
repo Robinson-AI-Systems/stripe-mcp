@@ -85,3 +85,13 @@ After a `basic-store` TEST run creates a simulated successful card payment, call
 ## Owner-only TEST report CSV downloads
 
 Find a completed TEST report using `report_list_runs`, `report_get_run` and `report_get_result_file`. These MCP tools expose safe metadata, never private URLs or CSV bytes. Open `/api/stripe/setup` directly in your own browser, then fill in the connected TEST Stripe account ID, report run ID (`frr_...`) and your administrator passphrase under **Download a verified TEST report CSV**. Same-origin CSRF, password lockout, account and file verification protect this browser-only attachment. Maximum file size: 5 MiB. Download larger or unavailable reports directly in your authenticated Stripe Dashboard. Never paste financial CSVs or administrator secrets into an AI chat. LIVE stays off.
+
+## View safe TEST Stripe file information
+
+Use `file_list` with an explicit `purpose` of `dispute_evidence`,
+`finance_report_run`, `business_logo` or `business_icon`, or call
+`file_get` with one exact file ID. Only file metadata is provided; no private
+file contents or Stripe authorization URLs are returned. `file_create_link`
+requires a full-profile preview and confirmation, expires within 24 hours and
+only works for public brand logos/icons. It **cannot** share dispute evidence,
+finance reports or identity documents. G-2 evidence upload/submission follows.
