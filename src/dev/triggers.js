@@ -130,7 +130,7 @@ function matchingEvent(e,plan,account,target){
   const object=e?.data?.object;
   return e?.object==='event'&&id(e.id,'evt')&&e.type===plan.type&&
     e.livemode===false&&(!e.account||e.account===account)&&
-    object?.object===target.type&&object.id===target.id&&
+    object?.object===kind[target.type]&&object.id===target.id&&
     object.metadata?.rtc_run===plan.runId&&
     assertMutatedEvent(plan,object)&&
     matchingSubscriptionEvent(plan,object,target)&&
