@@ -4,6 +4,7 @@ import {makePayoutReverseWrite,tools,handlers}
   from '../../src/tools/money-payout-reverse.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {registry} from '../../src/tools/index.js';
+import {idempotencyKey} from '../../src/stripe/client.js';
 const acct='acct_safefixture',payout='po_FAKE1234',bank='ba_FAKE1234';
 const parse=r=>JSON.parse(r.content[0].text);
 function fixture({appOwned=false,readBackMatches=true,limitCents=10000}={}){
@@ -41,7 +42,7 @@ function fixture({appOwned=false,readBackMatches=true,limitCents=10000}={}){
 }
 describe('G-1c3 bank debit money-out actual-handler contract',()=>{
   runWriteContract({withMoney:true,strictArgs:true,args:{payoutId:payout},
-    tool:makePayoutReverseWrite,fixtures:fixture});
+    tool:makePayoutReverseWrite,fixtures:fixture,oneShotMoneyTarget:true});
 });
 it('registers exactly one full-profile guarded money-out reversal',()=>{
   expect(tools).toHaveLength(1);
@@ -76,4 +77,16 @@ it('refuses non-US bank and LIVE before provider debit',async()=>{
     .toBe(true);
   expect(f.provider.writes).toHaveLength(0);
   expect(live.provider.writes).toHaveLength(0);
+});
+
+it('enforces the daily cap on an eligible payout before initiating reversal',async()=>{
+  const f=fixture({limitCents:8000}),args={payoutId:payout,confirm:true,requestKey:'over-cap'};
+  const first=parse(await handlers.money_reverse_payout(args,f.ctx));
+  expect(first.error).toMatch(/explicit approval is required/);
+  const key=idempotencyKey(f.ctx.connection,'money_reverse_payout',args);
+  expect(await f.db.approveMoneyRequest({account:acct,idempotencyKey:key})).toBe(true);
+  const after=parse(await handlers.money_reverse_payout(args,f.ctx));
+  expect(after.done).toBe(false);
+  expect(after.error).toMatch(/limit exceeded/i);
+  expect(f.provider.writes).toHaveLength(0);
 });

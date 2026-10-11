@@ -7,7 +7,7 @@ import { createFakeDb } from '../../test/helpers/fake-db.js';
 
 const parse = r => JSON.parse(r.content[0].text);
 export function runWriteContract({withMoney,tool=null,args={},fixtures=null,
-  strictArgs=false,createOnly=false,appOwnedAllowed=false}) {
+  strictArgs=false,createOnly=false,appOwnedAllowed=false,oneShotMoneyTarget=false}) {
   if ((tool || fixtures) && (typeof tool !== 'function' ||
       typeof fixtures !== 'function' || !args || Array.isArray(args) ||
       typeof args !== 'object')) {
@@ -148,9 +148,16 @@ export function runWriteContract({withMoney,tool=null,args={},fixtures=null,
       expect(parse(await op.handler({confirm:true,requestKey:'first',...(strictArgs?{}:{amountCents:1})},ctx)).done).toBe(true);
       expect((await db.getMoneyUsage({account:ctx.connection.stripeAccount,
         connection:ctx.connectionId})).used_cents).toBe(8500);
-      const denied = parse(await op.handler({confirm:true,requestKey:'second',...(strictArgs?{}:{amountCents:1})},ctx));
-      expect(denied.done).toBe(false);
-      expect(denied.error).toMatch(/limit exceeded/i);
+      if (oneShotMoneyTarget) {
+        // A reversal permanently closes its target. Never weaken the provider
+        // guard merely to force a second debit through the generic cap test.
+        await expect(op.handler({confirm:true,requestKey:'second'},ctx))
+          .rejects.toThrow(/paid, unreversed/);
+      } else {
+        const denied = parse(await op.handler({confirm:true,requestKey:'second',...(strictArgs?{}:{amountCents:1})},ctx));
+        expect(denied.done).toBe(false);
+        expect(denied.error).toMatch(/limit exceeded/i);
+      }
       expect(provider.writes).toHaveLength(1);
     });
   });
