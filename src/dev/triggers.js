@@ -1,6 +1,9 @@
 // Curated real Stripe TEST events from actual audited provider actions.
 // No fake CLI fixture or simulated event success response.
 import {createHash} from 'node:crypto';
+import {invoiceEventTypes,isInvoiceEvent,verifyInvoiceFixture,
+  matchesInvoiceEvent,mutateInvoiceForEvent,ensureInvoiceMutation}
+  from './triggers-invoices.js';
 import {subscriptionEventTypes,isSubscriptionEvent,verifySubscriptionObject,
   matchingSubscriptionEvent,verifyTrialInvoice,cancelTrialSubscription}
   from './triggers-subscriptions.js';
@@ -12,7 +15,8 @@ const id=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').te
 const ref=x=>typeof x==='string'?x:x?.id;
 export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
-  'payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes
+  'payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
+  ...invoiceEventTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice'};
@@ -36,7 +40,8 @@ export function planTrigger(a,account){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=isSubscriptionEvent(a.type)?
+  const types=isInvoiceEvent(a.type)?['customer','invoice']:
+    isSubscriptionEvent(a.type)?
     ['product','price','customer','subscription','invoice']:
     a.type.startsWith('price.')?['product','price']:
     a.type.startsWith('payment_intent.')?['customer','payment_intent']:
@@ -68,10 +73,12 @@ function verifyFixture(plan,step,x,objects){
       objects.get('customer_1')?.object_id))
     bad('Stripe did not independently confirm full TEST card payment');
   if(step.type==='subscription')verifySubscriptionObject(plan,x,objects);
-  if(step.type==='invoice'&&(
-    x.status!=='paid'||x.amount_paid!==0||x.currency!=='usd'||
-    ref(x.customer)!==objects.get('customer_1')?.object_id))
-    bad('Automatically created TEST trial invoice was not verified');
+  if(step.type==='invoice'){
+    if(isInvoiceEvent(plan.type))verifyInvoiceFixture(plan,x,objects);
+    else if(x.status!=='paid'||x.amount_paid!==0||x.currency!=='usd'||
+      ref(x.customer)!==objects.get('customer_1')?.object_id)
+      bad('Automatically created TEST trial invoice was not verified');
+  }
   return x;
 }
 function matchingEvent(e,plan,account,target){
@@ -82,6 +89,7 @@ function matchingEvent(e,plan,account,target){
     object.metadata?.rtc_run===plan.runId&&
     assertMutatedEvent(plan,object)&&
     matchingSubscriptionEvent(plan,object,target)&&
+    matchesInvoiceEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
       object.status===(plan.type==='payment_intent.canceled'?
         'canceled':'succeeded')&&object.amount===3600&&
@@ -158,6 +166,16 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
             metadata},opts);break;
         }
         case 'invoice':{
+          if(isInvoiceEvent(plan.type)){
+            const customer=byStep.get('customer_1')?.object_id;
+            if(!id(customer,'cus'))
+              bad('TEST event invoice requires verified synthetic customer');
+            made=await s.invoices.create({customer,currency:'usd',
+              auto_advance:false,collection_method:'send_invoice',
+              days_until_due:30,pending_invoice_items_behavior:'exclude',
+              metadata},opts);
+            break;
+          }
           const subscriptionId=byStep.get('subscription_1')?.object_id;
           const customerId=byStep.get('customer_1')?.object_id;
           if(!id(subscriptionId,'sub')||!id(customerId,'cus'))
@@ -182,6 +200,12 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         throw Error('Created TEST provider object could not be durably recorded');
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
+    }
+    if(isInvoiceEvent(plan.type)&&step.type==='invoice'){
+      await mutateInvoiceForEvent(s,plan,after,rootKey);
+      const updated=await read(s,step.type,resourceId);
+      verifyInvoiceFixture(plan,updated,byStep);
+      ensureInvoiceMutation(plan,updated);
     }
     if(requiresTriggerMutation(plan,step)){
       // Every object ID is durably recorded and independently verified BEFORE
