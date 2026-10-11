@@ -23,6 +23,10 @@ Parent V-1, approved Batch V §§1/4. Baseline main ce0fac78e45c678f6de5f4d4876c
 - Tests: real guarded seed fixture, exact ledger, no duplicate replay, denial before writes when Connect unavailable, metadata/foreign account/capability checks, LIVE/read_only refusal; official pinned SDK stripe-mock account create/list/retrieve, registry/profile counts and discovery.
 - Final CI: all check/unit/mock/db/ci jobs green on exact PR SHA and required reviews resolved.
 
+## CI correction
+
+The initial full CI run found an unused internal helper argument and a negative-test expectation that ignored the durable-cleanup requirement. A Stripe account with an unverified transfers capability must remain tracked when it was actually created, so the run fails incomplete with all four provider IDs retained for cleanup. A foreign rtc_run is refused before account tracking. No behavior pretends either is successful. Both corrections are grouped after all first-run jobs completed.
+
 ## V-1 and V-2 status
 
 V-1 stays IN_PROGRESS: onboarding fixtures do not prove an onboarded marketplace can accept payments, transfer to a seller or settle funds; ACH settlement likewise must not be overstated. The approved V-2 cleanup (including connected accounts/test clock dependency) follows V-1 completion. The new seller account must be removed only via documented cleanup logic, not silently discarded.

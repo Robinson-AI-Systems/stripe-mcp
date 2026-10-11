@@ -154,7 +154,10 @@ describe('V-1b4f Connect-gated TEST marketplace',()=>{
       expect(v.done).toBe(false);
       expect([...f.runs.values()][0].status).toBe('running');
       expect((await f.db.getDevRunObjects({account,
-        id:[...f.runs.values()][0].id})).length).toBe(3);
+        id:[...f.runs.values()][0].id})).length)
+        .toBe(opts.missingCapability?4:3);
+      // A real provider account already exists when its capability cannot be
+      // validated. Preserve its ID for V-2 cleanup rather than orphan it.
     }
   });
   it('LIVE and read_only refuse all developer Connect mutations',async()=>{

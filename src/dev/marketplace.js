@@ -22,7 +22,7 @@ export async function verifyConnectReadiness(stripe,account){
     note:'Connect account API access verified, NOT transfer or payout eligibility.'};
 }
 const accountEmail=(plan,i)=>'rtc-dev+'+plan.runId+'-'+i+'@example.test';
-async function ensure({step,type,runId,account,db,existing,stripe,rootKey,
+async function ensure({step,type,runId,account,db,existing,rootKey,
   create,retrieve,verify}){
   const previous=existing.get(step);
   if(previous&&(previous.cleaned!==false||previous.object_type!==type||
