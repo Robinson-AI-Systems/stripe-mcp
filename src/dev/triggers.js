@@ -53,7 +53,7 @@ export function planTrigger(a,account){
   return {runId,scenario:'event-'+a.type.replaceAll('_','-').replace('.','-'),
     type:a.type,steps,size:1,expectedSteps:steps.length,
     planDigest:hash(JSON.stringify([a.type,steps])),amountCents:
-      a.type.startsWith('payment_intent.')?3600:0};
+      a.type==='payment_intent.succeeded'?3600:0};
 }
 function verifyFixture(plan,step,x,objects){
   if(x?.object!==kind[step.type]||!id(x.id,prefix[step.type])||
