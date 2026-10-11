@@ -36,7 +36,7 @@ next bounded implementation.
 - [x] Budgets enforced in CI: compact <5,000 tokens, everyday catalog <20,000, descriptions ≤160 characters, results ≤8 KB or a handle (#36).
 
 ## Batch D — Everyday money (`designs/BATCH-D.md`)
-- [ ] D-1 customers (#37), D-2 payments/refunds/setup (#38), D-3 hosted Checkout/portal tools (#39), D-4 all 21 TEST-native subscriptions/items/schedules (#40 + #42) complete; D-5a TEST invoice reads/manual drafts (#43) implemented; D-5b invoice lifecycle (#45) implemented pending CI; D-5c credit notes remain.
+- [x] D-1 customers (#37), D-2 payments/refunds/setup (#38), D-3 hosted Checkout/portal (#39), D-4 subscriptions/schedules (#40 + #42), D-5a invoice reads/drafts (#43), D-5b lifecycle (#45), and D-5c credit notes (#46; merge subject to exact-head green CI).
 - [ ] No `client_secret` in any result; setup via hosted Checkout.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 

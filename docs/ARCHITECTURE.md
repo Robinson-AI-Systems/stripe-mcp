@@ -264,3 +264,8 @@ The invoice read namespace uses the pinned `invoices.list/retrieve/search/create
 ## D-5b — native TEST invoice lifecycle (PR #45)
 
 Seven invoice lifecycle write handlers use `defineWrite`, official pinned Stripe SDK invoice methods, exact account/customer verification, idempotency, audit, and independent provider retrieval. Deletion requires a definite Stripe 404 `resource_missing`; uncertain outcomes are not reported as confirmed. Finalization uses `auto_advance:false`, and charge-now verifies the saved payment method belongs to the customer and exact provider-derived amount in cents. Its money spec is inbound, never a bypass for owner money-out approval. TEST send produces the `invoice.sent` event without delivering email. All operations are TEST-only and app ownership guarded. No infrastructure/keys created and LIVE OFF.
+
+
+## D-5c — native TEST credit notes (PR #46)
+
+The `creditnote_*` namespace has three redacted reads, Stripe-driven exact USD preview, and two guarded mutations. Issue calls Stripe `creditNotes.preview` first, checks original invoice, customer, status, paid/unpaid remainder, refund/credit/out-of-band allocations, then derives an outgoing financial obligation for `defineWrite`. A separate authenticated, single-use owner approval of exact target/cents is required for ALL credits; the shared account $500/Denver-day limit and independent over-cap override remain mandatory. Stripe idempotent create/void and independent retrieval decide confirmed. Voiding credit notes that refunded or transferred value is refused. Customer emails disabled via `email_type:none`. App-owned invoices and subscriptions are protected; LIVE remains OFF. This adds no keys, database tables or deployments.

@@ -159,10 +159,10 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `invoice_mark_paid_outside_stripe` | Record a check/cash payment (`paid_out_of_band`) | C | built #45 | E |
 | `invoice_void` | Void an open invoice | C | built #45 | E |
 | `invoice_mark_uncollectible` | Write off | C | built #45 | E |
-| `creditnote_list` / `creditnote_get` | Credit notes | — | C | R |
-| `creditnote_preview` | Exact effect of a credit note before issuing | — | N | R |
-| `creditnote_create` | Issue (refund, credit balance, or reduce amount due) | $ | C | E |
-| `creditnote_void` | Void a credit note | C | C | E |
+| `creditnote_list` / `creditnote_get` | Credit notes | — | built #46 | R |
+| `creditnote_preview` | Exact effect of a credit note before issuing | — | built #46 | R |
+| `creditnote_create` | Issue (refund, credit balance, or reduce amount due) | $ | built #46 | E |
+| `creditnote_void` | Void a credit note | C | built #46 | E |
 | `quote_list` / `quote_get` | Quotes | — | C | R |
 | `quote_create` / `quote_update` | Draft quotes | P | C | F |
 | `quote_finalize` / `quote_accept` / `quote_cancel` | Quote lifecycle | C | C | F |
