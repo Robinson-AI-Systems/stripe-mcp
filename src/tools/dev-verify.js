@@ -51,6 +51,29 @@ async function findDisputeCreatedEvent(s,account,charge,pi,amount){
   }
   return {found,scanned};
 }
+async function findAchSucceededEvent(s,account,run,pi,customer,amount){
+  // A missing event is unknown: Stripe events are retained for limited periods.
+  let cursor=null;
+  for(let page=0;page<3;page++){
+    const res=await s.events.list({type:'payment_intent.succeeded',limit:100,
+      ...(cursor?{starting_after:cursor}:{})});
+    if(!Array.isArray(res?.data)||typeof res.has_more!=='boolean')
+      fail('Provider ACH success event listing could not be verified');
+    for(const e of res.data){
+      const p=e?.data?.object;
+      if(e.type==='payment_intent.succeeded'&&e.livemode===false&&
+        (!e.account||e.account===account)&&id(e.id,'evt')&&
+        p?.object==='payment_intent'&&p.id===pi&&p.status==='succeeded'&&
+        p.metadata?.rtc_run===run&&ref(p.customer)===customer&&
+        p.currency==='usd'&&p.amount===amount&&p.amount_received===amount)
+        return e.id;
+    }
+    if(!res.has_more||res.data.length===0)return null;
+    cursor=res.data.at(-1)?.id;
+    if(!id(cursor,'evt'))fail('Invalid ACH event pagination cursor');
+  }
+  return null;
+}
 export async function observeSeedOutcomes(a,ctx,s){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>k!=='runId')||!/^run_[a-f0-9]{24}$/.test(a.runId??''))
@@ -86,8 +109,12 @@ export async function observeSeedOutcomes(a,ctx,s){
         'requires_confirmation','requires_payment_method','requires_action',
         'processing','canceled'
       ].includes(p.status))fail('Unsupported/partially received ACH status');
+      const eventId=p.status==='succeeded'?
+        await findAchSucceededEvent(s,account,run.id,pi,customer,amount):null;
       results.push({paymentStep:'payment_'+i,paymentIntent:pi,
         providerStatus:p.status,verifiedPaymentSucceeded:p.status==='succeeded',
+        paymentSucceededEventObserved:eventId!==null,
+        paymentSucceededEventId:eventId,
         bankSettlementVerified:false});
     }else{
       const chargeId=ref(p.latest_charge);

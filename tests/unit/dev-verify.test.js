@@ -69,7 +69,18 @@ describe('V-1b4a TEST provider outcome verification',()=>{
     const v=parse(await handlers.dev_verify_outcomes({runId},f.ctx));
     expect(v.outcomes[0]).toMatchObject({verifiedPaymentSucceeded:true,
       bankSettlementVerified:false});
-    expect(f.calls).toEqual(['payment','charge']);
+    expect(f.calls).toEqual(['payment','charge','events']);
+  });
+  it('only reports an ACH succeeded event if its provider PI and run actually match',async()=>{
+    const f=fixture('ach-awaiting-confirmation',{payment:{
+      status:'succeeded',amount_received:3600,latest_charge:'ch_FAKE123'
+    },events:[{id:'evt_GOOD123',type:'payment_intent.succeeded',livemode:false,
+      data:{object:{object:'payment_intent',id:'pi_FAKE123',
+        status:'succeeded',metadata:{rtc_run:runId},customer:'cus_FAKE123',
+        currency:'usd',amount:3600,amount_received:3600}}}]});
+    const v=parse(await handlers.dev_verify_outcomes({runId},f.ctx));
+    expect(v.outcomes[0]).toMatchObject({paymentSucceededEventObserved:true,
+      paymentSucceededEventId:'evt_GOOD123',bankSettlementVerified:false});
   });
   it('fails closed for foreign run ownership, payment mismatch and partial ACH payment',async()=>{
     for(const changed of [
