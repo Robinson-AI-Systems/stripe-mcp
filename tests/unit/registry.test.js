@@ -60,7 +60,8 @@ describe('tool registry', () => {
       'radar_approve_review','radar_create_value_list',
       'radar_delete_value_list','radar_add_list_item','radar_remove_list_item',
       'identity_list_sessions','identity_get_session','identity_create_session',
-      'identity_cancel_session','identity_redact_session'
+      'identity_cancel_session','identity_redact_session',
+      'event_list','event_get','event_list_undelivered'
     ]);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(87);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
