@@ -26,7 +26,7 @@ function fixture({mode='test',status='requires_confirmation',readStatus='process
   let current=original;
   const sdk={
     paymentIntents:{
-      retrieve:async id=>{calls.push('retrieve');return {...current,
+      retrieve:async _id=>{calls.push('retrieve');return {...current,
         ...(changedAmount?{amount:3700}:{})};},
       confirm:async(id,p,o)=>{
         calls.push('confirm');
@@ -45,7 +45,8 @@ function fixture({mode='test',status='requires_confirmation',readStatus='process
   db.getDevRunById=async()=>missing?null:run;
   db.getDevRunObjects=async()=>rows;
   const ctx={connection:{stripeAccount:account,mode,profile:'full'},
-    connectionId:'test-ach',db,services:{stripeForConnection:async()=>sdk}};
+    connectionId:'test-ach',db,services:{stripeForConnection:async()=>sdk},
+    getCustomer:id=>sdk.customers.retrieve(id)};
   return {ctx,calls,run,rows,sdk};
 }
 describe('V-1b4e tracked synthetic TEST ACH confirmation contract',()=>{
