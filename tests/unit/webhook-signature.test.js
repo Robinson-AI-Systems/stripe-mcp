@@ -84,3 +84,24 @@ describe('G-4e2 owner-provisioned TEST webhook HMAC',()=>{
     expect(await f.store.load({account,endpoint})).toBeNull();
   });
 });
+
+describe('Owner secret rotation and revocation',()=>{
+  it('rotates encrypted verifier without permitting the old signed payload',async()=>{
+    const f=fixture();await f.provision({account,endpoint,secret});
+    const rotated='whsec_'+'Z'.repeat(40);
+    await f.provision({account,endpoint,secret:rotated});
+    expect((await f.run({endpointId:endpoint,payload,signature:signature()})).isError).toBe(true);
+    const s=signature(payload,rotated);
+    expect(parse(await f.run({endpointId:endpoint,payload,signature:s})).verified).toBe(true);
+    expect(await f.store.remove({account,endpoint})).toBe(true);
+    expect((await f.run({endpointId:endpoint,payload,signature:s})).isError).toBe(true);
+    expect(await f.store.remove({account,endpoint})).toBe(false);
+  });
+  it('revocation is scoped to one account+endpoint without touching another',async()=>{
+    const f=fixture();await f.store.save({account,endpoint,secret});
+    await f.store.save({account,endpoint:'we_OTHERACCOUNT',secret});
+    expect(await f.store.remove({account,endpoint})).toBe(true);
+    expect(await f.store.load({account,endpoint})).toBeNull();
+    expect(await f.store.load({account,endpoint:'we_OTHERACCOUNT'})).toBe(secret);
+  });
+});

@@ -10,6 +10,7 @@ describe('Owner-only signature secret form',()=>{
   it('requires origin, csrf, independently verified owner password and never reflects a secret',async()=>{
     const db=createFakeDb(),calls=[];
     const handler=createSetupHandler({db,env,
+      forgetWebhookSecret:async()=>true,
       provisionWebhookSecret:async p=>{calls.push(p);return {account:p.account,endpoint:p.endpoint};}});
     const page=res();await handler(req('GET'),page);
     expect(page.body).toContain('provision-webhook-secret');
@@ -26,5 +27,8 @@ describe('Owner-only signature secret form',()=>{
     expect(approved.code).toBe(200);
     expect(calls).toHaveLength(1);
     expect(approved.body).not.toContain(data.secret);
+    expect(page.body).toContain('forget-webhook-secret');
+    expect((await send({...data,action:'forget-webhook-secret',passphrase:'wrong'})).code).toBe(401);
+    expect((await send({...data,action:'forget-webhook-secret'})).code).toBe(200);
   });
 });

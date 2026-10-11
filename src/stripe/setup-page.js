@@ -31,6 +31,13 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Webhook signing secret<input type="password" name="secret" required autocomplete="off" maxlength="265"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Verify TEST endpoint and store encrypted signing secret</button></form>' +
+    '<p>Forget a no-longer-used TEST webhook signing secret without changing anything in Stripe. Re-provision after rotating a secret.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="forget-webhook-secret">' +
+    '<label>Stripe TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label>Native webhook endpoint ID<input name="endpoint" pattern="we_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Forget this encrypted TEST signing secret</button></form>' +
     '<h2>Download a verified TEST report CSV</h2>' +
     '<p>For the owner only. The CSV is delivered directly to this browser after password verification; file contents and authentication links never enter AI chat. Limit: 5 MB.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -199,7 +206,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '</button></form>' : '') +
     '</body></html>';
 }
-export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, env = process.env }) {
+export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, env = process.env }) {
   return async function setup(req, res) {
     if (!only(res, req, ['GET','POST'])) return;
     let origin;
@@ -241,6 +248,17 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     if (login.status !== 'ok') {
       return send(res, 401, htmlPage({ csrf:cookie, result:'Incorrect administrator passphrase.' }),
         'text/html; charset=utf-8');
+    }
+    if (p.action === 'forget-webhook-secret'){
+      if(typeof forgetWebhookSecret!=='function')return send(res,503,htmlPage({csrf:cookie,
+        result:'Private credential removal is unavailable.'}),'text/html; charset=utf-8');
+      try{
+        const removed=await forgetWebhookSecret({account:p.account,endpoint:p.endpoint});
+        return send(res,removed?200:404,htmlPage({csrf:cookie,result:removed?
+          'Encrypted TEST signing secret forgotten. Signature verification will now refuse this endpoint.':
+          'No stored TEST signing secret was found for this endpoint.'}),'text/html; charset=utf-8');
+      }catch{return send(res,400,htmlPage({csrf:cookie,
+        result:'Unable to remove this TEST endpoint credential.'}),'text/html; charset=utf-8');}
     }
     if (p.action === 'provision-webhook-secret') {
       if(typeof provisionWebhookSecret!=='function')return send(res,503,htmlPage({csrf:cookie,
