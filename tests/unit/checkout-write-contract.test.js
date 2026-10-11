@@ -25,7 +25,8 @@ function fixture({appOwned,readBackMatches,limitCents},name){
     label:'Fixture',money_limit_cents:limitCents}]});
   const marker=appOwned?{agreementId:'ag_FAKE1234'}:{};
   const customer={id:customerId,object:'customer',metadata:marker};
-  const price={id:priceId,object:'price',active:true,currency:'usd',
+  const price={id:priceId,object:'price',type:'one_time',recurring:null,
+    active:true,currency:'usd',
     unit_amount:8500,metadata:marker};
   const session={id:sessionId,object:'checkout.session',status:'open',
     mode:'payment',customer:customerId,url:'https://checkout.stripe.com/test_FAKE1234'};
@@ -43,7 +44,7 @@ function fixture({appOwned,readBackMatches,limitCents},name){
       async create(args,opts){
         record(opts);newSession={id:'cs_test_NEW1234',object:'checkout.session',
           status:'open',mode:args.mode,customer:args.customer,
-          url:'https://checkout.stripe.com/test_NEW1234'};return {...newSession};
+          url:'https://checkout.stripe.com/test_NEW1234#fidkdFAKE'};return {...newSession};
       },
       async retrieve(id){
         after();
@@ -72,7 +73,10 @@ function fixture({appOwned,readBackMatches,limitCents},name){
         record(opts);
         if(readBackMatches){
           if(args.active!==undefined)link.active=args.active;
-          if(args.metadata)link.metadata={...link.metadata,...args.metadata};
+          if(args.metadata)for(const [key,value] of Object.entries(args.metadata)){
+            if(value==='')delete link.metadata[key];
+            else link.metadata[key]=value;
+          }
           if(args.allow_promotion_codes!==undefined)
             link.allow_promotion_codes=args.allow_promotion_codes;
         }
@@ -114,7 +118,7 @@ function fixture({appOwned,readBackMatches,limitCents},name){
         cancel:'https://example.test/payments/cancel',
         portal:'https://example.test/customer/return'
       }}};
-  return {provider,db,ctx};
+  return {provider,db,ctx,price,link};
 }
 for(const entry of cases){
   runWriteContract({withMoney:false,strictArgs:true,args:entry.args,
@@ -135,6 +139,37 @@ describe('D-3 hosted write doors and redirect controls',()=>{
     expect((await call('stripe_batch',{calls:[{name,args:{...args,confirm:true}}]},
       f.ctx.connection)).isError).toBe(true);
     expect(f.provider.writes).toHaveLength(0);
+  });
+  it('accepts provider-returned Checkout URL fragments without accepting caller redirects',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},
+      'checkout_create_setup_link');
+    const r=await dispatchReadOnlyTool({registry,name:'checkout_create_setup_link',
+      args:{customerId,confirm:true},connection:f.ctx.connection,db:f.db,
+      services:f.ctx.services});
+    const value=JSON.parse(r.content[0].text);
+    expect(value.done).toBe(true);
+    expect(value.url).toContain('#fidkd');
+  });
+  it('fails preflight for recurring prices when creating one-time Checkout',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},
+      'checkout_create_payment_link_for_customer');
+    f.price.type='recurring';f.price.recurring={interval:'month'};
+    const r=await dispatchReadOnlyTool({registry,
+      name:'checkout_create_payment_link_for_customer',
+      args:{customerId,priceId,confirm:true},
+      connection:f.ctx.connection,db:f.db,services:f.ctx.services});
+    expect(r.isError).toBe(true);
+    expect(f.provider.writes).toHaveLength(0);
+  });
+  it('verifies deleted paylink metadata keys as absent after a Stripe update',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},
+      'paylink_update');
+    f.link.metadata.campaign='previous';
+    const r=await dispatchReadOnlyTool({registry,name:'paylink_update',
+      args:{linkId,metadata:{campaign:''},confirm:true},
+      connection:f.ctx.connection,db:f.db,services:f.ctx.services});
+    expect(JSON.parse(r.content[0].text).done).toBe(true);
+    expect(Object.hasOwn(f.link.metadata,'campaign')).toBe(false);
   });
   it('rejects AI-chosen redirect URLs and missing owner-approved return destinations',async()=>{
     const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000},

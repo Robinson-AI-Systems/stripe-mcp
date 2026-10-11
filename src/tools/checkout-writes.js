@@ -68,10 +68,10 @@ function valid(def,a){
     !Object.keys(a).some(k=>!['linkId','configId','outsideApp','confirm','dryRun','requestKey'].includes(k)))
     throw new TypeError('Provide at least one setting to change');
 }
-const safeHost=(url,hosts)=>{try{
+const safeHost=(url,hosts,{allowProviderFragment=false}={})=>{try{
   const u=new URL(url);
   return u.protocol==='https:'&&!u.username&&!u.password&&
-    !u.hash&&!u.port&&hosts.includes(u.hostname);
+    (!u.hash||allowProviderFragment)&&!u.port&&hosts.includes(u.hostname);
 }catch{return false;}};
 const ownerUrls=ctx=>{
   const a=ctx.services?.hostedReturnUrls;
@@ -83,9 +83,11 @@ const ownerUrls=ctx=>{
   if(new Set(origins).size!==1)throw new TypeError('Configured return URLs must share one approved origin');
   return a;
 };
-const hosted=x=>safeHost(x,['checkout.stripe.com','billing.stripe.com','buy.stripe.com']);
-const safePrice=(price)=>{
-  if(price.active!==true||price.currency!=='usd'||!Number.isSafeInteger(price.unit_amount)||
+const hosted=x=>safeHost(x,['checkout.stripe.com','billing.stripe.com','buy.stripe.com'],
+  {allowProviderFragment:true});
+const safePrice=(price,{oneTime=false}={})=>{
+  if((oneTime&&(price.type!=='one_time'||price.recurring!=null))||
+    price.active!==true||price.currency!=='usd'||!Number.isSafeInteger(price.unit_amount)||
     price.unit_amount<=0)return false;
   return true;
 };
@@ -96,7 +98,8 @@ async function beforeFor(def,a,s){
       if(customer.deleted)throw new TypeError('Customer unavailable');
       if(a.priceId){
         const price=await s.prices.retrieve(a.priceId);
-        if(!safePrice(price))throw new TypeError('Price is invalid or belongs to an app');
+        if(!safePrice(price,{oneTime:true}))
+          throw new TypeError('One-time Checkout requires an active nonrecurring USD price');
         return {...customer,_price:price};
       }
       return customer;
@@ -222,7 +225,8 @@ function build(def){
         case 'checkout_expire':return after.status==='expired';
         case 'paylink_create':return after.id===created?.id&&hosted(after.url)&&after.active===true;
         case 'paylink_update':return a.metadata?
-          Object.entries(a.metadata).every(([k,v])=>after.metadata?.[k]===v)&&
+          Object.entries(a.metadata).every(([k,v])=>
+            v===''?!Object.hasOwn(after.metadata??{},k):after.metadata?.[k]===v)&&
             (a.allowPromotionCodes===undefined||after.allow_promotion_codes===a.allowPromotionCodes):
             after.allow_promotion_codes===a.allowPromotionCodes;
         case 'paylink_activate':return after.active===true;
