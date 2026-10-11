@@ -572,13 +572,13 @@
         "G-4"
       ],
       "card": "docs/pr-cards/G-5.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "G-5"
       ],
-      "readiness": "CARD_READY",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -590,13 +590,13 @@
         "G-5"
       ],
       "card": "docs/pr-cards/G-6.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 450,
       "units": [
         "G-6"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_READY",
       "ownerInputs": []
     },
     {
