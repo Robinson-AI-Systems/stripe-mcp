@@ -13,7 +13,7 @@ export function verifyFailedPayment(plan,intent,customer,attempted=false){
     intent.amount!==3600||intent.currency!=='usd'||intent.amount_received!==0||
     !['requires_confirmation','requires_payment_method'].includes(intent.status))
     fail('Stripe TEST decline source identity, status or amount differs');
-  if((attempted||intent.status==='requires_payment_method')&&
+  if(attempted&&
     (intent.status!=='requires_payment_method'||
       intent.last_payment_error?.code!=='card_declined'))
     fail('Stripe has not independently verified a declined TEST card attempt');
@@ -22,7 +22,9 @@ export function verifyFailedPayment(plan,intent,customer,attempted=false){
 export async function ensureFailedPayment(s,plan,intent,customer,rootKey){
   if(!isFailedPaymentEvent(plan.type))return;
   verifyFailedPayment(plan,intent,customer);
-  if(intent.status==='requires_confirmation'){
+  if(intent.status==='requires_confirmation'||
+    (intent.status==='requires_payment_method'&&
+      intent.last_payment_error?.code!=='card_declined')){
     try{
       // Stripe throws StripeCardError for a TEST decline; this error itself
       // never proves the event. Only independently retrieved state does.
