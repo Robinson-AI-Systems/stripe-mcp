@@ -95,14 +95,15 @@ describe('D-4 official Stripe 23.0.0 subscription requests',()=>{
     const s=stripe(),schedule='sub_sched_FAKE1234',start=1893456000;
     const phases=[{items:[{price,quantity:2}],iterations:6,proration_behavior:'none'}];
     expect((await s.invoices.createPreview({customer,currency:'usd',
-      schedule_details:{phases,start_date:start,billing_mode:{type:'flexible'}}
+      schedule_details:{phases,start_date:start,end_behavior:'release',
+        billing_mode:{type:'flexible'}}
     })).object).toBe('invoice');
     expect((await s.subscriptionSchedules.create({
       customer,start_date:start,end_behavior:'release',
       billing_mode:{type:'flexible'},phases
     },opts)).object).toBe('subscription_schedule');
     expect((await s.invoices.createPreview({customer,currency:'usd',
-      schedule,schedule_details:{phases,start_date:start,billing_mode:{type:'flexible'}}
+      schedule,schedule_details:{phases,end_behavior:'cancel',proration_behavior:'none'}
     })).object).toBe('invoice');
     expect((await s.subscriptionSchedules.update(schedule,{
       phases,end_behavior:'cancel',proration_behavior:'none'

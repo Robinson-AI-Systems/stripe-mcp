@@ -6,6 +6,7 @@ import {client,ref,id,quantity,timestamp,proration,ownership,validateFields,
   ensureSubscription,safeRecurringPrice,previewSafe,previewChange,
   writeProfiles,fullProfiles} from './billing-shared.js';
 import {planScheduleUpdate,verifyScheduleUpdate} from './billing-schedule-plan.js';
+import {verifyItemLedger,verifyLinkedScheduleSubscription} from './billing-item-safety.js';
 
 const sub={subscriptionId:id('sub')},item={itemId:id('si')};
 const schedule={scheduleId:id('sub_sched')};
@@ -66,18 +67,24 @@ function validSchedule(b){
     throw new TypeError('Complete editable TEST schedule required');
   return b;
 }
-async function schedulePreview(s,customerId,phases,start,mode,idValue){
-  if(!future(start))throw new TypeError('Schedule must not affect an active billing period');
-  const payload={customer:customerId,currency:'usd',
-    ...(idValue?{schedule:idValue}:{}),
-    schedule_details:{phases,start_date:start,
-      billing_mode:{type:mode}}};
-  const invoice=await s.invoices.createPreview(payload);
+async function schedulePreview(s,{customerId,phases,start,mode,idValue,end}){
+  const details={phases,end_behavior:end};
+  if(idValue){
+    details.proration_behavior='none';
+  }else{
+    if(!future(start))throw new TypeError('Schedule must start in the future');
+    details.start_date=start;
+    details.billing_mode={type:mode};
+  }
+  const invoice=await s.invoices.createPreview({
+    customer:customerId,currency:'usd',
+    ...(idValue?{schedule:idValue}:{}),schedule_details:details
+  });
   return previewSafe(invoice,start,'none');
 }
-async function beforeFor(d,a,s){
+async function beforeFor(d,a,s,ctx){
   if(d.kind==='item'){
-    const b=ensureSubscription(await s.subscriptions.retrieve(a.subscriptionId));
+    const b=verifyItemLedger(await s.subscriptions.retrieve(a.subscriptionId));
     if(!['active','trialing','past_due'].includes(b.status))
       throw new TypeError('Item changes require a mutable TEST subscription');
     const originals=currentItems(b);
@@ -109,10 +116,12 @@ async function beforeFor(d,a,s){
       throw new TypeError('Verified customer metadata required');
     await priceFor(s,a.priceId);
     const phases=[phase(a.priceId,a.quantity,a.iterations)];
-    const preview=await schedulePreview(s,customer.id,phases,a.startAt,a.billingMode);
+    const preview=await schedulePreview(s,{customerId:customer.id,phases,
+      start:a.startAt,mode:a.billingMode,end:a.endBehavior});
     return {...customer,_phases:phases,_preview:preview};
   }
   const b=validSchedule(await s.subscriptionSchedules.retrieve(a.scheduleId));
+  b._linked=await verifyLinkedScheduleSubscription(s,b,a,ctx);
   if(d.kind==='scheduleUpdate'){
     const patch=planScheduleUpdate(b,a);
     await priceFor(s,a.priceId);
@@ -120,14 +129,15 @@ async function beforeFor(d,a,s){
       await priceFor(s,patch.phases[0].items[0].price);
     }
     b._phases=patch.phases;
-    b._preview=await schedulePreview(s,ref(b.customer),b._phases,
-      patch.effectiveAt,b.billing_mode.type,b.id);
+    b._preview=await schedulePreview(s,{customerId:ref(b.customer),
+      phases:b._phases,start:patch.effectiveAt,mode:b.billing_mode.type,
+      idValue:b.id,end:a.endBehavior});
   }
   if(d.name==='billing_cancel_schedule'&&b.status==='active'&&
     (a.prorate===true||a.invoiceNow===true)){
     if(!ref(b.subscription))throw new TypeError('Active schedule subscription unknown');
     const invoice=await s.invoices.createPreview({
-      subscription:ref(b.subscription),currency:'usd',
+      customer:ref(b.customer),subscription:ref(b.subscription),currency:'usd',
       subscription_details:{cancel_now:true,proration_behavior:
         a.prorate?'create_prorations':'none'}
     });
@@ -154,7 +164,7 @@ function build(d){
     name:d.name,allowZeroPreview:true,
     read:async(a,ctx)=>{
       validate(d,a);
-      return beforeFor(d,a,await client(ctx));
+      return beforeFor(d,a,await client(ctx),ctx);
     },
     summarize:async(b,a)=>{
       const preview=b._preview;

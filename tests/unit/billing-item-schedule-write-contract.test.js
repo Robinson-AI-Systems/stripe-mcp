@@ -27,7 +27,8 @@ const makePrice=(id,amount)=>({id,object:'price',active:true,currency:'usd',
   metadata:{}});
 const prices={[price]:makePrice(price,8500),[changed]:makePrice(changed,16000)};
 const plain=(r)=>JSON.parse(r.content[0].text);
-function fixture({appOwned=false,readBackMatches=true,credit=false,limitCents=10000},name){
+function fixture({appOwned=false,readBackMatches=true,credit=false,
+  limitCents=10000,activeUpdate=false,existingFuture=false},name){
   const marker=appOwned?{agreementId:'ag_FAKE1234'}:{};
   const provider={writes:[],afterCalls:0,previews:[],payloads:[]};
   const db=createFakeDb({accounts:[{id:'acct_safefixture',
@@ -40,10 +41,14 @@ function fixture({appOwned=false,readBackMatches=true,credit=false,limitCents=10
     metadata:marker,billing_mode:{type:'flexible'},
     items:{data:[item(si,price),item(other,price)],has_more:false}};
   let plan={id:schedule,object:'subscription_schedule',customer:cus,
-    status:name==='billing_release_schedule'?'active':'not_started',
+    status:(name==='billing_release_schedule'||activeUpdate)?'active':'not_started',
     subscription:sub,start_date:start,end_behavior:'release',
     billing_mode:{type:'flexible'},metadata:marker,
-    phases:[{start_date:start,iterations:3,items:[{price,quantity:1}]}]};
+    phases:activeUpdate?[{start_date:1791000000,end_date:start,
+      items:[{price,quantity:1}]},...(existingFuture?[{start_date:start,iterations:2,
+      items:[{price,quantity:1}]}]:[])]:
+      [{start_date:start,iterations:3,items:[{price,quantity:1}]}],
+    ...(activeUpdate?{current_phase:{start_date:1791000000,end_date:start}}:{})};
   let created=null,createdItem=null;
   const record=(kind,args,opts)=>{
     if(!opts?.idempotencyKey)throw Error('Missing provider idempotency');
@@ -174,5 +179,37 @@ it('future schedule dry run exposes the exact configured start and quantity',asy
   expect(res.preview).toContain(String(start));
   expect(f.provider.previews[0].schedule_details.phases[0].items[0])
     .toEqual({price:changed,quantity:2});
+  expect(f.provider.writes).toHaveLength(0);
+});
+
+it('active schedule update retains current period and changes only a future phase',async()=>{
+  const f=fixture({readBackMatches:true,activeUpdate:true},'billing_update_schedule');
+  const args={...scenarios[4].args,effectiveAt:start};
+  const result=plain(await makeBillingItemScheduleWrite('billing_update_schedule')
+    .handler({...args,confirm:true},f.ctx));
+  expect(result.done).toBe(true);
+  const phases=f.provider.payloads[0].phases;
+  expect(phases).toHaveLength(2);
+  expect(phases[0].items[0]).toEqual({price,quantity:1});
+  expect(phases[0].end_date).toBe(start);
+  expect(phases[1].items[0]).toEqual({price:changed,quantity:2});
+  expect(f.provider.previews[0].schedule_details.proration_behavior).toBe('none');
+});
+it('active schedule cannot silently overwrite previously promised future phases',async()=>{
+  const f=fixture({readBackMatches:true,activeUpdate:true,existingFuture:true},
+    'billing_update_schedule');
+  const args={...scenarios[4].args,effectiveAt:start,confirm:true};
+  await expect(makeBillingItemScheduleWrite('billing_update_schedule')
+    .handler(args,f.ctx)).rejects.toThrow(/explicitly authorize/);
+  expect(f.provider.writes).toHaveLength(0);
+  const accepted=plain(await makeBillingItemScheduleWrite('billing_update_schedule')
+    .handler({...args,replaceFuture:true},f.ctx));
+  expect(accepted.done).toBe(true);
+});
+it('active future schedule requires exact next phase boundary',async()=>{
+  const f=fixture({readBackMatches:true,activeUpdate:true},'billing_update_schedule');
+  const args={...scenarios[4].args,effectiveAt:start+86400,confirm:true};
+  await expect(makeBillingItemScheduleWrite('billing_update_schedule')
+    .handler(args,f.ctx)).rejects.toThrow(/next phase boundary/);
   expect(f.provider.writes).toHaveLength(0);
 });
