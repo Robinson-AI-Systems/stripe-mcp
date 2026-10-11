@@ -72,6 +72,6 @@ describe('V-3c3a independent genuine Stripe decline evidence',()=>{
       retrieve:async()=>source()
     }};
     await expect(ensureFailedPayment(stripe,plan,source(),customer,
-      'rmcp_test')).rejects.toThrow(/did not decline/);
+      'rmcp_test')).rejects.toThrow(/declined TEST card attempt/);
   });
 });
