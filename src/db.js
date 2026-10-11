@@ -5,6 +5,8 @@ import {createDevForwarderStore,initDevForwarderTables}
   from './dev/forwarder-store.js';
 import {createDevForwarderReplayStore,initDevForwarderReplayTables}
   from './dev/forwarder-replay-store.js';
+import {createDevSimulationCycleStore,initDevSimulationCycleTables}
+  from './dev/simulation-cycle-store.js';
 
 export const CONNECTION_FIELDS = Object.freeze(['stripe_account', 'mode', 'profile', 'listing']);
 export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.map((field) => [field, row[field]]));
@@ -12,7 +14,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles'
 ]);
 
 let productionSql;
@@ -32,6 +34,7 @@ export function createDb(sql = getProductionSql()) {
     ...createDevRunStore(sql),
     ...createDevForwarderStore(sql),
     ...createDevForwarderReplayStore(sql),
+    ...createDevSimulationCycleStore(sql),
     async createOAuthClient({ clientId, clientSecret, redirectUris, clientName }) {
       if (!clientId || !clientSecret || !Array.isArray(redirectUris) || !redirectUris.length) {
         throw new TypeError('Missing OAuth client registration fields');
@@ -1011,6 +1014,7 @@ export function createDb(sql = getProductionSql()) {
       await initDevRunTables(sql);
       await initDevForwarderTables(sql);
       await initDevForwarderReplayTables(sql);
+      await initDevSimulationCycleTables(sql);
     }
   };
 }

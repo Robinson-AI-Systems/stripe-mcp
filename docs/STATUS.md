@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-5c1 durable month advancement intent PR #74 (as-if-merged; CI pending):** additive selected-account dev_simulation_cycles table reserves only sequential 1–3 monthly intents for completed TEST simulation runs, records 'uncertain' before any future Stripe clock advance, and accepts only precise provider-ready clock/invoice/PI evidence to mark observed. Same key cannot authorize a second clock movement. **V-5c2 next:** connect this ledger to guarded dev_simulate_subscription phase actions and independently inspect actual invoices/payments/events.
+- **Pending external TEST acceptance:** real hosted Checkout and owned HTTPS webhook require enrollment; neither claimed.
+
 - **V-5b clocked TEST subscription setup PR #73 (as-if-merged, exact-head CI pending):** dev_simulate_subscription now creates only isolated synthetic TEST clock, product, recurring price, clocked customer and free-trial subscription, each independently verified and durably run-tracked for V-2 cleanup. 1–3 months, amount and synthetic card explicitly selected. No actual invoice charge/renewal claimed. **Next V-5c:** advance one month at a time, verify READY state and exact invoices, payment and event timeline.
 - **Still pending external acceptance evidence:** hosted real TEST Checkout completion and genuine target HTTP smoke require TEST enrollment. Neither has been claimed completed.
 
