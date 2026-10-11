@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-2d1 submission (#95 as-if-merged, exact-head CI pending):** independently confirmed TEST-only irreversible staged evidence submission uses a complete field inventory, verifies file purpose and dispute deadline, protects app-owned charge/customer, and re-reads provider submission count/status. No private evidence enters previews/results/audit. Next **G-2d2** separately owner-approved dispute acceptance with dispute-ID money-target validation, shared $500/day cap and independent above-cap override. No LIVE or real TEST account smoke.
+
+
 - **Verified planning checkpoint (2026-10-11):** main `2a71f8a03845ad3bf8c8de9de4207a72596ace78`, #93 merged,
   no open PRs at inspection. Next implementation is **G-2d** (separate irreversible submission/owner-approved acceptance).
   [Implementation guides](implementation-guides/README.md) now provide inspected helper recipes, remaining-scope routes
