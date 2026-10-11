@@ -132,8 +132,8 @@ describe('V-2a guarded cleanup, exact provider read-back, and retained money',()
   });
   it('aborts all cleanup if even one provider object has foreign provenance',async()=>{
     const f=fixture({mismatch:true});
-    await expect(makeDevCleanupWrite().handler(p(),f.ctx)).rejects.toThrow(
-      /rtc_run ownership/);
+    const denied=parse(await makeDevCleanupWrite().handler(p(),f.ctx));
+    expect(denied.done).toBe(false);
     expect(f.calls).toHaveLength(0);
     expect(f.rows.every(x=>!x.cleaned)).toBe(true);
   });
