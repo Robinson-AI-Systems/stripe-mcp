@@ -13,6 +13,8 @@ function fixture({paid=true,missingEvent=false,clockStatus='ready',
     state:'uncertain',invoiceId:null,eventId:null};
   const db={
     recordChange:async()=>{},
+    reserveDevSimulationCycle:async()=>{throw new Error('Unexpected TEST clock advance');},
+    beginDevSimulationCycle:async()=>{throw new Error('Unexpected TEST clock advance');},
     getDevRunById:async({account:a})=>a===account?{
       id:runId,stripe_account:account,scenario:'subscription-simulation',
       status:'completed',size:3}:null,
@@ -118,10 +120,10 @@ describe('V-5c3 monthly original TEST billing proof',()=>{
     const live=await makeSimulationObserveWrite().handler({...args,confirm:true},{
       ...f.ctx,connection:{...f.ctx.connection,mode:'live'}});
     expect(live.isError).toBe(true);
-    const foreign=parse(await makeSimulationObserveWrite().handler({
+    await expect(makeSimulationObserveWrite().handler({
       ...args,confirm:true},{
-      ...f.ctx,connection:{...f.ctx.connection,stripeAccount:'acct_OTHER'}}));
-    expect(foreign.done).toBe(false);
+      ...f.ctx,connection:{...f.ctx.connection,stripeAccount:'acct_OTHER'}}))
+      .rejects.toThrow(/Completed selected-account/);
   });
   it('is idempotent after event-proven status is already saved',async()=>{
     const f=fixture(),op=makeSimulationObserveWrite();

@@ -65,7 +65,7 @@ export function makeSimulationSetupWrite(){
 }
 export const tools=[{
   ...makeSimulationSetupWrite().tool,area:'developer',profiles:writeProfiles,
-  description:'Guarded TEST subscription setup, one-cycle clock advance, inspection and independently verified billing outcomes.'
+  description:'Guarded TEST subscription setup, one-cycle clock advance, inspection and independently verified billing outcomes.',
   inputSchema:{type:'object',properties:{
     months:{type:'integer',minimum:1,maximum:3},
     amountCents:{type:'integer',minimum:100,maximum:50000},
