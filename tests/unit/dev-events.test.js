@@ -49,7 +49,18 @@ function fixture({showEvent=false,foreign=false}={}){
     customers:{create:async(b,o)=>creates('customer','cus',b,o),
       retrieve:async id=>get(id),
       update:async(id,b,o)=>mutate('customer',id,b,o)},
-    paymentIntents:{create:async(b,o)=>creates('payment_intent','pi',b,o),
+    paymentIntents:{create:async(b,o)=>{
+      const pi=creates('payment_intent','pi',b,o);
+      if(b.payment_method==='pm_card_createDispute'&&!pi.latest_charge){
+        const ch=creates('charge','ch',{payment_intent:pi.id,
+          customer:b.customer,amount:b.amount,currency:'usd',
+          paid:true,status:'succeeded',disputed:false},
+          {idempotencyKey:o.idempotencyKey+'_provider_charge'});
+        const linked={...pi,latest_charge:ch.id};
+        objects.set(pi.id,linked);return linked;
+      }
+      return get(pi.id);
+    },
       retrieve:async id=>get(id),
       cancel:async(id,_params,o)=>mutate('payment_intent',id,{status:'canceled'},o),
       confirm:async(id,p,o)=>{
@@ -58,6 +69,13 @@ function fixture({showEvent=false,foreign=false}={}){
         await mutate('payment_intent',id,{status:'requires_payment_method',
           last_payment_error:{code:'card_declined',type:'card_error'}},o);
         throw Object.assign(new Error('TEST card declined'),{code:'card_declined'});
+      }},
+    charges:{retrieve:async id=>get(id)},
+    disputes:{retrieve:async id=>get(id),
+      list:async({charge,limit})=>{
+        calls.push({action:'disputes.list',charge,limit});
+        return {data:[...objects.values()].filter(x=>
+          x.object==='dispute'&&x.charge===charge),has_more:false};
       }},
     subscriptions:{
       create:async(b,o)=>{
@@ -82,13 +100,14 @@ function fixture({showEvent=false,foreign=false}={}){
       list:async({type,limit,...other})=>{
         calls.push({action:'events.list',type,limit,other});
         if(!visible)return {data:[],has_more:false};
-        const sourceType=type.startsWith('customer.subscription.')?
+        const sourceType=type.startsWith('charge.dispute.')?'dispute':
+          type.startsWith('customer.subscription.')?
           'subscription':type.startsWith('payment_intent')?'payment_intent':
           type.split('.')[0],prefix=sourceType==='subscription'?'sub':
           sourceType==='customer'?'cus':
           sourceType==='payment_intent'?'pi':
           sourceType==='product'?'prod':
-          sourceType==='invoice'?'in':sourceType;
+          sourceType==='invoice'?'in':sourceType==='dispute'?'du':sourceType;
         const source=get(prefix+'_FAKE123');
         const event={object:'event',id:'evt_FAKE123',livemode:false,
           type,account,created:1700000000,data:{object:source}};
@@ -96,7 +115,8 @@ function fixture({showEvent=false,foreign=false}={}){
       },
       retrieve:async id=>{
         calls.push({action:'events.retrieve',id});
-        const sourceType=calledEvent.startsWith('invoice.')?'in':
+        const sourceType=calledEvent.startsWith('charge.dispute.')?'du':
+          calledEvent.startsWith('invoice.')?'in':
           calledEvent.startsWith('customer.subscription.')?
           'sub':calledEvent.startsWith('payment_intent.')?'pi':
           calledEvent.startsWith('product.')?'prod':
@@ -146,7 +166,16 @@ function fixture({showEvent=false,foreign=false}={}){
     connectionId:'event-connection',db,
     services:{stripeForConnection:async()=>sdk}};
   return {ctx,sdk,runs,ledger,calls,objects,
-    showEvents:()=>{visible=true;},
+    showEvents:()=>{
+      visible=true;
+      const charge=objects.get('ch_FAKE123');
+      if(charge&&!objects.has('du_FAKE123')){
+        objects.set(charge.id,{...charge,disputed:true});
+        creates('dispute','du',{charge:charge.id,
+          payment_intent:'pi_FAKE123',amount:3600,currency:'usd',metadata:{}},
+          {idempotencyKey:'stripe_async_dispute_fixture'});
+      }
+    },
     foreign:()=>{alterTag=true;}};
 }
 describe('V-3a real TEST provider event generation',()=>{
@@ -159,7 +188,7 @@ describe('V-3a real TEST provider event generation',()=>{
       'product.updated','price.updated','payment_intent.canceled',
       'customer.subscription.created','customer.subscription.deleted',
       'invoice.created','invoice.updated','invoice.finalized',
-      'payment_intent.payment_failed']);
+      'payment_intent.payment_failed','charge.dispute.created']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -178,7 +207,8 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(out.needsConfirmation).toBe(true);
     expect(f.calls).toHaveLength(0);
   });
-  it.each(triggerTypes)('%s requires observed matching provider event, with durable retry',async type=>{
+  it.each(triggerTypes.filter(t=>t!=='charge.dispute.created'))(
+    '%s requires observed matching provider event, with durable retry',async type=>{
     const f=fixture(),op=makeDevTriggerEventWrite(),args=input(type);
     const first=parse(await op.handler({...args,confirm:true},f.ctx));
     expect(first.done).toBe(false);
@@ -339,6 +369,44 @@ describe('V-3a real TEST provider event generation',()=>{
       ...a,confirm:true},f.ctx));
     expect(result.done).toBe(false);
     expect([...f.runs.values()][0].status).toBe('running');
+  });
+  it('observes provider-native TEST dispute only after independent charge and event evidence',async()=>{
+    const f=fixture(),a=input('charge.dispute.created'),op=makeDevTriggerEventWrite();
+    const first=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(first.done).toBe(false);
+    const run=[...f.runs.values()][0];
+    expect(run.status).toBe('running');
+    expect(f.ledger.get(run.id).map(x=>x.object_type))
+      .toEqual(['customer','payment_intent','charge']);
+    expect(f.objects.get('pi_FAKE123')).toMatchObject({status:'succeeded',
+      amount_received:3600,latest_charge:'ch_FAKE123'});
+    expect(f.objects.get('ch_FAKE123')).toMatchObject({
+      disputed:false,payment_intent:'pi_FAKE123'});
+    expect(f.calls.filter(x=>x.action==='create'&&
+      x.type==='payment_intent')[0].body.payment_method)
+      .toBe('pm_card_createDispute');
+    const createsBefore=f.calls.filter(x=>x.action==='create'&&
+      x.type==='payment_intent').length;
+    f.showEvents();
+    const second=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(second.done).toBe(true);
+    expect(f.ledger.get(run.id).map(x=>x.object_type))
+      .toEqual(['customer','payment_intent','charge','dispute','event']);
+    expect(f.calls.filter(x=>x.action==='create'&&
+      x.type==='payment_intent')).toHaveLength(createsBefore);
+    expect(f.calls.filter(x=>x.action==='events.retrieve')).toHaveLength(1);
+    expect(run.status).toBe('completed');
+  });
+  it('rejects a foreign TEST dispute charge before ever recording the dispute',async()=>{
+    const f=fixture(),a=input('charge.dispute.created'),op=makeDevTriggerEventWrite();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+    f.showEvents();
+    f.objects.set('ch_FAKE123',{...f.objects.get('ch_FAKE123'),
+      payment_intent:'pi_FOREIGN'});
+    const result=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(result.done).toBe(false);
+    expect([...f.ledger.values()][0].some(x=>x.object_type==='dispute'))
+      .toBe(false);
   });
   it('only payment_intent.succeeded previews synthetic incoming $36, never money-out',async()=>{
     const f=fixture(),a=input('payment_intent.succeeded');
