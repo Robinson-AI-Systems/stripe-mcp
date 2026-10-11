@@ -24,7 +24,7 @@ const scenarios=[
     args:{subscriptionId:subId,behavior:'keep_as_draft'}},
   {name:'billing_resume_collection',args:{subscriptionId:subId}}
 ];
-function fixture({appOwned,readBackMatches,limitCents},name){
+function fixture({appOwned,readBackMatches,limitCents,credit=false},name){
   const provider={writes:[],afterCalls:0};
   const db=createFakeDb({accounts:[{id:'acct_safefixture',
     label:'Fixture',money_limit_cents:limitCents}]});
@@ -55,7 +55,8 @@ function fixture({appOwned,readBackMatches,limitCents},name){
     paymentMethods:{retrieve:async()=>({id:methodId,customer:customerId})},
     prices:{retrieve:async id=>({...prices[id]})},
     invoices:{createPreview:async()=>({object:'invoice',currency:'usd',
-      total:8500,amount_due:8500,lines:{data:[]}})},
+      total:8500,amount_due:8500,lines:{data:credit?[{amount:-8500,
+      parent:{subscription_item_details:{proration:true}}}]:[]}})},
     subscriptions:{
       async retrieve(id){
         if(provider.writes.length)provider.afterCalls++;
@@ -112,6 +113,26 @@ for(const entry of scenarios){
     });
   });
 }
+// Separate monetary contracts: a provider-confirmed credit is money-out, even
+// when the overall invoice is positive, and MUST consume independent owner consent.
+describe('D-4 price-change credit: seven money-out contract cases',()=>{
+  runWriteContract({withMoney:true,strictArgs:true,
+    args:scenarios.find(x=>x.name==='billing_change_plan').args,
+    tool:()=>makeBillingWrite('billing_change_plan'),
+    fixtures:o=>fixture({...o,credit:true},'billing_change_plan')});
+});
+it('incoming initial TEST subscription invoice does not consume money-out cap',async()=>{
+  const f=fixture({appOwned:false,readBackMatches:true,limitCents:100},
+    'billing_create_subscription');
+  const op=makeBillingWrite('billing_create_subscription');
+  const args=scenarios.find(x=>x.name==='billing_create_subscription').args;
+  const result=JSON.parse((await op.handler({...args,confirm:true},f.ctx)).content[0].text);
+  expect(result.done).toBe(true);
+  expect(result.summary).toContain('Money in: $85.00 USD');
+  expect((await f.db.getMoneyUsage({account:f.ctx.connection.stripeAccount,
+    connection:f.ctx.connectionId})).used_cents).toBe(0);
+});
+
 const data=r=>JSON.parse(r.content[0].text);
 const call=(name,args,sdk,connection={stripeAccount:'acct_safefixture',
   mode:'test',profile:'read_only'})=>
