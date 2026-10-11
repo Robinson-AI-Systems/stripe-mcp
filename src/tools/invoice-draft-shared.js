@@ -1,6 +1,8 @@
 // D-5 TEST invoice draft invariants. Never take provider write authority from caller data.
 import {APP_METADATA_KEYS} from './app-guard.js';
 import {ref,positiveTotal} from './billing-shared.js';
+import {assertManualDraftAccounting,validateItemFamily,
+  validateDraftMutation,assertReadbackItemCustomer} from './invoice-draft-accounting.js';
 const methods=new Set(['charge_automatically','send_invoice']);
 const allStatus=new Set(['draft','open','paid','void','uncollectible']);
 export const invoiceText=max=>({type:'string',minLength:1,maxLength:max});
@@ -28,7 +30,7 @@ export function verifiedDraft(i){
     throw new TypeError('Draft amounts must be verified positive USD cents');
   if(i.lines?.has_more===true)
     throw new TypeError('Draft has unverified additional line items');
-  return i;
+  return assertManualDraftAccounting(i);
 }
 export function verifiedInvoiceItem(item,invoice){
   if(!item||item.deleted||item.object!=='invoiceitem'||
@@ -39,7 +41,7 @@ export function verifiedInvoiceItem(item,invoice){
   if(item.subscription||item.proration||
     Object.keys(item.metadata??{}).some(k=>APP_METADATA_KEYS.includes(k)))
     throw new TypeError('Subscription or app-owned invoice items cannot be changed');
-  return item;
+  return validateItemFamily(item,invoice);
 }
 export function verifyInvoiceResult(b,after,a,name){
   if(!after||after.object!=='invoice')return false;
@@ -63,6 +65,7 @@ export function verifyInvoiceLineResult(b,after,a,name){
   if(!after||after.object!=='invoiceitem'||after.currency!=='usd'||
     ref(after.invoice)!==b.id||ref(after.customer)!==ref(b.customer))
     return false;
+  if(assertReadbackItemCustomer(after,b)!==true)return false;
   if(name==='invoice_add_line')return after.id===b._createdId&&
     after.amount===a.amountCents&&after.description===a.description;
   if(name==='invoice_update_line')return after.id===a.lineItemId&&
@@ -81,6 +84,7 @@ export function draftPreview(b,a,name){
       a.amountCents===undefined?0:a.amountCents-b._item.amount;
   if(!Number.isSafeInteger(delta)||old+delta<0||old+delta>100000000)
     throw new TypeError('Draft total would be invalid USD cents');
-  return {beforeCents:old,afterCents:old+delta,
-    explanation:'Proposed TEST draft amount, not a finalized or charged invoice'};
+  const safe=validateDraftMutation(old,old+delta);
+  return {beforeCents:safe.previousCents,afterCents:safe.proposedCents,
+    explanation:'Proposed simple TEST draft total, not finalized or charged'};
 }

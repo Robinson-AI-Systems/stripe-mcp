@@ -27,7 +27,7 @@ function fixture({appOwned=false,readBackMatches=true,limitCents=10000},_name){
     invoice_settings:{default_payment_method:null}};
   const draft={id:invoice,object:'invoice',customer:cus,status:'draft',
     auto_advance:false,collection_method:'send_invoice',currency:'usd',
-    total:2000,amount_due:2000,metadata:marker,description:'Draft before',
+    total:2000,subtotal:2000,amount_due:2000,metadata:marker,description:'Draft before',
     lines:{data:[],has_more:false},subscription:null};
   let current={...draft},createdInvoice=null;
   let currentItem={id:item,object:'invoiceitem',invoice,customer:cus,
@@ -148,5 +148,26 @@ it('no access to invoices by guessed name from read-only mode',async()=>{
     connection:{...f.ctx.connection,profile:'read_only'},db:f.db,
     services:f.ctx.services});
   expect(result.isError).toBe(true);
+  expect(f.provider.writes).toHaveLength(0);
+});
+
+it('refuses a draft with automatic tax or customer credits before a write',async()=>{
+  const f=fixture({readBackMatches:true},'invoice_add_line');
+  const original=f.sdk.invoices.retrieve;
+  f.sdk.invoices.retrieve=async id=>({...await original(id),
+    automatic_tax:{enabled:true}});
+  await expect(makeInvoiceDraftWrite('invoice_add_line').handler({
+    invoiceId:invoice,amountCents:2000,description:'Tax risk',confirm:true
+  },f.ctx)).rejects.toThrow(/Automatic tax/);
+  expect(f.provider.writes).toHaveLength(0);
+});
+it('refuses an invoice where provider totals cannot be projected additively',async()=>{
+  const f=fixture({readBackMatches:true},'invoice_remove_line');
+  const original=f.sdk.invoices.retrieve;
+  f.sdk.invoices.retrieve=async id=>({...await original(id),
+    subtotal:1800,total:2000,amount_due:2000});
+  await expect(makeInvoiceDraftWrite('invoice_remove_line').handler({
+    invoiceId:invoice,lineItemId:item,confirm:true
+  },f.ctx)).rejects.toThrow(/cannot be safely projected/);
   expect(f.provider.writes).toHaveLength(0);
 });
