@@ -110,3 +110,5 @@ purpose (the merge gate must be green at the exact head). The waste was pushing 
 started overlapping full runs. Rule added to SESSION-START §6: never push while your PR's run is in progress; collect all
 failures, fix them together, push once; run checks locally first; "re-run failed jobs" only for infrastructure hiccups.
 CI cancels an obsolete PR run when a newer push arrives.
+
+**2026-10-10 — Preserve exact provider evidence across asynchronous TEST subscription renewals (#54).** A failed initial charge is incomplete, not proof of past_due. For a recorded TEST clock trial with the attachable pm_card_chargeCustomerFail method, run completion is delayed until Stripe independently reports ready at the exact advancement time, a run-owned subscription is truly past_due, and the real linked renewal invoice is attempted, open and unpaid. Repeat calls with the same requestKey resume the original ledger without creating duplicates. Stripe's TestClock has no metadata: it is the sole exception to rtc_run, using an exact RTC DEV RUN name plus durably scoped provider ID. This does not relax any LIVE or financial controls. Reviewed in PR #54.
