@@ -14,6 +14,11 @@ export function createWebhookSignatureStore({db,encryptionKey=readEncryptionKey(
       const ciphertext=encryptSecret(secret,{aad:context(account,endpoint),key:encryptionKey});
       return db.saveWebhookSigningSecret({account,endpoint,ciphertext});
     },
+    async remove({account,endpoint}){
+      if(!accountOk(account)||!endpointOk(endpoint))throw new TypeError('Exact TEST selector required');
+      if(typeof db.deleteWebhookSigningSecret!=='function')throw new TypeError('Secret removal unavailable');
+      return db.deleteWebhookSigningSecret({account,endpoint});
+    },
     async load({account,endpoint}){
       if(!accountOk(account)||!endpointOk(endpoint))throw new TypeError('Exact TEST account and endpoint required');
       const row=await db.getWebhookSigningSecret({account,endpoint});
@@ -52,6 +57,12 @@ export function createWebhookSignatureDb(sql){
         ON CONFLICT (stripe_account,endpoint_id)
         DO UPDATE SET ciphertext=EXCLUDED.ciphertext,updated_at=now()
         RETURNING endpoint_id`;
+      return rows.length===1;
+    },
+    async deleteWebhookSigningSecret({account,endpoint}){
+      if(!accountOk(account)||!endpointOk(endpoint))throw new TypeError('Exact TEST selector required');
+      const rows=await sql`DELETE FROM webhook_signing_secrets
+        WHERE stripe_account=${account} AND endpoint_id=${endpoint} RETURNING endpoint_id`;
       return rows.length===1;
     },
     async getWebhookSigningSecret({account,endpoint}){

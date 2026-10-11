@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-4e2 credential lifecycle (#112 as-if-merged, CI pending):** private authenticated owner removal of stored TEST signing credentials, fail-closed verification after removal, and tested encrypted rotation. Next: G-4 final automated acceptance, then G-5 code work. Connected TEST smoke remains pending; LIVE OFF.
+
 - **G-4e2 signature checking (#111 as-if-merged, CI pending):** owner-password and CSRF authenticated TEST endpoint secret provisioning; encrypted account+endpoint-bound storage; server-only signature validation, no event payload/secret echoes. Connected TEST-account smoke remains pending; next G-4 acceptance reconciliation, then G-5. LIVE OFF.
 
 - **G-4e1 guarded native webhook update/delete (#110 as-if-merged; exact-head CI pending):** TEST-only native destination/description changes and endpoint deletion use independent provider reads, stale-plan and app/Connect ownership refusal, selected-account idempotency, and deletion 404 tombstone verification. No signing secret is revealed. **Next G-4e2:** owner-configured server-only signature check and remaining batch acceptance. G-4 stays IN_PROGRESS; connected TEST smoke pending; LIVE disabled.

@@ -29,6 +29,9 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async saveWebhookSigningSecret({account,endpoint,ciphertext}){
       webhookSigningSecrets.set(account+'|'+endpoint,ciphertext);return true;
     },
+    async deleteWebhookSigningSecret({account,endpoint}){
+      return webhookSigningSecrets.delete(account+'|'+endpoint);
+    },
     async getWebhookSigningSecret({account,endpoint}){
       const ciphertext=webhookSigningSecrets.get(account+'|'+endpoint);
       return ciphertext?{ciphertext}:null;

@@ -17,7 +17,12 @@ export default async function handler(req, res) {
     const oneTimeStore = configured ? createOneTimeStore({ db }) : null;
     const provisionWebhookSecret=configured?createOwnerWebhookProvisioner({db,keyStore,
       makeClient:makeStripeClient,store:createWebhookSignatureStore({db})}):null;
-    return await createSetupHandler({ db, keyStore, oneTimeStore,provisionWebhookSecret,
+    const forgetWebhookSecret=configured?async({account,endpoint})=>{
+      const row=await db.getStripeAccount(account);
+      if(!row)return false;
+      return createWebhookSignatureStore({db}).remove({account,endpoint});
+    }:null;
+    return await createSetupHandler({ db, keyStore, oneTimeStore,provisionWebhookSecret,forgetWebhookSecret,
       reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
