@@ -50,7 +50,7 @@ function fixture({mismatch=false,markFailure=false}={}){
     expect(opts.idempotencyKey).toMatch(/^rmcp_/);
     return write('price_archive',id,fields);
   };
-  sdk.customers.del=async(id,opts)=>{
+  sdk.customers.del=async(id,_params,opts)=>{
     expect(opts.idempotencyKey).toMatch(/^rmcp_/);
     return write('customer_delete',id,{deleted:true});
   };
@@ -63,7 +63,7 @@ function fixture({mismatch=false,markFailure=false}={}){
     expect(opts.idempotencyKey).toMatch(/^rmcp_/);
     return write('invoice_void',id,{status:'void'});
   };
-  sdk.invoices.del=async(id,opts)=>{
+  sdk.invoices.del=async(id,_params,opts)=>{
     expect(opts.idempotencyKey).toMatch(/^rmcp_/);
     return write('invoice_delete',id,{deleted:true});
   };

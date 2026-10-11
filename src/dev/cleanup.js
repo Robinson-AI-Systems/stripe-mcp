@@ -93,7 +93,7 @@ async function safeOperation(s,row,was,key){
         return (await s.invoices.retrieve(id)).status==='void';
       }
       if(was.status==='draft'){
-        await s.invoices.del(id,opts);
+        await s.invoices.del(id,{},opts);
         return (await s.invoices.retrieve(id)).deleted===true;
       }
       return false;
@@ -105,7 +105,7 @@ async function safeOperation(s,row,was,key){
       return (await s.paymentIntents.retrieve(id)).status==='canceled';
     case 'customer':
       if(was.deleted===true)return true;
-      await s.customers.del(id,opts);
+      await s.customers.del(id,{},opts);
       return (await s.customers.retrieve(id)).deleted===true;
     case 'price':
     case 'product':{

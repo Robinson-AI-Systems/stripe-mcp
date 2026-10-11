@@ -21,11 +21,11 @@ describe('V-2a pinned Stripe SDK cleanup routes',()=>{
   it('voids unpaid invoices; never attempts deleting paid invoices',async()=>{
     expect((await sdk().invoices.voidInvoice('in_FAKE123',{},opts))
       .object).toBe('invoice');
-    expect((await sdk().invoices.del('in_FAKE123',opts))
+    expect((await sdk().invoices.del('in_FAKE123',{},opts))
       .object).toBe('invoice');
   });
   it('deletes only recorded TEST customers',async()=>{
-    const customer=await sdk().customers.del('cus_FAKE123',opts);
+    const customer=await sdk().customers.del('cus_FAKE123',{},opts);
     expect(customer.object).toBe('customer');
   });
 });
