@@ -3,6 +3,8 @@ import {defineWrite,gone} from './write.js';
 import {client,writeProfiles,reply} from './billing-shared.js';
 import {planSubscriptionSimulation,executeSubscriptionSetup}
   from '../dev/subscription-sim.js';
+import {makeAdvanceWrite,inspectSimulation}
+  from './dev-simulation-advance.js';
 const dbMethods=['getDevRun','ensureDevRun','recordDevRunObject',
   'getDevRunObjects','completeDevRun'];
 export function makeSimulationSetupWrite(){
@@ -61,17 +63,29 @@ export function makeSimulationSetupWrite(){
 }
 export const tools=[{
   ...makeSimulationSetupWrite().tool,area:'developer',profiles:writeProfiles,
-  description:'Guarded TEST subscription setup: tracked clock, monthly price, synthetic card and one-day trial. Monthly advancement follows in V-5c.',
+  description:'Guarded TEST subscription setup, one-cycle clock advance and progress inspection. Billing verification follows in V-5c3.',
   inputSchema:{type:'object',properties:{
     months:{type:'integer',minimum:1,maximum:3},
     amountCents:{type:'integer',minimum:100,maximum:50000},
     card:{type:'string',enum:['pm_card_visa','pm_card_chargeCustomerFail']},
     frozenTime:{type:'integer',minimum:946684800,maximum:4093804800},
+    action:{type:'string',enum:['setup','advance','inspect']},
+    runId:{type:'string',pattern:'^run_[a-f0-9]{24}$'},
+    cycle:{type:'integer',minimum:1,maximum:3},
     requestKey:{type:'string',minLength:1,maxLength:128},
     confirm:{type:'boolean'},dryRun:{type:'boolean'}
-  },required:['months','amountCents','card','frozenTime','requestKey'],
-  additionalProperties:false}
+  },oneOf:[
+    {properties:{action:{enum:['setup']}},required:['months','amountCents','card','frozenTime','requestKey']},
+    {properties:{action:{const:'advance'}},required:['action','runId','cycle','requestKey']},
+    {properties:{action:{const:'inspect'}},required:['action','runId']}
+  ],additionalProperties:false}
 }];
 export const handlers={
-  dev_simulate_subscription:(a,ctx)=>makeSimulationSetupWrite().handler(a,ctx)
+  dev_simulate_subscription:(a,ctx)=>{
+    if(a?.action==='advance')return makeAdvanceWrite().handler(a,ctx);
+    if(a?.action==='inspect')return inspectSimulation(a,ctx);
+    if(a?.action!==undefined&&a.action!=='setup')return gone('Unsupported simulation action');
+    const {action:_ignored,...setup}=a??{};
+    return makeSimulationSetupWrite().handler(setup,ctx);
+  }
 };
