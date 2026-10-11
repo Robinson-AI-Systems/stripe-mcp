@@ -47,7 +47,10 @@ describe('tool registry', () => {
       'dev_cleanup','dev_reset_test_data',
       'dev_get_checkout_test_url','dev_list_triggers','dev_trigger_event',
       'dev_create_forwarder','dev_list_forwarders','dev_delete_forwarder',
-      'dev_forward_events','dev_test_cards','dev_simulate_subscription'
+      'dev_forward_events','dev_test_cards','dev_simulate_subscription',
+      'money_get_balance','money_list_balance_transactions',
+      'money_get_balance_transaction','money_list_payouts','money_get_payout',
+      'money_list_payout_transactions','money_list_topups','money_get_topup'
     ]);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(66);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
