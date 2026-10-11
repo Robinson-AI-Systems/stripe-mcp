@@ -99,3 +99,24 @@ describe('V-1a durable TEST seed run PostgreSQL',()=>{
   });
 
 });
+
+describe('V-2a account-scoped provider cleanup ledger marking',()=>{
+  it('marks only the exact recorded object ID under its owning account',async()=>{
+    const id='run_'+'e'.repeat(24);
+    await db.ensureDevRun({id,account,connection:'cleanup-fixture',
+      requestKey:'cleanup-exact',scenario:'catalog-starter',size:1,
+      planDigest:'e'.repeat(64)});
+    expect(await db.recordDevRunObject({account,id,stepName:'product_1',
+      objectType:'product',objectId:'prod_CLEANUP1'})).toBe(true);
+    const args={account,id,stepName:'product_1',objectType:'product',
+      objectId:'prod_CLEANUP1'};
+    expect(await db.markDevRunObjectCleaned({...args,account:other}))
+      .toBe(false);
+    expect(await db.markDevRunObjectCleaned({...args,
+      objectId:'prod_WRONG123'})).toBe(false);
+    expect((await db.getDevRunObjects({account,id}))[0].cleaned).toBe(false);
+    expect(await db.markDevRunObjectCleaned(args)).toBe(true);
+    expect(await db.markDevRunObjectCleaned(args)).toBe(true);
+    expect((await db.getDevRunObjects({account,id}))[0].cleaned).toBe(true);
+  });
+});
