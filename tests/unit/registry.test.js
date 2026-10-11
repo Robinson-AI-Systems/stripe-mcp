@@ -52,9 +52,10 @@ describe('tool registry', () => {
       'money_get_balance_transaction','money_list_payouts','money_get_payout',
       'money_list_payout_transactions','money_list_topups','money_get_topup',
       'money_list_bank_accounts','money_get_payout_schedule',
-      'money_update_payout','money_cancel_payout','money_create_payout','money_reverse_payout'
+      'money_update_payout','money_cancel_payout','money_create_payout','money_reverse_payout',
+      'money_create_topup','money_cancel_topup'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(70);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(72);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

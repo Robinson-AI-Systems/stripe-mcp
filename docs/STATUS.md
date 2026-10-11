@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-1c4 TEST synthetic-bank top-up create/pending cancel (#84 as-if-merged; CI pending):** no default/unverified real bank; fixed Stripe `btok_us_verified` TEST token, independently authenticated owner approval for bank-debit nature, shared daily cap and separate override, idempotent native SDK and read-back. Any non-synthetic source remains unavailable until separate design and owner authorization. Next G-1d reports.
+
 - **G-1c3 independently owner-approved TEST payout reversal (#83 as-if-merged, CI pending):** eligible paid manual US bank payout reverse only, exact bank-target and Stripe amount from provider, B-8 owner grant, shared $500/day cap/second override, idempotency, independently verified reverse and original payout records. Bank debit, not equivalent to cancel; no LIVE or actual banking. Next G-1c4 top-up lifecycle, G-1d reports.
 
 - **G-1c2 TEST owner-approved manual payout creation (#82 as-if-merged; CI pending):** exact account and verified bank identity, checked USD source-type balance, full-only guarded write, independent authenticated owner grant, shared $500/day limit and override, idempotency and post-write payout read-back. No live payout or bank debit. Next G-1c3 bank-debit reversal, G-1c4 top-ups and G-1d reports.
