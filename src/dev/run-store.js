@@ -59,6 +59,43 @@ export function createDevRunStore(sql){
         throw new Error('Seed retry key already belongs to another immutable plan');
       return run;
     },
+    async getDevRunById({account,id}){
+      if(!accountId(account)||!runId(id))
+        throw new TypeError('Selected account and valid TEST run required');
+      const rows=await sql`SELECT id,stripe_account,connection,request_key,scenario,
+        size,plan_digest,status,created_at,completed_at FROM dev_runs
+        WHERE stripe_account=${account} AND id=${id}`;
+      return rows[0]??null;
+    },
+    // A paid store run is complete before a refund can be independently
+    // owner-approved. Record only a verified refund for its recorded payment.
+    async recordDevRunRefund({account,id,paymentStep,refundId}){
+      if(!accountId(account)||!runId(id)||
+        typeof paymentStep!=='string'||!/^payment_[1-5]$/.test(paymentStep)||
+        typeof refundId!=='string'||!/^re_[A-Za-z0-9]{2,100}$/.test(refundId))
+        throw new TypeError('Verified TEST refund/run/payment identity required');
+      const refundStep='refund_'+paymentStep.slice('payment_'.length);
+      const rows=await sql`WITH eligible AS (
+        SELECT r.id FROM dev_runs r JOIN dev_run_objects p
+          ON p.run_id=r.id AND p.step_name=${paymentStep}
+          AND p.object_type='payment_intent' AND p.cleaned=FALSE
+        WHERE r.id=${id} AND r.stripe_account=${account}
+          AND r.status='completed' AND r.scenario='basic-store'
+      ), inserted AS (
+        INSERT INTO dev_run_objects(run_id,step_name,object_type,object_id)
+        SELECT id,${refundStep},'refund',${refundId} FROM eligible
+        ON CONFLICT DO NOTHING
+        RETURNING step_name,object_type,object_id
+      )
+      SELECT step_name,object_type,object_id FROM inserted
+      UNION ALL
+      SELECT o.step_name,o.object_type,o.object_id FROM dev_run_objects o
+        JOIN eligible e ON e.id=o.run_id
+        WHERE o.step_name=${refundStep}
+          AND NOT EXISTS (SELECT 1 FROM inserted)`;
+      return rows.length===1&&rows[0].object_type==='refund'&&
+        rows[0].object_id===refundId;
+    },
     async getDevRunObjects({account,id}){
       if(!accountId(account)||!runId(id))throw new TypeError('Valid account/run required');
       const rows=await sql`SELECT o.step_name,o.object_type,o.object_id,o.cleaned,o.created_at

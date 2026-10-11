@@ -81,4 +81,21 @@ describe('V-1a durable TEST seed run PostgreSQL',()=>{
     expect((await db.getDevRunObjects({account,id:run})).length).toBe(2);
   });
 
+  it('records one independently verified refunded store payment on a completed account-scoped run',async()=>{
+    const run='run_'+'c'.repeat(24);
+    expect(await db.completeDevRun({account,id:run,expectedSteps:2})).toBe(true);
+    expect(await db.recordDevRunRefund({account,id:run,
+      paymentStep:'payment_1',refundId:'re_FAKE1234'})).toBe(true);
+    expect(await db.recordDevRunRefund({account,id:run,
+      paymentStep:'payment_1',refundId:'re_FAKE1234'})).toBe(true);
+    expect(await db.recordDevRunRefund({account,id:run,
+      paymentStep:'payment_1',refundId:'re_DIFFERENT'})).toBe(false);
+    expect(await db.recordDevRunRefund({account:other,id:run,
+      paymentStep:'payment_1',refundId:'re_BAD1234'})).toBe(false);
+    const objects=await db.getDevRunObjects({account,id:run});
+    expect(objects.filter(x=>x.object_type==='refund').map(x=>x.object_id))
+      .toEqual(['re_FAKE1234']);
+    expect(await db.getDevRunById({account:other,id:run})).toBeNull();
+  });
+
 });

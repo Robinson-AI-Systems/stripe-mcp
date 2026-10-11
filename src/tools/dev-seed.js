@@ -52,7 +52,7 @@ const op=defineWrite({
   },
   verify:(b,after)=>after?.id===b.runId&&
     after.plan_digest===b.planDigest&&after.status==='completed'&&
-    Array.isArray(after.objects)&&after.objects.length===b.expectedSteps&&
+    Array.isArray(after.objects)&&after.objects.length>=b.expectedSteps&&
     b.steps.every(x=>after.objects.some(o=>
       o.step_name===x.name&&o.object_type===x.type&&o.cleaned===false))
 });
