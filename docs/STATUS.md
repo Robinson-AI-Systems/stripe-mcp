@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-1b4c TEST clock prerequisite PR #53 (as-if-merged; exact-head CI/review pending):** TEST-only testclock_list/create/advance now use actual Stripe clock API; a clock advance is NOT declared completed until independent provider read-back says ready at the exact target. Guarded writes, RTC DEV clock provenance and a bounded read showing advancing target are included. This brings only a required V-5 dependency forward, not full V-5 completion. Next V-1b4d real subscription past_due renewal, ACH progression and Connect-gated marketplace; V-1 remains IN_PROGRESS, LIVE OFF.
+
+
 - **V-1b4b1 paid active TEST subscription PR #52 (as-if-merged, exact-head CI/review pending):** dev_seed adds tagged monthly paid active subscriptions with synthetic saved TEST Visa and a real, independently provider-verified first paid invoice, recorded by ID in the account-scoped ledger. Stripe's initial-payment failure does not prove past_due; V-1b4b2 still needs actual later failed renewals via supported TEST clocks, ACH progression and Connect-gated marketplace. V-1 remains **IN_PROGRESS**; LIVE OFF; no real payments.
 
 
