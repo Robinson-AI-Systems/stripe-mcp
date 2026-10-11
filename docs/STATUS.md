@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-4e2 signature checking (#111 as-if-merged, CI pending):** owner-password and CSRF authenticated TEST endpoint secret provisioning; encrypted account+endpoint-bound storage; server-only signature validation, no event payload/secret echoes. Connected TEST-account smoke remains pending; next G-4 acceptance reconciliation, then G-5. LIVE OFF.
+
 - **G-4e1 guarded native webhook update/delete (#110 as-if-merged; exact-head CI pending):** TEST-only native destination/description changes and endpoint deletion use independent provider reads, stale-plan and app/Connect ownership refusal, selected-account idempotency, and deletion 404 tombstone verification. No signing secret is revealed. **Next G-4e2:** owner-configured server-only signature check and remaining batch acceptance. G-4 stays IN_PROGRESS; connected TEST smoke pending; LIVE disabled.
 
 - **G-4d2 native webhook create (#109 as-if-merged; exact-head CI pending):** TEST-only full-profile guarded native Stripe webhook creation is backed by G-4d1's durable exact retry ledger. Owner password/CSRF setup page alone reveals the ten-minute single-use signing secret; MCP exposes only the setup path. No LIVE, money-out or connected TEST smoke. **Next G-4e:** guarded endpoint update/delete and signature verification, then G-4 closure.

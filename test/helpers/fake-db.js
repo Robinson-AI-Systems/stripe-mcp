@@ -13,6 +13,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const accountRows = new Map(accounts.map(a => [a.id, structuredClone(a)]));
   const encryptedTestKeys = new Map();
   const oneTimeSecrets = new Map();
+  const webhookSigningSecrets = new Map();
   const audit = [];
   const reservations = [];
   const approvals = [];
@@ -25,6 +26,13 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const limitIntents = [];
   return {
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
+    async saveWebhookSigningSecret({account,endpoint,ciphertext}){
+      webhookSigningSecrets.set(account+'|'+endpoint,ciphertext);return true;
+    },
+    async getWebhookSigningSecret({account,endpoint}){
+      const ciphertext=webhookSigningSecrets.get(account+'|'+endpoint);
+      return ciphertext?{ciphertext}:null;
+    },
     async listTables() { return [...createdTables].sort(); },
     async put(key, value) { rows.set(key, structuredClone(value)); },
     async get(key) { return rows.has(key) ? structuredClone(rows.get(key)) : null; },

@@ -256,7 +256,7 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `webhook_update` | Guarded native TEST URL or description update with exact stale-plan refusal; event subscriptions unchanged | C | built #110 | F |
 | `webhook_add_events` / `webhook_remove_events` | Confirmed TEST set union/difference preserving unrelated subscriptions, exact provider read-back | P / C | built #105 | E |
 | `webhook_delete` | Guarded native TEST webhook deletion with provider tombstone verification | C | built #110 | F |
-| `webhook_check_signature` | Check a pasted test payload + signature header against an endpoint (paste the secret on the setup page, never in chat) | — | R | F |
+| `webhook_check_signature` | Validate TEST payload/signature using encrypted, owner-provisioned endpoint secret; return only event ID/type | — | built #111 | F |
 
 ## Developer tools (`dev_*`, `testclock_*`) — 23 (test mode only; `docs/designs/BATCH-V.md`)
 
