@@ -31,7 +31,7 @@ export function planTrigger(a,account){
   const types=a.type==='price.created'?['product','price']:
     a.type==='payment_intent.succeeded'?['customer','payment_intent']:
     [a.type.split('.')[0]];
-  const steps=types.map((type,i)=>({name:type+'_'+(i+1),type}))
+  const steps=types.map(type=>({name:type+'_1',type}))
     .concat([{name:'event_1',type:'event'}]);
   return {runId,scenario:'event-'+a.type.replaceAll('_','-').replace('.','-'),
     type:a.type,steps,size:1,expectedSteps:steps.length,
