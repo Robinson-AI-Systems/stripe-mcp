@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-1b4b1 paid active TEST subscription PR #52 (as-if-merged, exact-head CI/review pending):** dev_seed adds tagged monthly paid active subscriptions with synthetic saved TEST Visa and a real, independently provider-verified first paid invoice, recorded by ID in the account-scoped ledger. Stripe's initial-payment failure does not prove past_due; V-1b4b2 still needs actual later failed renewals via supported TEST clocks, ACH progression and Connect-gated marketplace. V-1 remains **IN_PROGRESS**; LIVE OFF; no real payments.
+
+
 - **V-1b4a outcome verification PR #51 (as-if-merged; exact-head CI and review pending):** New TEST-only read `dev_verify_outcomes` independently compares account-bound recorded dispute/ACH payments with Stripe intents/charges and, for disputes, matching actual TEST event records. It cannot claim a missing event never occurred or a PaymentIntent success proves bank settlement/webhook delivery. V-1b4b still requires real active/past-due subscriptions and supported ACH/clock/event progression, plus Connect-gated marketplace. V-1 remains **IN_PROGRESS**; do not start V-2 as completed V-1. LIVE OFF, financial approval/limits unchanged.
 
 - **V-1b3 dispute/ACH test fixtures PR #50 (as-if-merged; exact-head CI pending):** `dev_seed` can create a documented dispute-triggering TEST card payment and an unconfirmed ACH-capable test intent, each tagged `rtc_run`, provider-checked and saved by account. An asynchronous dispute event or bank settlement is explicitly **NOT** declared complete; V-1b4 requires verification and realistic active/past-due subscription flows before V-1 acceptance. LIVE remains OFF.

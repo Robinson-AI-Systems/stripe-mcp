@@ -58,7 +58,7 @@ const op=defineWrite({
 });
 export const tools=[
   {...op.tool,area:'developer',profiles:writeProfiles,
-    description:'Seed verified TEST products, customers, one-time payments and trial subscriptions.',
+    description:'Seed tracked TEST catalog, store payments, trial/canceled and paid active subscriptions.',
     inputSchema:{type:'object',properties:{scenario,description,size,requestKey:retry,
       confirm:{type:'boolean'},dryRun:{type:'boolean'}},
       required:['size','requestKey'],additionalProperties:false}},
