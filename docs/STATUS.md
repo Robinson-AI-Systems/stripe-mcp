@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-3c2 real zero-value TEST invoice event PR #62 (as-if-merged; exact-head CI/review pending):** invoice.created, invoice.updated and invoice.finalized are emitted by real current-native TEST invoice creation, safe description edit and non-auto-advancing finalization. Tracked customer and 0 USD invoice must be independently verified and metadata owned; Event list and retrieve must confirm exact type, ID, run, selected account, 0 amount and valid status. No card/bank collection, no emails, no payout/refund. V-3c3 genuine failed billing/dispute/Checkout next; LIVE off and owner financial controls unchanged.
+
+
 - **V-3c1 native TEST subscription lifecycle events PR #61 (as-if-merged; exact-head CI/review pending):** Real customer.subscription.created and customer.subscription.deleted events from 7-day trial subscriptions using verified recurring TEST price/customer and durably tagged provider-generated zero-dollar invoice. Only independently observed Stripe Event with matching subscription/account/run/customer/price and correct trialing/canceled state completes. Cancellation creates no final invoice, charge, refund or payout. V-3c2 billing/dispute/Checkout events remain; V-4 follows V-3. LIVE OFF, $500/day and independent owner money-out approval unchanged.
 
 
