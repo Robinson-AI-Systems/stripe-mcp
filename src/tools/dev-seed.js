@@ -9,6 +9,7 @@ const scenario={type:'string',enum:seedScenarios};
 const description={type:'string',minLength:3,maxLength:256};
 const size={type:'integer',minimum:1,maximum:5};
 const retry={type:'string',minLength:1,maxLength:128};
+const frozenTime={type:'integer',minimum:946684800,maximum:4102444800};
 const op=defineWrite({
   name:'dev_seed',allowZeroPreview:true,
   read:async(a,ctx)=>{
@@ -18,7 +19,7 @@ const op=defineWrite({
       typeof ctx.db?.getDevRunObjects!=='function')
       throw new TypeError('Durable TEST run store is unavailable');
     if(!a||Object.keys(a).some(k=>![
-      'scenario','description','size','requestKey','dryRun','confirm'
+      'scenario','description','size','frozenTime','requestKey','dryRun','confirm'
     ].includes(k)))throw new TypeError('Unsupported seed argument');
     const plan=planSeed(a,ctx.connection.stripeAccount);
     const prior=await ctx.db.getDevRun({
@@ -58,8 +59,8 @@ const op=defineWrite({
 });
 export const tools=[
   {...op.tool,area:'developer',profiles:writeProfiles,
-    description:'Seed tracked TEST catalog, store payments, trial/canceled and paid active subscriptions.',
-    inputSchema:{type:'object',properties:{scenario,description,size,requestKey:retry,
+    description:'Seed TEST catalog, payments, subscriptions, and provider-verified delayed past-due renewals.',
+    inputSchema:{type:'object',properties:{scenario,description,size,frozenTime,requestKey:retry,
       confirm:{type:'boolean'},dryRun:{type:'boolean'}},
       required:['size','requestKey'],additionalProperties:false}},
   {name:'dev_list_runs',area:'developer',writes:false,profiles,

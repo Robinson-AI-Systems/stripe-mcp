@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-1b4d real TEST past-due subscription seed PR #54 (as-if-merged, exact-head CI/review pending):** New resumable clocked 7-day trial and failing-card renewal scenario. An advancing clock or merely chosen decline card NEVER completes a run; it finishes only after true provider past_due and attempted unpaid latest invoice, tagged and durably recorded. Exact RTC DEV RUN clock names replace unavailable TestClock metadata; all other objects use rtc_run. Still required before V-1 acceptance: real controlled ACH transition evidence and Connect capability-gated marketplace. V-1 IN_PROGRESS, LIVE OFF.
+
+
 - **V-1b4c TEST clock prerequisite PR #53 (as-if-merged; exact-head CI/review pending):** TEST-only testclock_list/create/advance now use actual Stripe clock API; a clock advance is NOT declared completed until independent provider read-back says ready at the exact target. Guarded writes, RTC DEV clock provenance and a bounded read showing advancing target are included. This brings only a required V-5 dependency forward, not full V-5 completion. Next V-1b4d real subscription past_due renewal, ACH progression and Connect-gated marketplace; V-1 remains IN_PROGRESS, LIVE OFF.
 
 

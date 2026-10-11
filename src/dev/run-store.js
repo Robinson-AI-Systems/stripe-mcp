@@ -4,7 +4,7 @@ const accountId=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]+$/.test(x);
 const digest=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 const key=x=>typeof x==='string'&&x.length>0&&x.length<=128;
 const scenario=x=>typeof x==='string'&&/^[a-z][a-z0-9-]{2,40}$/.test(x);
-const idPrefixes={product:'prod',price:'price',customer:'cus',payment_intent:'pi',subscription:'sub',invoice:'in'};
+const idPrefixes={product:'prod',price:'price',customer:'cus',payment_intent:'pi',subscription:'sub',invoice:'in',test_clock:'clock'};
 export async function initDevRunTables(sql){
   await sql`CREATE TABLE IF NOT EXISTS dev_runs (
     id TEXT PRIMARY KEY,
