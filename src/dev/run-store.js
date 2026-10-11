@@ -127,6 +127,46 @@ export function createDevRunStore(sql){
       return rows.length===1&&rows[0].object_type===objectType&&
         rows[0].object_id===objectId;
     },
+    async markDevRunObjectCleaned({account,id,stepName,objectType,objectId}){
+      if(!accountId(account)||!runId(id)||
+        typeof stepName!=='string'||!/^[a-z0-9_-]{1,70}$/.test(stepName)||
+        !idPrefixes[objectType]||typeof objectId!=='string'||
+        !new RegExp('^'+idPrefixes[objectType]+'_[A-Za-z0-9]{2,100}
+      if(!accountId(account)||!runId(id)||!Number.isInteger(expectedSteps)||
+        expectedSteps<1||expectedSteps>50)
+        throw new TypeError('Exact expected seeded object count required');
+      const rows=await sql`UPDATE dev_runs r SET status='completed',completed_at=now()
+        WHERE r.id=${id} AND r.stripe_account=${account} AND r.status='running'
+          AND (SELECT count(*)::integer FROM dev_run_objects o
+            WHERE o.run_id=r.id AND o.cleaned=FALSE)=${expectedSteps}
+        RETURNING r.id`;
+      if(rows.length)return true;
+      const prior=await sql`SELECT id FROM dev_runs WHERE id=${id}
+        AND stripe_account=${account} AND status='completed'`;
+      return prior.length===1;
+    },
+    async listDevRuns({account,limit=20,offset=0}){
+      if(!accountId(account)||!Number.isInteger(limit)||limit<1||limit>50||
+        !Number.isInteger(offset)||offset<0||offset>100000)
+        throw new TypeError('Bounded account-scoped runs query required');
+      return sql`SELECT r.id,r.scenario,r.size,r.status,r.created_at,r.completed_at,
+        count(o.object_id)::integer AS object_count
+        FROM dev_runs r LEFT JOIN dev_run_objects o ON o.run_id=r.id
+        WHERE r.stripe_account=${account}
+        GROUP BY r.id ORDER BY r.created_at DESC,r.id DESC
+        LIMIT ${limit} OFFSET ${offset}`;
+    }
+  };
+}
+).test(objectId))
+        throw new TypeError('Exact account-scoped cleanup identity required');
+      const rows=await sql`UPDATE dev_run_objects o SET cleaned=TRUE
+        FROM dev_runs r WHERE o.run_id=r.id AND r.stripe_account=${account}
+          AND r.id=${id} AND o.step_name=${stepName}
+          AND o.object_type=${objectType} AND o.object_id=${objectId}
+        RETURNING o.object_id`;
+      return rows.length===1&&rows[0].object_id===objectId;
+    },
     async completeDevRun({account,id,expectedSteps}){
       if(!accountId(account)||!runId(id)||!Number.isInteger(expectedSteps)||
         expectedSteps<1||expectedSteps>50)
