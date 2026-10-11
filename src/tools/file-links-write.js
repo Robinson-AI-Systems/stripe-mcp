@@ -15,8 +15,8 @@ function validate(a) {
     throw new TypeError('A future expiry between 1 minute and 24 hours is required');
 }
 export function makeFileLinkWrite(){
-  let newId=null;
-  return defineWrite({
+  let newId=null,verifiedLink=null;
+  const operation=defineWrite({
     name:'file_create_link',
     read:async(a,ctx)=>{
       validate(a);
@@ -36,14 +36,25 @@ export function makeFileLinkWrite(){
         throw new TypeError('Created file link identity unverified');
       newId=result.id;
     },
-    readAfter:async(_a,ctx)=>newId?
-      (await client(ctx)).fileLinks.retrieve(newId):null,
+    readAfter:async(_a,ctx)=>{
+      verifiedLink=newId?(await client(ctx)).fileLinks.retrieve(newId):null;
+      return verifiedLink;
+    },
     verify:(before,after,a)=>after?.object==='file_link'&&after.id===newId&&
       (typeof after.file==='string'?after.file:after.file?.id)===before.id&&
       after.expires_at===a.expiresAt&&after.expired===false&&
       typeof after.url==='string'&&
       /^https:\/\/files\.stripe\.com\/links\/[-A-Za-z0-9_]+$/.test(after.url)
   });
+  return {...operation,async handler(args,ctx){
+    const result=await operation.handler(args,ctx);
+    if(result?.isError||!verifiedLink)return result;
+    const body=JSON.parse(result.content[0].text);
+    if(body.confirmed!==true)return result;
+    return {...result,content:[{type:'text',text:JSON.stringify({...body,
+      publicUrl:verifiedLink.url,expiresAt:verifiedLink.expires_at,
+      scope:'public_brand_asset_only'})}]};
+  }};
 }
 export const tools=[{...makeFileLinkWrite().tool,
   area:'files',profiles:fullProfiles,
