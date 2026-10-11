@@ -29,9 +29,12 @@ describe('tool registry', () => {
       'billing_preview_change','billing_list_items','billing_list_schedules',
       'billing_get_schedule','billing_create_subscription','billing_update_subscription',
       'billing_change_plan','billing_cancel_subscription','billing_undo_cancel',
-      'billing_pause_collection','billing_resume_collection'
+      'billing_pause_collection','billing_resume_collection',
+      'billing_add_item','billing_update_item','billing_remove_item',
+      'billing_create_schedule','billing_update_schedule',
+      'billing_release_schedule','billing_cancel_schedule'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(34);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(41);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

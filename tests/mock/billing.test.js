@@ -77,4 +77,40 @@ describe('D-4 official Stripe 23.0.0 subscription requests',()=>{
     expect((await s.subscriptionSchedules.retrieve('sub_sched_FAKE1234'))
       .object).toBe('subscription_schedule');
   });
+  it('uses native guarded subscription-item create, update, delete and retrieve shapes',async()=>{
+    const s=stripe();
+    expect((await s.subscriptionItems.create({
+      subscription:sub,price,quantity:2,proration_behavior:'create_prorations',
+      proration_date:1791676800
+    },opts)).object).toBe('subscription_item');
+    expect((await s.subscriptionItems.update(si,{
+      price,quantity:3,proration_behavior:'none'
+    },opts)).object).toBe('subscription_item');
+    expect((await s.subscriptionItems.del(si,{
+      proration_behavior:'create_prorations',proration_date:1791676800
+    },opts)).deleted).toBe(true);
+    expect((await s.subscriptionItems.retrieve(si)).object).toBe('subscription_item');
+  });
+  it('uses native future schedule lifecycle requests and exact preview endpoints',async()=>{
+    const s=stripe(),schedule='sub_sched_FAKE1234',start=1893456000;
+    const phases=[{items:[{price,quantity:2}],iterations:6,proration_behavior:'none'}];
+    expect((await s.invoices.createPreview({customer,currency:'usd',
+      schedule_details:{phases,start_date:start,billing_mode:{type:'flexible'}}
+    })).object).toBe('invoice');
+    expect((await s.subscriptionSchedules.create({
+      customer,start_date:start,end_behavior:'release',
+      billing_mode:{type:'flexible'},phases
+    },opts)).object).toBe('subscription_schedule');
+    expect((await s.invoices.createPreview({customer,currency:'usd',
+      schedule,schedule_details:{phases,start_date:start,billing_mode:{type:'flexible'}}
+    })).object).toBe('invoice');
+    expect((await s.subscriptionSchedules.update(schedule,{
+      phases,end_behavior:'cancel',proration_behavior:'none'
+    },opts)).object).toBe('subscription_schedule');
+    expect((await s.subscriptionSchedules.release(schedule,{},opts)).object)
+      .toBe('subscription_schedule');
+    expect((await s.subscriptionSchedules.cancel(schedule,{
+      invoice_now:false,prorate:false
+    },opts)).object).toBe('subscription_schedule');
+  });
 });
