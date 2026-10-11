@@ -3,6 +3,7 @@ import {describe,it,expect} from 'vitest';
 import {runWriteContract} from '../helpers/write-contract.js';
 import {makeBillingItemScheduleWrite} from '../../src/tools/billing-item-schedule-writes.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
+import {idempotencyKey} from '../../src/stripe/client.js';
 
 const cus='cus_FAKE1234',sub='sub_FAKE1234',price='price_FAKE1234';
 const changed='price_NEW1234',si='si_FAKE1234',other='si_OTHER1234';
@@ -216,11 +217,25 @@ it('active future schedule requires exact next phase boundary',async()=>{
   expect(f.provider.writes).toHaveLength(0);
 });
 
-describe('D-4b active schedule cancellation credit requires verified owner grant',()=>{
-  const args={scheduleId:schedule,invoiceNow:true,prorate:true};
-  runWriteContract({withMoney:true,strictArgs:true,args,
-    tool:()=>makeBillingItemScheduleWrite('billing_cancel_schedule'),
-    fixtures:o=>fixture({...o,activeCancel:true,credit:true},'billing_cancel_schedule')});
+it('active schedule credit requires distinct owner grant before one TEST write',async()=>{
+  const f=fixture({readBackMatches:true,activeCancel:true,credit:true},
+    'billing_cancel_schedule');
+  const op=makeBillingItemScheduleWrite('billing_cancel_schedule');
+  const args={scheduleId:schedule,invoiceNow:true,prorate:true,
+    requestKey:'schedule-credit',confirm:true};
+  const denied=plain(await op.handler(args,f.ctx));
+  expect(denied.done).toBe(false);
+  expect(denied.error).toMatch(/approval/i);
+  expect(f.provider.writes).toHaveLength(0);
+  const key=idempotencyKey(f.ctx.connection,op.tool.name,args);
+  expect(await f.db.approveMoneyRequest({
+    account:f.ctx.connection.stripeAccount,idempotencyKey:key
+  })).toBe(true);
+  const granted=plain(await op.handler(args,f.ctx));
+  expect(granted.done).toBe(true);
+  expect(f.provider.writes).toHaveLength(1);
+  expect((await f.db.getMoneyUsage({account:'acct_safefixture',
+    connection:f.ctx.connectionId})).used_cents).toBe(8500);
 });
 it('future schedule refuses unverified saved payment-method ownership',async()=>{
   const f=fixture({readBackMatches:true},'billing_create_schedule');
