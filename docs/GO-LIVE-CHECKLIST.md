@@ -142,3 +142,10 @@ B-8c2 implements two independently password-authenticated TEST-only owner confir
 - [ ] **No approval or outgoing money operation exists in this slice.**
       B-8c2 must verify owner-specific exact transaction approval and the
       distinct above-limit override before any public money write can run.
+
+## Batch G-4 externally required TEST webhook evidence — pending, not assumed
+
+- [ ] Enroll and verify a connected Stripe TEST account and an owner-controlled public HTTPS webhook destination (no account key or webhook secret in an AI message).
+- [ ] Through the independently authenticated owner page, provision a TEST endpoint's signing secret and demonstrate a genuine signed Stripe TEST event: verify exact original bytes, correct endpoint/account, event ID and type; confirm wrong secret, expired timestamp and wrong endpoint are rejected.
+- [ ] From that same TEST account, demonstrate one native endpoint creation, event-subscription update and read-back, safe URL-only-origin display, and a guarded endpoint deletion with provider tombstone. Record evidence without raw provider secrets or private event data.
+- [ ] Confirm connected TEST account/permission restrictions and LIVE-off remain enforced; record outcome in G-4 external acceptance note before claiming account-backed completion. No go-live authorization is implied by automated CI.

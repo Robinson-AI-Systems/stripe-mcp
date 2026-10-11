@@ -1,3 +1,5 @@
+**Current handoff (2026-10-11, #113 as-if-merged):** G-4 code and automated acceptance reconciled. Genuine connected Stripe TEST event-to-owned-webhook smoke remains PENDING, not passed. Next approved implementation G-5 safe account profile/capability reads followed by carefully gated account settings. See STATUS and G-4 acceptance. LIVE remains OFF.
+
 # MASTER ROADMAP — the one handoff
 
 Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current state; [PLAN](PLAN.md) holds acceptance.
