@@ -5,7 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **G-1f secure TEST report-result file verification (#88 as-if-merged; exact-head CI pending):** a report run must be succeeded and match an actual finance_report_run file on the selected TEST account. Only size/type/name/ID are projected; no private provider URL or CSV bytes leak. Owner-secure CSV delivery remains G-1g, so G-1 is NOT yet closed. Next G-1g owner-only authenticated export and then G-2 dispute reads. New session contract: maximum **5 merged PRs per chat**, then a complete recursive continuation prompt. This chat's earlier 7 merges occurred before the rule changed; finish #88 only and stop.
+- **G-1g owner-authenticated TEST CSV export (#89 as-if-merged; exact-head CI pending):** The private setup page now requires owner passphrase, origin/CSRF and a valid connected TEST account before streaming a strictly verified report CSV (5 MiB limit) directly to the browser. MCP never sees contents, provider URLs or keys. G-1 is implementation-complete pending required CI and owner-connected TEST verification. **Next G-2 dispute read tools and separate evidence handling.** No LIVE or actual account activity. Session limit: 5 merged PRs then recursive handoff.
+
 
 - **G-1e TEST payout schedule setter with guided refusal (#87 as-if-merged, CI pending):** full-only guarded attempt for own account, pending/denied results include TEST dashboard steps; no claims without read-back. Weekly/monthly anchors validated. Next G-1f report export evidence and G-1 completion, then G-2 disputes.
 
