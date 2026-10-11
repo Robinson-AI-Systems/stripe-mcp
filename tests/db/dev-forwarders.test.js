@@ -61,6 +61,12 @@ describe('V-4b1 durable encrypted TEST forwarder store',()=>{
     const safe=await db.getDevForwarder({accountId:account,id});
     expect(safe.id).toBe(id);
     expect(safe).not.toHaveProperty('secret_enc');
+    const byKey=await db.getDevForwarderByRequestKey({
+      accountId:account,requestKey});
+    expect(byKey).toMatchObject({id,url,types,config_digest:configDigest});
+    expect(JSON.stringify(byKey)).not.toContain(secretEnc);
+    expect(await db.getDevForwarderByRequestKey({
+      accountId:other,requestKey})).toBeNull();
     const privateRecord=await db.getDevForwarderForDelivery({
       accountId:account,id
     });

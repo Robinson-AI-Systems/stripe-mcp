@@ -59,6 +59,15 @@ export function createDevForwarderStore(sql){
         url:rows[0].url,types:rows[0].types,
         created_at:rows[0].created_at,newlyCreated:inserted.length===1};
     },
+    async getDevForwarderByRequestKey({accountId,requestKey}){
+      if(!account(accountId)||typeof requestKey!=='string'||
+        requestKey.length<1||requestKey.length>128)
+        fail('Exact TEST account and retry key required');
+      const rows=await sql`SELECT id,url,types,config_digest,deleted_at
+        FROM dev_forwarders WHERE stripe_account=${accountId}
+          AND request_key=${requestKey}`;
+      return rows[0]??null;
+    },
     async listDevForwarders({accountId,limit=20,offset=0}){
       if(!account(accountId)||!Number.isInteger(limit)||limit<1||limit>50||
         !Number.isInteger(offset)||offset<0||offset>10000)

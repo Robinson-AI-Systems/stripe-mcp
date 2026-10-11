@@ -1,9 +1,11 @@
 # STATUS — current work, blockers and next action
 
-Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
+Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
 **Batch A implemented (#9–#17):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys, secure setup code and owner's deployment guide. No Stripe account has been connected; none of this is deployed or live.
 
 ## Next
+
+- **V-4b2 TEST forwarding management PR #69 (as-if-merged, CI/review pending):** guarded create/delete and account-scoped read-only list tools use V-4b1 encrypted forwarder storage and V-4a public-DNS preflight. Secret handoff is a ten-minute one-time URL, revealed ONLY after owner password/CSRF/origin checks on existing private setup page, never in MCP/audit. Replays retain original secret and cannot reissue the setup link. Next **V-4c**: real TEST Event retrieval and pinned TLS delivery, no redirects. LIVE remains OFF; no money out or production connections used.
 
 - **V-4b1 encrypted TEST forwarder store (as-if-merged):** additive dev_forwarders Postgres table, per-account encrypted-only signing-secret envelope, immutable retry key/config digest, safe list/get projections without secrets and soft deletion so removed targets cannot deliver. One migration only; no public tool or actual outbound request in this slice. V-4b2 next: guarded TEST registration/list/deletion plus owner-authenticated setup-page one-time secret; V-4c: actual original Stripe Event forwarding over pinned TLS with no redirects. V-3 Checkout manual TEST completion remains acceptance evidence to collect; no LIVE/money-out changes.
 
