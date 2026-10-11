@@ -1,6 +1,7 @@
 // Current native TEST invoice reads and explicit provider preview. All results are safe projections.
 import {allProfiles,id,paging,pageResult,guarded,checkId,ref,local,
   positiveTotal} from './billing-shared.js';
+import {invoicePaymentSafe,invoicePreviewReadSafe} from './invoice-read-safety.js';
 const page={limit:{type:'integer',minimum:1,maximum:100},
   starting_after:{type:'string',minLength:2,maxLength:110}};
 const query={type:'string',minLength:1,maxLength:400};
@@ -67,19 +68,14 @@ export const handlers={
     if(invoice?.object!=='invoice')throw new TypeError('Invoice not verified');
     return pageResult(await s.invoicePayments.list({
       invoice:invoiceId,...paging(a)
-    }),p=>({id:p.id,invoice:ref(p.invoice),amount_paid:p.amount_paid,
-      amount_requested:p.amount_requested,currency:p.currency,
-      status:p.status,payment:ref(p.payment?.payment_intent)??ref(p.payment),
-      created_local:local(p.created)}));
+    }),p=>invoicePaymentSafe(p,invoiceId));
   }),
   invoice_preview:(a,ctx)=>guarded(ctx,async s=>{
     const customerId=checkId(a?.customerId,'cus');
     const c=await s.customers.retrieve(customerId);
     if(c?.deleted||!c?.metadata)throw new TypeError('Verified customer required');
     const v=await s.invoices.createPreview({customer:customerId,currency:'usd'});
-    return {customer:customerId,currency:'usd',invoiceTotalCents:positiveTotal(v),
-      amountDueCents:v.amount_due??null,lines:v.lines?.data?.slice(0,15).map(l=>({
-        amountCents:l.amount,description:l.description??null
-      }))??[],hasMore:v.lines?.has_more??false};
+    positiveTotal(v);
+    return invoicePreviewReadSafe(v,customerId);
   })
 };

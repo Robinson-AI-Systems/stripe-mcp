@@ -5,7 +5,7 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
-- **D-5a invoice drafts IN PROGRESS:** `ai/gpt6/d-5a-invoice-drafts`, initial TEST invoice read namespace drafted. Full draft writes, seven-case contract tests and pinned mock validation still required; no LIVE operations. Next D-5b, D-5c.
+- **D-5a #43 merged (as-if-merged documentation; exact-head green required):** five native TEST invoice reads and five guarded manual draft workflows; all five have real-handler seven-case contract tests, pinned SDK stripe-mock, and conservative draft accounting gates. Next: **D-5b** invoice lifecycle, then **D-5c** credit notes. LIVE remains OFF.
 
 - **D-4 merged in implementation PRs #40 and #42:** all 21 current-native TEST subscription, item and schedule tools. Seven D-4b guarded writes now have real-handler contract tests, pinned Stripe SDK mock coverage, current-phase preservation, app ownership enforcement and per-transaction owner consent for credit outcomes. **Next: D-5** invoices/credit notes after green #42 merge. LIVE remains OFF.
 
