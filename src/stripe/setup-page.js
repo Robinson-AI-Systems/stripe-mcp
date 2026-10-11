@@ -22,6 +22,15 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
     '<style>body{font:16px system-ui,sans-serif;max-width:500px;margin:4vh auto;padding:16px}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
     '<h1>Robinson Stripe MCP — private setup</h1>' +
+    '<h2>Provision TEST webhook signature verification</h2>' +
+    '<p>Enter the webhook signing secret directly on this password-protected page, never in AI chat. Only an existing TEST endpoint on the specified connected account can be saved. Re-provision after rotating the secret.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="provision-webhook-secret">' +
+    '<label>Stripe TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label>Native webhook endpoint ID<input name="endpoint" pattern="we_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label>Webhook signing secret<input type="password" name="secret" required autocomplete="off" maxlength="265"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Verify TEST endpoint and store encrypted signing secret</button></form>' +
     '<h2>Download a verified TEST report CSV</h2>' +
     '<p>For the owner only. The CSV is delivered directly to this browser after password verification; file contents and authentication links never enter AI chat. Limit: 5 MB.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -190,7 +199,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '</button></form>' : '') +
     '</body></html>';
 }
-export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, env = process.env }) {
+export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, env = process.env }) {
   return async function setup(req, res) {
     if (!only(res, req, ['GET','POST'])) return;
     let origin;
@@ -232,6 +241,18 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     if (login.status !== 'ok') {
       return send(res, 401, htmlPage({ csrf:cookie, result:'Incorrect administrator passphrase.' }),
         'text/html; charset=utf-8');
+    }
+    if (p.action === 'provision-webhook-secret') {
+      if(typeof provisionWebhookSecret!=='function')return send(res,503,htmlPage({csrf:cookie,
+        result:'Private webhook verification setup is unavailable.'}),'text/html; charset=utf-8');
+      try{
+        const saved=await provisionWebhookSecret({account:p.account,endpoint:p.endpoint,secret:p.secret});
+        return send(res,200,htmlPage({csrf:cookie,result:'Encrypted TEST signing secret saved for '+
+          saved.account+' / '+saved.endpoint+'. No secret was returned.'}),'text/html; charset=utf-8');
+      }catch{
+        return send(res,400,htmlPage({csrf:cookie,
+          result:'Unable to verify this TEST endpoint or save its signing secret.'}),'text/html; charset=utf-8');
+      }
     }
     if (p.action === 'download-report') {
       // Password, lockout, Origin and CSRF checks above must precede key decryption.
