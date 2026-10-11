@@ -235,10 +235,10 @@ removing a payout bank account is done in the dashboard, which
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `radar_list_fraud_warnings` / `radar_get_fraud_warning` | Early fraud warnings | — | N | R |
-| `radar_list_reviews` / `radar_get_review` / `radar_approve_review` | Payments Radar held for review | — / — / C | N | F |
-| `radar_list_value_lists` / `radar_create_value_list` / `radar_delete_value_list` | Block/allow lists | — / P / C | C | F |
-| `radar_list_list_items` / `radar_add_list_item` / `radar_remove_list_item` | List entries (block an email, card fingerprint, IP) | — / P / C | C | F |
+| `radar_list_fraud_warnings` / `radar_get_fraud_warning` | TEST early fraud warnings, safe amount-free status | — | built #97 | R |
+| `radar_list_reviews` / `radar_get_review` / `radar_approve_review` | Safe TEST reviews and guarded approval planned | — / — / C | reads built #97, approval next | R reads; F approval |
+| `radar_list_value_lists` / `radar_create_value_list` / `radar_delete_value_list` | TEST value list definitions; create/delete later | — / P / C | read built #97; writes next | R read; F writes |
+| `radar_list_list_items` / `radar_add_list_item` / `radar_remove_list_item` | TEST item IDs only (no raw email/card/IP); writes next | — / P / C | list built #97; writes next | R read; F writes |
 | `identity_list_sessions` / `identity_get_session` | ID verification sessions | — | C | F |
 | `identity_create_session` / `identity_cancel_session` | Start or cancel a verification (returns the hosted URL) | P / C | C | F |
 | `identity_redact_session` | Erase a verification's personal data | C | C | F |

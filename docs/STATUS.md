@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-3a Radar safe TEST reads (#97 as-if-merged; exact-head CI pending):** warning/review/status and value-list/item IDs now use six SDK read paths with strict TEST identity/pagination and no IP, email, card, secret or sensitive list values in results. Radar rule endpoint remains intentionally absent. Next **G-3b** guarded Radar review and value-list mutations, then Identity. No LIVE.
+
+
 - **G-2d2 acceptance (#96 as-if-merged; exact-head CI pending):** ordinary USD TEST dispute acceptance now requires independently authenticated owner money-out consent bound to exact du_ dispute and provider-derived cents, shared $500/account/Denver-day cap and distinct owner override above it. Uses irreversible disputes.close, no refund, with lost read-back; unapproved, uncertain or app-owned targets fail closed. G-2 code-complete pending real Stripe TEST evidence; **next G-3 Radar and Identity**. LIVE remains OFF.
 
 
