@@ -17,4 +17,5 @@ import * as creditnoteReads from './creditnotes.js';
 import * as creditnoteWrites from './creditnote-writes.js';
 import * as devSeed from './dev-seed.js';
 import * as devSeedRefund from './dev-refund.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund]);
+import * as devVerify from './dev-verify.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify]);
