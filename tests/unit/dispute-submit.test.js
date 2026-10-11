@@ -1,6 +1,8 @@
 import {describe,it,expect,vi} from 'vitest';
 import {makeDisputeSubmit,tools,handlers} from '../../src/tools/dispute-submit.js';
 import {registry} from '../../src/tools/index.js';
+import {listingForConnection} from '../../src/core/profiles.js';
+import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 const disputeId='du_TEST1234',chargeId='ch_TEST1234',fileId='file_TEST1234';
 const secret='PRIVATE_EVIDENCE_SENTINEL';
@@ -14,7 +16,7 @@ function fixture(options={}){
     ...(options.dispute??{})};
   const provider={disputes:{
     retrieve:vi.fn(async()=>structuredClone(dispute)),
-    update:vi.fn(async(id,params)=>{
+    update:vi.fn(async(id,_params)=>{
       if(options.uncertain)return {object:'dispute',id};
       dispute={...dispute,status:'under_review',evidence_details:{
         ...dispute.evidence_details,submission_count:1}};
@@ -37,6 +39,9 @@ describe('G-2d1 irreversible TEST evidence submission, real handler',()=>{
     expect(tools[0]).toMatchObject({name:'dispute_submit_evidence',writes:true,
       safety:'C',profiles:['everyday','full']});
     expect(registry.tools.filter(x=>x.name==='dispute_submit_evidence')).toHaveLength(1);
+    const f=fixture();
+    expect(listingForConnection(registry,f.ctx.connection,'catalog').map(x=>x.name))
+      .toContain('dispute_submit_evidence');
   });
   it('previews every staged field safely without submitting and only confirms independent readback',async()=>{
     const f=fixture(),args={disputeId,requestKey:'submit-once'};
@@ -89,6 +94,22 @@ describe('G-2d1 irreversible TEST evidence submission, real handler',()=>{
     expect(answer).toMatchObject({done:false,confirmed:false});
     expect(answer.warning).toMatch(/Read-back/);
     expect(answer).not.toHaveProperty('inverse');
+  });
+  it('direct and indirect dispatcher allow only guarded TEST writes, never batched writes',async()=>{
+    const f=fixture();
+    const direct=await dispatchReadOnlyTool({registry,name:'dispute_submit_evidence',
+      args:{disputeId,dryRun:true},connection:f.ctx.connection,db:f.db,
+      services:f.ctx.services});
+    expect(parse(direct).preview).toContain('IRREVERSIBLE');
+    const indirect=await dispatchReadOnlyTool({registry,name:'stripe_call',
+      args:{name:'dispute_submit_evidence',args:{disputeId,dryRun:true}},
+      connection:f.ctx.connection,db:f.db,services:f.ctx.services});
+    expect(parse(indirect).preview).toContain('IRREVERSIBLE');
+    const batch=await dispatchReadOnlyTool({registry,name:'stripe_batch',
+      args:{calls:[{name:'dispute_submit_evidence',args:{disputeId,confirm:true}}]},
+      connection:f.ctx.connection,db:f.db,services:f.ctx.services});
+    expect(batch.isError).toBe(true);
+    expect(f.provider.disputes.update).not.toHaveBeenCalled();
   });
   it('blocks app-owned charge by default, LIVE, read_only and caller-provided submit override',async()=>{
     const f=fixture({chargeMetadata:{agreementId:'protected'}});

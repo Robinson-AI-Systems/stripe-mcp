@@ -72,7 +72,7 @@ export function makeDisputeSubmit(){
   });
 }
 const op=makeDisputeSubmit();
-export const tools=[{...op.tool,area:'disputes',profiles:writeProfiles,
+export const tools=[{...op.tool,area:'disputes',profiles:writeProfiles,safety:'C',
   description:'Irreversibly submit staged TEST dispute evidence only after guarded confirmation.',
   annotations:{destructiveHint:true},
   inputSchema:{type:'object',properties:{...props,dryRun:{type:'boolean'},
