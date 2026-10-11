@@ -18,7 +18,8 @@ function fixture({showEvent=false,foreign=false}={}){
     const id=prefix+'_FAKE123',obj={id,object:type,livemode:false,...body};
     if(type==='price')obj.type='one_time';
     if(type==='payment_intent'){
-      obj.status='succeeded';obj.amount_received=body.amount;
+      obj.status=body.confirm===false?'requires_confirmation':'succeeded';
+      obj.amount_received=body.confirm===false?0:body.amount;
     }
     if(alterTag)obj.metadata={rtc_run:'run_foreign'};
     calls.push({action:'create',type,id,opts,body});
@@ -29,15 +30,28 @@ function fixture({showEvent=false,foreign=false}={}){
     const o=objects.get(id);if(!o)throw Error('Missing TEST provider object '+id);
     return {...o};
   };
+  const mutate=(type,id,fields,opts)=>{
+    if(!opts?.idempotencyKey)throw Error('Missing mutation idempotency');
+    if(byKey.has(opts.idempotencyKey))return byKey.get(opts.idempotencyKey);
+    const before=get(id);
+    if(before.object!==type)throw Error('Wrong provider type for TEST mutation');
+    const changed={...before,...fields};
+    objects.set(id,changed);byKey.set(opts.idempotencyKey,changed);
+    calls.push({action:'mutate',type,id,fields,opts});return changed;
+  };
   const sdk={
     products:{create:async(b,o)=>creates('product','prod',b,o),
-      retrieve:async id=>get(id)},
+      retrieve:async id=>get(id),
+      update:async(id,b,o)=>mutate('product',id,b,o)},
     prices:{create:async(b,o)=>creates('price','price',b,o),
-      retrieve:async id=>get(id)},
+      retrieve:async id=>get(id),
+      update:async(id,b,o)=>mutate('price',id,b,o)},
     customers:{create:async(b,o)=>creates('customer','cus',b,o),
-      retrieve:async id=>get(id)},
+      retrieve:async id=>get(id),
+      update:async(id,b,o)=>mutate('customer',id,b,o)},
     paymentIntents:{create:async(b,o)=>creates('payment_intent','pi',b,o),
-      retrieve:async id=>get(id)},
+      retrieve:async id=>get(id),
+      cancel:async(id,_params,o)=>mutate('payment_intent',id,{status:'canceled'},o)},
     events:{
       list:async({type,limit,...other})=>{
         calls.push({action:'events.list',type,limit,other});
@@ -107,7 +121,8 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(parse(handlers.dev_list_triggers({},f.ctx)).types.map(x=>x.type))
       .toEqual(triggerTypes);
     expect(triggerTypes).toEqual(['customer.created','product.created',
-      'price.created','payment_intent.succeeded']);
+      'price.created','payment_intent.succeeded','customer.updated',
+      'product.updated','price.updated','payment_intent.canceled']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -148,6 +163,26 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(run.status).toBe('completed');
     expect(parse(await op.handler({...args,confirm:true},f.ctx)).done).toBe(true);
     expect(f.calls.filter(x=>x.action==='create')).toHaveLength(creations);
+  });
+  it.each(['customer.updated','product.updated','price.updated',
+    'payment_intent.canceled'])('runs %s as actual idempotent TEST mutation',async type=>{
+    const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
+    const first=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(first.done).toBe(false);
+    expect(f.calls.filter(c=>c.action==='mutate')).toHaveLength(1);
+    const source=f.calls.filter(c=>c.action==='mutate')[0];
+    expect(source.opts.idempotencyKey).toMatch(/^rmcp_/);
+    if(type==='payment_intent.canceled'){
+      expect(f.objects.get('pi_FAKE123')).toMatchObject({status:'canceled',
+        amount_received:0});
+      expect(f.calls.some(c=>c.action==='mutate'&&c.type==='payment_intent'))
+        .toBe(true);
+    }
+    const saved=f.calls.filter(c=>c.action==='create').length;
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(c=>c.action==='create')).toHaveLength(saved);
+    expect(f.calls.filter(c=>c.action==='mutate')).toHaveLength(1);
   });
   it('only payment_intent.succeeded previews synthetic incoming $36, never money-out',async()=>{
     const f=fixture(),a=input('payment_intent.succeeded');
