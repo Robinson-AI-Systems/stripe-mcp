@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same PR makes the older run obsolete: cancel it instead of finishing it (never on main).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
