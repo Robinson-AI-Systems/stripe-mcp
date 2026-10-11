@@ -1,6 +1,9 @@
 // Curated real Stripe TEST events from actual audited provider actions.
 // No fake CLI fixture or simulated event success response.
 import {createHash} from 'node:crypto';
+import {subscriptionEventTypes,isSubscriptionEvent,verifySubscriptionObject,
+  matchingSubscriptionEvent,verifyTrialInvoice,cancelTrialSubscription}
+  from './triggers-subscriptions.js';
 import {mutationTypes,requiresTriggerMutation,mutateEventSource,
   assertMutatedEvent} from './triggers-updates.js';
 const hash=s=>createHash('sha256').update(s).digest('hex');
@@ -9,17 +12,20 @@ const id=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').te
 const ref=x=>typeof x==='string'?x:x?.id;
 export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
-  'payment_intent.succeeded',...mutationTypes
+  'payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
-  payment_intent:'payment_intent'};
-const prefix={customer:'cus',product:'prod',price:'price',payment_intent:'pi'};
+  payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice'};
+const prefix={customer:'cus',product:'prod',price:'price',
+  payment_intent:'pi',subscription:'sub',invoice:'in'};
 const read=async(s,type,providerId)=>{
   switch(type){
     case 'customer':return s.customers.retrieve(providerId);
     case 'product':return s.products.retrieve(providerId);
     case 'price':return s.prices.retrieve(providerId);
     case 'payment_intent':return s.paymentIntents.retrieve(providerId);
+    case 'subscription':return s.subscriptions.retrieve(providerId);
+    case 'invoice':return s.invoices.retrieve(providerId);
     default:bad('Unsupported TEST provider fixture');
   }
 };
@@ -30,7 +36,9 @@ export function planTrigger(a,account){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=a.type.startsWith('price.')?['product','price']:
+  const types=isSubscriptionEvent(a.type)?
+    ['product','price','customer','subscription','invoice']:
+    a.type.startsWith('price.')?['product','price']:
     a.type.startsWith('payment_intent.')?['customer','payment_intent']:
     [a.type.split('.')[0]];
   const steps=types.map(type=>({name:type+'_1',type}))
@@ -47,7 +55,9 @@ function verifyFixture(plan,step,x,objects){
   if(step.type==='price'&&(
     ref(x.product)!==objects.get('product_1')?.object_id||
     x.currency!=='usd'||x.amount!==undefined&&x.amount!==3600||
-    x.unit_amount!==3600||x.type!=='one_time'))
+    x.unit_amount!==3600||
+    (isSubscriptionEvent(plan.type)?
+      x.recurring?.interval!=='month':x.type!=='one_time')))
     bad('TEST event price differs from exact immutable plan');
   if(step.type==='payment_intent'&&(
     x.amount!==3600||x.amount_received!==
@@ -57,6 +67,11 @@ function verifyFixture(plan,step,x,objects){
       x.status!=='succeeded')||ref(x.customer)!==
       objects.get('customer_1')?.object_id))
     bad('Stripe did not independently confirm full TEST card payment');
+  if(step.type==='subscription')verifySubscriptionObject(plan,x,objects);
+  if(step.type==='invoice'&&(
+    x.status!=='paid'||x.amount_paid!==0||x.currency!=='usd'||
+    ref(x.customer)!==objects.get('customer_1')?.object_id))
+    bad('Automatically created TEST trial invoice was not verified');
   return x;
 }
 function matchingEvent(e,plan,account,target){
@@ -66,6 +81,7 @@ function matchingEvent(e,plan,account,target){
     object?.object===target.type&&object.id===target.id&&
     object.metadata?.rtc_run===plan.runId&&
     assertMutatedEvent(plan,object)&&
+    matchingSubscriptionEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
       object.status===(plan.type==='payment_intent.canceled'?
         'canceled':'succeeded')&&object.amount===3600&&
@@ -119,7 +135,9 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
           const product=byStep.get('product_1')?.object_id;
           if(!id(product,'prod'))bad('Verified TEST event product must precede price');
           made=await s.prices.create({
-            product,unit_amount:3600,currency:'usd',metadata},opts);break;
+            product,unit_amount:3600,currency:'usd',metadata,
+            ...(isSubscriptionEvent(plan.type)?{
+              recurring:{interval:'month'}}:{})},opts);break;
         }
         case 'payment_intent':{
           const customer=byStep.get('customer_1')?.object_id;
@@ -129,6 +147,25 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
             confirm:plan.type!=='payment_intent.canceled',metadata,
             description:'Tracked synthetic TEST event charge'
           },opts);break;
+        }
+        case 'subscription':{
+          const customer=byStep.get('customer_1')?.object_id;
+          const price=byStep.get('price_1')?.object_id;
+          if(!id(customer,'cus')||!id(price,'price'))
+            bad('Verified TEST customer and recurring price required');
+          made=await s.subscriptions.create({customer,items:[{price}],
+            trial_period_days:7,collection_method:'charge_automatically',
+            metadata},opts);break;
+        }
+        case 'invoice':{
+          const subscriptionId=byStep.get('subscription_1')?.object_id;
+          const customerId=byStep.get('customer_1')?.object_id;
+          if(!id(subscriptionId,'sub')||!id(customerId,'cus'))
+            bad('Recorded TEST trial required before invoice read');
+          const sub=await s.subscriptions.retrieve(subscriptionId);
+          verifySubscriptionObject(plan,sub,byStep);
+          made=await verifyTrialInvoice(s,sub,plan,customerId,rootKey);
+          break;
         }
         default:bad('Unsupported TEST event action');
       }
@@ -156,11 +193,15 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         bad('Stripe TEST mutation has not independently reached its target state');
     }
   }
-  const target=plan.steps.at(-2);
+  await cancelTrialSubscription(s,plan,byStep,rootKey);
+  const target=isSubscriptionEvent(plan.type)?
+    plan.steps.find(step=>step.type==='subscription'):plan.steps.at(-2);
   const targetId=byStep.get(target.name)?.object_id;
   const customer=byStep.get('customer_1')?.object_id;
   if(!id(targetId,prefix[target.type]))bad('No verified TEST event source exists');
-  const signature={id:targetId,type:target.type,customer};
+  const signature={id:targetId,type:target.type,customer,
+    ...(isSubscriptionEvent(plan.type)?{
+      price:byStep.get('price_1')?.object_id}:{})};
   const old=byStep.get('event_1');
   if(old&&(old.object_type!=='event'||old.cleaned!==false||
     !id(old.object_id,'evt')))
