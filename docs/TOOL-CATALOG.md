@@ -239,8 +239,8 @@ removing a payout bank account is done in the dashboard, which
 | `radar_list_reviews` / `radar_get_review` / `radar_approve_review` | Safe TEST reviews and guarded approval planned | — / — / C | reads built #97, approval built #98 | R reads; F approval |
 | `radar_list_value_lists` / `radar_create_value_list` / `radar_delete_value_list` | TEST value list definitions; create/delete later | — / P / C | read built #97; create built #98; delete built #99 | R read; F writes |
 | `radar_list_list_items` / `radar_add_list_item` / `radar_remove_list_item` | TEST item IDs only (no raw email/card/IP); writes next | — / P / C | list built #97; add/remove built #99 | R read; F writes |
-| `identity_list_sessions` / `identity_get_session` | ID verification sessions | — | C | F |
-| `identity_create_session` / `identity_cancel_session` | Start or cancel a verification (returns the hosted URL) | P / C | C | F |
+| `identity_list_sessions` / `identity_get_session` | TEST identity status only; no verification evidence or client secret | — | built #100 | F |
+| `identity_create_session` / `identity_cancel_session` | TEST session creation with verified hosted URL; cancellation next | P / C | create built #100; cancel next | F |
 | `identity_redact_session` | Erase a verification's personal data | C | C | F |
 
 Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; G-3 checks).

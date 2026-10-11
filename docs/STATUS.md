@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-3d private TEST Identity reads/creation (#100 as-if-merged; exact-head CI pending):** two full-only safe Identity session readers and guarded TEST session creation, explicit confirm/idempotency, provider identity/status/URL read-back, only Stripe verified hosted URL returned; no client_secret, reports or document data in MCP/audit. Next **G-3e** cancel/redact session and G-3 acceptance closure. No LIVE or real TEST account smoke. Session limit: 6 merged this chat only, then resume recurring five-PR handoffs.
+
+
 - **G-3c TEST Radar list lifecycle (#99 as-if-merged; exact-head CI pending):** full-only guarded empty-list deletion, item add and item removal with selected-account TEST preflight, private item value redaction, stable idempotency and deletion tombstones. No silent deletion of nonempty lists. Next **G-3d Identity session reads and guarded creation**, then cancel/redact. No LIVE.
 
 
