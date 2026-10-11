@@ -4,14 +4,15 @@ import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js'
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
   connected_account:'acct',event:'evt',charge:'ch',dispute:'du',
-  invoice_item:'ii'};
+  invoice_item:'ii',checkout_session:'cs_test'};
 const order={subscription:0,invoice:1,payment_intent:2,customer:3,price:4,
   product:5,refund:6,charge:7,dispute:8,event:9,invoice_item:1,
-  connected_account:10,test_clock:11};
+  connected_account:10,test_clock:11,checkout_session:0};
 const types={product:'product',price:'price',customer:'customer',
   subscription:'subscription',invoice:'invoice',payment_intent:'payment_intent',
   refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock',
-  event:'event',charge:'charge',dispute:'dispute',invoice_item:'invoiceitem'};
+  event:'event',charge:'charge',dispute:'dispute',invoice_item:'invoiceitem',
+  checkout_session:'checkout.session'};
 const valid=(value,prefix)=>typeof value==='string'&&
   new RegExp('^'+prefix+'_[A-Za-z0-9]{2,100}$').test(value);
 const fail=x=>{throw new TypeError(x);};
@@ -21,6 +22,8 @@ const maps={product:'products',price:'prices',customer:'customers',
   charge:'charges',dispute:'disputes',invoice_item:'invoiceItems'};
 const fetch=async(s,row)=>row.object_type==='test_clock'?
   s.testHelpers.testClocks.retrieve(row.object_id):
+  row.object_type==='checkout_session'?
+  s.checkout.sessions.retrieve(row.object_id):
   s[maps[row.object_type]].retrieve(row.object_id);
 export async function prepareCleanup(a,ctx){
   const account=ctx?.connection?.stripeAccount,db=ctx?.db;
@@ -104,6 +107,14 @@ export function verifyCleanupIdentity(run,row,obj,rows=[]){
 async function safeOperation(s,row,was,key,ctx,run){
   const opts={idempotencyKey:key},id=row.object_id;
   switch(row.object_type){
+    case 'checkout_session':{
+      if(was.status==='expired')return true;
+      if(was.status!=='open')return false; // completed purchase is immutable
+      const ack=await s.checkout.sessions.expire(id,{},opts);
+      if(ack?.object!=='checkout.session'||ack.id!==id||ack.livemode!==false)
+        return false;
+      return (await s.checkout.sessions.retrieve(id)).status==='expired';
+    }
     case 'subscription':
       if(was.status==='canceled')return true;
       if(!['active','trialing','past_due','unpaid','incomplete']
