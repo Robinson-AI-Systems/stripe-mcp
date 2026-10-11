@@ -15,7 +15,8 @@ export const tools=[
     ...page,customerId:id('cus'),status:{type:'string',
       enum:['draft','open','paid','void','uncollectible']}}),
   def('invoice_get','Inspect a TEST invoice, its customer, totals and status.',
-    {invoiceId:id('in')},['invoiceId']),
+    {invoiceId:id('in'),linesLimit:{type:'integer',minimum:1,maximum:100},
+      linesStartingAfter:{type:'string',minLength:2,maxLength:110}},['invoiceId']),
   def('invoice_search','Search TEST invoices with bounded native Stripe search.',{
     query,limit:page.limit,page:{type:'string',minLength:2,maxLength:200}},['query']),
   def('invoice_list_payments','List payments allocated to one TEST invoice.',{
@@ -54,8 +55,23 @@ export const handlers={
     await s.invoices.list({...paging(a),
       ...(a?.customerId?{customer:checkId(a.customerId,'cus')}:{}),
       ...(a?.status?{status:a.status}:{})}),safeInvoice)),
-  invoice_get:(a,ctx)=>guarded(ctx,async s=>safeInvoice(
-    await s.invoices.retrieve(checkId(a?.invoiceId,'in')))),
+  invoice_get:(a,ctx)=>guarded(ctx,async s=>{
+    const invoiceId=checkId(a?.invoiceId,'in');
+    const invoice=await s.invoices.retrieve(invoiceId);
+    const limit=a?.linesLimit??20;
+    if(!Number.isInteger(limit)||limit<1||limit>100)
+      throw new TypeError('Invoice line page limit must be 1–100');
+    if(a?.linesStartingAfter!==undefined&&
+      !/^il_[A-Za-z0-9]{2,100}$/.test(a.linesStartingAfter))
+      throw new TypeError('Invalid invoice line cursor');
+    const lines=await s.invoices.listLineItems(invoiceId,{limit,
+      ...(a?.linesStartingAfter?{starting_after:a.linesStartingAfter}:{})});
+    if(!Array.isArray(lines?.data)||lines.data.some(l=>!l.id||l.currency!=='usd'))
+      throw new TypeError('Stripe invoice line page unavailable');
+    return {...safeInvoice({...invoice,lines}),
+      nextLineCursor:lines.has_more===true?lines.data.at(-1)?.id??null:null,
+      linesCount:lines.data.length};
+  }),
   invoice_search:(a,ctx)=>guarded(ctx,async s=>{
     const found=await s.invoices.search(search(a));
     if(!Array.isArray(found?.data))throw new TypeError('Invoice search unavailable');

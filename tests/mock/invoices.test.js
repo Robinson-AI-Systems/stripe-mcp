@@ -11,6 +11,7 @@ describe('D-5 current Stripe 23.0.0 invoice request shapes',()=>{
     const s=stripe();
     expect((await s.invoices.list({limit:2,customer})).object).toBe('list');
     expect((await s.invoices.retrieve(invoice)).object).toBe('invoice');
+    expect((await s.invoices.listLineItems(invoice,{limit:2})).object).toBe('list');
     expect((await s.invoices.search({query:"status:'draft'",limit:2})).object)
       .toBe('search_result');
     expect((await s.invoices.createPreview({customer,currency:'usd'})).object)

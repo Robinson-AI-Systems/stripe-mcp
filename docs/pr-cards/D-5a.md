@@ -18,7 +18,7 @@ TOOL-CATALOG invoices, `src/tools/billing-shared.js`, `src/tools/write.js`.
 
 ## Acceptance evidence
 
-- Five invoice reads and five draft writes registered; no old API aliases.
+- Five invoice reads and five draft writes registered; native invoice-get paginates complete provider line items instead of truncating them without a cursor; no old API aliases.
 - All five direct actual write-handler seven-case suites and draft accounting fail-closed regressions: `tests/unit/invoice-write-contract.test.js`.
 - Pinned SDK request-shape tests: `tests/mock/invoices.test.js`.
 - Manual invoice creation excludes unrelated pending items and keeps auto-advance disabled.
