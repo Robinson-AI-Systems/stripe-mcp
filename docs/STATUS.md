@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-5d2 TEST domain registration (#119 as-if-merged; exact-head CI pending):** guarded payment-method domain creation with selected TEST account, exact public hostname, duplicate prevention, idempotency, and independent provider registration readback; no guarantee of activated Apple Pay. Next G-5 automated acceptance/owner TEST smoke gap then G-6 administration. LIVE disabled.
+
 - **G-5d1 native TEST Apple Pay payment-domain reads (#118 as-if-merged, CI pending):** bounded Stripe paymentMethodDomains list with exact TEST identity, safe domain/status projection and honest permission fallback. Stripe's modern payment_method_domains replaces stale Apple Pay-only API terminology. Next guarded add-domain G-5d2; no connected TEST smoke or LIVE.
 
 - **G-5c2 guarded TEST payment-method preference update (#117 as-if-merged, CI pending):** strict direct configuration, preview/confirm/retry, independently re-read selected method, Dashboard fallback on provider refusal. No real own-account Stripe TEST smoke, LIVE disabled. Next G-5d Apple Pay domain reads then guarded addition; G-5 IN_PROGRESS.
