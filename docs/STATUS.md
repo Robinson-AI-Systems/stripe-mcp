@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-3e (#101 as-if-merged; exact-head CI/review pending):** distinct guarded TEST Identity cancellation and irreversible redaction request, with provider state preflights, idempotency, private data withheld and independently re-read outcome. Stripe redaction may remain processing up to four days; no premature completed-erasure claim. **Next:** G-3 batch closure (DRIFT C), then G-4 events/webhooks JIT. LIVE disabled; genuine Stripe TEST smoke remains pending.
+
+
 - **G-3d private TEST Identity reads/creation (#100 as-if-merged; exact-head CI pending):** two full-only safe Identity session readers and guarded TEST session creation, explicit confirm/idempotency, provider identity/status/URL read-back, only Stripe verified hosted URL returned; no client_secret, reports or document data in MCP/audit. Next **G-3e** cancel/redact session and G-3 acceptance closure. No LIVE or real TEST account smoke. Session limit: 6 merged this chat only, then resume recurring five-PR handoffs.
 
 
