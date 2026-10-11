@@ -5,7 +5,7 @@ import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {registry} from '../../src/tools/index.js';
 const acct='acct_safefixture',topupId='tu_FAKE1234';
 const parse=r=>JSON.parse(r.content[0].text);
-function fixture({appOwned=false,readBackMatches=true,limitCents=10000}={},name='money_create_topup'){
+function fixture({appOwned=false,readBackMatches=true,limitCents=10000}={}){
   const provider={writes:[],afterCalls:0};
   const db=createFakeDb({accounts:[{id:acct,label:'Fixture',money_limit_cents:limitCents}]});
   let current={object:'topup',id:topupId,livemode:false,status:'pending',
@@ -20,7 +20,7 @@ function fixture({appOwned=false,readBackMatches=true,limitCents=10000}={},name=
         return {...current};
       },
       async create(p,opts){
-        provider.writes.push({type:'create',payload:p,key:opts.idempotencyKey});
+        provider.writes.push({type:'create',payload:p,idempotencyKey:opts.idempotencyKey});
         created={id:'tu_NEW1234',object:'topup',amount:p.amount,
           currency:'usd',livemode:false,status:'pending',source:null};
         return {...created};
@@ -40,12 +40,12 @@ describe('G-1c4 owner-approved synthetic TEST top-up',()=>{
   runWriteContract({withMoney:true,strictArgs:true,createOnly:true,
     args:{amountCents:8500},
     tool:()=>makeTopupWrite('money_create_topup'),
-    fixtures:f=>fixture(f,'money_create_topup')});
+    fixtures:fixture});
 });
 describe('G-1c4 pending TEST top-up cancellation',()=>{
   runWriteContract({withMoney:false,strictArgs:true,
     args:{topupId},tool:()=>makeTopupWrite('money_cancel_topup'),
-    fixtures:f=>fixture(f,'money_cancel_topup')});
+    fixtures:fixture});
 });
 it('tool descriptions and profiles expose exactly guarded owner actions',()=>{
   expect(tools.map(x=>x.name)).toEqual(['money_create_topup','money_cancel_topup']);

@@ -34,7 +34,7 @@ function make(def){
   return defineWrite({
     name:def.name,
     read:(a,ctx)=>target(def,a,ctx),
-    summarize:(b,a)=>def.money?
+    summarize:(b,_a)=>def.money?
       'TEST MODE. Initiate synthetic bank top-up $'+(b.amount/100).toFixed(2)+
       ' USD to selected account '+b.id+' using fixed Stripe TEST source '+
       syntheticBank+'. Independent owner approval is required; no real bank selected.':
