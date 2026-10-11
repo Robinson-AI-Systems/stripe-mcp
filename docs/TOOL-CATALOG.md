@@ -204,15 +204,15 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `money_get_balance` | Available and pending, per currency, in dollars | — | C | R |
-| `money_list_balance_transactions` / `money_get_balance_transaction` | Every money movement with fees | — | C/R | R |
-| `money_list_payouts` / `money_get_payout` | Payouts and arrival dates | — | C | R |
-| `money_list_payout_transactions` | What made up one payout (for matching to the bank statement) | — | N | R |
+| `money_get_balance` | TEST available/pending by currency, provider minor units | — | built #79 | R |
+| `money_list_balance_transactions` / `money_get_balance_transaction` | TEST balance transactions with validated fees/net | — | built #79 | R |
+| `money_list_payouts` / `money_get_payout` | TEST payout amount, status, arrival and destination ID only | — | built #79 | R |
+| `money_list_payout_transactions` | TEST automatic payout balance transactions (manual payouts refused) | — | built #79 | R |
 | `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts | $ / C / C | C | F |
 | `money_update_payout` | Payout metadata | P | C | F |
 | `money_get_payout_schedule` / `money_set_payout_schedule` | Daily/weekly/monthly, delay days | — / C | N | F |
 | `money_list_bank_accounts` | Bank accounts payouts go to (last 4 only) | — | C | R |
-| `money_list_topups` / `money_get_topup` | Top-ups | — | C | F |
+| `money_list_topups` / `money_get_topup` | TEST top-up reads, no bank/source leakage | — | built #79 | F |
 | `money_create_topup` / `money_cancel_topup` | Top-ups | $ / C | C | F |
 
 Removed on purpose: `stripe_create_bank_account`, `stripe_verify_bank_account`,
