@@ -494,6 +494,31 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(f.ledger.get([...f.runs.values()][0].id)
       .some(x=>x.object_type==='event')).toBe(false);
   });
+  it('reads only the exact run-owned Stripe-hosted TEST Checkout URL',async()=>{
+    const f=fixture(),a=input('checkout.session.completed');
+    expect(parse(await makeDevTriggerEventWrite().handler({...a,confirm:true},
+      f.ctx)).done).toBe(false);
+    const run=[...f.runs.values()][0];
+    const first=parse(await handlers.dev_get_checkout_test_url({
+      runId:run.id},f.ctx));
+    expect(first.hostedTestUrl).toBe(
+      'https://checkout.stripe.com/c/pay/cs_test_FAKE123');
+    expect(first.checkoutStatus).toBe('open');
+    expect((await handlers.dev_get_checkout_test_url({
+      runId:'run_'+'f'.repeat(24)},f.ctx)).isError).toBe(true);
+    f.ctx.connection.stripeAccount='acct_OTHER';
+    expect((await handlers.dev_get_checkout_test_url({
+      runId:run.id},f.ctx)).isError).toBe(true);
+    f.ctx.connection.stripeAccount='acct_FAKE123';
+    f.completeCheckout();
+    const completed=parse(await handlers.dev_get_checkout_test_url({
+      runId:run.id},f.ctx));
+    expect(completed.hostedTestUrl).toBeNull();
+    expect(completed.checkoutStatus).toBe('complete');
+    f.ctx.connection.mode='live';
+    expect((await handlers.dev_get_checkout_test_url({
+      runId:run.id},f.ctx)).isError).toBe(true);
+  });
   it('keeps hosted TEST Checkout pending until real session and PI are paid and Event observed',async()=>{
     const f=fixture(),a=input('checkout.session.completed');
     const op=makeDevTriggerEventWrite();
