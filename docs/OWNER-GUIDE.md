@@ -131,3 +131,7 @@ When a TEST Stripe account is securely connected with the necessary key permissi
 ### G-4b — Inspect TEST webhook endpoints (#104)
 
 Once a TEST Stripe account is connected, ask which webhook endpoints are enabled and which event types each subscribes to. The reads provide status, a safe destination origin and bounded event names/count; they never reveal a signing secret, full destination path/query or other private endpoint configuration. They cannot create, modify or delete endpoints. Real connected TEST-account evidence remains pending; LIVE is OFF.
+
+### G-4c — Add/remove TEST webhook event subscriptions (#105)
+
+With a connected TEST account and write-capable profile, ask to add or remove one to eight named webhook event types. Preview/confirm is mandatory; the tools preserve unrelated subscriptions, refuse wildcard/Connect or protected application endpoints, and independently verify Stripe’s final complete event set. Endpoint paths and signing secrets never appear in tool output or audit. These tests have CI evidence only; no account-connected TEST smoke has been performed. LIVE remains disabled.
