@@ -5,6 +5,11 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **PR #40 CI correction in progress at a0b43b2:** first CI run revealed a Stripe SDK string-shape error
+  (`billing_cycle_anchor`), four lint errors, and stale expected tool counts in three unit suites. These are
+  ordinary fixable failures, not an owner gate. Correcting in one batch; wait for exact-head green before merge.
+  Anti-stall instructions strengthened to require CI-first recovery and honest execution checkpoints.
+
 - **D-4 in progress — PR #40 (first of two substantial slices):** seven TEST subscription/schedule reads and seven guarded subscription writes built with item periods, native invoice previews and exact read-back. Remaining D-4: three item and four schedule mutations in the immediate successor PR; then D-5. **These statements describe the tree in PR #40, not yet a merged or deployed capability.** No LIVE writes or real Stripe credentials enabled.
 
 

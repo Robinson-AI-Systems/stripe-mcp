@@ -39,7 +39,7 @@ describe('D-4 official Stripe 23.0.0 subscription requests',()=>{
       proration_date:1791676800,payment_behavior:'error_if_incomplete'
     },opts)).object).toBe('subscription');
     expect((await s.subscriptions.update(sub,{
-      billing_cycle_anchor:{type:'now'},
+      billing_cycle_anchor:'now',
       proration_behavior:'none',proration_date:1791676800
     },opts)).object).toBe('subscription');
   });

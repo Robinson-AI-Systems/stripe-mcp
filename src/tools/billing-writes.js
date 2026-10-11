@@ -2,7 +2,7 @@
 import {defineWrite,gone} from './write.js';
 import {client,ref,checkId,id,quantity,timestamp,proration,ownership,
   optionalMetadata,validateFields,ensureSubscription,safeRecurringPrice,
-  positiveTotal,previewSafe,previewChange,writeProfiles,fullProfiles}
+  positiveTotal,previewSafe,previewChange,writeProfiles}
   from './billing-shared.js';
 
 const text=n=>({type:'string',minLength:1,maxLength:n});
@@ -183,7 +183,7 @@ function build(def){
             ...(a.description!==undefined?{description:a.description}:{}),
             ...(a.metadata?{metadata:a.metadata}:{}),
             ...(a.defaultPaymentMethod?{default_payment_method:a.defaultPaymentMethod}:{}),
-            ...(a.billingAnchor?{billing_cycle_anchor:{type:a.billingAnchor},
+            ...(a.billingAnchor?{billing_cycle_anchor:a.billingAnchor,
               proration_behavior:a.prorationBehavior,proration_date:a.effectiveAt,
               payment_behavior:'error_if_incomplete'}:{})
           },opts);break;
@@ -207,7 +207,7 @@ function build(def){
         default:throw new TypeError('Unknown subscription write');
       }
     },
-    readAfter:async(a,ctx,b)=>{
+    readAfter:async(a,ctx)=>{
       const s=await client(ctx);
       if(def.name==='billing_create_subscription'){
         if(!created?.id)return null;

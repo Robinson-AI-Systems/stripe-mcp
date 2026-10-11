@@ -78,7 +78,7 @@ function fixture({appOwned,readBackMatches,limitCents},name){
         if(args.metadata)next.metadata={...next.metadata,...args.metadata};
         if(args.default_payment_method)
           next.default_payment_method=args.default_payment_method;
-        if(args.billing_cycle_anchor?.type==='now')
+        if(args.billing_cycle_anchor==='now')
           next.billing_cycle_anchor=1791676800;
         if(args.items)next.items={data:next.items.data.map(i=>i.id===itemId?
           {...i,price:prices[args.items[0].price],quantity:args.items[0].quantity}:i),

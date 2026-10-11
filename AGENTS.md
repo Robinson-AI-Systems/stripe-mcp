@@ -30,6 +30,16 @@ sections below when a step names them.
 9. **External waits are checkpoints, not a loop** (PLAYBOOK Step 10).
 10. **Two-lane conveyor:** lane A builds the current card and its immediate successor; lane B handles CI/review/merge of
     the predecessor. At most two unmerged implementation PRs in a chain.
+11. **Resume the failing PR first.** At session start or after any interruption, inspect open PRs and exact-head CI
+    before new development. A red check is an engineering task, never a reason to await Chris. Read all failed-job
+    logs, fix the distinct causes in one correction batch, and rerun the normal gates; never dismiss a red as a stall.
+12. **Catch integration ripple before pushing.** New tools require registry name/count/profile test updates and
+    guarded indirect-call tests; new Stripe params require pinned-SDK/stripe-mock validation. Run lint and targeted
+    tests after each coherent unit. If the workspace cannot execute tests, use CI as the execution environment and
+    clearly label unverified work; do not claim local tests passed.
+13. **Checkpoint for interrupted sessions.** Before yielding, write exact branch/head, PR, red/pending gates, the
+    first failing command and next corrective action in the card resume note and STATUS. Never end at 'CI pending'
+    when eligible local corrections, independent tests or immediate-successor work remain.
 
 ## What this is
 
