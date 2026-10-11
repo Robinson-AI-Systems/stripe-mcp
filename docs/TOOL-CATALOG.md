@@ -208,7 +208,7 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `money_list_balance_transactions` / `money_get_balance_transaction` | TEST balance transactions with validated fees/net | — | built #79 | R |
 | `money_list_payouts` / `money_get_payout` | TEST payout amount, status, arrival and destination ID only | — | built #79 | R |
 | `money_list_payout_transactions` | TEST automatic payout balance transactions (manual payouts refused) | — | built #79 | R |
-| `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts; TEST pending manual cancel guarded | $ / C / $ | cancel built #81; create/reverse pending | F |
+| `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts; TEST pending manual cancel guarded | $ / C / $ | cancel built #81; create built #82 (CI pending); reverse pending | F |
 | `money_update_payout` | TEST payout metadata only, guarded | P | built #81 (CI pending) | F |
 | `money_get_payout_schedule` / `money_set_payout_schedule` | TEST own-account schedule read (built #80); change is planned with owner guard | — / C | built read #80; write pending | F |
 | `money_list_bank_accounts` | TEST own-account payout destinations, last4 only; explicit unavailable on Connect-only API denial | — | built #80 | R |

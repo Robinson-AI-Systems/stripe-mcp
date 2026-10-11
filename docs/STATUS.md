@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-1c2 TEST owner-approved manual payout creation (#82 as-if-merged; CI pending):** exact account and verified bank identity, checked USD source-type balance, full-only guarded write, independent authenticated owner grant, shared $500/day limit and override, idempotency and post-write payout read-back. No live payout or bank debit. Next G-1c3 bank-debit reversal, G-1c4 top-ups and G-1d reports.
+
 - **G-1c1 payout metadata and pending manual cancellation (#81 as-if-merged, exact-head CI pending):** TEST-only full-profile writes with defineWrite, confirmation, idempotency, app protection and provider read-back. No payout created, bank debited or money-out made. Next G-1c2 independent owner-approved payout creation/reversal, then G-1c3 top-ups and G-1d reports.
 
 - **G-1b bank-account masking and payout schedule reads PR #80 (as-if-merged; exact-head CI pending):** two new TEST-only safe account-scoped readers. Stripe's external account endpoint is Connect-oriented; if own account lacks API access, report unavailable and point to dashboard rather than inventing empty bank results. Last4-only bank outputs, no routing/account numbers. **After #80 merge: stop for new chat as owner requested. Next G-1c** owner-approved payout/topup money-out writes; preserve independent owner intent for every amount and shared $500/day threshold/override.
