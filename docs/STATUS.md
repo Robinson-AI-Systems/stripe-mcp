@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-1f secure TEST report-result file verification (#88 as-if-merged; exact-head CI pending):** a report run must be succeeded and match an actual finance_report_run file on the selected TEST account. Only size/type/name/ID are projected; no private provider URL or CSV bytes leak. Owner-secure CSV delivery remains G-1g, so G-1 is NOT yet closed. Next G-1g owner-only authenticated export and then G-2 dispute reads. New session contract: maximum **5 merged PRs per chat**, then a complete recursive continuation prompt. This chat's earlier 7 merges occurred before the rule changed; finish #88 only and stop.
+
 - **G-1e TEST payout schedule setter with guided refusal (#87 as-if-merged, CI pending):** full-only guarded attempt for own account, pending/denied results include TEST dashboard steps; no claims without read-back. Weekly/monthly anchors validated. Next G-1f report export evidence and G-1 completion, then G-2 disputes.
 
 - **G-1d2 guarded TEST report-run creation (#86 as-if-merged, CI pending):** full-only preview/confirm/audit/idempotency, provider type-availability/interval validation, asynchronous create/read-back and exact job ID/status, no fabricated completed report or CSV URL. Next G-1e payout schedule setter; then report export and G-1 completion/G-2.
