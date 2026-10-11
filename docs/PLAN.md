@@ -41,6 +41,7 @@ next bounded implementation.
 - [ ] Regression tests for audit bugs 1, 3, 4, 5. The historical toolkit audit is a feature-coverage checklist only; no legacy aliases or name map.
 
 ## Batch V — Developer tools (`designs/BATCH-V.md`)
+- [ ] V-3c3a: genuine synthetic TEST payment_intent.payment_failed through separately recorded unconfirmed intent, actual declined card confirmation, zero received amount and independently verified original Stripe Event. V-3c3b invoices/disputes/Checkout remain.
 - [ ] V-3c2 (#62): TEST-only real zero-amount invoice.created/updated/finalized events, tracked non-auto-advancing invoices, provider/Event read-back and metadata/source/status/zero-money verification. V-3c3 failures/disputes/Checkout remain.
 - [ ] V-3c1 (#61): real seven-day TEST trial customer.subscription.created/deleted events; linked zero-paid invoice tagged and ledger-tracked; actual cancel + independently retrieved Stripe Event with exact source/price/status. Other billing/dispute/Checkout event paths V-3c2 remain.
 - [ ] V-3b (#60): real TEST customer.updated, product.updated, price.updated and payment_intent.canceled events via idempotent native provider actions and exact event/read-back verification. More billing/dispute/Checkout types V-3c remain.

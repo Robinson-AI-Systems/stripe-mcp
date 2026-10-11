@@ -51,7 +51,14 @@ function fixture({showEvent=false,foreign=false}={}){
       update:async(id,b,o)=>mutate('customer',id,b,o)},
     paymentIntents:{create:async(b,o)=>creates('payment_intent','pi',b,o),
       retrieve:async id=>get(id),
-      cancel:async(id,_params,o)=>mutate('payment_intent',id,{status:'canceled'},o)},
+      cancel:async(id,_params,o)=>mutate('payment_intent',id,{status:'canceled'},o),
+      confirm:async(id,p,o)=>{
+        if(p.payment_method!=='pm_card_chargeCustomerFail')
+          throw Error('Wrong synthetic TEST declined card');
+        await mutate('payment_intent',id,{status:'requires_payment_method',
+          last_payment_error:{code:'card_declined',type:'card_error'}},o);
+        throw Object.assign(new Error('TEST card declined'),{code:'card_declined'});
+      }},
     subscriptions:{
       create:async(b,o)=>{
         const invoice=creates('invoice','in',{status:'paid',amount_paid:0,
@@ -151,7 +158,8 @@ describe('V-3a real TEST provider event generation',()=>{
       'price.created','payment_intent.succeeded','customer.updated',
       'product.updated','price.updated','payment_intent.canceled',
       'customer.subscription.created','customer.subscription.deleted',
-      'invoice.created','invoice.updated','invoice.finalized']);
+      'invoice.created','invoice.updated','invoice.finalized',
+      'payment_intent.payment_failed']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -289,6 +297,48 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(denied.done).toBe(false);
     expect([...f.runs.values()][0].status).toBe('running');
     expect(f.ledger.size).toBe(0);
+  });
+  it('verifies real declined TEST attempt, exact event and safe idempotent retry',async()=>{
+    const f=fixture(),a=input('payment_intent.payment_failed');
+    const op=makeDevTriggerEventWrite();
+    const preview=parse(await op.handler({...a,dryRun:true},f.ctx));
+    expect(preview.preview).not.toContain('Money in: $36.00');
+    const first=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(first.done).toBe(false);
+    expect(f.objects.get('pi_FAKE123')).toMatchObject({
+      status:'requires_payment_method',amount_received:0,
+      last_payment_error:{code:'card_declined'}});
+    expect(f.ledger.get([...f.runs.values()][0].id)
+      .map(x=>x.object_type)).toEqual(['customer','payment_intent']);
+    expect(f.calls.filter(x=>x.action==='mutate'&&
+      x.type==='payment_intent')).toHaveLength(1);
+    expect(f.calls.filter(x=>x.action==='create'&&
+      x.type==='payment_intent')[0].body).not.toHaveProperty('payment_method');
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(x=>x.action==='mutate'&&
+      x.type==='payment_intent')).toHaveLength(1);
+    expect(f.ledger.get([...f.runs.values()][0].id).at(-1).object_type)
+      .toBe('event');
+  });
+  it('does not verify a payment failure on unexpected provider error',async()=>{
+    const f=fixture({showEvent:true}),a=input('payment_intent.payment_failed');
+    f.sdk.paymentIntents.confirm=async()=>{throw Error('Stripe network unavailable');};
+    const result=parse(await makeDevTriggerEventWrite().handler({
+      ...a,confirm:true},f.ctx));
+    expect(result.done).toBe(false);
+    expect([...f.runs.values()][0].status).toBe('running');
+    expect(f.ledger.get([...f.runs.values()][0].id)
+      .some(x=>x.object_type==='event')).toBe(false);
+  });
+  it('cannot verify a fabricated payment failure without Stripe decline',async()=>{
+    const f=fixture({showEvent:true}),a=input('payment_intent.payment_failed');
+    f.sdk.paymentIntents.confirm=async(id,_p,o)=>
+      f.sdk.paymentIntents.cancel(id,{},o);
+    const result=parse(await makeDevTriggerEventWrite().handler({
+      ...a,confirm:true},f.ctx));
+    expect(result.done).toBe(false);
+    expect([...f.runs.values()][0].status).toBe('running');
   });
   it('only payment_intent.succeeded previews synthetic incoming $36, never money-out',async()=>{
     const f=fixture(),a=input('payment_intent.succeeded');

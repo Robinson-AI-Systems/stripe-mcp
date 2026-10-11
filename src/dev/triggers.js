@@ -9,6 +9,8 @@ import {subscriptionEventTypes,isSubscriptionEvent,verifySubscriptionObject,
   from './triggers-subscriptions.js';
 import {mutationTypes,requiresTriggerMutation,mutateEventSource,
   assertMutatedEvent} from './triggers-updates.js';
+import {failedPaymentEventTypes,isFailedPaymentEvent,verifyFailedPayment,
+  ensureFailedPayment,matchesFailedPaymentEvent} from './triggers-failures.js';
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const bad=x=>{throw new TypeError(x);};
 const id=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').test(v);
@@ -16,7 +18,7 @@ const ref=x=>typeof x==='string'?x:x?.id;
 export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
   'payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
-  ...invoiceEventTypes
+  ...invoiceEventTypes,...failedPaymentEventTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice'};
@@ -66,12 +68,17 @@ function verifyFixture(plan,step,x,objects){
     bad('TEST event price differs from exact immutable plan');
   if(step.type==='payment_intent'&&(
     x.amount!==3600||x.amount_received!==
-      (plan.type==='payment_intent.canceled'?0:3600)||x.currency!=='usd'||
-    (plan.type==='payment_intent.canceled'?
+      (plan.type==='payment_intent.canceled'||isFailedPaymentEvent(plan.type)?0:3600)||
+    x.currency!=='usd'||
+    (isFailedPaymentEvent(plan.type)?
+      !['requires_confirmation','requires_payment_method'].includes(x.status):
+      plan.type==='payment_intent.canceled'?
       !['requires_confirmation','canceled'].includes(x.status):
       x.status!=='succeeded')||ref(x.customer)!==
       objects.get('customer_1')?.object_id))
     bad('Stripe did not independently confirm full TEST card payment');
+  if(isFailedPaymentEvent(plan.type)&&step.type==='payment_intent')
+    verifyFailedPayment(plan,x,objects.get('customer_1')?.object_id);
   if(step.type==='subscription')verifySubscriptionObject(plan,x,objects);
   if(step.type==='invoice'){
     if(isInvoiceEvent(plan.type))verifyInvoiceFixture(plan,x,objects);
@@ -90,10 +97,13 @@ function matchingEvent(e,plan,account,target){
     assertMutatedEvent(plan,object)&&
     matchingSubscriptionEvent(plan,object,target)&&
     matchesInvoiceEvent(plan,object,target)&&
+    matchesFailedPaymentEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
-      object.status===(plan.type==='payment_intent.canceled'?
+      object.status===(isFailedPaymentEvent(plan.type)?
+        'requires_payment_method':plan.type==='payment_intent.canceled'?
         'canceled':'succeeded')&&object.amount===3600&&
-      object.amount_received===(plan.type==='payment_intent.canceled'?0:3600)&&
+      object.amount_received===(plan.type==='payment_intent.canceled'||
+        isFailedPaymentEvent(plan.type)?0:3600)&&
       object.currency==='usd'&&ref(object.customer)===target.customer));
 }
 export async function findGeneratedEvent(s,plan,account,target){
@@ -151,8 +161,10 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
           const customer=byStep.get('customer_1')?.object_id;
           if(!id(customer,'cus'))bad('Verified TEST event customer must precede payment');
           made=await s.paymentIntents.create({
-            customer,amount:3600,currency:'usd',payment_method:'pm_card_visa',
-            confirm:plan.type!=='payment_intent.canceled',metadata,
+            customer,amount:3600,currency:'usd',
+            ...(isFailedPaymentEvent(plan.type)?{}:{payment_method:'pm_card_visa'}),
+            confirm:plan.type!=='payment_intent.canceled'&&
+              !isFailedPaymentEvent(plan.type),metadata,
             description:'Tracked synthetic TEST event charge'
           },opts);break;
         }
@@ -200,6 +212,12 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         throw Error('Created TEST provider object could not be durably recorded');
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
+    }
+    if(isFailedPaymentEvent(plan.type)&&step.type==='payment_intent'){
+      await ensureFailedPayment(s,plan,after,
+        byStep.get('customer_1')?.object_id,rootKey);
+      const failed=await read(s,step.type,resourceId);
+      verifyFailedPayment(plan,failed,byStep.get('customer_1')?.object_id,true);
     }
     if(isInvoiceEvent(plan.type)&&step.type==='invoice'){
       await mutateInvoiceForEvent(s,plan,after,rootKey);
