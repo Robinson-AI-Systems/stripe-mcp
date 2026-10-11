@@ -88,13 +88,31 @@ function fixture({showEvent=false,foreign=false}={}){
       retrieve:async id=>get(id),
       cancel:async(id,_params,o)=>mutate('subscription',id,{status:'canceled'},o)
     },
+    invoiceItems:{
+      create:async(b,o)=>{
+        const item=creates('invoiceitem','ii',b,o);
+        const inv=get(b.invoice);
+        objects.set(inv.id,{...inv,amount_due:3600,amount_remaining:3600});
+        return item;
+      },
+      retrieve:async id=>get(id)
+    },
     invoices:{
       create:async(b,o)=>creates('invoice','in',{...b,status:'draft',
-        amount_due:0,amount_paid:0},o),
+        amount_due:0,amount_remaining:0,amount_paid:0,
+        attempted:false,attempt_count:0},o),
       retrieve:async id=>get(id),
       update:async(id,b,o)=>mutate('invoice',id,b,o),
       finalizeInvoice:async(id,_params,o)=>mutate('invoice',id,
-        {status:'paid',auto_advance:false},o)
+        {status:get(id).amount_due===3600?'open':'paid',auto_advance:false},o),
+      pay:async(id,p,o)=>{
+        if(p.payment_method!=='pm_card_chargeCustomerFail')
+          throw Error('Unexpected TEST failed-invoice payment method');
+        await mutate('invoice',id,{status:'open',attempted:true,
+          attempt_count:1,amount_due:3600,amount_remaining:3600,
+          amount_paid:0},o);
+        throw Object.assign(new Error('TEST invoice decline'),{code:'card_declined'});
+      }
     },
     events:{
       list:async({type,limit,...other})=>{
@@ -188,7 +206,8 @@ describe('V-3a real TEST provider event generation',()=>{
       'product.updated','price.updated','payment_intent.canceled',
       'customer.subscription.created','customer.subscription.deleted',
       'invoice.created','invoice.updated','invoice.finalized',
-      'payment_intent.payment_failed','charge.dispute.created']);
+      'payment_intent.payment_failed','charge.dispute.created',
+      'invoice.payment_failed']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -407,6 +426,47 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(result.done).toBe(false);
     expect([...f.ledger.values()][0].some(x=>x.object_type==='dispute'))
       .toBe(false);
+  });
+  it('creates one TEST $36 invoice item and positively observes native invoice failure',async()=>{
+    const f=fixture(),a=input('invoice.payment_failed'),op=makeDevTriggerEventWrite();
+    const preview=parse(await op.handler({...a,dryRun:true},f.ctx));
+    expect(preview.preview).not.toContain('Money in: $36.00');
+    const first=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(first.done).toBe(false);
+    const run=[...f.runs.values()][0];
+    expect(run.status).toBe('running');
+    expect(f.ledger.get(run.id).map(x=>x.object_type))
+      .toEqual(['customer','invoice','invoice_item']);
+    expect(f.objects.get('ii_FAKE123')).toMatchObject({
+      invoice:'in_FAKE123',customer:'cus_FAKE123',amount:3600,
+      metadata:{rtc_run:run.id}});
+    expect(f.objects.get('in_FAKE123')).toMatchObject({
+      status:'open',amount_due:3600,amount_remaining:3600,amount_paid:0,
+      attempted:true,attempt_count:1,metadata:{rtc_run:run.id}});
+    expect(f.calls.filter(x=>x.action==='mutate'&&x.type==='invoice'))
+      .toHaveLength(2);
+    const created=f.calls.filter(x=>x.action==='create').length;
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(created);
+    expect(f.calls.filter(x=>x.action==='mutate'&&x.type==='invoice'))
+      .toHaveLength(2);
+    expect(f.ledger.get(run.id).at(-1).object_type).toBe('event');
+  });
+  it('refuses successful/foreign attempted TEST invoice state as payment failure',async()=>{
+    const f=fixture({showEvent:true}),a=input('invoice.payment_failed');
+    const original=f.sdk.invoices.pay;
+    f.sdk.invoices.pay=async(id,_b,o)=>{
+      await original(id,{payment_method:'pm_card_chargeCustomerFail'},o)
+        .catch(()=>{});
+      f.objects.set(id,{...f.objects.get(id),status:'paid',
+        amount_paid:3600,amount_remaining:0});
+      return f.objects.get(id);
+    };
+    const r=parse(await makeDevTriggerEventWrite().handler({...a,confirm:true},f.ctx));
+    expect(r.done).toBe(false);
+    expect(f.ledger.get([...f.runs.values()][0].id)
+      .some(x=>x.object_type==='event')).toBe(false);
   });
   it('only payment_intent.succeeded previews synthetic incoming $36, never money-out',async()=>{
     const f=fixture(),a=input('payment_intent.succeeded');

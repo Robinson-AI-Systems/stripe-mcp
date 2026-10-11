@@ -3,21 +3,22 @@ import {APP_METADATA_KEYS} from '../tools/app-guard.js';
 import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
-  connected_account:'acct',event:'evt',charge:'ch',dispute:'du'};
+  connected_account:'acct',event:'evt',charge:'ch',dispute:'du',
+  invoice_item:'ii'};
 const order={subscription:0,invoice:1,payment_intent:2,customer:3,price:4,
-  product:5,refund:6,charge:7,dispute:8,event:9,
+  product:5,refund:6,charge:7,dispute:8,event:9,invoice_item:1,
   connected_account:10,test_clock:11};
 const types={product:'product',price:'price',customer:'customer',
   subscription:'subscription',invoice:'invoice',payment_intent:'payment_intent',
   refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock',
-  event:'event',charge:'charge',dispute:'dispute'};
+  event:'event',charge:'charge',dispute:'dispute',invoice_item:'invoiceitem'};
 const valid=(value,prefix)=>typeof value==='string'&&
   new RegExp('^'+prefix+'_[A-Za-z0-9]{2,100}$').test(value);
 const fail=x=>{throw new TypeError(x);};
 const maps={product:'products',price:'prices',customer:'customers',
   subscription:'subscriptions',invoice:'invoices',payment_intent:'paymentIntents',
   refund:'refunds',connected_account:'accounts',event:'events',
-  charge:'charges',dispute:'disputes'};
+  charge:'charges',dispute:'disputes',invoice_item:'invoiceItems'};
 const fetch=async(s,row)=>row.object_type==='test_clock'?
   s.testHelpers.testClocks.retrieve(row.object_id):
   s[maps[row.object_type]].retrieve(row.object_id);
@@ -110,6 +111,8 @@ async function safeOperation(s,row,was,key,ctx,run){
       await s.subscriptions.cancel(id,{invoice_now:false,prorate:false},opts);
       return (await s.subscriptions.retrieve(id)).status==='canceled';
     case 'invoice':
+      // Failed collection and Event snapshots remain financial evidence.
+      if(run.scenario==='event-invoice-payment-failed')return false;
       if(was.status==='void'||was.deleted===true)return true;
       if(was.status==='paid')return false; // immutable payment evidence
       if(was.status==='open'){
@@ -141,7 +144,8 @@ async function safeOperation(s,row,was,key,ctx,run){
     // dependents and require the separate V-2b risk-reviewed deletion paths.
     case 'connected_account':return cleanupTestConnectSeller(s,was,opts);
     case 'test_clock':return cleanupTestClock(s,was,ctx,run.id,opts);
-    case 'refund':case 'event':case 'charge':case 'dispute':return false;
+    case 'refund':case 'event':case 'charge':case 'dispute':
+    case 'invoice_item':return false;
     default:fail('Unrecognized cleanup type');
   }
 }

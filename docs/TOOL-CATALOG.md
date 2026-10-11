@@ -273,7 +273,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_verify_outcomes` | Verify actual run-owned TEST dispute events, ACH state and exact succeeded event; never infer settlement or webhook delivery | — | built #51/#55 | R |
 | `dev_cleanup` | Safely clean recorded TEST IDs, with zero-balance seller and dependency-free clock deletion; immutable money retained | C | built #57/#58 | E |
 | `dev_reset_test_data` | Owner-guided TEST Dashboard reset, no fake bulk-delete API | — | V-2a #57 | R |
-| `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (fifteen types through V-3c3b; additional curated types later) | — / P | V-3a #59 / V-3b #60 / V-3c1 #61 / V-3c2 #62 / V-3c3a #63 / V-3c3b (native dispute); more pending | E |
+| `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (sixteen types through V-3c3c; additional curated types later) | — / P | V-3a #59 / V-3b #60 / V-3c1 #61 / V-3c2 #62 / V-3c3a #63 / V-3c3b #64 / V-3c3c (native failed invoice); more pending | E |
 | `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | A target URL for an app under development; its signing secret shown once on the setup page | C / — / C | N | E |
 | `dev_forward_events` | Send real events (by ID, type or time) to a forwarder, correctly signed — replay into a local or preview app without the Stripe CLI | P | N | E |
 | `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
