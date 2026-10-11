@@ -274,7 +274,9 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_list_triggers` / `dev_trigger_event` | Make Stripe emit a real test event (~30 common types) by doing the real test-mode action | — / P | N | E |
 | `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | A target URL for an app under development; its signing secret shown once on the setup page | C / — / C | N | E |
 | `dev_forward_events` | Send real events (by ID, type or time) to a forwarder, correctly signed — replay into a local or preview app without the Stripe CLI | P | N | E |
-| `testclock_list` / `testclock_create` / `testclock_advance` / `testclock_delete` | Test clocks: move a test customer's time forward | — / P / P / C | N | E |
+| `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
+| `testclock_create` / `testclock_advance` | Create or advance guarded TEST clocks; async advance is only confirmed when provider ready | P / P | built #53 | E |
+| `testclock_delete` | Delete a TEST clock after validating dependent records and destructive impact | C | planned V-5 | F |
 | `dev_simulate_subscription` | Run a subscription for N months on a test clock and get the timeline of invoices, payments and events | P | N | E |
 | `dev_test_cards` | The right Stripe test card or bank account for a situation (success, decline, 3-D Secure, dispute, ACH) | — | N | R |
 
