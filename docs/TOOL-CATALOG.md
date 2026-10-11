@@ -146,12 +146,12 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `invoice_list` / `invoice_get` / `invoice_search` | Invoices, with hosted link and PDF link | — | C/C/N | R |
-| `invoice_list_payments` | Payments applied to an invoice (the app reads these) | — | N | R |
-| `invoice_preview` | What a customer's next invoice will be (`create_preview`) | — | F | R |
-| `invoice_create_draft` | New draft invoice | P | C | E |
-| `invoice_update_draft` | Due date, memo, footer, custom fields, metadata | P | R | E |
-| `invoice_add_line` / `invoice_update_line` / `invoice_remove_line` | Draft invoice lines | P / P / C | C/N/N | E |
+| `invoice_list` / `invoice_get` / `invoice_search` | Invoices, with hosted link, status and USD totals | — | built #43 | R |
+| `invoice_list_payments` | Payments applied to an invoice (the app reads these) | — | built #43 | R |
+| `invoice_preview` | Verified TEST next invoice with USD line/total projection | — | built #43 | R |
+| `invoice_create_draft` | New draft invoice | P | built #43 | E |
+| `invoice_update_draft` | Due date, memo, footer, custom fields, metadata | P | built #43 | E |
+| `invoice_add_line` / `invoice_update_line` / `invoice_remove_line` | Draft invoice lines | P / P / C | built #43 | E |
 | `invoice_delete_draft` | Delete a draft | C | R | E |
 | `invoice_finalize` | Lock a draft so it can be paid or sent | C | C | E |
 | `invoice_send` | Email the invoice from Stripe | C | C | E |

@@ -52,3 +52,8 @@ it does not work yet. This file is updated as features ship.
 ### D-4 TEST subscriptions and schedules (PRs #40 + #42)
 
 After the code is merged and a TEST Stripe account is connected, ask to list and inspect subscriptions, preview plan/quantity changes, or create, update, cancel, undo cancellation, and pause/resume collection. Destructive changes require explicit preview/confirmation; any credit producing a money-out action separately needs authenticated owner approval. This is **not** LIVE access. You can also add/update/remove subscription items, create future schedules, update their future phases, release schedules or cancel them. An active schedule's current phase cannot be silently modified; replacing existing future phases requires an explicit choice. Changes remain TEST-only and require provider previews/read-back.
+
+
+### D-5a TEST invoice drafts (PR #43)
+
+After connecting a TEST Stripe account, you can inspect and search invoices, list payments allocated to an invoice, preview the next customer invoice, create a manual unfinalized invoice, change its description/metadata and add/update/remove positive USD draft items. Draft operations never finalize, send or collect money. Invoices with taxes, discounts, credits or subscription/app ownership require their native Stripe or owning-application workflows; the server refuses ambiguous changes. LIVE remains OFF. Invoice finalization/payment and credit notes come in D-5b/c.
