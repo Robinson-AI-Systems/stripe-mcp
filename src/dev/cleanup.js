@@ -1,5 +1,6 @@
 // Durable TEST cleanup: never guess IDs, initiate refunds, or infer deletions.
 import {APP_METADATA_KEYS} from '../tools/app-guard.js';
+import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
   connected_account:'acct'};
@@ -76,7 +77,7 @@ export function verifyCleanupIdentity(run,row,obj){
     obj.metadata?.rtc_run!==run.id)
     fail('Provider rtc_run ownership differs from recorded TEST run');
 }
-async function safeOperation(s,row,was,key){
+async function safeOperation(s,row,was,key,ctx,run){
   const opts={idempotencyKey:key},id=row.object_id;
   switch(row.object_type){
     case 'subscription':
@@ -115,7 +116,9 @@ async function safeOperation(s,row,was,key){
     }
     // A refund is legally immutable. Connected accounts/test clocks may have
     // dependents and require the separate V-2b risk-reviewed deletion paths.
-    case 'refund':case 'connected_account':case 'test_clock':return false;
+    case 'connected_account':return cleanupTestConnectSeller(s,was,opts);
+    case 'test_clock':return cleanupTestClock(s,was,ctx,run.id,opts);
+    case 'refund':return false;
     default:fail('Unrecognized cleanup type');
   }
 }
@@ -137,7 +140,8 @@ export async function executeCleanup(a,ctx,s,key){
     let state='retained';
     try{
       const worked=await safeOperation(s,row,
-        before.get(run.id+':'+row.step_name),key+'_'+run.id+'_'+row.step_name);
+        before.get(run.id+':'+row.step_name),
+        key+'_'+run.id+'_'+row.step_name,ctx,run);
       if(worked){
         state=await ctx.db.markDevRunObjectCleaned({account,id:run.id,
           stepName:row.step_name,objectType:row.object_type,objectId:row.object_id})?

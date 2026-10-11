@@ -5,6 +5,9 @@ Updated 2026-10-10. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **V-2b safe TEST seller/clock cleanup #58 (as-if-merged, CI/review pending):** TEST Express seller deletion requires verified inactive charges/payouts, incomplete onboarding and zero connected-account balances. TEST clock deletion requires all run-owned customer/subscription rows cleaned plus no attached customers on Stripe. A delete receipt is not enough; require independent tombstone or exact 404 resource_missing before marking ledger cleaned. V-2 closure pending; V-3 event triggers next. LIVE off; owner-approved money-out limit unchanged.
+
+
 - **V-2a TEST cleanup PR #57 (as-if-merged; exact-head CI/review outstanding):** dev_cleanup uses only account-scoped ledger IDs, verifies every TEST provider object and run provenance before mutation, then independently verifies eligible cancellation/void/archive/delete actions and marks only exact DB rows cleaned. Per-object retained/uncertain results protect paid invoices, refunds, succeeded payments, TEST clocks and Connect sellers. dev_reset_test_data supplies owner-guided Stripe Dashboard steps, not a false reset. V-2b dependency-aware cleanup follows; LIVE off and independent owner approval rules untouched.
 
 
