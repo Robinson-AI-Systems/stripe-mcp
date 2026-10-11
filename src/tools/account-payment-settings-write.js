@@ -44,7 +44,7 @@ export function makeMethodPreferenceWrite(){
     read:current,
     summarize:(before,a)=>{
       input(a);
-      return 'TEST: request '+a.method+' '+a.preference+' for exact direct configuration '+
+      return 'TEST MODE. Request '+a.method+' '+a.preference+' for exact direct configuration '+
         before.id+'. Verify independently; this does not guarantee Checkout availability.';
     },
     apply:async(a,ctx,{idempotencyKey})=>{
