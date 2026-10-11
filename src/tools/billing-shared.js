@@ -152,7 +152,7 @@ export async function previewChange(s,sub,items,at,behavior,{billingAnchor=null}
     customer:ref(sub.customer),subscription:sub.id,currency:'usd',
     subscription_details:{items,proration_behavior:behavior,
       ...(behavior==='none'?{}:{proration_date:at}),
-      ...(billingAnchor?{billing_cycle_anchor:{type:billingAnchor}}:{})}
+      ...(billingAnchor?{billing_cycle_anchor:billingAnchor}:{})}
   });
   return previewSafe(invoice,at,behavior);
 }

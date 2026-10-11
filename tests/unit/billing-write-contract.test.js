@@ -177,7 +177,7 @@ describe('D-4 billing reads and fail-closed financial invariants',()=>{
     const result=await op.handler({subscriptionId:subId,billingAnchor:'now',
       prorationBehavior:'create_prorations',effectiveAt,dryRun:true},f.ctx);
     expect(data(result).preview).toContain('2500 cents USD');
-    expect(payload.subscription_details.billing_cycle_anchor).toEqual({type:'now'});
+    expect(payload.subscription_details.billing_cycle_anchor).toBe('now');
     expect(payload.subscription_details.proration_date).toBe(effectiveAt);
     expect(f.provider.writes).toHaveLength(0);
   });
