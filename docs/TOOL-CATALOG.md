@@ -9,7 +9,7 @@ read-back. Customer balance credits and debits require separately authenticated
 exact owner approval, even for $0.01. **LIVE remains OFF (IN-06)**. No Stripe
 account, hosted production infrastructure or real provider money action has
 been activated. Remaining catalog rows are planned; legacy compatibility is
-not required. The D-2 set (19 native payment, charge, refund and setup operations) merged in #38, with full exact-head CI and security self-review passing. Incoming charges/captures require explicit confirmation, and outgoing refunds separately require owner approval. D-3's 16 hosted tools are in PR #39 pending exact-head CI; no LIVE use or client-secret exposure.
+not required. The D-2 set (19 native payment, charge, refund and setup operations) merged in #38, with full exact-head CI and security self-review passing. Incoming charges/captures require explicit confirmation, and outgoing refunds separately require owner approval. D-3's 16 hosted tools merged in PR #39 after full exact-head CI; no LIVE use or client-secret exposure.
 
 Every tool this server will have, by area — the product scope. Tools serve three audiences (tagged per tool when built,
 Robinson Tool Contract §3): developers building for others, developers building for themselves, and the account owner
