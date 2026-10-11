@@ -1,5 +1,5 @@
 // G-4a: Stripe Event payloads contain version-dependent private data.
-import {client,guarded,fail,allProfiles,paging,pageResult,local} from './billing-shared.js';
+import {guarded,fail,allProfiles,paging,pageResult,local} from './billing-shared.js';
 
 const invalid=message=>{throw new TypeError(message);};
 const eventId=v=>typeof v==='string'&&/^evt_[A-Za-z0-9]{2,100}$/.test(v);
