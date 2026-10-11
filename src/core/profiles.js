@@ -15,7 +15,7 @@ export function profileCounts(registry,options={}) {
   return Object.fromEntries(CONNECTION_PROFILES.map(profile=>
     [profile,visibleTools(registry,profile,options).length]));
 }
-const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer','disputes']);
+const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk']);
 export function isGuardedTestWrite(tool,connection){
   return connection?.mode==='test'&&tool?.writes===true&&
     tool?.writeContract==='defineWrite-v1'&&
