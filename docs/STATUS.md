@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-1b bank-account masking and payout schedule reads PR #80 (as-if-merged; exact-head CI pending):** two new TEST-only safe account-scoped readers. Stripe's external account endpoint is Connect-oriented; if own account lacks API access, report unavailable and point to dashboard rather than inventing empty bank results. Last4-only bank outputs, no routing/account numbers. **After #80 merge: stop for new chat as owner requested. Next G-1c** owner-approved payout/topup money-out writes; preserve independent owner intent for every amount and shared $500/day threshold/override.
+
 - **G-1a account financial read-only tools PR #79 (as-if-merged; exact-head CI/review pending):** eight TEST-only tools provide provider-verified balance, balance transactions, payouts, automatic payout reconciliation, and top-ups, no raw bank data. Current main e5a22828 is V-5 complete. **Next G-1b** payout bank account safe listing and payout schedule reads, then G-1c owner-approved money writes and G-1d reporting. No money-out attempted.
 
 - **V-5 automated three-month acceptance PR #78 (as-if-merged; exact-head CI/review pending):** one stateful fake Stripe provider runs 3 monthly clock advances, 3 independently retrieved paid invoices/PI and original Events, validates exact timelines, at-most-once retries and delayed/declined branches. Prior V-5a–V-5c code #72–#77 remains. **Next G-1:** balance, payouts and financial reports, subject to mandatory independent owner consent for any money out.
