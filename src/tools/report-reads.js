@@ -1,5 +1,5 @@
 // G-1d1 TEST-only financial-report type/run reads; never expose file URLs/tokens.
-import {allProfiles,client,guarded,fail,local,pageResult,paging,ref}
+import {allProfiles,guarded,fail,local,pageResult,paging,ref}
   from './billing-shared.js';
 const invalid=msg=>{throw new TypeError(msg);};
 const reportId=s=>typeof s==='string'&&/^frr_[A-Za-z0-9]{2,100}$/.test(s);
