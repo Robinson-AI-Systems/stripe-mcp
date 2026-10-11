@@ -26,7 +26,7 @@ function fixture({appOwned=false,readBackMatches=true,limitCents=10000}={}){
         return {...created};
       },
       async cancel(_id,_p,opts){
-        provider.writes.push({type:'cancel',key:opts.idempotencyKey});
+        provider.writes.push({type:'cancel',idempotencyKey:opts.idempotencyKey});
         if(readBackMatches)current={...current,status:'canceled'};
         return {...current};
       }
