@@ -258,7 +258,7 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `webhook_delete` | Delete an endpoint | C | C | F |
 | `webhook_check_signature` | Check a pasted test payload + signature header against an endpoint (paste the secret on the setup page, never in chat) | — | R | F |
 
-## Developer tools (`dev_*`, `testclock_*`) — 21 (test mode only; `docs/designs/BATCH-V.md`)
+## Developer tools (`dev_*`, `testclock_*`) — 23 (test mode only; `docs/designs/BATCH-V.md`)
 
 Building with Stripe on any project: realistic test data, precise cleanup, real test events, forwarding events into an
 app under development, and time travel. Every tool refuses on a live connection.
@@ -273,7 +273,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_verify_outcomes` | Verify actual run-owned TEST dispute events, ACH state and exact succeeded event; never infer settlement or webhook delivery | — | built #51/#55 | R |
 | `dev_cleanup` | Safely clean recorded TEST IDs, with zero-balance seller and dependency-free clock deletion; immutable money retained | C | built #57/#58 | E |
 | `dev_reset_test_data` | Owner-guided TEST Dashboard reset, no fake bulk-delete API | — | V-2a #57 | R |
-| `dev_list_triggers` / `dev_trigger_event` | Make Stripe emit a real test event (~30 common types) by doing the real test-mode action | — / P | N | E |
+| `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (four types in V-3a; additional curated types later) | — / P | V-3a #59; V-3b pending | E |
 | `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | A target URL for an app under development; its signing secret shown once on the setup page | C / — / C | N | E |
 | `dev_forward_events` | Send real events (by ID, type or time) to a forwarder, correctly signed — replay into a local or preview app without the Stripe CLI | P | N | E |
 | `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
