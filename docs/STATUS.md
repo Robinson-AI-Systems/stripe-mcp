@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-2b2 secure public-source TEST dispute evidence import (#92 as-if-merged; exact-head CI pending):** file_upload_evidence uses the write preview/confirm/audit contract, pinned public IPv4 DNS, HTTPS only, verified redirects, 10 MiB cap and content signature. It creates only a verified Stripe dispute_evidence file; never attaches or submits evidence. G-2c guarded draft evidence save is next, G-2d explicit submit/accept after that. G-2b1 file metadata/link #91 merged green. LIVE and independent money-out approval unchanged.
+
 - **G-2b1 guarded TEST file metadata and public-brand links (#91 as-if-merged, exact-head CI pending):** file_list/get return purpose-allowlisted metadata with no provider URLs; file_create_link is full-only guarded, expiring, and restricted to brand icons/logos (never dispute evidence). G-2b2 remote evidence import next, followed by drafting and submitting evidence. G-2a dispute reads #90 merged green; G-1 closed #89. LIVE and owner money-out policy unchanged.
 
 - **G-2a TEST dispute list/get (#90 as-if-merged, exact-head CI pending):** New read_only summaries of validated disputes, money in minor units, Colorado evidence deadlines and days left, submission count, safe status; no raw evidence or cardholder details. New G-2 index/card and downstream G-2b secure evidence handling next. G-1g secure browser CSV merged #89 (five checks green). LIVE remains off; owner approval/limit unchanged.
