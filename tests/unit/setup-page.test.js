@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { createSetupHandler } from '../../src/stripe/setup-page.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
@@ -150,5 +150,44 @@ describe('B-2b owner-only two-step LIVE page (fake database only)', () => {
     expect(await x.db.getLiveEnableIntent(x.id)).toBeNull();
     expect((await submit(x.handler,x.c,payload(x.id))).statusCode).toBe(410);
     expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+  });
+});
+
+describe('G-1g owner-authenticated CSV browser delivery',()=>{
+  it('requires same-origin CSRF, password, valid report and returns bytes only to browser',async()=>{
+    const db=createFakeDb(),reportDownload=vi.fn(async()=>({
+      bytes:Buffer.from('entry,total\\n1,20\\n'),
+      filename:'stripe-report-frr_FAKE123.csv'
+    }));
+    const handler=createSetupHandler({db,keyStore:null,oneTimeStore:null,reportDownload,env});
+    const initial=await page(handler),token=cookiePage(initial);
+    expect(initial.body).toContain('Download private CSV');
+    expect(initial.body).not.toContain('entry,total');
+    const request={action:'download-report',account:'acct_FAKE123',run:'frr_FAKE123',
+      passphrase:env.ADMIN_PASSPHRASE};
+    expect((await submit(handler,token,request,'https://evil.example.test')).statusCode).toBe(403);
+    expect((await submit(handler,{cookie:token.cookie,csrf:'wrong'},request)).statusCode).toBe(403);
+    expect((await submit(handler,token,{...request,passphrase:'wrong'})).statusCode).toBe(401);
+    expect(reportDownload).not.toHaveBeenCalled();
+    const result=await submit(handler,token,request);
+    expect(result.statusCode).toBe(200);
+    expect(Buffer.isBuffer(result.body)).toBe(true);
+    expect(result.headers['Content-Type']).toContain('text/csv');
+    expect(result.headers['Content-Disposition']).toBe('attachment; filename="stripe-report-frr_FAKE123.csv"');
+    expect(result.headers['Cache-Control']).toContain('no-store');
+    expect(result.headers['Set-Cookie']).toContain('Max-Age=0');
+    expect(reportDownload).toHaveBeenCalledWith({account:'acct_FAKE123',run:'frr_FAKE123'});
+    expect(result.body.toString()).toContain('entry,total');
+  });
+  it('fails closed for unavailable export and never reveals provider or key errors',async()=>{
+    const db=createFakeDb();
+    const reportDownload=vi.fn(async()=>{throw Error('secret upstream provider URL');});
+    const handler=createSetupHandler({db,keyStore:null,oneTimeStore:null,reportDownload,env});
+    const token=cookiePage(await page(handler));
+    const result=await submit(handler,token,{action:'download-report',
+      account:'acct_FAKE123',run:'frr_FAKE123',passphrase:env.ADMIN_PASSPHRASE});
+    expect(result.statusCode).toBe(404);
+    expect(result.body).not.toContain('secret upstream');
+    expect(result.body).toContain('unavailable');
   });
 });
