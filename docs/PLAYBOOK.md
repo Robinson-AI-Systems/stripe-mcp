@@ -45,7 +45,8 @@ While implementing:
 
 ### Step 3a — PR size
 
-About 500 production lines (tests/docs not counted), about 15 production files, hard stop ~800 lines, at most one
+Target 500–650 production lines; below 450 only with a documented unavoidable reason (tests/docs not counted).
+About 15 production files, hard stop ~800 production lines, at most one
 migration, one risk area (keys / money / guards / tools-of-one-area / doors). Measure before opening the PR:
 
 ```bash
@@ -80,7 +81,9 @@ secret, GitHub token or connection string), docs check (`scripts/check-docs-upda
 ## Step 5 — Pushing and CI
 
 1. **Push once per CI cycle.** A push cancels the running CI.
-2. **After a red run:** read all failures, reproduce each locally with 4b, fix every failure, push once.
+2. **After a red run:** read all failed-job logs promptly; identify every distinct cause, reproduce locally with 4b
+   where executable, correct code and the related fixtures together, then push one checked correction. If only
+   GitHub-backed execution exists, CI is the test runner: never call the unexecuted work 'verified'.
 3. **Is it mine?** If the same test is red on `main`, it isn't: port the fix or make a tiny separate fix PR.
 4. **Same failure twice:** reproduce locally. **Third red run:** evidence-based diagnosis before any further push.
 5. "Flake" is not a cause. Never skip, retry-loop or quarantine.
@@ -121,6 +124,8 @@ once onto final `main`.
 ## Step 10 — Waiting and stopping
 
 - External waits are checkpoints: check once, act on anything new, then build the immediate successor.
+- **No unattended red PR:** prioritize its failing check and bounded correction over starting unrelated work; after
+  an interruption restart from exact-head PR status and the latest failed job logs, without asking Chris to resume.
 - A quiet bounded CI wait is allowed: at most 60 seconds per wait, 10 minutes total
   (`timeout 300 gh run watch <id> --exit-status --interval 60 > /tmp/ci-wait.log 2>&1`); timeout means pending.
 - Before ending a turn: commit, update the resume note and STATUS (exact head, pending gates, next action), and tell
