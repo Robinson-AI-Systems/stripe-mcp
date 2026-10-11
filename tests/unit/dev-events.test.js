@@ -1,6 +1,6 @@
 // V-3a actual guarded MCP handlers, recorded real action and matching event.
 import {describe,it,expect} from 'vitest';
-import {planTrigger,triggerTypes,executeTrigger} from '../../src/dev/triggers.js';
+import {planTrigger,triggerTypes} from '../../src/dev/triggers.js';
 import {makeDevTriggerEventWrite,handlers} from '../../src/tools/dev-events.js';
 import {verifyCleanupIdentity} from '../../src/dev/cleanup.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
@@ -44,7 +44,8 @@ function fixture({showEvent=false,foreign=false}={}){
         if(!visible)return {data:[],has_more:false};
         const sourceType=type.startsWith('payment_intent')?'payment_intent':
           type.split('.')[0],prefix=sourceType==='customer'?'cus':
-          sourceType==='payment_intent'?'pi':sourceType;
+          sourceType==='payment_intent'?'pi':
+          sourceType==='product'?'prod':sourceType;
         const source=get(prefix+'_FAKE123');
         const event={object:'event',id:'evt_FAKE123',livemode:false,
           type,account,created:1700000000,data:{object:source}};
