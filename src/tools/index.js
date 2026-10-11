@@ -26,4 +26,5 @@ import * as devEvents from './dev-events.js';
 import * as devForwarders from './dev-forwarders.js';
 import * as devForwardEvents from './dev-forward-events.js';
 import * as devTestCards from './dev-test-cards.js';
-export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect,devCleanup,devEvents,devForwarders,devForwardEvents,devTestCards]);
+import * as devSubscriptionSim from './dev-subscription-sim.js';
+export const registry = mergeNamespaces([server,meta,customers,customerWrites,paymentReads,paymentWrites,checkoutReads,checkoutWrites,billingReads,billingWrites,billingItemScheduleWrites,invoiceReads,invoiceWrites,invoiceLifecycleWrites,creditnoteReads,creditnoteWrites,devSeed,devSeedRefund,devVerify,testClocks,devAchConfirm,devConnect,devCleanup,devEvents,devForwarders,devForwardEvents,devTestCards,devSubscriptionSim]);
