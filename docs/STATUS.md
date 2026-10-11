@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-3c TEST Radar list lifecycle (#99 as-if-merged; exact-head CI pending):** full-only guarded empty-list deletion, item add and item removal with selected-account TEST preflight, private item value redaction, stable idempotency and deletion tombstones. No silent deletion of nonempty lists. Next **G-3d Identity session reads and guarded creation**, then cancel/redact. No LIVE.
+
+
 - **G-3b first guarded Radar mutations (#98 as-if-merged; exact-head CI pending):** full-profile TEST review approval and new value-list creation now use distinct defineWrite preview/confirm/idempotency/independent read-back, app-owned payment guard and safe alias preflight. Next **G-3c** list/item lifecycle deletions/additions; then Identity. No LIVE.
 
 
