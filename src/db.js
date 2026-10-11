@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { hashToken } from './core/oauth.js';
+import {createDevRunStore,initDevRunTables} from './dev/run-store.js';
 
 export const CONNECTION_FIELDS = Object.freeze(['stripe_account', 'mode', 'profile', 'listing']);
 export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.map((field) => [field, row[field]]));
@@ -7,7 +8,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects'
 ]);
 
 let productionSql;
@@ -24,6 +25,7 @@ function getProductionSql() {
 export function createDb(sql = getProductionSql()) {
   if (typeof sql !== 'function') throw new TypeError('A SQL tagged-template function is required');
   return {
+    ...createDevRunStore(sql),
     async createOAuthClient({ clientId, clientSecret, redirectUris, clientName }) {
       if (!clientId || !clientSecret || !Array.isArray(redirectUris) || !redirectUris.length) {
         throw new TypeError('Missing OAuth client registration fields');
@@ -1000,6 +1002,7 @@ export function createDb(sql = getProductionSql()) {
       await sql`CREATE INDEX IF NOT EXISTS login_attempts_window_idx ON login_attempts (ip, attempted_at)`;
       await sql`CREATE INDEX IF NOT EXISTS change_log_account_time_idx ON change_log (stripe_account, at DESC)`;
       await sql`CREATE INDEX IF NOT EXISTS one_time_secrets_expiration_idx ON one_time_secrets (expires_at)`;
+      await initDevRunTables(sql);
     }
   };
 }
