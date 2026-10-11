@@ -12,12 +12,16 @@ export function verifyItemLedger(sub){
     throw new TypeError('Large multi-item plans need Stripe Dashboard confirmation');
   for(const i of sub.items.data){
     const p=i.price;
-    if(!i.id||!ref(p)||!Number.isSafeInteger(i.quantity)||
+    if(!/^si_[A-Za-z0-9]{2,100}$/.test(i.id??'')||!ref(p)||
+      !Number.isSafeInteger(i.quantity)||
       i.quantity<1||i.quantity>100000)
       throw new TypeError('Incomplete subscription item quantity or price');
     if(p.currency!=='usd'||p.type!=='recurring'||p.recurring?.usage_type!=='licensed'||
       !Number.isSafeInteger(p.unit_amount)||p.unit_amount<0)
       throw new TypeError('Only USD fixed-rate licensed existing items can be edited');
+    if(i.current_period_end<=i.current_period_start||
+      i.current_period_end<=0||!Number.isSafeInteger(i.current_period_end))
+      throw new TypeError('Invalid subscription item billing interval');
     if(Object.keys(p.metadata??{}).some(key=>APP_METADATA_KEYS.includes(key)))
       throw new TypeError('App-owned recurring price cannot be changed here');
   }
@@ -34,11 +38,16 @@ export async function verifyLinkedScheduleSubscription(s,sch,args,ctx){
   const decision=await protectAppOwnedTarget(args,{
     ...ctx,getCustomer:async id=>s.customers.retrieve(id)
   },current);
-  if(decision!==true)
-    throw new TypeError(typeof decision==='string'?decision:'App ownership cannot be verified');
+  current._appDecision=decision;
+  // Defer app-owned denials to the shared targetGuard so they retain the
+  // normal audited refusal contract rather than leaking an exception.
   if(current.schedule&&ref(current.schedule)!==sch.id)
     throw new TypeError('Active subscription points to another schedule');
   if(current.pause_collection)
     throw new TypeError('Paused collection requires a manual schedule review');
+  if(current.cancel_at_period_end||current.cancel_at)
+    throw new TypeError('Schedule-linked subscription has a pending cancellation');
+  if(current.status==='past_due'&&args.invoiceNow===true)
+    throw new TypeError('Overdue active subscription must be reconciled before final invoicing');
   return current;
 }

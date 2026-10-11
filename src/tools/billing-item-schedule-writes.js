@@ -3,7 +3,7 @@
 import {defineWrite,gone} from './write.js';
 import {previewMoney} from './billing-writes.js';
 import {client,ref,id,quantity,timestamp,proration,ownership,validateFields,
-  ensureSubscription,safeRecurringPrice,previewSafe,previewChange,
+  safeRecurringPrice,previewSafe,previewChange,
   writeProfiles,fullProfiles} from './billing-shared.js';
 import {planScheduleUpdate,verifyScheduleUpdate} from './billing-schedule-plan.js';
 import {verifyItemLedger,verifyLinkedScheduleSubscription} from './billing-item-safety.js';
@@ -55,8 +55,17 @@ const validate=(d,a)=>{
     throw new TypeError('Future schedule start must be at least 5 minutes away');
   if(d.kind==='item'&&a.prorationBehavior==='none'&&a.effectiveAt>today()+300)
     throw new TypeError('Non-prorated changes apply now; do not supply a future effectiveAt');
+  if(d.kind==='item'&&a.prorationBehavior!=='none'&&a.effectiveAt>today()+300)
+    throw new TypeError('Item prorations must occur now; future changes require a schedule');
 };
-async function priceFor(s,priceId){return safeRecurringPrice(await s.prices.retrieve(priceId));}
+async function priceFor(s,priceId){
+  const price=safeRecurringPrice(await s.prices.retrieve(priceId));
+  if(!['day','week','month','year'].includes(price.recurring.interval)||
+    !Number.isInteger(price.recurring.interval_count??1)||
+    (price.recurring.interval_count??1)<1)
+    throw new TypeError('A verified recurring billing interval is required');
+  return price;
+}
 function phase(priceId,amount,cycles){
   return {items:[{price:priceId,quantity:amount}],iterations:cycles,
     proration_behavior:'none'};
@@ -114,6 +123,12 @@ async function beforeFor(d,a,s,ctx){
     const customer=await s.customers.retrieve(a.customerId);
     if(customer?.deleted||!customer?.metadata)
       throw new TypeError('Verified customer metadata required');
+    const pmId=ref(customer.invoice_settings?.default_payment_method);
+    if(!pmId||!/^pm_[A-Za-z0-9]{2,100}$/.test(pmId))
+      throw new TypeError('Future schedule customer requires a verified saved payment method');
+    const method=await s.paymentMethods.retrieve(pmId);
+    if(ref(method.customer)!==customer.id)
+      throw new TypeError('Future billing payment method belongs to another customer');
     await priceFor(s,a.priceId);
     const phases=[phase(a.priceId,a.quantity,a.iterations)];
     const preview=await schedulePreview(s,{customerId:customer.id,phases,
@@ -146,6 +161,8 @@ async function beforeFor(d,a,s,ctx){
   return b;
 }
 function ensureGood(d,a,b){
+  if(b._linked?._appDecision!==undefined&&b._linked._appDecision!==true)
+    return b._linked._appDecision;
   if(b.deleted)return 'Deleted Stripe target';
   if(d.kind==='item'&&b.items.has_more)return 'Subscription item list incomplete';
   if(d.kind==='scheduleUpdate'&&!['not_started','active'].includes(b.status))

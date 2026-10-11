@@ -28,12 +28,13 @@ const makePrice=(id,amount)=>({id,object:'price',active:true,currency:'usd',
 const prices={[price]:makePrice(price,8500),[changed]:makePrice(changed,16000)};
 const plain=(r)=>JSON.parse(r.content[0].text);
 function fixture({appOwned=false,readBackMatches=true,credit=false,
-  limitCents=10000,activeUpdate=false,existingFuture=false},name){
+  limitCents=10000,activeUpdate=false,existingFuture=false,activeCancel=false},name){
   const marker=appOwned?{agreementId:'ag_FAKE1234'}:{};
   const provider={writes:[],afterCalls:0,previews:[],payloads:[]};
   const db=createFakeDb({accounts:[{id:'acct_safefixture',
     label:'Fixture',money_limit_cents:limitCents}]});
-  const customer={id:cus,object:'customer',metadata:marker};
+  const customer={id:cus,object:'customer',metadata:marker,
+    invoice_settings:{default_payment_method:'pm_FAKE1234'}};
   const item=(id,priceId,quantity=1)=>({id,object:'subscription_item',
     subscription:sub,price:prices[priceId],quantity,
     current_period_start:1791000000,current_period_end:1793500000});
@@ -41,7 +42,7 @@ function fixture({appOwned=false,readBackMatches=true,credit=false,
     metadata:marker,billing_mode:{type:'flexible'},
     items:{data:[item(si,price),item(other,price)],has_more:false}};
   let plan={id:schedule,object:'subscription_schedule',customer:cus,
-    status:(name==='billing_release_schedule'||activeUpdate)?'active':'not_started',
+    status:(name==='billing_release_schedule'||activeUpdate||activeCancel)?'active':'not_started',
     subscription:sub,start_date:start,end_behavior:'release',
     billing_mode:{type:'flexible'},metadata:marker,
     phases:activeUpdate?[{start_date:1791000000,end_date:start,
@@ -57,6 +58,7 @@ function fixture({appOwned=false,readBackMatches=true,credit=false,
   };
   const sdk={
     customers:{retrieve:async()=>({...customer})},
+    paymentMethods:{retrieve:async()=>({id:'pm_FAKE1234',customer:cus})},
     prices:{retrieve:async id=>({...prices[id]})},
     invoices:{createPreview:async payload=>{
       provider.previews.push(payload);
@@ -211,5 +213,20 @@ it('active future schedule requires exact next phase boundary',async()=>{
   const args={...scenarios[4].args,effectiveAt:start+86400,confirm:true};
   await expect(makeBillingItemScheduleWrite('billing_update_schedule')
     .handler(args,f.ctx)).rejects.toThrow(/next phase boundary/);
+  expect(f.provider.writes).toHaveLength(0);
+});
+
+describe('D-4b active schedule cancellation credit requires verified owner grant',()=>{
+  const args={scheduleId:schedule,invoiceNow:true,prorate:true};
+  runWriteContract({withMoney:true,strictArgs:true,args,
+    tool:()=>makeBillingItemScheduleWrite('billing_cancel_schedule'),
+    fixtures:o=>fixture({...o,activeCancel:true,credit:true},'billing_cancel_schedule')});
+});
+it('future schedule refuses unverified saved payment-method ownership',async()=>{
+  const f=fixture({readBackMatches:true},'billing_create_schedule');
+  f.sdk.paymentMethods.retrieve=async()=>({id:'pm_FAKE1234',customer:'cus_OTHER1234'});
+  await expect(makeBillingItemScheduleWrite('billing_create_schedule')
+    .handler({...scenarios[3].args,confirm:true},f.ctx)).rejects
+    .toThrow(/another customer/);
   expect(f.provider.writes).toHaveLength(0);
 });
