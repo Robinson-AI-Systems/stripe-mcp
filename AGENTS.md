@@ -26,12 +26,12 @@ sections below when a step names them.
 7. **Explore budget:** after about 10 focused reads/searches without an edit, write down what you know and make the
    smallest justified edit with its test — or report a true blocker. Never guess unsafely to save a read.
 8. **Checkpoints:** one coherent work unit with its tests → local commit → update the card's resume note. Publish the
-   complete, checked tree with one push.
+   complete, checked tree with one push (a turn that must end pushes what it has with an exact resume note; no-shell workspaces push each slice — SESSION-START §6).
 9. **External waits are checkpoints, not a loop** (PLAYBOOK Step 10).
 10. **Two-lane conveyor:** lane A builds the current card and its immediate successor; lane B handles CI/review/merge of
     the predecessor. At most two unmerged implementation PRs in a chain.
 11. **Resume the failing PR first.** At session start or after any interruption, inspect open PRs and exact-head CI
-    before new development. A red check is an engineering task, never a reason to await Chris. Read all failed-job
+    before new development (`docs/SESSION-START.md` §0). A red check is an engineering task, never a reason to await Chris. Read all failed-job
     logs, fix the distinct causes in one correction batch, and rerun the normal gates; never dismiss a red as a stall.
 12. **Catch integration ripple before pushing.** New tools require registry name/count/profile test updates and
     guarded indirect-call tests; new Stripe params require pinned-SDK/stripe-mock validation. Run lint and targeted
@@ -40,6 +40,10 @@ sections below when a step names them.
 13. **Checkpoint for interrupted sessions.** Before yielding, write exact branch/head, PR, red/pending gates, the
     first failing command and next corrective action in the card resume note and STATUS. Never end at 'CI pending'
     when eligible local corrections, independent tests or immediate-successor work remain.
+14. **Problems are not blockers.** Red CI, lint, failing tests, wrong parameters, conflicts and unclear code are yours to
+    fix; stop only for a hard limit or an owner decision the current step needs (SESSION-START §6). Validate in thin
+    slices (≤ ~150 production lines between test runs) and end every turn right after a push whose resume note names
+    the exact next action.
 
 ## What this is
 
