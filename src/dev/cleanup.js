@@ -3,18 +3,18 @@ import {APP_METADATA_KEYS} from '../tools/app-guard.js';
 import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
-  connected_account:'acct'};
+  connected_account:'acct',event:'evt'};
 const order={subscription:0,invoice:1,payment_intent:2,customer:3,price:4,
-  product:5,refund:6,connected_account:7,test_clock:8};
+  product:5,refund:6,event:7,connected_account:8,test_clock:9};
 const types={product:'product',price:'price',customer:'customer',
   subscription:'subscription',invoice:'invoice',payment_intent:'payment_intent',
-  refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock'};
+  refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock',event:'event'};
 const valid=(value,prefix)=>typeof value==='string'&&
   new RegExp('^'+prefix+'_[A-Za-z0-9]{2,100}$').test(value);
 const fail=x=>{throw new TypeError(x);};
 const maps={product:'products',price:'prices',customer:'customers',
   subscription:'subscriptions',invoice:'invoices',payment_intent:'paymentIntents',
-  refund:'refunds',connected_account:'accounts'};
+  refund:'refunds',connected_account:'accounts',event:'events'};
 const fetch=async(s,row)=>row.object_type==='test_clock'?
   s.testHelpers.testClocks.retrieve(row.object_id):
   s[maps[row.object_type]].retrieve(row.object_id);
@@ -73,6 +73,10 @@ export function verifyCleanupIdentity(run,row,obj){
   if(type==='test_clock'){
     if(obj.name!=='RTC DEV RUN '+run.id+' '+row.step_name.split('_').at(-1))
       fail('Clock does not match immutable run provenance');
+  }else if(type==='event'){
+    if(obj.data?.object?.metadata?.rtc_run!==run.id||
+      (obj.account&&obj.account!==run.stripe_account))
+      fail('Recorded TEST event source no longer matches its selected run');
   }else if(!(type==='customer'&&obj.deleted===true)&&
     obj.metadata?.rtc_run!==run.id)
     fail('Provider rtc_run ownership differs from recorded TEST run');
@@ -118,7 +122,7 @@ async function safeOperation(s,row,was,key,ctx,run){
     // dependents and require the separate V-2b risk-reviewed deletion paths.
     case 'connected_account':return cleanupTestConnectSeller(s,was,opts);
     case 'test_clock':return cleanupTestClock(s,was,ctx,run.id,opts);
-    case 'refund':return false;
+    case 'refund':case 'event':return false;
     default:fail('Unrecognized cleanup type');
   }
 }
