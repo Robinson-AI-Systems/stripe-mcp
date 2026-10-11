@@ -288,7 +288,7 @@ app under development, and time travel. Every tool refuses on a live connection.
 | --- | --- | --- | --- | --- |
 | `report_list_types` | Complete TEST report type catalog, exact periods, paged | — | built #85 (CI pending) | R |
 | `report_run` / `report_get_run` / `report_list_runs` | Guarded TEST async report request, run state and result file ID | P / — / — | run #86, get/list #85 | F for run; R reads |
-| `report_get_result_file` | Verify a completed TEST run's finance_report_run file metadata only; private contents URL never returned | — | built #88 (CI pending); owner-only download still pending | R |
+| `report_get_result_file` | Verify a completed TEST run's finance_report_run file metadata only; private contents URL never returned | — | built #88; owner-only browser-only CSV delivery #89 (no AI content or URL) | R |
 | `account_get` | Business profile, branding, statement descriptor, charges/payouts enabled, what Stripe still needs and by when | — | C | R |
 | `account_list_capabilities` | Payment method capabilities | — | C | R |
 | `account_list_payment_method_settings` / `account_update_payment_method_settings` | Which payment methods Checkout offers (for example turning ACH on) | — / C | N | F |
