@@ -194,7 +194,8 @@ function build(d){
     },
     money:d.money?async(a,_ctx,b)=>{
       if(!b._preview)return null;
-      return previewMoney(b._preview,d.name+' verified invoice',b.id);
+      return previewMoney(b._preview,d.name+' verified invoice',
+        d.name==='billing_cancel_schedule'&&b._linked?.id?b._linked.id:b.id);
     }:undefined,
     targetGuard:(a,_ctx,b)=>ensureGood(d,a,b),
     apply:async(a,ctx,{idempotencyKey,before:b})=>{

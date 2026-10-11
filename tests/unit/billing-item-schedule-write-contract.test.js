@@ -230,3 +230,17 @@ it('future schedule refuses unverified saved payment-method ownership',async()=>
     .toThrow(/another customer/);
   expect(f.provider.writes).toHaveLength(0);
 });
+
+it('active schedule cancellation credit is bound to the underlying subscription',async()=>{
+  const f=fixture({readBackMatches:true,activeCancel:true,credit:true},
+    'billing_cancel_schedule');
+  const args={scheduleId:schedule,invoiceNow:true,prorate:true,confirm:true};
+  const initial=plain(await makeBillingItemScheduleWrite('billing_cancel_schedule')
+    .handler(args,f.ctx));
+  expect(initial.done).toBe(false);
+  expect(initial.error).toMatch(/approval/i);
+  const requests=await f.db.getMoneyUsage({account:'acct_safefixture',
+    connection:f.ctx.connectionId});
+  expect(requests.used_cents).toBe(0);
+  expect(f.provider.writes).toHaveLength(0);
+});
