@@ -410,13 +410,13 @@
         "D-5"
       ],
       "card": "docs/pr-cards/V-1.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "dev_tables",
       "budget": 450,
       "units": [
         "V-1"
       ],
-      "readiness": "CARD_READY",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -428,13 +428,13 @@
         "V-1"
       ],
       "card": "docs/pr-cards/V-2.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "none",
       "budget": 450,
       "units": [
         "V-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_READY",
       "ownerInputs": []
     },
     {

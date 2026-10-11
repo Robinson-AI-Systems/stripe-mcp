@@ -43,9 +43,10 @@ describe('tool registry', () => {
       'creditnote_create','creditnote_void',
       'dev_seed','dev_list_runs','dev_seed_refund','dev_verify_outcomes',
       'testclock_list','testclock_create','testclock_advance',
-      'dev_confirm_seed_ach','dev_connect_readiness'
+      'dev_confirm_seed_ach','dev_connect_readiness',
+      'dev_cleanup','dev_reset_test_data'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(60);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(61);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

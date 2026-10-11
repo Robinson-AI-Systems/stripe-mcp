@@ -127,6 +127,20 @@ export function createDevRunStore(sql){
       return rows.length===1&&rows[0].object_type===objectType&&
         rows[0].object_id===objectId;
     },
+    async markDevRunObjectCleaned({account,id,stepName,objectType,objectId}){
+      if(!accountId(account)||!runId(id)||
+        typeof stepName!=='string'||!/^[a-z0-9_-]{1,70}$/.test(stepName)||
+        !idPrefixes[objectType]||typeof objectId!=='string'||
+        !objectId.startsWith(idPrefixes[objectType]+'_')||
+        !/^[A-Za-z0-9_]{3,110}$/.test(objectId))
+        throw new TypeError('Exact account-scoped cleanup identity required');
+      const rows=await sql`UPDATE dev_run_objects o SET cleaned=TRUE
+        FROM dev_runs r WHERE o.run_id=r.id AND r.stripe_account=${account}
+          AND r.id=${id} AND o.step_name=${stepName}
+          AND o.object_type=${objectType} AND o.object_id=${objectId}
+        RETURNING o.object_id`;
+      return rows.length===1&&rows[0].object_id===objectId;
+    },
     async completeDevRun({account,id,expectedSteps}){
       if(!accountId(account)||!runId(id)||!Number.isInteger(expectedSteps)||
         expectedSteps<1||expectedSteps>50)
