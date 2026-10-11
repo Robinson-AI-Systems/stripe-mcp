@@ -2,7 +2,6 @@
 import {createHash} from 'node:crypto';
 const sha=s=>createHash('sha256').update(s).digest('hex');
 export const seedScenarios=['catalog-starter','basic-store','subscription-trial','subscription-canceled'];
-const cents=(n)=>Number.isSafeInteger(n)&&n>0&&n<=100000000;
 function chooseScenario(a){
   if((!!a?.scenario)===(!!a?.description))
     throw new TypeError('Select one named TEST scenario OR a plain description');
