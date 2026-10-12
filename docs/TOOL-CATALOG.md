@@ -1,5 +1,7 @@
 # Tool catalog
 
+#133 independently validates eight custom-MCP provider-smoke result shapes and selected-account identity; unrecognized JSON cannot count as observed G-4/G-5/G-6 state. No tool registration or write permission changes.
+
 #132 adds an opt-in, read-only owner-local acceptance runner exercising the repository's actual G-4/G-5/G-6 handlers via MCP dispatch. Not a new tool; no provider results or Dashboard settings inferred from mocked CI.
 
 #131 G-6 independent owner identity hardening requires actual safe account health fields (three booleans) alongside the matching TEST account ID before native administration read aggregation; echoed ID/status alone never authorizes downstream observations. No new tool or additional Stripe permission.
