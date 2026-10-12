@@ -163,3 +163,30 @@ describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
     expect(codes.filter(x=>x===429)).toHaveLength(2);
   });
 });
+
+describe('RTC 1 read-failure status accuracy',()=>{
+  it('reports a provider read failure as service_error/503 for direct and batch',async()=>{
+    const {db}=await fixture();
+    const failing=createRtcReadOnlyHttpHandler({db,registry:{
+      tools:registry.tools,handlers:{...registry.handlers,
+        account_get:async()=>({isError:true,content:[
+          {type:'text',text:'Private provider failure — never echo this'}]})}
+    }});
+    for(const [route,name,body] of [
+      ['call','stripe_account_get',{}],
+      ['batch',undefined,{calls:[{name:'stripe_account_get',args:{}}]}]
+    ]){
+      const r=res();await failing(req('POST',{},body),r,route,name);
+      expect(r.statusCode).toBe(503);
+      expect(r.body).toMatchObject({ok:false,error:{code:'service_error'}});
+      expect(JSON.stringify(r.body)).not.toContain('Private provider failure');
+    }
+  });
+  it('preserves invalid_args/400 for bad projection inside batch',async()=>{
+    const {handler}=await fixture(),r=res();
+    await handler(req('POST',{}, {calls:[{name:'stripe_account_get',
+      args:{fields:[]}}]}),r,'batch');
+    expect(r.statusCode).toBe(400);
+    expect(r.body.error.code).toBe('invalid_args');
+  });
+});
