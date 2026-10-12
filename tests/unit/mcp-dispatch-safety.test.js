@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import {overlayDispatch} from '../../scripts/k3-dispatch-overlay.mjs';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 const conn={stripeAccount:'acct_TESTK3',mode:'test',profile:'full',
   listing:'catalog',resultScope:'k3-scope'};
 const error=r=>r?.isError===true;
@@ -52,7 +52,9 @@ describe('original MCP source dispatch + portable adapter safety',()=>{
     expect(writes).toBe(0);
   });
   it('preserves original MCP SDK transport while temporarily swapping dispatch',()=>{
-    const code=readFileSync(new URL('../../src/core/mcp-server.js',import.meta.url),'utf8');
+    const pristine=new URL('../../src/core/k3-mcp-original-private.js',import.meta.url);
+    const code=readFileSync(existsSync(pristine)?pristine:
+      new URL('../../src/core/mcp-server.js',import.meta.url),'utf8');
     expect(overlayDispatch(code)).toContain("robinson-mcp-core/mcp-dispatch");
     expect(overlayDispatch(code)).toContain('createMcpHandler');
     expect(()=>overlayDispatch('unrelated')).toThrow();

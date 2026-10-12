@@ -235,8 +235,11 @@ export function rehearse(){
     // and actual source localhost HTTP/SQL identity and response handling.
     const dispatchPath=join(root,'src/core/mcp-server.js');
     const originalDispatch=readFileSync(dispatchPath,'utf8');
+    const dispatchSidecar=join(root,'src/core/k3-mcp-original-private.js');
     let dispatchProof;
     try{
+      if(existsSync(dispatchSidecar))throw Error('Private original MCP source sidecar exists');
+      writeFileSync(dispatchSidecar,originalDispatch,{flag:'wx'});
       writeFileSync(dispatchPath,overlayDispatch(originalDispatch));
       const unit=['tests/unit/server-tools.test.js',
         'tests/unit/mcp-dispatch-safety.test.js'];
@@ -249,7 +252,10 @@ export function rehearse(){
         originalHttpSqlSuites:sql.length,sourceMcpSdkTransport:true,
         sourceTenantResultScope:true,nestedWritesDenied:true,
         privateOnly:true};
-    }finally{writeFileSync(dispatchPath,originalDispatch);}
+    }finally{
+      writeFileSync(dispatchPath,originalDispatch);
+      rmSync(dispatchSidecar,{force:true});
+    }
     if(oneTimeAdapterSql.schema!=='actual-stripe-one_time_secrets'||
       oneTimeAdapterSql.pools!==2||
       oneTimeAdapterSql.legacyIssuedPortableConsumed!==true||

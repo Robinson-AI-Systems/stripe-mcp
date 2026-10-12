@@ -22,7 +22,7 @@ function inertSnapshot(value){
   }
   return freeze(result);
 }
-export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} },depth=0) {
+export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} },depth=0,parent=null) {
   let fixedArgs,fixedConnection,item,handler;
   try{
     if(typeof name!=='string'||!/^[a-z][a-z0-9_]{1,80}$/.test(name)||
@@ -36,8 +36,13 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     handler=slot&&Object.hasOwn(slot,'value')?slot.value:null;
   }catch{return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};}
   const guardedWrite=isGuardedTestWrite(item,fixedConnection);
+  // A single guarded TEST write may be delegated only through the original
+  // stripe_call meta tool. Arbitrary reads/batches and deeper calls cannot.
+  const nestedWrite=depth>0&&item?.writes!==false;
+  const explicitlyGuarded=nestedWrite&&depth===1&&parent==='stripe_call'&&
+    guardedWrite===true&&fixedConnection.mode==='test';
   if(!isToolAllowed(item,fixedConnection.profile,{allowWrites:guardedWrite})||
-    depth>0&&item?.writes!==false){
+    nestedWrite&&!explicitlyGuarded){
     return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};
   }
   if (typeof handler !== 'function') {
@@ -46,7 +51,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
   try {
     const raw=shapeToolResult(await handler(fixedArgs,{connection:fixedConnection,connectionId:fixedConnection.resultScope,db,services,registry,
       runRead:(toolName,toolArgs)=>dispatchReadOnlyTool({registry,
-        name:toolName,args:toolArgs,connection:fixedConnection,db,services},depth+1)}),
+        name:toolName,args:toolArgs,connection:fixedConnection,db,services},depth+1,name)}),
       {mode:fixedConnection.mode});
     if(raw?.isError)return raw;
     const requested=fixedArgs;

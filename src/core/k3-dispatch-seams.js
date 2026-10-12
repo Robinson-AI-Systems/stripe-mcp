@@ -4,7 +4,7 @@ import {shapeToolResult} from '../tools/util.js';
 import {toStripeToolError} from '../tools/errors.js';
 import {readDetail,splitResult,resultPage} from '../tools/result-rules.js';
 const value=(node,key)=>Object.getOwnPropertyDescriptor(node,key)?.value;
-export function createStripeCoreDispatcher({core,registry}){
+export function createStripeCoreDispatcher({core,registry,sourceDispatch}){
   if(typeof core?.createGuardedMcpDispatcher!=='function'||
     !Array.isArray(registry?.tools)||!registry.handlers)
     throw new TypeError('Reviewed private core and source registry required');
@@ -36,5 +36,15 @@ export function createStripeCoreDispatcher({core,registry}){
     formatError:toStripeToolError,
     skipDetailFor:name=>name==='stripe_get_result'
   });
-  return service.dispatch;
+  return request=>{
+    // The portable dispatcher is read-only under nested runRead. Stripe's
+    // service-specific guarded stripe_call + batch contracts remain under
+    // the original hardened source dispatcher until independent parity.
+    if(['stripe_call','stripe_batch'].includes(request.name)){
+      if(typeof sourceDispatch!=='function')
+        throw new TypeError('Original guarded meta dispatch required');
+      return sourceDispatch(request);
+    }
+    return service.dispatch(request);
+  };
 }
