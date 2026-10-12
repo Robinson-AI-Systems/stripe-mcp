@@ -51,7 +51,13 @@ export const handlers={
       const result={account:id,mode:'test',readOnly:true,sections:{}};
       const info=await readAdminTool(owner.stripe_whoami,{},ctx);
       result.sections.key=safeKey(info,id)??guide('api_keys');
-      const probe=await readAdminTool(owner.stripe_check_key_permissions,{},ctx);
+      // Locally stored key metadata is not provider authentication evidence.
+      // Do not perform or report a fresh provider permission probe until an
+      // independent TEST account_get proves the exact selected identity.
+      const identity=await readAdminTool(accountHandlers.account_get,{},ctx);
+      const identityProven=verifiedAdminIdentity(identity,id);
+      const probe=identityProven?
+        await readAdminTool(owner.stripe_check_key_permissions,{},ctx):null;
       result.sections.keyPermissions=safeProbe(probe,id)??guide('restricted_key_creation');
       const connections=await readAdminTool(owner.stripe_list_connections,{limit:20},ctx);
       if(connections?.account===id&&Array.isArray(connections.connections)&&
@@ -64,8 +70,7 @@ export const handlers={
         result.sections.connections={status:'not_readable',observed:false,
           note:'Connected pass/agent inventory was not accessible to this session.'};
       }
-      const identity=await readAdminTool(accountHandlers.account_get,{},ctx);
-      const hook=verifiedAdminIdentity(identity,id)?
+      const hook=identityProven?
         await readAdminTool(webhooks.webhook_list,{limit:5},ctx):null;
       if(hook&&Array.isArray(hook.data)&&hook.data.length<=5&&
         typeof hook.has_more==='boolean'&&hook.data.every(v=>

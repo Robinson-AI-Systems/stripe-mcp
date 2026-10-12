@@ -1,5 +1,7 @@
 # Tool catalog
 
+#135 G-6 admin_review_security requires independently verified exact TEST-account identity before any new key-permission provider reprobe or native webhook status read. Locally stored masked key metadata remains distinct from proven provider security; no tool or permissions added.
+
 #134 G-6 stripe_admin_overview distinguishes incomplete native TEST capability inventory (observed partial) from unreadable permission and exports separate complete/partial/unreadable native-section counts. No new tool or owner-acceptance claim.
 
 #133 independently validates eight custom-MCP provider-smoke result shapes and selected-account identity; unrecognized JSON cannot count as observed G-4/G-5/G-6 state. No tool registration or write permission changes.
