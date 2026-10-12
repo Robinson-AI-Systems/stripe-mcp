@@ -131,6 +131,7 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     expect(mine.data.result.pageCount).toBeGreaterThan(1);
     const wrong=await http('/api/results/'+id,{token:otherPass});
     expect(wrong.status).toBe(404);
+    expect(wrong.data.error.code).toBe('not_found');
   });
   it('distinguishes expired from actively owner-revoked credentials',async()=>{
     const expired=await http('/api/whoami',{token:expiredPass});
