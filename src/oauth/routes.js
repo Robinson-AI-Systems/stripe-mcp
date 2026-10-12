@@ -2,6 +2,7 @@
 import { createDb } from '../db.js';
 import { createOAuthHandlers } from '../core/oauth-handlers.js';
 import { allowBrowserProtocol } from '../core/browser-cors.js';
+import { incomingBodyWithinLimit, send } from '../core/http.js';
 
 export async function handleOAuth(which, req, res) {
   try {
@@ -9,6 +10,10 @@ export async function handleOAuth(which, req, res) {
     // cross-origin AJAX on the owner passphrase authorization form.
     if (which !== 'authorize' && allowBrowserProtocol(req, res,
       { methods: ['metadata','resourceMetadata'].includes(which) ? ['GET'] : ['POST'] })) return;
+    if (!incomingBodyWithinLimit(req)) {
+      return send(res, 413, { error: 'invalid_request',
+        error_description: 'Request body exceeds the 16 KiB transport limit or has no verifiable size' });
+    }
     const db = createDb();
     await db.initSchema();
     return await createOAuthHandlers({ db })[which](req, res);
