@@ -31,3 +31,25 @@ Stripe, OAuth, Webhook, or Toolkit Hub D-4. No provider mutation was authorized.
 ## Release and safety invariant
 
 PRs require all seven exact-head check/unit/db/mock/rtc-reference/ci/target-main jobs and thread-free reviewed merge. Production is promoted only by the scheduled checked main→live workflow. Automatic Vercel previews remain off, Basic builds queued, Neon 0.25 CU/300s idle. No financial writes, paid additions, LIVE enablement or manual deployment follows from TEST acceptance.
+
+## Opt-in owner runner added by #177 (source only, not a PASS)
+
+After the scheduled checked `live` deployment and independently verified
+trusted HTTPS ingress, configure `RTC_SERVICE_ORIGIN` and
+`RTC_APPROVED_ORIGIN` to the SAME exact approved HTTPS origin; supply
+`RTC_EXPECTED_ACCOUNT` and a one-hour server/account scoped `RTC_TEST_PASS`
+using secure process environment settings. Never paste pass or environment dump.
+Use `node scripts/rtc-service-check.mjs --authorized-read-only` for safe native
+RTC HTTP service checks. Use `--authorized-provider-read` only when the owner
+has approved a harmless genuine Stripe TEST account read. It calls
+`stripe_account_get` with `fields:['id']`; unlike `stripe_whoami`, this is
+intended to check the actual provider. The output contains only stage codes, never
+provider body or credentials.
+
+After revoking that pass through owner controls, supply it in the protected
+`RTC_REVOKED_PASS` environment variable and run
+`node scripts/rtc-service-check.mjs --verify-revocation`. This MUST receive the
+server's exact 401 `pass_revoked`; HTML SSO, unknown, expired and generic 401
+are not proofs. Recorded direct proof does not certify OAuth, Hub relay/Sandbox,
+signed webhooks or full RTC 1. Never run external acceptance before the deployed
+revision, owner identity and SSO ingress have been verified.
