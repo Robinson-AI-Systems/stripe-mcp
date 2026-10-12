@@ -1,6 +1,6 @@
 # Deploy Robinson Stripe MCP — owner checklist
 
-**Status (2026-10-11 Colorado):** A first production **build** for `Robinson-AI-Systems/stripe-mcp` `main` completed READY in existing Vercel project `stripe-mcp` under `Robinson AI Systems`. This is **not an operational deployment**: Neon `DATABASE_URL`, owner passphrase, encryption key, TEST key and end-to-end OAuth have not been verified or configured. `PUBLIC_BASE_URL` was set on Production after the initial build; redeploy when required settings are present. Stripe LIVE is disabled. See [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for separate approval and verification gates.
+**Status (2026-10-11 Colorado):** Vercel `stripe-mcp` production build is READY after secure `DATABASE_URL` provisioning. Dedicated Neon `stripe-mcp` / `stripe_mcp` database exists and passed read-only SQL connectivity. **Not operational yet:** owner-controlled `ADMIN_PASSPHRASE`, `TOKEN_ENCRYPTION_KEY`, restricted Stripe TEST key, authenticated MCP OAuth and application schema initialization have not been verified. Vercel deployment protection remains enabled; Stripe LIVE is disabled. See [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for the remaining approval and verification gates.
 
 This is a personal tool for your projects. The normal process is **set it up once, connect your AI agent once, then let OAuth refresh credentials automatically**. You should not have to keep creating API keys or signing in for routine use. An agent app may impose its own renewal or reconnection rules; we cannot override those.
 
@@ -18,14 +18,14 @@ operation or paid deployment is authorized by this instruction.
 
 - Vercel project: `stripe-mcp` (team `Robinson AI Systems`, existing Pro plan), linked to the correct GitHub repository `Robinson-AI-Systems/stripe-mcp`, branch `main`.
 - Production origin configured in Vercel: `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` (`PUBLIC_BASE_URL`). Review deployment protection before exposing OAuth discovery to remote AI clients; build READY does not prove endpoint accessibility.
-- Neon organization currently uses the **Launch** usage-billed plan. Original IN-02 called for a free-tier project, so no additional billed Neon database was created during provisioning. Obtain explicit agreement to any metered usage before creating it; do not share an unrelated application's database.
-- Secrets have deliberately not been pasted into GitHub or chat. Complete IN-02/03/04, redeploy with production environment values, then run real TEST/OAuth and owner Dashboard acceptance. Leave LIVE disabled.
+- After explicit owner authorization for the existing **Launch usage-billed plan**, a separate Neon project `stripe-mcp` was created in AWS us-east-1 with PostgreSQL 18, database `stripe_mcp`, fixed 0.25 CU compute and 5-minute auto-suspend. Isolated SQL connectivity succeeded. Its credential was transferred directly to Vercel as sensitive Production-only `DATABASE_URL`, not to chat, GitHub or other projects. No plan upgrade occurred; monitor actual metered usage.
+- Owner administrator/encryption secrets have deliberately not been pasted into GitHub or chat, and remain unset in Vercel. Production was redeployed after `DATABASE_URL` was set; deployment READY alone does not verify database schema or OAuth. Complete IN-03 and IN-04 privately, redeploy once those values are saved, and then run real TEST/OAuth and owner Dashboard acceptance. Leave LIVE disabled.
 
 ## What you need
 
 - A GitHub account with access to `Robinson-AI-Systems/stripe-mcp`.
-- Your Vercel account, with any **free-tier** plan and deployment limits reviewed before provisioning (IN-02). **Do not upgrade or purchase anything for this setup.**
-- A new Neon Postgres project *for this MCP* (not Appliance Desk's database), free tier where available (IN-02).
+- Your existing Vercel account/team (Pro); no plan change or additional paid upgrade was made for this MCP (IN-02).
+- A dedicated Neon Postgres project `stripe-mcp` / `stripe_mcp`, created on the existing Launch metered plan with explicit owner approval; not Appliance Desk's database (IN-02).
 - Your own strong administrator passphrase (IN-03) and a locally generated 32-byte encryption key (IN-03).
 - A Stripe **sandbox/test-mode** restricted API key for this MCP, separate from your application's keys (IN-04).
 - A publicly reachable HTTPS URL for the deployed MCP. A Vercel deployment domain works; a custom domain is not required.
