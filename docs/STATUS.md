@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#158 Owner-selected scoped RTC passes (as-if-merged; six CI gates required):** owner-only CSRF/password TEST pass form now selects at most six verified read-only areas, defaults to server-only, persists exact TEXT[] grant atomically, and the HTTPS boundary enforces it. Adversarial issuer, owner form and real Postgres round-trip tests; 24h TEST, $0 money, no writes/LIVE unchanged. Next #159 real server safe HTTPS conformance and D-4 authentic route setup.
+
+
 - **#157 RTC paged discovery and projection compatibility (as-if-merged; CI required):** GET /api/tools now accepts bounded offset/limit, truthful next, and audience filtering; HTTP reads accept validated array field selectors translated for the existing safe core projection. Regression tests cover disjoint pages and invalid selectors. Next: service conformance harness and D-4 route evidence, not yet accepted. TEST/read_only and LIVE OFF.
 
 

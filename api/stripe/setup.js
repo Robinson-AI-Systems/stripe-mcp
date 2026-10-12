@@ -7,6 +7,7 @@ import { createWebhookSignatureStore, createOwnerWebhookProvisioner } from '../.
 import { makeStripeClient } from '../../src/stripe/client.js';
 import { runOwnerTestSmoke } from '../../src/acceptance/owner-test-smoke.js';
 import {createReadOnlyTestPassIssuer} from '../../src/core/rtc-passes.js';
+import {registry} from '../../src/tools/index.js';
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +34,10 @@ export default async function handler(req, res) {
       return runOwnerTestSmoke({account,key,focus});
     }:null;
     return await createSetupHandler({ db, keyStore, oneTimeStore,provisionWebhookSecret,forgetWebhookSecret,
-      runTestSmoke,issueRtcPass:configured?createReadOnlyTestPassIssuer({db,oneTimeStore}):null,
+      runTestSmoke,issueRtcPass:configured?createReadOnlyTestPassIssuer({db,oneTimeStore,
+        availableAreas:[...new Set(registry.tools.filter(t=>t.writes===false&&
+          t.money!==true&&t.destructive!==true&&
+          t.profiles?.includes('read_only')).map(t=>t.area??'server'))]}):null,
       reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({

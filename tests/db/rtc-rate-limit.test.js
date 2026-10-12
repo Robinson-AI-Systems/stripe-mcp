@@ -15,7 +15,8 @@ beforeAll(async()=>{
   await rawQuery('INSERT INTO stripe_accounts(id,label,test_key_enc) VALUES($1,$2,$3)',
     [account,'TEST','v1.mock']);
   expect(await db.createRtcReadOnlyPass({id:'rtc-agent-ratetests',account,token,
-    expiresAt:new Date(Date.now()+86400000)})).toBe(true);
+    expiresAt:new Date(Date.now()+86400000),areas:['server','account']})).toBe(true);
+  expect((await db.getRtcPassStatus(token)).areas).toEqual(['server','account']);
 });
 afterAll(async()=>closeIsolatedSchema());
 describe('atomic shared RTC pass rate ceiling',()=>{

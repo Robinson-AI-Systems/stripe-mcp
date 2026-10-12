@@ -160,13 +160,15 @@ describe('owner-only Toolkit RTC read-only pass issuance',()=>{
   it('requires password, origin and CSRF; never leaks a bearer in responses',async()=>{
     const db=createFakeDb();
     let issued=0;
-    const handler=createSetupHandler({db,env,issueRtcPass:async({account})=>{
+    const handler=createSetupHandler({db,env,issueRtcPass:async({account,areas})=>{
       issued++;
       expect(account).toBe('acct_SAFEPASS');
+      expect(areas).toBe('server,account');
       return {id:'rtc-agent-123456abcdef',setupPath:'/api/stripe/setup?show='+'A'.repeat(32)};
     }});
     const c=cookiePage(await page(handler));
-    const action={action:'issue-rtc-pass',account:'acct_SAFEPASS',passphrase:env.ADMIN_PASSPHRASE};
+    const action={action:'issue-rtc-pass',account:'acct_SAFEPASS',
+      areas:'server,account',passphrase:env.ADMIN_PASSPHRASE};
     expect((await submit(handler,c,action,'https://evil.test')).statusCode).toBe(403);
     expect((await submit(handler,{...c,csrf:'bad'},action)).statusCode).toBe(403);
     expect((await submit(handler,c,{...action,passphrase:'wrong'})).statusCode).toBe(401);

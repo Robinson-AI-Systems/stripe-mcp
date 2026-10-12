@@ -84,7 +84,12 @@ export function createDb(sql = getProductionSql()) {
         VALUES (${hashToken(accessToken)}, ${refreshToken ? hashToken(refreshToken) : null},
           ${clientId}, ${stripeAccount}, ${mode}, ${profile}, ${listing}, ${expiresAt})`;
     },
-    async createRtcReadOnlyPass({id,account,token,expiresAt}) {
+    async createRtcReadOnlyPass({id,account,token,expiresAt,areas=null}) {
+      if(areas!==null&&(!Array.isArray(areas)||areas.length<1||areas.length>6||
+        areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))||
+        new Set(areas).size!==areas.length))
+        throw new TypeError('Valid read-only area selection required');
+      const areaList=areas?.join(',')??null;
       if(typeof id!=='string'||!/^rtc-agent-[a-z0-9-]{8,80}$/.test(id)||
         typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
         typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token)||
@@ -95,7 +100,7 @@ export function createDb(sql = getProductionSql()) {
         (token_hash,client_id,stripe_account,mode,profile,listing,kind,
          allow_writes,money_limit_cents,areas,for_hub,rate_limit_per_minute,expires_at)
         SELECT ${hashToken(token)},${id},id,'test','read_only','compact','pass',
-          FALSE,0,NULL,FALSE,120,${expiresAt}
+          FALSE,0,string_to_array(${areaList},','),FALSE,120,${expiresAt}
         FROM stripe_accounts WHERE id=${account} AND test_key_enc IS NOT NULL
           AND live_enabled=FALSE RETURNING client_id`;
       return rows.length===1;
