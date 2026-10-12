@@ -149,3 +149,13 @@ service PostgreSQL suites. Test mode write declaration/caller/profile
 restrictions must remain safe. Never mark final package adoption or owner
 money approval solely from this import rehearsal. Restore original
 `profiles.js` before CI concludes; no deployed dependency changes.
+
+## K-3 bearer source-owned adapter (#187; requires exact-head CI)
+Direct original-vs-portable bearer challenge and identity comparison plus
+four actual original Stripe unit/six PostgreSQL suites under temporary
+private-core `mcp-auth` source entry-point overlay. Source durable
+token owner profile, TEST-only, case-insensitive Bearer, stripped projected
+credential, duplicate Authorization evidence and 503 SQL outage are
+separate intentional requirements; restored source remains default. See
+`K3-STRIPE-SOURCE-HANDOFF.md`. Genuine deployed OAuth, owner login
+money consent, Hub D-4 and published package adoption remain UNVERIFIED.
