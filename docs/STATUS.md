@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#148 OAuth DCR standards default (proposed; five exact-head CI jobs and review required):** Newly registered confidential OAuth clients without an explicit method use HTTP Basic; existing persisted POST clients and explicitly registered POST/public clients remain unchanged. Code exchange, refresh and rejection paths have regression tests. Owner Dashboard walkthrough, external Vercel-protected OAuth and connected custom MCP TEST provider evidence remain pending; H-1 gated and LIVE disabled.
+
 - **#147 isolated owner TEST smoke groups (proposed; CI/review required):** Split existing custom read-only MCP owner verification into G-5 account (4), G-4 events/webhooks (2) and G-6 readiness (2), keeping core (8) and administration (3). Protected owner page validates exact group/tool projections; true TEST account preflight remains mandatory. No real provider or Dashboard acceptance, no LIVE, money or Vercel policy change.
 
 - **#146 bounded OAuth client registration (proposed; verify exact-head CI):** Public registration now rejects oversized redirect URIs, unprintable/overlong names, and mismatched OAuth response/grant declarations before client creation. Shared HTTP body limits also cover pre-parsed objects. No key, money, LIVE, owner-permission or Vercel protection change. External OAuth/TEST evidence still pending.
