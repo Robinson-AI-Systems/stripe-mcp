@@ -2,7 +2,12 @@
 import {client,reply,fail,allProfiles} from './billing-shared.js';
 import {handlers as accountHandlers} from './account-profile.js';
 import {handlers as capabilityHandlers} from './account-capabilities.js';
-import {whereIsSetting} from '../data/dashboard-map.js';
+import {handlers as payoutHandlers} from './money-bank-reads.js';
+import {handlers as methodHandlers} from './account-payment-settings.js';
+import {handlers as domainHandlers} from './account-apple-pay-domains.js';
+import {handlers as webhookHandlers} from './webhooks-read.js';
+import {handlers as portalHandlers} from './checkout.js';
+import {DASHBOARD_SETTINGS,whereIsSetting} from '../data/dashboard-map.js';
 import {denverLocalTime} from './util.js';
 
 const accountOk=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
@@ -137,16 +142,81 @@ export const handlers={
           capabilities:caps.capabilities.map(v=>({id:v.id,status:v.status})),
           totalObserved:caps.totalObserved}:null,
         dashboardUrl:guide('payment_methods')};
-      for(const [name,setting] of Object.entries({
+      const guides={
         payoutDestination:'bank_account',payoutSchedule:'payout_schedule',
         branding:'public_branding',descriptor:'statement_descriptor',
-        paymentMethods:'payment_methods',tax:'tax_registrations',
-        webhooks:'webhook_events',customerPortal:'customer_portal',
-        teamSecurity:'team_members',fees:'stripe_billing_fees'})){
+        paymentMethods:'payment_methods',paymentDomains:'payment_method_domains',
+        tax:'tax_registrations',webhooks:'webhook_events',
+        customerPortal:'customer_portal',teamSecurity:'team_members',
+        fees:'stripe_billing_fees'};
+      for(const [name,setting] of Object.entries(guides)){
         sections[name]={status:'not_readable',observed:false,detail:null,
           dashboardUrl:guide(setting),verifyWith:whereIsSetting(setting).verifyWith};
       }
-      return reply({account:id,mode:'test',sections,
+      // Reuse the existing registered TEST readers. A reader error is an
+      // unobserved section, never an empty successful inventory.
+      const read=async(fn,args)=>{
+        try{return unpack(await fn(args,ctx));}catch{return null;}
+      };
+      const [banks,schedule,methods,domains,hooks,portal]=await Promise.all([
+        read(payoutHandlers.money_list_bank_accounts,{limit:5}),
+        read(payoutHandlers.money_get_payout_schedule,{}),
+        read(methodHandlers.account_list_payment_method_settings,{limit:5}),
+        read(domainHandlers.account_list_apple_pay_domains,{limit:5}),
+        read(webhookHandlers.webhook_list,{limit:5}),
+        read(portalHandlers.portal_list_configurations,{limit:5})
+      ]);
+      const observe=(name,detail,complete)=>{
+        sections[name]={...sections[name],status:'observed',observed:true,
+          complete,detail};
+      };
+      if(banks?.available===true&&Array.isArray(banks.data)&&
+        banks.data.length<=5&&typeof banks.has_more==='boolean'){
+        observe('payoutDestination',{destinations:banks.data.map(v=>({
+          id:v.id,last4:v.last4,status:v.status,
+          defaultForCurrency:v.defaultForCurrency}))},!banks.has_more);
+      }
+      if(schedule?.available===true&&schedule.accountId===id&&
+        ['daily','weekly','monthly','manual'].includes(schedule.interval))
+        observe('payoutSchedule',{interval:schedule.interval,
+          delayDays:schedule.delayDays??null},true);
+      if(methods?.account===id&&methods.available===true&&
+        Array.isArray(methods.configurations)&&methods.configurations.length<=5&&
+        typeof methods.hasMore==='boolean')
+        observe('paymentMethods',{configurations:methods.configurations.map(v=>({
+          id:v.id,active:v.active,methods:v.methods}))},!methods.hasMore);
+      if(domains?.account===id&&domains.available===true&&Array.isArray(domains.domains)&&
+        domains.domains.length<=5&&typeof domains.hasMore==='boolean')
+        observe('paymentDomains',{domains:domains.domains.map(v=>({
+          id:v.id,enabled:v.enabled,applePayStatus:v.applePayStatus,
+          applePayReady:v.applePayReady}))},!domains.hasMore);
+      if(Array.isArray(hooks?.data)&&hooks.data.length<=5&&
+        typeof hooks.has_more==='boolean'&&hooks.data.every(v=>
+          typeof v.id==='string'&&['enabled','disabled'].includes(v.status)))
+        observe('webhooks',{endpoints:hooks.data.map(v=>({
+          id:v.id,status:v.status,eventCount:v.enabledEventCount}))},!hooks.has_more);
+      if(Array.isArray(portal?.data)&&portal.data.length<=5&&
+        typeof portal.has_more==='boolean'&&portal.data.every(v=>
+          typeof v.id==='string'&&typeof v.active==='boolean'))
+        observe('customerPortal',{configurations:portal.data.map(v=>({
+          id:v.id,active:v.active,isDefault:v.isDefault,
+          features:v.features}))},!portal.has_more);
+      const guidedState={
+        account_verification:sections.account.status,
+        bank_account:sections.payoutDestination.status,
+        payout_schedule:sections.payoutSchedule.status,
+        payment_methods:sections.paymentMethods.status,
+        payment_method_domains:sections.paymentDomains.status,
+        webhook_events:sections.webhooks.status,
+        customer_portal:sections.customerPortal.status
+      };
+      // 'observed' describes a native read, not proof the intended Dashboard
+      // configuration is correct or that Stripe has enabled a method.
+      const guidedSettings=Object.keys(DASHBOARD_SETTINGS).sort().map(setting=>({
+        setting,status:guidedState[setting]??'not_readable',
+        verifyWith:whereIsSetting(setting).verifyWith
+      }));
+      return reply({account:id,mode:'test',sections,guidedSettings,
         attention:Object.entries(sections).filter(([,v])=>v.status==='needs_attention')
           .map(([k])=>k),
         unreadable:Object.entries(sections).filter(([,v])=>v.status==='not_readable')
