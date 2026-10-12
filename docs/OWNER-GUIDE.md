@@ -168,6 +168,15 @@ chat, URL or logs. The hub's real three-route D-4 verification and complete RTC
 write conformance remain pending. Revoke temporary passes by connection ID.
 
 
+## Daily Production deployments (PR #166)
+
+The custom Stripe MCP continues developing on `main`. Vercel Production
+should track a dedicated `live` branch. GitHub proposes one checked
+fast-forward each Colorado day around 4 AM daylight / 3 AM standard time.
+Check the deployment and actual Vercel `live` branch setting before treating
+this as fully activated. Stripe LIVE payments remain explicitly disabled.
+See `docs/DAILY-PRODUCTION-PROMOTION.md`.
+
 ## Temporary one-hour Toolkit passes (PR #163)
 The protected owner setup page can issue a one-hour, area-scoped TEST read-only pass for genuine Hub D-4 acceptance. The existing 24-hour default is unchanged. The bearer remains visible only through the one-time owner reveal; revoke the connection after the real test. Selecting one hour does not itself prove any external route was tested.
 
