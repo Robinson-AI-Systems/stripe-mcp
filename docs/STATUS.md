@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#157 RTC paged discovery and projection compatibility (as-if-merged; CI required):** GET /api/tools now accepts bounded offset/limit, truthful next, and audience filtering; HTTP reads accept validated array field selectors translated for the existing safe core projection. Regression tests cover disjoint pages and invalid selectors. Next: service conformance harness and D-4 route evidence, not yet accepted. TEST/read_only and LIVE OFF.
+
+
 - **#156 RTC scoped-pass least privilege (as-if-merged; CI required):** RTC HTTPS discovery, describe, direct calls and batch now intersect any persisted area grant; fail closed on malformed grants, refuse money/destructive-labelled reads and prevent scoped meta-dispatch tunneling. Read-only TEST with zero money remains mandatory. Dedicated unit regressions validate denial. Next: conformance against genuine service and pagination/scope issuance, then D-4 route evidence; no owner LIVE activation.
 
 - **#155 RTC 1 HTTPS TEST read-only compatibility (as-if-merged, exact-head CI required):** public manifest/OpenAPI and pass-only GET discovery/whoami/results plus guarded read POST/batch, owner-intent revocation of both pass/connector identities, per-pass atomic PostgreSQL rate limiting, prefix-normalized HTTP names without breaking `/api/mcp`. All HTTP execution remains TEST/read_only; zero writes/money. Hub pinned reference conformance selftests run in CI but are **not** service conformance: real Stripe URL/full-role runner, genuine direct/relay/sandbox D-4 paths, owner pass issuance/revocation evidence and external OAuth still pending. Public manifest carries `conformanceStatus:pending_full_approval_and_provider_acceptance`; no LIVE/H-1 advancement. End batch #155 and next #156–#160.

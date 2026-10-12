@@ -72,9 +72,18 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
   async function call(name,args,connection){
     const t=allowedTool(registry,name,connection.areas);
     if(!t||!isRecord(args))return {error:'refused_by_guard'};
+    // RTC clients may supply a field array; the core projection rules still
+    // validate the shared comma-separated dotted-field representation.
+    let safeArgs=args;
+    if(Array.isArray(args.fields)){
+      if(args.fields.length<1||args.fields.length>12||
+        args.fields.some(f=>typeof f!=='string'||f.length>100)||
+        args.fields.join(',').length>600)return {error:'invalid_args'};
+      safeArgs={...args,fields:args.fields.join(',')};
+    }
     // Reject unexpected pass-provided credentials and dangerous non-read tools;
     // the registered dispatcher remains the final profile/guard authority.
-    const output=await dispatchReadOnlyTool({registry,name:t.name,args,connection,db,services});
+    const output=await dispatchReadOnlyTool({registry,name:t.name,args:safeArgs,connection,db,services});
     const result=unpack(output);
     if(result===null)return {error:'service_error'};
     const handle=typeof result.handle==='string'&&/^res_[A-Za-z0-9_-]{24,48}$/.test(result.handle)?
@@ -132,19 +141,23 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const limit=Number(req.query?.limit??20);
       if(!Number.isInteger(limit)||limit<1||limit>100)return error('invalid_args');
       const q=req.query?.q,area=req.query?.area,listing=req.query?.listing;
+      const offset=Number(req.query?.offset??0),audience=req.query?.audience;
       if(q!==undefined&&(typeof q!=='string'||q.length>100)||
         area!==undefined&&(typeof area!=='string'||area.length>50)||
-        listing!==undefined&&!['compact','catalog'].includes(listing))
+        listing!==undefined&&!['compact','catalog'].includes(listing)||
+        !Number.isInteger(offset)||offset<0||offset>100000||
+        audience!==undefined&&!['owner','operator','builder'].includes(audience))
         return error('invalid_args');
       let tools=registry.tools.filter(t=>safeRead(t)&&inScope(t,connection.areas)&&(!area||t.area===area)&&
         (!q||alias(t.name).includes(q.toLowerCase())||
-          t.description?.toLowerCase().includes(q.toLowerCase())));
+          t.description?.toLowerCase().includes(q.toLowerCase()))&&
+        (!audience||metadata(t).audience.includes(audience)));
       if((listing??'catalog')==='compact')
         tools=tools.filter(t=>['stripe_whoami','stripe_search_tools','stripe_describe_tool',
           'stripe_call','stripe_batch','stripe_get_result'].includes(t.name));
-      const list=tools.slice(0,limit).map(metadata);
-      return success({tools:list,total:tools.length,
-        next:tools.length>limit?limit:null});
+      const list=tools.slice(offset,offset+limit).map(metadata);
+      return success({tools:list,total:tools.length,offset,
+        next:tools.length>offset+limit?offset+limit:null});
     }
     if(route==='describe'){
       if(req.method!=='GET'||typeof name!=='string')return error('invalid_args');

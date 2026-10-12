@@ -117,6 +117,41 @@ describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
     await createRtcReadOnlyHttpHandler({db:corrupt,registry})(req(),r,'whoami');
     expect(r.statusCode).toBe(403);
   });
+
+  it('pages actual filtered catalog without repeats or lost tools',async()=>{
+    const {handler}=await fixture();
+    const a=res(),b=res(),empty=res();
+    await handler(req('GET',{limit:'1',offset:'0'}),a,'catalog');
+    await handler(req('GET',{limit:'1',offset:'1'}),b,'catalog');
+    await handler(req('GET',{limit:'1',offset:'200'}),empty,'catalog');
+    expect(a.body.result.tools).toHaveLength(1);
+    expect(b.body.result.tools).toHaveLength(1);
+    expect(a.body.result.tools[0].name).not.toBe(b.body.result.tools[0].name);
+    expect(a.body.result.next).toBe(1);
+    expect(b.body.result.next).toBe(null);
+    expect(empty.body.result.tools).toHaveLength(0);
+    for(const query of [{offset:'-1'},{offset:'1.5'},{audience:'administrator'}]){
+      const invalid=res();await handler(req('GET',query),invalid,'catalog');
+      expect(invalid.body.error.code).toBe('invalid_args');
+    }
+  });
+  it('normalizes RTC array projections without changing legacy MCP syntax',async()=>{
+    const projectedRegistry={tools:registry.tools,handlers:{...registry.handlers,
+      account_get:async(args)=>({content:[{type:'text',
+        text:JSON.stringify({available:true,unrelated:'private',requested:args.fields})}]})}};
+    const {db}=await fixture();
+    const handler=createRtcReadOnlyHttpHandler({db,registry:projectedRegistry});
+    const good=res();
+    await handler(req('POST',{}, {fields:['available']}),good,'call','stripe_account_get');
+    expect(good.statusCode).toBe(200);
+    expect(good.body.result).toEqual({available:true});
+    for(const fields of [[],Array(13).fill('available'),['available',99]]){
+      const invalid=res();
+      await handler(req('POST',{}, {fields}),invalid,'call','stripe_account_get');
+      expect(invalid.statusCode).toBe(400);
+      expect(invalid.body.error.code).toBe('invalid_args');
+    }
+  });
   it('shares rate state across handler instances and refuses 121st call',async()=>{
     const {db,handler}=await fixture();
     const sibling=createRtcReadOnlyHttpHandler({db,registry});
