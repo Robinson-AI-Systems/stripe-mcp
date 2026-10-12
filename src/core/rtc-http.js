@@ -148,8 +148,12 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const owner=await db.getStripeAccount(pass.stripe_account);
       if(!owner?.test_connected||owner.live_enabled===true)
         return send(res,403,err('refused_by_guard',403).body);
+      // Reserve every TEST batch read atomically before the first handler.
+      const calls=route==='batch'&&req.method==='POST'?req.body?.calls:null;
+      const units=Array.isArray(calls)&&calls.length>=1&&calls.length<=10?
+        calls.length:1;
       const permitted=await db.consumeRtcPassRate({token:auth[1],
-        limit:Number(pass.rate_limit_per_minute)});
+        limit:pass.rate_limit_per_minute,units});
       if(!permitted){res.setHeader('Retry-After','60');
         return send(res,429,err('rate_limited',429).body);}
     }catch{return send(res,503,err('service_error',503).body);}

@@ -37,3 +37,18 @@ describe('atomic shared RTC pass rate ceiling',()=>{
     expect(await db.consumeConnectionRevokeIntent(id)).toBe(false);
   });
 });
+
+describe('atomic RTC batch-unit reservations',()=>{
+  it('allows exactly twelve concurrent 10-read batches across DB handles',async()=>{
+    const otherToken='rtc_pass_'+randomBytes(32).toString('base64url');
+    expect(await db.createRtcReadOnlyPass({id:'rtc-agent-rate-batches',account,
+      token:otherToken,areas:['server'],expiresAt:new Date(Date.now()+3600000)})).toBe(true);
+    const results=await Promise.all(Array.from({length:13},(_,i)=>
+      (i%2?db:peer).consumeRtcPassRate({token:otherToken,limit:120,units:10})));
+    expect(results.filter(Boolean)).toHaveLength(12);
+    expect(results.filter(x=>!x)).toHaveLength(1);
+    for(const units of [0,11,-1,1.5,'10'])
+      await expect(db.consumeRtcPassRate({token:otherToken,limit:120,units}))
+        .rejects.toThrow('Valid RTC TEST rate selector');
+  });
+});

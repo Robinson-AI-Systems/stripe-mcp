@@ -9,6 +9,8 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#171 (as-if MERGED) RTC batch rate units:** reserve all 1–10 read units against the shared PostgreSQL 120/minute TEST pass bucket before any handler execution, not one HTTP unit per ten reads. Fake DB, HTTP and independently connected DB regression tests. No new authority or deployment; seven exact-head checks and unresolved-review audit required. Genuine owner-enrolled Stripe/Hub D-4 acceptance, signed webhooks and OAuth remain unverified; Stripe LIVE OFF. Next #172.
+
 - **#170 RTC multi-call preflight / release batch boundary (IN REVIEW):** all batch READ arguments (including detail, field arrays, dotted projection constraints) now pass identical validation before invoking the FIRST Stripe handler, preventing wasted TEST requests or stored handles when a later operation is known to be invalid. Tests prove zero handler calls for malformed late entries and full execution/field privacy for two valid calls. Existing #168 hosting cost policy/CI guard and #169 corrupted TEST pass checks preserved. After seven exact-head checks, thread-free merge and post-main CI, stop at multiple-of-five #170 and hand off next #171–#175; daily live promotion remains scheduled only, not manually triggered. Do not claim real Toolkit D-4 direct/relay/Sandbox, Stripe signed webhook delivery, G-4/5/6, or authenticated external OAuth acceptance without evidence; LIVE disabled.
 
 
