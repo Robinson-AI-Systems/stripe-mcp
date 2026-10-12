@@ -25,4 +25,14 @@ describe('atomic shared RTC pass rate ceiling',()=>{
     expect(results.filter(Boolean)).toHaveLength(120);
     expect(results.filter(x=>!x)).toHaveLength(30);
   });
+  it('revokes a TEST RTC pass through the existing independent owner intent',async()=>{
+    const id='B'.repeat(32);
+    expect(await db.requestConnectionRevokeIntent({id,account,
+      clientId:'rtc-agent-ratetests',expiresAt:new Date(Date.now()+600000)})).toBe(true);
+    expect(await db.getConnectionRevokeIntent(id)).toBeTruthy();
+    expect(await db.consumeConnectionRevokeIntent(id)).toBe(true);
+    expect((await db.getRtcPassStatus(token)).revoked_at).toBeTruthy();
+    expect(await db.getRtcPass(token)).toBeNull();
+    expect(await db.consumeConnectionRevokeIntent(id)).toBe(false);
+  });
 });

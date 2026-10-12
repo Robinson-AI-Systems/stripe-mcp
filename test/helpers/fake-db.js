@@ -316,7 +316,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
           typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId) ||
           !(expiresAt instanceof Date)) throw new TypeError('Invalid owner intent');
       if (![...tokens.values()].some(t=>t.stripe_account===account&&t.client_id===clientId&&
-          t.kind==='connector'&&!t.revoked_at)) return false;
+          ['connector','pass'].includes(t.kind)&&!t.revoked_at)) return false;
       revokeIntents.push({id,account,clientId,expiresAt:expiresAt.getTime(),consumedAt:null});
       return true;
     },
@@ -329,7 +329,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const r=revokeIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
       if (!r) return false;
       const eligible=[...tokens.values()].filter(t=>t.stripe_account===r.account&&
-        t.client_id===r.clientId&&t.kind==='connector'&&!t.revoked_at);
+        t.client_id===r.clientId&&['connector','pass'].includes(t.kind)&&!t.revoked_at);
       if(!eligible.length)return false;
       r.consumedAt=clock();
       for(const t of eligible)t.revoked_at=clock();
@@ -540,6 +540,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return structuredClone([...tokens.values()].filter(r=>r.stripe_account===account)
         .slice(offset,offset+limit).map(r=>({
           client_id:r.client_id,mode:r.mode,profile:r.profile,listing:r.listing,
+          kind:r.kind,rate_limit_per_minute:r.rate_limit_per_minute??120,
           created_at:null,last_used_at:null,expires_at:new Date(r.expires_at),
           revoked_at:r.revoked_at?new Date(r.revoked_at):null
         })));

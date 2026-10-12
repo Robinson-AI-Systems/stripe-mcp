@@ -381,7 +381,7 @@ export function createDb(sql = getProductionSql()) {
       const rows=await sql`INSERT INTO owner_revoke_intents (id,stripe_account,client_id,expires_at)
         SELECT ${id},${account},${clientId},${expiresAt}
         WHERE EXISTS (SELECT 1 FROM oauth_tokens t WHERE t.stripe_account=${account}
-          AND t.client_id=${clientId} AND t.kind='connector' AND t.revoked_at IS NULL)
+          AND t.client_id=${clientId} AND t.kind IN ('connector','pass') AND t.revoked_at IS NULL)
         RETURNING id`;
       return rows.length===1;
     },
@@ -403,12 +403,12 @@ export function createDb(sql = getProductionSql()) {
         WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
           AND EXISTS (SELECT 1 FROM oauth_tokens t WHERE
             t.stripe_account=i.stripe_account AND t.client_id=i.client_id
-            AND t.kind='connector' AND t.revoked_at IS NULL)
+            AND t.kind IN ('connector','pass') AND t.revoked_at IS NULL)
         RETURNING i.stripe_account,i.client_id
       ), revoked AS (
         UPDATE oauth_tokens t SET revoked_at=now()
         FROM consumed i WHERE t.stripe_account=i.stripe_account
-          AND t.client_id=i.client_id AND t.kind='connector' AND t.revoked_at IS NULL
+          AND t.client_id=i.client_id AND t.kind IN ('connector','pass') AND t.revoked_at IS NULL
         RETURNING t.stripe_account,t.client_id
       )
       INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run)
@@ -668,9 +668,9 @@ export function createDb(sql = getProductionSql()) {
         throw new TypeError('Selected account and bounded limit/offset required');
       }
       // Never select bearer hashes, refresh hashes, client secrets or codes.
-      return await sql`SELECT client_id, mode, profile, listing, created_at,
+      return await sql`SELECT client_id, mode, profile, listing, kind, rate_limit_per_minute, created_at,
           last_used_at, expires_at, revoked_at
-        FROM oauth_tokens WHERE stripe_account = ${account} AND kind = 'connector'
+        FROM oauth_tokens WHERE stripe_account = ${account} AND kind IN ('connector','pass')
         ORDER BY created_at DESC, token_hash DESC LIMIT ${limit} OFFSET ${offset}`;
     },
     async recordChange({ account = null, mode = 'test', connection = null, tool, target = null, summary,

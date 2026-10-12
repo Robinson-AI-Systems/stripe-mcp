@@ -336,3 +336,8 @@ only at the HTTP edge. Expiry/revocation/owner-test-key gates precede every read
 by default with HTTP 429. No live/writes/money from these doors. The pinned
 hub reference conformance job tests upstream runner behavior, NOT end-to-end
 Stripe service conformance; run external full suite/real routes separately.
+
+The pre-existing owner connection-revocation transaction was broadened from
+connector-only to selected connector/pass kinds, with single-use owner intent
+and audit preserved. Connection listing now displays pass kind/rate only, not
+bearer or digest. This is mandatory for real D-4 test cleanup.

@@ -67,7 +67,10 @@ describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
     const {db,handler}=await fixture();
     const bad=res();await handler(req('GET',{},undefined,'connector_123'),bad,'whoami');
     expect(bad.statusCode).toBe(401);
-    await db.revokeAccessToken(pass);
+    const id='C'.repeat(32);
+    expect(await db.requestConnectionRevokeIntent({id,account,
+      clientId:'rtc-agent-test1234',expiresAt:new Date(Date.now()+600000)})).toBe(true);
+    expect(await db.consumeConnectionRevokeIntent(id)).toBe(true);
     const revoked=res();await handler(req(),revoked,'whoami');
     expect(revoked.body.error.code).toBe('pass_revoked');
     expect(revoked.statusCode).toBe(401);

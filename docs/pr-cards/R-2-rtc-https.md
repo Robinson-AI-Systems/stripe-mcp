@@ -12,7 +12,9 @@ hub probe exists. Older MCP tool names are not RTC-prefix compliant.
   batch through the same registered MCP dispatch/profile guards.
 - Authenticate only RTC passes. Recheck active TEST account, expiry, revocation,
   $0 money, no writes; atomically bound usage across serverless processes at
-  120/min with 429 rate_limited and Retry-After.
+  120/min with 429 rate_limited and Retry-After. Existing owner revocation
+  must include kind=pass in both intent and final transaction, and list passes
+  without exposing bearer hashes; tests require post-revocation HTTP 401.
 - Strong safe envelopes, size/fields/handles from core dispatcher; no pass or
   raw provider payload in errors.
 - Unit and real Postgres concurrency tests; run hub's immutable conformance
