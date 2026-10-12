@@ -305,8 +305,8 @@ watches, then checked by read-back where Stripe exposes the value (Robinson Tool
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `stripe_admin_overview` | The whole account in one view: business details and verification, what Stripe still needs and by when, capabilities, payouts and bank (last 4), branding and descriptor, payment methods, tax registrations, webhooks, portal, plus every guided setting's state (ok / needs attention / can't read) | — | N | R |
-| `admin_list_requirements` | What Stripe needs from the business (documents, details) and the deadlines, in plain words, with the link to provide each | — | N | R |
+| `stripe_admin_overview` | TEST account verification and capability readback with explicit unobserved owner sections, trusted Dashboard guidance; other sections remain not_readable pending follow-up | — | built #121 (partial coverage) | R |
+| `admin_list_requirements` | TEST requirement categories and counts, Denver deadlines and private owner Dashboard instructions, never raw personal requirement paths | — | built #121 | R |
 | `admin_list_guided_settings` | Paginated TEST-only structured owner settings map with steps, expected results and real reader references | — | built #120 | R |
 | `admin_check_setting` | Provider-observed TEST account verification where accessible; otherwise explicit not_readable and owner steps | — | built #120 | R |
 | `admin_review_security` | What can be read about security (key kind and age as stored here, restricted-key permissions, webhook endpoints, connections and passes to this server) plus guided checks for two-step login, team roles and API keys | — | N | R |
