@@ -32,7 +32,9 @@ describe('K-3 portable OAuth protocol / original Stripe identity',()=>{
       'createAccessToken','consumeAuthCode','createOAuthClient'].map(k=>[k,async()=>null]));
     const adapter=createStripeOAuthProtocolAdapter({core,source,db,env:{}});
     expect(sourceCalled).toBe(1);
-    expect(adapter.token()).toBe('portable');
+    const res={setHeader(){}};
+    expect(await adapter.token({},res)).toBe('portable');
+    expect(typeof res.setHeader).toBe('function');
     expect(adapter.register()).toBe('register');
     expect(adapter.authorize()).toBe('authorize');
     const safe={client_id:'client',mode:'test',stripe_account:'acct_One_2',

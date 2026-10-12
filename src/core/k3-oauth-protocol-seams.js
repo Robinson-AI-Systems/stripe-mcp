@@ -55,6 +55,7 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
     // original Stripe OAuth clients assert "Stripe MCP OAuth". Preserve
     // the exact source WWW-Authenticate contract without changing auth.
     const previous=res.setHeader;
+    const oldDescriptor=Object.getOwnPropertyDescriptor(res,'setHeader');
     if(typeof previous!=='function') throw TypeError('HTTP response header writer required');
     res.setHeader=function(name,value){
       const mapped=String(name).toLowerCase()==='www-authenticate'&&
@@ -65,7 +66,8 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
     try{return await portable.token(req,res);}
     finally{
       // Do not leave request-specific response mutations behind.
-      if(Object.hasOwn(res,'setHeader'))delete res.setHeader;
+      if(oldDescriptor)Object.defineProperty(res,'setHeader',oldDescriptor);
+      else delete res.setHeader;
     }
   }
   return Object.freeze({
