@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#132 opt-in custom-MCP TEST smoke runner (as-if-merged; exact-head CI required):** read-only server-side script exercises the registered G-4/G-5/G-6 handlers through this repository's own MCP dispatch with an independently verified selected TEST Stripe account. No borrowed generic Stripe connector, provider credentials in source, data mutation, or Dashboard-completion claim. CI tests use mocked SDK and prove the runner's no-write/refusal/redaction contracts. Genuine owner-run results remain PENDING until executed against a securely configured TEST account.
+
 - **#131 G-6 owner identity evidence hardening (as-if-merged; exact-head CI required):** require genuine safe account boolean fields with matching account identity before native owner overview/security/guided aggregation; incomplete projections cannot trigger downstream account reads. Regression tests added. This does not constitute connected TEST smoke or authenticated Dashboard acceptance. G-6 remains IN_PROGRESS and H-1 stays gated; LIVE disabled.
 
 - **#130 G-6 expanded structured Dashboard guide coverage (as-if-merged; exact-head CI pending):** eleven additional owner-account payment, invoicing, reporting, security, tax and developer settings have safe procedural guides and honest not_readable native status. Guarded G-6 tests validate no hidden API calls or owner verification claims. Remaining G-6 actual signed-in TEST Dashboard walkthrough and G-4/G-5 connected smoke cannot be completed without independently authenticated owner/test-account access. H-1 remains gated by G-6, no LIVE.
