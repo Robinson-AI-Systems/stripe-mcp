@@ -44,9 +44,11 @@ export function createOAuthHandlers({ db, env = process.env }) {
       !p.grant_types.every(x => ['authorization_code','refresh_token'].includes(x)))) {
       return bad(res, 400, 'invalid_client_metadata', 'Unsupported or duplicate grant types');
     }
-    // Public native/MCP clients use S256 PKCE instead of a client secret. The
-    // owner passphrase and exact account/profile selection are still required.
-    const method = p.token_endpoint_auth_method || 'client_secret_post';
+    // RFC 7591 default for a new confidential client is HTTP Basic. Preserve
+    // explicit legacy POST and PKCE-only public registrations unmodified.
+    // Owner passphrase, exact TEST account/profile and S256 remain mandatory.
+    const method = p.token_endpoint_auth_method === undefined
+      ? 'client_secret_basic' : p.token_endpoint_auth_method;
     if (!['client_secret_post','client_secret_basic','none'].includes(method)) {
       return bad(res, 400, 'invalid_client_metadata', 'Unsupported client authentication');
     }
