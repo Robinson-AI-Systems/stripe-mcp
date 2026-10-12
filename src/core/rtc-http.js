@@ -104,13 +104,51 @@ export function rtcManifest(registry){
     access:'test_read_only_only'};
 }
 export function rtcOpenApi(){
-  return {openapi:'3.1.0',info:{title:'Robinson Stripe MCP RTC TEST reads',version:'0.1.0'},
-    paths:{'/api/contract':{get:{summary:'Public RTC manifest'}},
-      '/api/whoami':{get:{summary:'Read TEST pass identity'}},
-      '/api/tools':{get:{summary:'Search safe tool metadata'}},
-      '/api/tools/{name}':{get:{summary:'Describe tool'},post:{summary:'Execute permitted read'}},
-      '/api/tools/_batch':{post:{summary:'Execute up to ten read-only tools'}},
-      '/api/results/{handle}':{get:{summary:'Read one own scoped result'}}}};
+  const json={content:{'application/json':{schema:{type:'object'}}}};
+  const success={200:{description:'Successful JSON response',...json}};
+  const readBody={required:true,content:{'application/json':{
+    schema:{type:'object'}}}};
+  const batchBody={required:true,content:{'application/json':{
+    schema:{type:'object',required:['calls'],additionalProperties:false,
+      properties:{calls:{type:'array',minItems:1,maxItems:10,
+        items:{type:'object',required:['name'],properties:{
+          name:{type:'string'},args:{type:'object'}}}}}}}}};
+  const pathParam=name=>[{name,in:'path',required:true,schema:{type:'string'}}];
+  return {openapi:'3.1.0',
+    info:{title:'Robinson Stripe MCP RTC TEST reads',version:'0.1.0'},
+    // OpenAPI describes only the pass-authenticated HTTPS subset. OAuth/MCP
+    // has separate authorization, including profiles this door must refuse.
+    security:[{rtcTestPass:[]}],
+    components:{securitySchemes:{rtcTestPass:{type:'http',scheme:'bearer',
+      bearerFormat:'RTC TEST read_only pass'}}},
+    paths:{
+      '/api/contract':{get:{summary:'Public RTC TEST-only manifest',
+        security:[],responses:success}},
+      '/api/openapi.json':{get:{summary:'Public HTTPS read-only OpenAPI',
+        security:[],responses:success}},
+      '/api/whoami':{get:{summary:'Read TEST pass identity',responses:success}},
+      '/api/tools':{get:{summary:'Search accessible TEST read metadata',
+        parameters:[
+          {name:'q',in:'query',schema:{type:'string',maxLength:100}},
+          {name:'area',in:'query',schema:{type:'string',maxLength:50}},
+          {name:'listing',in:'query',schema:{type:'string',enum:['compact','catalog']}},
+          {name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:100}},
+          {name:'offset',in:'query',schema:{type:'integer',minimum:0,maximum:100000}},
+          {name:'audience',in:'query',schema:{type:'string',
+            enum:['owner','operator','builder']}}],
+        responses:success}},
+      '/api/tools/{name}':{
+        get:{summary:'Describe permitted read',parameters:pathParam('name'),
+          responses:success},
+        post:{summary:'Execute permitted TEST read',parameters:pathParam('name'),
+          requestBody:readBody,responses:success}},
+      '/api/tools/_batch':{post:{summary:'Execute up to ten TEST reads',
+        requestBody:batchBody,responses:success}},
+      '/api/results/{handle}':{get:{summary:'Read own scoped result',
+        parameters:[...pathParam('handle'),
+          {name:'page',in:'query',schema:{type:'integer',minimum:0,maximum:100000}}],
+        responses:success}}
+    }};
 }
 export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
   if(!db||!registry?.tools||!registry?.handlers)
