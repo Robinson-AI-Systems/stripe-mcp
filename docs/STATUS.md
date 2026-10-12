@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#165 RTC real dual-HTTP/PostgreSQL read-only acceptance (as-if-merged; six exact-head checks required):** two independent Node HTTP listeners and actual Stripe registry instances share a disposable PostgreSQL schema, issue 150 overlapping authenticated TEST read requests, require exactly 120 successes and 30 database-enforced 429s, verify real harmless metadata calls through both listeners, and owner-intent revocation denies both immediately. This is true application HTTP/SQL integration, NOT two OS processes, a deployed authenticated route, real Stripe TEST provider acceptance or Toolkit Hub direct/GitHub relay/Vercel Sandbox D-4 certification. Continue external approval-gated tests, OAuth and G-4/G-5/G-6; LIVE OFF.
+
 - **#164 RTC accurate HTTP field schema and validation (proposed; six checks required):** describe advertises both supported field string and array selectors, independently validates safe dotted selectors/detail before executing handlers, returns invalid_args instead of provider error, and preserves MCP schema. No API writes, permissions or LIVE changes. External Hub D-4 still unverified.
 
 - **#163 Owner-selectable one-hour RTC TEST passes (proposed, six CI gates required):** exact 1-hour option for approved D-4 temporary owner-issued area-scoped TEST/read_only passes alongside existing 24-hour default. Same owner passphrase, CSRF, one-time secret, hashed storage and revocation. No LIVE, money or write widening; real D-4 remains pending.
