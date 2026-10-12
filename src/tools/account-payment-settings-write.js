@@ -1,8 +1,8 @@
+import {readVerifiedTestAccount} from '../stripe/test-account.js';
 // G-5c2: guarded TEST-only payment-method configuration preference changes.
 import {defineWrite,gone} from './write.js';
 import {client,fullProfiles} from './billing-shared.js';
 import {safeConfiguration} from './account-payment-settings.js';
-import {verifiedTestAccountRecord} from './account-profile.js';
 const bad=s=>{throw new TypeError(s);};
 const dashboardUrl='https://dashboard.stripe.com/test/settings/payment_methods';
 const methods=['us_bank_account','card','apple_pay','link'];
@@ -24,9 +24,7 @@ function input(a){
 async function own(ctx){
   const s=await client(ctx),account=ctx?.connection?.stripeAccount;
   if(!accountOk(account))bad('A selected TEST account is required');
-  const identity=await s.accounts.retrieve();
-  if(!verifiedTestAccountRecord(identity,account))
-    bad('Selected own TEST account identity unavailable');
+  await readVerifiedTestAccount(s,account);
   return s;
 }
 async function current(a,ctx){
