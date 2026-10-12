@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createProfileOverlay} from './k3-profile-overlay.mjs';
+import {createMcpAuthOverlay} from './k3-mcp-auth-overlay.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 export const candidateCommit='08f4189f72dbe1d5b870c7b17daabd39833eff31';
@@ -30,8 +31,19 @@ export const originalSql=Object.freeze([
 const cmd=(bin,args,cwd,timeout=120000)=>{
   const r=spawnSync(bin,args,{cwd,timeout,encoding:'utf8',
     env:{...process.env,NODE_OPTIONS:'',npm_config_audit:'false',npm_config_fund:'false'}});
-  if(r.error||r.status!==0)throw Error('K-3 CI-only verification command failed: '+
-    bin.split('/').at(-1)+' ('+String(r.status)+')');
+  if(r.error||r.status!==0){
+    // CI's nested original-service tests are captured to prevent raw tokens
+    // leaking through ordinary stdout. On failure emit only test titles,
+    // assertion type and source location, redacting credential-sized strings.
+    const failures=(String(r.stdout||'')+'\n'+String(r.stderr||''))
+      .replace(/\x1b\[[0-9;]*m/g,'').split('\n')
+      .filter(line=>/FAIL |AssertionError|Test Files|Tests\s+\d|(?:❯|at )\s*tests\//.test(line))
+      .slice(-24).map(line=>line.slice(0,280)
+        .replace(/[A-Za-z0-9_-]{30,}/g,'[redacted]'));
+    throw Error('K-3 CI-only verification command failed: '+
+      bin.split('/').at(-1)+' ('+String(r.status)+')'+
+      (failures.length?'\n'+failures.join('\n'):''));
+  }
   return r.stdout.trim();
 };
 export function assertDisposableDb(env=process.env){
@@ -131,6 +143,38 @@ export function rehearse(){
         ownerListingPolicyPreserved:true,rawCallerWriteGrantNeverSufficient:true,
         stripeSourceRestored:true,liveRuntimeChanged:false};
     }finally{writeFileSync(profilesPath,profilesOriginal);}
+    // Portable bearer is deliberately adapted: Stripe retains local durable
+    // token DB projection and RFC case-insensitive single-Authorization scheme.
+    // All smoke and original HTTP suites execute with true portable core code
+    // through the original source service entry point, then restore it.
+    const bearerProof=JSON.parse(cmd('node',
+      ['scripts/k3-private-bearer-evidence.mjs'],root,60000));
+    if(bearerProof.originalSchemeParity!==4||
+      bearerProof.duplicateAndGetterDenials!==3||
+      bearerProof.foreignKindAndModeDenials!==3||
+      bearerProof.storageOutageSanitized503!==true||
+      bearerProof.activeGetterExecutions!==0)
+      throw Error('K-3 portable bearer differential not proved');
+    const bearerPath=join(root,'src/core/mcp-auth.js');
+    const originalBearer=readFileSync(bearerPath,'utf8');
+    let bearerServiceProof;
+    try{
+      writeFileSync(bearerPath,createMcpAuthOverlay(originalBearer));
+      const bearerUnit=[
+        'tests/unit/oauth-handlers.test.js','tests/unit/server-tools.test.js',
+        'tests/unit/browser-cors.test.js','tests/unit/profiles.test.js'];
+      const bearerDb=[
+        'tests/db/oauth-auth-wire.test.js','tests/db/oauth-real-mcp-wire.test.js',
+        'tests/db/oauth-persistent.test.js','tests/db/rtc-dual-http.test.js',
+        'tests/db/money-owner-approval.test.js','tests/db/owner-money-limit.test.js'];
+      cmd('npx',['--no-install','vitest','run','--config','vitest.config.js',
+        ...bearerUnit],root,180000);
+      cmd('npm',['run','test:db','--',...bearerDb],root,240000);
+      bearerServiceProof={adaptedExport:'mcp-auth',originalUnitSuites:bearerUnit.length,
+        originalSqlSuites:bearerDb.length,originalModuleRestored:true,
+        sqlOwnsTokenRotationAndRevocation:true,moneyOwnerApprovalStillStripeOwned:true,
+        sourceStandaloneStillDeployed:true};
+    }finally{writeFileSync(bearerPath,originalBearer);}
     if(oneTimeAdapterSql.schema!=='actual-stripe-one_time_secrets'||
       oneTimeAdapterSql.pools!==2||
       oneTimeAdapterSql.legacyIssuedPortableConsumed!==true||
@@ -140,7 +184,7 @@ export function rehearse(){
       oneTimeAdapterSql.expiredRefused!==true||
       oneTimeAdapterSql.providerCalls!==0)
       throw Error('K-3 original SQL one-time adapter proof incomplete');
-    return {profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
+    return {bearerProof,bearerServiceProof,profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
       sourceServiceRepoModified:false,overlaidImports:leaves.length,
       unchangedStripeUnitSuites:originalUnit.length,
       originalSqlSuites:originalSql.length,releaseReady:false};
