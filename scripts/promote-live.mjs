@@ -78,8 +78,8 @@ async function run(){
   if(decision.action==='skip')return;
   // Reconfirm refs after the expensive CI query. Never promote stale or
   // diverged revisions, or trust a cached already-taken day marker.
-  const mainNow=git(['ls-remote','origin','refs/heads/main']).split(/\\s+/)[0];
-  const liveNow=git(['ls-remote','origin','refs/heads/live']).split(/\\s+/)[0];
+  const mainNow=git(['ls-remote','origin','refs/heads/main']).split(/\s+/)[0];
+  const liveNow=git(['ls-remote','origin','refs/heads/live']).split(/\s+/)[0];
   if(mainNow!==main||liveNow!==live||existsRemoteTag(marker))
     throw Error('Remote branch or promotion marker changed; retry next day');
   // GitHub supports atomic ref updates: if either branch or date tag cannot
