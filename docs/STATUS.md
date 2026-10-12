@@ -9,6 +9,8 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#175 (as-if MERGED) RTC legacy pass indirect dispatch closure:** reject MCP meta-dispatch tools on all TEST-only HTTPS passes, including older NULL area grants, while keeping native catalog/describe/direct read/batch and standalone `/api/mcp` unchanged. Unit and disposable real PostgreSQL/HTTP tests verify no meta handler and ordinary TEST reads. Dated security decision recorded. Seven exact-head checks, review audit and protected-main merge required; end exactly at #175, no LIVE or manual Production. Genuine Stripe/Hub D-4 three-route, signed webhook, connected OAuth and daily live deployment observation remain separate evidence gates.
+
 - **#174 (as-if MERGED) strict RTC query pagination:** limit/offset/result page accept only bounded decimal integers (or safe native integer in direct tests), refusing coercion of arrays/null/hex/exponent/whitespace/empty values; catalog search handles uppercase consistently. Test catalog, result endpoints and ordinary pagination. Seven exact-head checks and review required; no provider access widening, LIVE or deployment. Next #175.
 
 - **#173 (as-if MERGED) RTC Bearer interoperability and pass identity integrity:** HTTP scheme matching now respects case-insensitive Bearer without accepting altered token bytes; all expired/revoked/unknown valid-format passes issue a sanitized invalid_token challenge. Corrupt pass result_scope/client identity is denied before Stripe TEST execution to protect scoped results. Auth + integrity regressions, seven exact-head CI and review gate required. LIVE off; next #174.

@@ -10,7 +10,8 @@ import {openIsolatedSchema,closeIsolatedSchema,rawQuery,neonShapedQuery}
 
 const acct='acct_RTCSERVICE';
 const generatePass=()=> 'rtc_pass_'+randomBytes(32).toString('base64url');
-const mainPass=generatePass(),otherPass=generatePass(),expiredPass=generatePass();
+const mainPass=generatePass(),otherPass=generatePass(),
+  expiredPass=generatePass(),legacyPass=generatePass();
 let db,host,server;
 const createResponseAdapter=res=>{
   res.status=n=>{res.statusCode=n;return res;};
@@ -72,7 +73,8 @@ beforeAll(async()=>{
   for(const [id,token,areas] of [
     ['rtc-agent-wiremain',mainPass,['server','account']],
     ['rtc-agent-wireother',otherPass,['server']],
-    ['rtc-agent-wireexpired',expiredPass,['server']]]){
+    ['rtc-agent-wireexpired',expiredPass,['server']],
+    ['rtc-agent-wirelegacy',legacyPass,null]]){
     expect(await db.createRtcReadOnlyPass({id,account:acct,token,areas,
       expiresAt:new Date(Date.now()+3600000)})).toBe(true);
   }
@@ -145,5 +147,32 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     const revoked=await http('/api/whoami',{token:otherPass});
     expect(revoked.status).toBe(401);
     expect(revoked.data.error.code).toBe('pass_revoked');
+  });
+});
+
+describe('legacy unscoped RTC pass with genuine HTTP and PostgreSQL',()=>{
+  it('retains direct TEST read yet cannot invoke MCP meta dispatch',async()=>{
+    const row=await db.getRtcPassStatus(legacyPass);
+    expect(row.areas).toBeNull();
+    const direct=await http('/api/tools/stripe_whoami',
+      {token:legacyPass,method:'POST',body:{}});
+    expect(direct.status).toBe(200);
+    expect(direct.data.result).toMatchObject({account:acct,mode:'test'});
+    const catalog=await http('/api/tools?listing=catalog&limit=100',
+      {token:legacyPass});
+    expect(catalog.status).toBe(200);
+    expect(catalog.data.result.tools.some(t=>t.name==='stripe_whoami')).toBe(true);
+    for(const meta of ['stripe_call','stripe_batch','stripe_search_tools',
+      'stripe_describe_tool']){
+      expect(catalog.data.result.tools.some(t=>t.name===meta)).toBe(false);
+      const denied=await http('/api/tools/'+meta,
+        {token:legacyPass,method:'POST',body:{}});
+      expect(denied.status).toBe(403);
+      expect(denied.data.error.code).toBe('refused_by_guard');
+    }
+    const batch=await http('/api/tools/_batch',{token:legacyPass,
+      method:'POST',body:{calls:[{name:'stripe_call',args:{name:'stripe_whoami'}}]}});
+    expect(batch.status).toBe(400);
+    expect(batch.data.error.code).toBe('invalid_args');
   });
 });

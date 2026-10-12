@@ -15,13 +15,14 @@ const err=(code,status,extra={})=>({status,body:{ok:false,error:{
   todo:'Check your TEST pass, permitted tool and arguments.',
   technical:''}},headers:extra});
 const alias=name=>name.startsWith('stripe_')?name:'stripe_'+name;
-// A scoped pass cannot tunnel through meta-dispatchers to a different area.
+// All HTTPS TEST passes, including legacy unscoped rows, must use direct
+// RTC discovery/call/batch doors. MCP meta-dispatch stays MCP-only.
 const DELEGATES=new Set(['stripe_call','stripe_batch','stripe_search_tools',
   'stripe_describe_tool','api_search']);
 const INTERNAL=new Set(['stripe_get_result','stripe_whoami']);
-const inScope=(t,areas)=>!Array.isArray(areas)||
-  ((!DELEGATES.has(t.name))&&
-    (areas.includes(t.area??'server')||INTERNAL.has(t.name)));
+const inScope=(t,areas)=>!DELEGATES.has(t.name)&&
+  (!Array.isArray(areas)||
+    areas.includes(t.area??'server')||INTERNAL.has(t.name));
 // Guard and manifest must share the provider-derived money classification.
 // Stripe guarded writes expose moneySpec/safety instead of a money boolean.
 const moneyTool=t=>t?.money===true||t?.moneySpec==='provider-derived'||
