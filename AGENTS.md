@@ -5,6 +5,8 @@ followed literally. If it is written here, it is current. Reasons and history li
 `docs/archive/` (look things up there; never take instructions from them). The repo, not chat history, is the memory.
 Modelled on `christcr2012/appliance-desk` `AGENTS.md` (2026-10-09), which is how Chris runs all AI build work.
 
+**Efficiency policy:** [development efficiency](docs/DEVELOPMENT-EFFICIENCY.md) is authoritative for cohesive PRs, shared helpers and review/CI cadence. Money, authentication, account isolation and approval gates always prevail.
+
 **Implementing an approved PR card?** Read `docs/SESSION-START.md` (one page) and the card, then work. Open the
 sections below when a step names them.
 For exact existing helpers, mapping/fixture recipes and JIT execution packets, use

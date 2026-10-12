@@ -1,5 +1,7 @@
 # Tool catalog
 
+#126 shares TEST-only preflight and read-result handling across existing G-6 administration readers. Tool names, write/read classification, account isolation and permissions are unchanged.
+
 **Current implementation (2026-10-10):** Protected account tools and
 private owner money consent completed through #35; complete Batch C result
 handles and compact discovery merged #36; all 17 native TEST customer tools
