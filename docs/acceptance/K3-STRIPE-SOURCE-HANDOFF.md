@@ -75,3 +75,13 @@ money changes, manual deploy, paid services or leaking protected artifacts.
 
 K-3 final release NOT READY; Hub D-4 direct/relay/Sandbox NOT VERIFIED.
 No actual real money or LIVE changes under this session.
+
+## #188 original source owner OAuth + portable token acceptance (check CI)
+The private core OAuth token path is now wired in disposable Stripe CI,
+preserving original owner login, SQL PKCE and TEST account/profile claims.
+The portable default registration POST versus Stripe default Basic is an
+observed behavior difference and is **not** silently replaced. A service-owned
+durable refresh shim appends generated access/refresh tokens to exactly the
+SQL-rotated original stored account row; missing/wrong client or LIVE claims
+fail closed. This source-level evidence requires exact-head original unit/SQL
+tests; actual deployed OAuth acceptance and final release remain distinct.

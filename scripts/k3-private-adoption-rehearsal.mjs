@@ -8,6 +8,7 @@ import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createProfileOverlay} from './k3-profile-overlay.mjs';
 import {createMcpAuthOverlay} from './k3-mcp-auth-overlay.mjs';
+import {createOAuthProtocolOverlay} from './k3-oauth-overlay.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 export const candidateCommit='08f4189f72dbe1d5b870c7b17daabd39833eff31';
@@ -175,6 +176,32 @@ export function rehearse(){
         sqlOwnsTokenRotationAndRevocation:true,moneyOwnerApprovalStillStripeOwned:true,
         sourceStandaloneStillDeployed:true};
     }finally{writeFileSync(bearerPath,originalBearer);}
+    // The portable OAuth token protocol is adapted only within the original
+    // service. Retain Stripe's registered-client defaults, owner login UI,
+    // explicit TEST account selection and source-owned durable refresh logic.
+    const oauthPath=join(root,'src/core/oauth-handlers.js');
+    const originalOAuth=readFileSync(oauthPath,'utf8');
+    const sidecar=join(root,'src/core/k3-oauth-original-private.js');
+    let oauthProtocolProof;
+    try {
+      if(existsSync(sidecar))throw Error('Private source sidecar unexpectedly exists');
+      writeFileSync(sidecar,originalOAuth,{flag:'wx'});
+      writeFileSync(oauthPath,createOAuthProtocolOverlay(originalOAuth));
+      const units=['tests/unit/oauth-handlers.test.js',
+        'tests/unit/k3-oauth-protocol-seams.test.js'];
+      const suites=['tests/db/oauth-real-mcp-wire.test.js',
+        'tests/db/oauth-persistent.test.js','tests/db/oauth-auth-wire.test.js'];
+      cmd('npx',['--no-install','vitest','run','--config','vitest.config.js',
+        ...units],root,180000);
+      cmd('npm',['run','test:db','--',...suites],root,240000);
+      oauthProtocolProof={portableToken:true,sourceOwnerLogin:true,
+        sourceClientRegistration:true,sourceSqlRefresh:true,
+        originalUnitSuites:units.length,originalSqlSuites:suites.length,
+        deployedDependency:false};
+    } finally {
+      writeFileSync(oauthPath,originalOAuth);
+      rmSync(sidecar,{force:true});
+    }
     if(oneTimeAdapterSql.schema!=='actual-stripe-one_time_secrets'||
       oneTimeAdapterSql.pools!==2||
       oneTimeAdapterSql.legacyIssuedPortableConsumed!==true||
@@ -184,7 +211,7 @@ export function rehearse(){
       oneTimeAdapterSql.expiredRefused!==true||
       oneTimeAdapterSql.providerCalls!==0)
       throw Error('K-3 original SQL one-time adapter proof incomplete');
-    return {bearerProof,bearerServiceProof,profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
+    return {oauthProtocolProof,bearerProof,bearerServiceProof,profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
       sourceServiceRepoModified:false,overlaidImports:leaves.length,
       unchangedStripeUnitSuites:originalUnit.length,
       originalSqlSuites:originalSql.length,releaseReady:false};
