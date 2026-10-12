@@ -36,14 +36,30 @@ async function fixture(){
 }
 describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
   it('publishes safe prefixed discovery without changing registered MCP names',async()=>{
-    expect(rtcManifest(registry)).toMatchObject({rtc:1,prefix:'stripe',counts:{tools:3,writes:1}});
-    expect(Object.keys(rtcOpenApi().paths)).toContain('/api/contract');
+    expect(rtcManifest(registry)).toMatchObject({rtc:1,prefix:'stripe',
+      profiles:['read_only'],counts:{tools:2,writes:0,money:0},areas:['account','server']});
+    const spec=rtcOpenApi();
+    expect(Object.keys(spec.paths)).toContain('/api/contract');
+    expect(Object.keys(spec.paths)).toContain('/api/openapi.json');
+    expect(spec.components.securitySchemes.rtcTestPass).toMatchObject({
+      type:'http',scheme:'bearer'});
+    expect(spec.security).toEqual([{rtcTestPass:[]}]);
+    expect(spec.paths['/api/contract'].get.security).toEqual([]);
+    expect(spec.paths['/api/openapi.json'].get.security).toEqual([]);
+    expect(spec.paths['/api/tools/{name}'].post.requestBody.required).toBe(true);
+    expect(spec.paths['/api/tools/_batch'].post.requestBody.content[
+      'application/json'].schema.properties.calls.maxItems).toBe(10);
+    for(const entry of Object.values(spec.paths))for(const operation of Object.values(entry)){
+      expect(operation.responses[200]).toBeDefined();
+    }
     const {handler}=await fixture(),r=res();
     await handler(req('GET',{limit:'100',listing:'catalog'}),r,'catalog');
     expect(r.body.ok).toBe(true);
     expect(r.body.result.tools.map(t=>t.name)).toEqual(['stripe_whoami','stripe_account_get']);
     expect(r.body.result.tools.every(t=>t.annotations.readOnlyHint)).toBe(true);
     expect(registry.tools[1].name).toBe('account_get');
+    expect(r.body.result.tools.every(t=>
+      t.profiles.length===1&&t.profiles[0]==='read_only')).toBe(true);
   });
   it('permits only genuine TEST metadata reads and guarded batch',async()=>{
     const {handler}=await fixture();
@@ -199,7 +215,8 @@ describe('RTC actual Stripe money contract metadata',()=>{
       safety:'$',inputSchema:{type:'object',properties:{}}};
     const localRegistry={tools:[...registry.tools,hidden],handlers:{...registry.handlers,
       masked_money:async()=>{throw Error('MONEY TOOL EXECUTED');}}};
-    expect(rtcManifest(localRegistry).counts.money).toBe(1);
+    expect(rtcManifest(localRegistry).counts).toMatchObject({
+      tools:2,writes:0,money:0});
     const handler=createRtcReadOnlyHttpHandler({db,registry:localRegistry});
     const catalog=res();await handler(req('GET',{listing:'catalog'}),catalog,'catalog');
     expect(catalog.body.result.tools.map(t=>t.name)).not.toContain('stripe_masked_money');

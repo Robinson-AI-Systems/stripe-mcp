@@ -42,7 +42,7 @@ const metadata=t=>{
         {type:'array',minItems:1,maxItems:12,uniqueItems:true,
           items:{type:'string',minLength:1,maxLength:100}}]}}};
   return {name:alias(t.name),description:String(t.description).slice(0,160),
-    inputSchema,area:t.area??'server',profiles:t.profiles,
+    inputSchema,area:t.area??'server',profiles:['read_only'],
     writes:false,money:false,destructive:false,
     audience:t.area==='admin'?['owner']:['builder','owner','operator'],
     annotations:{readOnlyHint:true,destructiveHint:false,
@@ -91,23 +91,64 @@ export function rtcManifest(registry){
   const names=registry.tools.map(t=>alias(t.name));
   if(new Set(names).size!==names.length)
     throw new Error('RTC prefixed tool aliases must remain unique');
+  // A public RTC pass never reaches MCP-only tools, money tools or writes.
+  // Top-level contract counts/profiles describe the HTTPS pass surface, not
+  // the larger, separately authenticated /api/mcp registry.
+  const exposed=registry.tools.filter(t=>safeRead(t)&&inScope(t,null));
   return {rtc:1,server:'robinson-stripe-mcp',prefix:'stripe',
-    version:'0.1.0',areas:[...new Set(registry.tools.map(t=>t.area??'server'))].sort(),
-    counts:{tools:names.length,writes:registry.tools.filter(t=>t.writes===true).length,
-      money:registry.tools.filter(moneyTool).length},
-    profiles:['read_only','everyday','full'],listingModes:['compact','catalog'],
+    version:'0.1.0',areas:[...new Set(exposed.map(t=>t.area??'server'))].sort(),
+    counts:{tools:exposed.length,writes:0,money:0},
+    profiles:['read_only'],listingModes:['compact','catalog'],
     modes:['test'],devTools:true,
     conformanceStatus:'pending_full_approval_and_provider_acceptance',
     access:'test_read_only_only'};
 }
 export function rtcOpenApi(){
-  return {openapi:'3.1.0',info:{title:'Robinson Stripe MCP RTC TEST reads',version:'0.1.0'},
-    paths:{'/api/contract':{get:{summary:'Public RTC manifest'}},
-      '/api/whoami':{get:{summary:'Read TEST pass identity'}},
-      '/api/tools':{get:{summary:'Search safe tool metadata'}},
-      '/api/tools/{name}':{get:{summary:'Describe tool'},post:{summary:'Execute permitted read'}},
-      '/api/tools/_batch':{post:{summary:'Execute up to ten read-only tools'}},
-      '/api/results/{handle}':{get:{summary:'Read one own scoped result'}}}};
+  const json={content:{'application/json':{schema:{type:'object'}}}};
+  const success={200:{description:'Successful JSON response',...json}};
+  const readBody={required:true,content:{'application/json':{
+    schema:{type:'object'}}}};
+  const batchBody={required:true,content:{'application/json':{
+    schema:{type:'object',required:['calls'],additionalProperties:false,
+      properties:{calls:{type:'array',minItems:1,maxItems:10,
+        items:{type:'object',required:['name'],properties:{
+          name:{type:'string'},args:{type:'object'}}}}}}}}};
+  const pathParam=name=>[{name,in:'path',required:true,schema:{type:'string'}}];
+  return {openapi:'3.1.0',
+    info:{title:'Robinson Stripe MCP RTC TEST reads',version:'0.1.0'},
+    // OpenAPI describes only the pass-authenticated HTTPS subset. OAuth/MCP
+    // has separate authorization, including profiles this door must refuse.
+    security:[{rtcTestPass:[]}],
+    components:{securitySchemes:{rtcTestPass:{type:'http',scheme:'bearer',
+      bearerFormat:'RTC TEST read_only pass'}}},
+    paths:{
+      '/api/contract':{get:{summary:'Public RTC TEST-only manifest',
+        security:[],responses:success}},
+      '/api/openapi.json':{get:{summary:'Public HTTPS read-only OpenAPI',
+        security:[],responses:success}},
+      '/api/whoami':{get:{summary:'Read TEST pass identity',responses:success}},
+      '/api/tools':{get:{summary:'Search accessible TEST read metadata',
+        parameters:[
+          {name:'q',in:'query',schema:{type:'string',maxLength:100}},
+          {name:'area',in:'query',schema:{type:'string',maxLength:50}},
+          {name:'listing',in:'query',schema:{type:'string',enum:['compact','catalog']}},
+          {name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:100}},
+          {name:'offset',in:'query',schema:{type:'integer',minimum:0,maximum:100000}},
+          {name:'audience',in:'query',schema:{type:'string',
+            enum:['owner','operator','builder']}}],
+        responses:success}},
+      '/api/tools/{name}':{
+        get:{summary:'Describe permitted read',parameters:pathParam('name'),
+          responses:success},
+        post:{summary:'Execute permitted TEST read',parameters:pathParam('name'),
+          requestBody:readBody,responses:success}},
+      '/api/tools/_batch':{post:{summary:'Execute up to ten TEST reads',
+        requestBody:batchBody,responses:success}},
+      '/api/results/{handle}':{get:{summary:'Read own scoped result',
+        parameters:[...pathParam('handle'),
+          {name:'page',in:'query',schema:{type:'integer',minimum:0,maximum:100000}}],
+        responses:success}}
+    }};
 }
 export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
   if(!db||!registry?.tools||!registry?.handlers)
@@ -199,7 +240,8 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(route==='whoami'){
       if(req.method!=='GET')return error('invalid_args',405);
       return success({mode:'test',profile:'read_only',listing:connection.listing,
-        allowWrites:false,moneyLimitCents:0,areas:pass.areas??[],
+        allowWrites:false,moneyLimitCents:0,areas:pass.areas??null,
+        legacyUnscoped:pass.areas==null,
         expiresAt:new Date(pass.expires_at).toISOString()});
     }
     if(route==='catalog'){
