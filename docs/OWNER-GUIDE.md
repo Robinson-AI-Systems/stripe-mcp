@@ -135,3 +135,15 @@ Once a TEST Stripe account is connected, ask which webhook endpoints are enabled
 ### G-4c — Add/remove TEST webhook event subscriptions (#105)
 
 With a connected TEST account and write-capable profile, ask to add or remove one to eight named webhook event types. Preview/confirm is mandatory; the tools preserve unrelated subscriptions, refuse wildcard/Connect or protected application endpoints, and independently verify Stripe’s final complete event set. Endpoint paths and signing secrets never appear in tool output or audit. These tests have CI evidence only; no account-connected TEST smoke has been performed. LIVE remains disabled.
+
+
+## Owner TEST Setup & Readiness Report (October 12, 2026)
+On the existing private setup page, run a focused custom MCP TEST group for your enrolled
+account. The report separates actual native observations from partial, unreadable,
+and failed reads and shows only relevant exceptions. It never assumes the Sandbox
+uses a particular default, that a working listing means webhook events were
+delivered, or that visible receipt settings prove receipt sending. No automatic
+Stripe setting changes occur. No general-purpose manual Dashboard tour is needed;
+only inspect an unknown setting when you have a specific workflow requirement.
+G-6 Dashboard comparison, OAuth, signed webhook delivery, H-1 and LIVE remain
+separate gates. Do not enter credentials in chat.

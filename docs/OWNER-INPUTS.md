@@ -1,5 +1,7 @@
 # Owner inputs and decisions
 
+**2026-10-12 owner workflow approval:** Treat the Stripe Sandbox as mostly default but never presume any setting state; use secure TEST native reads and a truthful exception-based report. Owner's individually reported Dashboard observations are dated notes, not provider API verification. No more blanket manual settings checklists. Owner approves a secure, isolated Sandbox-only webhook receiver and genuine signed-delivery acceptance path, with existing credential/replay/authorization guards, not a nonreceiver URL. No LIVE or spending approval. See PR #151 permanent handoff.
+
 Decisions only Chris can make, with stable IDs. Agents check here first and ask only for what the current card needs.
 An answer is "applied" only once the setting and its behavior are verified. Plain English throughout.
 
