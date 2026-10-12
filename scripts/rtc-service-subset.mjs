@@ -89,10 +89,10 @@ try{
   const results=new Map(result.checks.map(row=>[row.name,row]));
   // These rules genuinely apply to the documented TEST HTTPS subset.
   const applicable=['manifest','manifest.openapi','catalog','passes',
-    'passes.expired','passes.revoked','safety','budget'];
+    'passes.expired','passes.revoked','budget'];
   // Upstream selection() requires 1 read, 1 write, 1 guarded write. Stripe
   // deliberately exposes NO writes or full-profile passes on HTTPS.
-  const fullProfile=['meta','reads','writes','passes.read_only'];
+  const fullProfile=['meta','reads','writes','passes.read_only','safety'];
   for(const name of applicable){
     const row=results.get(name);
     if(!row?.ok||row.skipped)
@@ -114,6 +114,19 @@ try{
     process.stdout.write('INDEPENDENT_EVIDENCE '+name+' (not certified here)\n');
   }
   if(result.ok)throw Error('Read-only subset must not certify full RTC 1');
+  // Upstream "safety" selection also requires a write + guarded write,
+  // which this public TEST surface intentionally never offers. Independently
+  // verify the supported negative envelope and unknown-vs-forbidden split.
+  const missing=await fetch(url+'/api/tools/definitely_not_a_tool',{
+    method:'POST',headers:{authorization:'Bearer '+passes.full,
+      'content-type':'application/json'},body:'{}'});
+  const absent=await missing.json();
+  if(missing.status!==404||absent.ok!==false||
+    absent.error?.code!=='not_found'||
+    !['what','cause','todo','technical','code'].every(k=>
+      typeof absent.error[k]==='string'))
+    throw Error('Unknown RTC call must produce a safe 404 not_found envelope');
+  process.stdout.write('SERVICE_PASS unknown_tool_404\n');
   // Invalid write remains 403; actual nonexistent names are distinct 404.
   const bad=await fetch(url+'/api/tools/stripe_payment_intent_create',{
     method:'POST',headers:{authorization:'Bearer '+passes.full,
