@@ -1,5 +1,5 @@
 # A-5 / B-8b1 follow-up — Strict provider TEST-key enrollment and reprobe (#142)
-Status: as-if-merged; five exact-head CI gates and review required.
+Status: MERGED #142 (five exact-head CI checks passed; review and merge complete).
 Scope: approved A-5 encrypted TEST key safety + B-8b1 permission probes, addressing a real missing strict identity gate.
 
 ## Drift A

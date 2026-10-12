@@ -25,11 +25,11 @@ export default async function handler(req, res) {
     }:null;
     // This owner-authenticated form alone may invoke the standard server key
     // loader. Raw credentials never enter the browser, AI connector or report.
-    const runTestSmoke=configured?async({account})=>{
+    const runTestSmoke=configured?async({account,focus})=>{
       const selected=await db.getStripeAccount(account);
       if(!selected?.test_connected)throw new Error('No encrypted TEST key for selected account');
       const key=await keyStore.loadKey({account,mode:'test'});
-      return runOwnerTestSmoke({account,key});
+      return runOwnerTestSmoke({account,key,focus});
     }:null;
     return await createSetupHandler({ db, keyStore, oneTimeStore,provisionWebhookSecret,forgetWebhookSecret,
       runTestSmoke,reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);

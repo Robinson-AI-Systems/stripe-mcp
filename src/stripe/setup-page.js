@@ -52,6 +52,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="run-test-smoke">' +
     '<label>Selected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" maxlength="110" required autocomplete="off"></label>' +
+    '<label>Test group<select name="focus" required><option value="core">Core G-4/G-5/G-6 reads (8)</option><option value="administration">G-6 owner administration (3)</option></select></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Run read-only custom MCP TEST checks</button></form>' +
     (smokeResult ? '<h3>Custom MCP TEST result (not Dashboard acceptance)</h3><pre>' +
@@ -306,20 +307,27 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     if (p.action === 'run-test-smoke') {
       if(typeof runTestSmoke!=='function') return send(res,503,htmlPage({csrf:cookie,
         result:'Owner TEST verification is not configured.'}),'text/html; charset=utf-8');
-      if(typeof p.account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account))
+      if(typeof p.account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account)||
+        !['core','administration'].includes(p.focus))
         return send(res,400,htmlPage({csrf:cookie,
-          result:'Select one exact TEST account.'}),'text/html; charset=utf-8');
+          result:'Select one exact TEST account and supported smoke group.'}),'text/html; charset=utf-8');
+      const allowed=p.focus==='core'?
+        ['account_get','account_list_capabilities','account_list_payment_method_settings',
+          'account_list_apple_pay_domains','event_list','webhook_list',
+          'admin_list_requirements','admin_check_setting']:
+        ['stripe_admin_overview','admin_review_security','admin_list_guided_settings'];
       try {
-        const report=await runTestSmoke({account:p.account});
+        const report=await runTestSmoke({account:p.account,focus:p.focus});
         // Browser results are a narrow allowlist, not an arbitrary upstream reply.
-        if(report?.account!==p.account||report.mode!=='test'||
+        if(report?.account!==p.account||report.mode!=='test'||report.focus!==p.focus||
           report.source!=='custom_mcp_dispatch'||report.verifiedIdentity!==true||
           report.dashboardVerified!==false||report.writeOperations!==0||
-          !Array.isArray(report.records)||report.records.length!==8||
+          !Array.isArray(report.records)||report.records.length!==allowed.length||
+          new Set(report.records.map(v=>v.tool)).size!==allowed.length||
           report.records.some(v=>!['observed','partial','not_readable','error'].includes(v.status)||
-            !/^(?:account_get|account_list_capabilities|account_list_payment_method_settings|account_list_apple_pay_domains|event_list|webhook_list|admin_list_requirements|admin_check_setting)$/.test(v.tool)))
+            !allowed.includes(v.tool)))
           throw new TypeError('Unverified custom MCP report');
-        const safe={mode:'test',source:'custom_mcp_dispatch',
+        const safe={mode:'test',focus:p.focus,source:'custom_mcp_dispatch',
           dashboardVerified:false,writeOperations:0,
           records:report.records.map(v=>({tool:v.tool,status:v.status}))};
         return send(res,200,htmlPage({csrf:cookie,smokeResult:safe,
