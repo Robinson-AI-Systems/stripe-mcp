@@ -225,3 +225,8 @@ python3 docs/pr-cards/validate-index.py
 2. `docs/DECISIONS.md` entry for any design decision; `docs/ROADMAP.md` for out-of-scope finds;
    `docs/GO-LIVE-CHECKLIST.md` for any new switch, key or owner step.
 3. Report to Chris in plain English: what changed, how it was verified, what he needs to decide (`IN-xx`), what is next.
+
+
+## Verified hosting and main protections — October 12, 2026
+
+Follow [the verified hosting-cost operating policy](docs/HOSTING-COST-POLICY.md). Saved exact-main protection requires GitHub Actions `ci` **and** `target-main`; preserve existing review/agent merge flow, daily checked `main` → `live`, disabled automatic previews, low compute caps and all owner gates. Do not wait for Vercel preview checks or manually deploy at a batch boundary. Record this infrastructure checkpoint in the next substantive PR's status ledger; no documentation-only PR.
