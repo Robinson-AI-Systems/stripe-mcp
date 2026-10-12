@@ -17,14 +17,52 @@ const cases=Object.freeze([
 ]);
 export const ownerSmokeCases=cases.map(([batch,tool])=>({batch,tool}));
 
-function classify(response){
+// Require the expected safe projection, never infer success from arbitrary JSON.
+function validProjection(tool,data,account){
+  const own=data.account===account;
+  switch(tool){
+    case 'account_get':
+      return data.id===account&&(
+        (data.available===false&&data.verification==='not_readable')||
+        (typeof data.chargesEnabled==='boolean'&&
+         typeof data.payoutsEnabled==='boolean'&&
+         typeof data.detailsSubmitted==='boolean'&&
+         ['ok','needs_attention','not_readable'].includes(data.verification)));
+    case 'account_list_capabilities':
+      return own&&(data.available===false&&data.verification==='not_readable'||
+        data.available===true&&Array.isArray(data.capabilities)&&
+        data.capabilities.length<=10&&typeof data.hasMore==='boolean');
+    case 'account_list_payment_method_settings':
+      return own&&(data.available===false&&data.verification==='not_readable'||
+        data.available===true&&Array.isArray(data.configurations)&&
+        data.configurations.length<=5&&typeof data.hasMore==='boolean');
+    case 'account_list_apple_pay_domains':
+      return own&&(data.available===false&&data.verification==='not_readable'||
+        data.available===true&&Array.isArray(data.domains)&&
+        data.domains.length<=5&&typeof data.hasMore==='boolean');
+    case 'event_list':
+    case 'webhook_list':
+      return Array.isArray(data.data)&&data.data.length<=3&&
+        typeof data.has_more==='boolean';
+    case 'admin_list_requirements':
+      return own&&data.mode==='test'&&
+        ['ok','needs_attention','not_readable'].includes(data.status)&&
+        typeof data.observed==='boolean';
+    case 'admin_check_setting':
+      return own&&data.setting==='payment_methods'&&
+        ['observed','not_readable'].includes(data.status)&&
+        typeof data.observed==='boolean';
+    default:return false;
+  }
+}
+function classify(tool,response,account){
   if(response?.isError||!Array.isArray(response?.content)||
     response.content.length!==1||typeof response.content[0]?.text!=='string')
     return 'error';
   let data;
   try{data=JSON.parse(response.content[0].text);}catch{return 'error';}
   if(!data||typeof data!=='object'||Array.isArray(data)||
-    typeof data.handle==='string')return 'error';
+    typeof data.handle==='string'||!validProjection(tool,data,account))return 'error';
   if(data.available===false||data.verification==='not_readable'||
     data.status==='not_readable')return 'not_readable';
   if(data.complete===false||data.hasMore===true||data.has_more===true)
@@ -58,7 +96,7 @@ export async function runOwnerTestSmoke({account,key,makeClient=makeStripeClient
       throw new Error('Read-only smoke contract unavailable');
     let status='error';
     try{
-      status=classify(await dispatch({registry,name:tool,args,connection,services,db:{}}));
+      status=classify(tool,await dispatch({registry,name:tool,args,connection,services,db:{}}),account);
     }catch{/* Deliberately withhold raw provider errors and account details. */}
     records.push({batch,tool,status});
   }
