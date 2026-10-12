@@ -1,5 +1,7 @@
 # Tool catalog
 
+#128 G-6 admin overview adds a bounded owner Dashboard walkthrough checklist and explicitly unverified native-versus-owner acceptance; no setting is automatically owner-confirmed.
+
 #127 G-6 overview/security/guided readers now gate observed native account health on exact independently retrieved TEST account identity; unreadable identity must never yield a healthy section.
 
 #126 shares TEST-only preflight and read-result handling across existing G-6 administration readers. Tool names, write/read classification, account isolation and permissions are unchanged.

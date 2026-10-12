@@ -65,6 +65,17 @@ describe('G-6b owner overview and safe requirements',()=>{
     expect(v.sections.teamSecurity).toMatchObject({status:'not_readable',observed:false});
     expect(v.sections.fees.status).toBe('not_readable');
     expect(v.unreadable).toContain('tax');
+    expect(v.verificationReadiness).toMatchObject({
+      status:'awaiting_owner',dashboardWalkthroughVerified:false,
+      needsManualVerification:v.guidedSettings.length,
+      totalSettings:v.guidedSettings.length});
+    expect(v.ownerWalkthrough.length).toBeGreaterThanOrEqual(12);
+    expect(v.ownerWalkthrough.every(x=>x.ownerConfirmed===false&&
+      x.requiresDashboardReview===true&&x.dashboardUrl.startsWith(
+        'https://dashboard.stripe.com/'))).toBe(true);
+    expect(v.ownerWalkthrough.find(x=>x.setting==='account_closure')).toMatchObject({
+      status:'not_readable',ownerConfirmed:false});
+    expect(v.verificationReadiness.nativeObserved).toBeGreaterThanOrEqual(1);
     expect(JSON.stringify(v)).not.toContain(pii);
     expect(f.sdk.accounts.listCapabilities).toHaveBeenCalledTimes(1);
   });
@@ -75,6 +86,10 @@ describe('G-6b owner overview and safe requirements',()=>{
       'paymentMethods','paymentDomains','customerPortal'])
       expect(result.sections[key].status).toBe('not_readable');
     expect(f.sdk.accounts.listCapabilities).not.toHaveBeenCalled();
+    expect(result.verificationReadiness.dashboardWalkthroughVerified).toBe(false);
+    expect(result.ownerWalkthrough.every(x=>x.ownerConfirmed===false)).toBe(true);
+    expect(result.ownerWalkthrough.find(x=>x.setting==='webhook_events').status)
+      .toBe('not_readable');
   });
   it('restricted capabilities and account reads never cause a healthy overview',async()=>{
     const v=parse(await handlers.stripe_admin_overview({},
