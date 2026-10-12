@@ -4,7 +4,10 @@ import { publicOrigin, send } from './http.js';
 export async function requireMcpToken(req, res, db, env = process.env) {
   const origin = publicOrigin(env);
   const challenge = 'Bearer resource_metadata="' + origin + '/.well-known/oauth-protected-resource"';
-  const match = /^Bearer ([A-Za-z0-9_-]{30,256})$/.exec(String(req.headers?.authorization || ''));
+  // HTTP authentication scheme names are case-insensitive, while the exact
+  // connector token bytes and kind remain strict. RTC passes use another door.
+  const match = /^[Bb][Ee][Aa][Rr][Ee][Rr][ \t]+([A-Za-z0-9_-]{30,256})$/.exec(
+    String(req.headers?.authorization || ''));
   if (!match) {
     res.setHeader('WWW-Authenticate', challenge);
     send(res, 401, { error: 'unauthorized', error_description: 'A valid connection is required' });
