@@ -28,6 +28,28 @@ Stripe, OAuth, Webhook, or Toolkit Hub D-4. No provider mutation was authorized.
 6. Coordinate Hub D-4's own private GitHub relay owner gates and Sandbox runner. Run direct, relay, Sandbox as three separate tests, with time-limited read-only passes and exact revocation 401. If credentials/origin/bindings missing, mark BLOCKED, never synthesize PASS.
 7. Destroy/revoke every temporary pass and connector test access, record non-secret final evidence in this ledger, and leave Stripe LIVE and money-out approval gates untouched.
 
+## #180 exact running revision preflight
+
+The public contract response *on the deployed host* now conditionally exposes
+`deployment.sha`, `deployment.ref` and `deployment.environment` when all
+three Vercel system environment values are present and syntactically valid.
+This is runtime provenance, not a declaration that latest main is deployed.
+The owner must independently inspect the scheduled checked GitHub
+`main`→`live` release, actual live Git SHA and Vercel READY Production
+deployment for that same live revision. Configure `RTC_EXPECTED_DEPLOYED_SHA`
+to that **observed deployed live** commit in the protected runner environment.
+All three opt-in `scripts/rtc-service-check.mjs` modes refuse absence,
+mismatch, a deployment from `main` or a non-Production environment **before
+using a temporary bearer credential**. Do not set it to the latest GitHub
+main merely because CI passed.
+
+If the deployed contract omits provenance because Vercel system variables
+were not exposed, report `deployment_unverified` and verify Vercel
+environment settings through approved read-only controls; do not silently
+change them, bypass SSO or manually deploy. No real external TEST provider,
+OAuth, signed webhook, Hub direct/relay/Sandbox or first scheduled promotion
+is certified by adding these code paths.
+
 ## Release and safety invariant
 
 PRs require all seven exact-head check/unit/db/mock/rtc-reference/ci/target-main jobs and thread-free reviewed merge. Production is promoted only by the scheduled checked main→live workflow. Automatic Vercel previews remain off, Basic builds queued, Neon 0.25 CU/300s idle. No financial writes, paid additions, LIVE enablement or manual deployment follows from TEST acceptance.
