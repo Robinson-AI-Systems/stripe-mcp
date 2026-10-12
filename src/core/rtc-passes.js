@@ -7,7 +7,8 @@ export function createReadOnlyTestPassIssuer({db,oneTimeStore,
   if(typeof db?.createRtcReadOnlyPass!=='function'||!oneTimeStore?.issue)
     throw new TypeError('Private pass issuance unavailable');
   const allowed=new Set(availableAreas);
-  return async({account,areas='server'})=>{
+  return async({account,areas='server',hours=24})=>{
+    if(hours!==1&&hours!==24)throw new TypeError('Choose 1 or 24 hours');
     // The owner explicitly selects up to six verified read areas. Neither
     // bearer arguments nor a connector may enlarge this persisted grant.
     if(typeof areas!=='string'||areas.length>120)
@@ -25,13 +26,14 @@ export function createReadOnlyTestPassIssuer({db,oneTimeStore,
     const id='rtc-agent-'+randomBytes(12).toString('hex');
     const token='rtc_pass_'+randomBytes(32).toString('base64url');
     if(!RTC_PASS_PATTERN.test(token))throw new TypeError('Pass generator failed');
-    const expiresAt=new Date(now()+24*60*60*1000);
+    const expiresAt=new Date(now()+hours*60*60*1000);
     if(await db.createRtcReadOnlyPass({id,account,token,expiresAt,areas:selectedAreas})!==true)
       throw new Error('Pass persistence failed');
     const issued=await oneTimeStore.issue({account,mode:'test',kind:'rtc-read-only-pass',secret:token});
     if(!/^\/api\/stripe\/setup\?show=[A-Za-z0-9_-]{32}$/.test(issued.setupPath))
       throw new Error('One-time handoff unavailable');
     return {id,account,expiresAt,setupPath:issued.setupPath,mode:'test',
-      profile:'read_only',allowWrites:false,moneyLimitCents:0,areas:selectedAreas};
+      profile:'read_only',allowWrites:false,moneyLimitCents:0,
+      lifetimeHours:hours,areas:selectedAreas};
   };
 }
