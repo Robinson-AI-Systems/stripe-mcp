@@ -70,7 +70,7 @@ describe('real PostgreSQL and localhost HTTP MCP connector bearer boundary',()=>
     for(const authorization of [
       'Bearer '+rtcPass,'Bearer '+connector.slice(0,-1)+(connector.endsWith('A')?'B':'A'),
       'Basic '+connector,'Bearer '+connector+' other',
-      'Bearer\n'+connector
+      'Bearer,'+connector
     ]){
       const observed=await call(authorization);
       expect(observed.status).toBe(401);
