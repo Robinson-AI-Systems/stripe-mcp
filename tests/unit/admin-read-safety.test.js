@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {requireAdminTestAccount,validateAdminArgs,parseAdminReply,readAdminTool}
+import {requireAdminTestAccount,validateAdminArgs,parseAdminReply,readAdminTool,verifiedAdminIdentity}
   from '../../src/tools/admin-read-safety.js';
 const ctx={connection:{mode:'test',stripeAccount:'acct_EFFTEST'}};
 describe('shared TEST administrative read safety',()=>{
@@ -22,6 +22,14 @@ describe('shared TEST administrative read safety',()=>{
       {content:[{text:'invalid'}]},{content:[{text:'[]'}]},
       {content:[{text:'{}'},{text:'{}'}]}])
       expect(parseAdminReply(a)).toBeNull();
+  });
+  it('requires a proven own TEST account ID before cross-surface observations',()=>{
+    expect(verifiedAdminIdentity({id:'acct_EFFTEST',verification:'not_readable'},
+      'acct_EFFTEST')).toBe(true);
+    for(const v of [null,{}, {id:'acct_OTHER',verification:'ok'},
+      {id:'acct_EFFTEST',verification:'ok',available:false},
+      {id:'acct_EFFTEST',verification:'healthy'}])
+      expect(verifiedAdminIdentity(v,'acct_EFFTEST')).toBe(false);
   });
   it('treats reader error and thrown permissions as unavailable',async()=>{
     const fn=vi.fn(async()=>({content:[{text:'{"observed":true}'}]}));

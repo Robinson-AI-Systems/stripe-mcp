@@ -19,6 +19,13 @@ export function parseAdminReply(r){
     return v&&typeof v==='object'&&!Array.isArray(v)?v:null;
   }catch{return null;}
 }
+// The read-only account_get handler must independently establish the selected TEST
+// Stripe account, not merely echo a connection ID on permission refusal.
+export function verifiedAdminIdentity(value,account){
+  return typeof account==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(account)&&
+    value?.id===account&&value?.available!==false&&
+    ['ok','needs_attention','not_readable'].includes(value.verification);
+}
 export async function readAdminTool(handler,args,ctx){
   try{return parseAdminReply(await handler(args,ctx));}
   catch{return null;}

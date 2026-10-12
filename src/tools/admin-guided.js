@@ -7,7 +7,7 @@ import {handlers as domainHandlers} from './account-apple-pay-domains.js';
 import {handlers as webhookHandlers} from './webhooks-read.js';
 import {handlers as portalHandlers} from './checkout.js';
 import {reply,fail,allProfiles} from './billing-shared.js';
-import {requireAdminTestAccount,parseAdminReply} from './admin-read-safety.js';
+import {requireAdminTestAccount,parseAdminReply,verifiedAdminIdentity} from './admin-read-safety.js';
 const categories=['account','payments','billing','security','tax','developers','other'];
 const bad=message=>{throw new TypeError(message);};
 function validateList(a){
@@ -133,7 +133,7 @@ export const handlers={
         let identity;
         try{identity=parseAdminReply(await accountHandlers.account_get({},ctx));}
         catch{/* Provider identity access can fail; never infer a successful setting. */}
-        if(identity?.id!==ctx.connection.stripeAccount||identity?.available===false)
+        if(!verifiedAdminIdentity(identity,ctx.connection.stripeAccount))
           return reply({...guided,account:ctx.connection.stripeAccount,
             status:'not_readable',observed:false,complete:false,
             note:'Own-account TEST identity could not be independently confirmed.'});
@@ -151,7 +151,7 @@ export const handlers={
         status:'not_readable',observed:false,
         note:'Account verification read was refused or unavailable.'});
       const value=parseAdminReply(result);
-      const state=value?.available===false?'not_readable':
+      const state=!verifiedAdminIdentity(value,ctx.connection.stripeAccount)?'not_readable':
         value?.verification==='ok'?'ok':
         value?.verification==='needs_attention'?'needs_attention':'not_readable';
       return reply({...guided,account:ctx.connection.stripeAccount,

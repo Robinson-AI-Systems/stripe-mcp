@@ -123,6 +123,16 @@ describe('G-6a owner guided settings and honest account verification',()=>{
     expect(parse(await handlers.admin_check_setting(
       {setting:'restricted_key_creation'},f.ctx)).status).toBe('not_readable');
   });
+  it('does not treat an unrelated Stripe account as owner verification',async()=>{
+    const f=fixture();
+    f.sdk.accounts.retrieve=vi.fn(async()=>({
+      object:'account',id:'acct_DIFFERENT',livemode:false,
+      charges_enabled:true,payouts_enabled:true,details_submitted:true,
+      requirements:{currently_due:[],past_due:[]}
+    }));
+    const v=parse(await handlers.admin_check_setting({setting:'account_verification'},f.ctx));
+    expect(v).toMatchObject({status:'not_readable',observed:false});
+  });
   it('preserves partial and refused native observations without success claims',async()=>{
     const f=fixture();
     f.sdk.webhookEndpoints={list:vi.fn(async()=>({

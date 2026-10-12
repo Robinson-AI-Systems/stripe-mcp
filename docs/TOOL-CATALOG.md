@@ -1,5 +1,7 @@
 # Tool catalog
 
+#127 G-6 overview/security/guided readers now gate observed native account health on exact independently retrieved TEST account identity; unreadable identity must never yield a healthy section.
+
 #126 shares TEST-only preflight and read-result handling across existing G-6 administration readers. Tool names, write/read classification, account isolation and permissions are unchanged.
 
 **Current implementation (2026-10-10):** Protected account tools and
