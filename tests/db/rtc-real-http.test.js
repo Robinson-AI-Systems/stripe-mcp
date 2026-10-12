@@ -92,13 +92,45 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     expect(manifest.status).toBe(200);
     expect(manifest.data).toMatchObject({rtc:1,prefix:'stripe',
       access:'test_read_only_only'});
-    expect(manifest.data.counts.money).toBeGreaterThan(0);
+    expect(manifest.data).toMatchObject({profiles:['read_only'],
+      counts:{writes:0,money:0}});
     const missing=await http('/api/whoami');
     expect(missing.status).toBe(401);
     expect(missing.data.error.code).toBe('permission');
     expect(missing.challenge).toContain('Bearer');
     const wrong=await http('/api/whoami',{token:'connector_not_a_pass'});
     expect(wrong.status).toBe(401);
+  });
+  it('conforms manifest counts and metadata to the actual HTTP service catalog',async()=>{
+    const manifest=await http('/api/contract');
+    expect(manifest.status).toBe(200);
+    const names=[];
+    let offset=0;
+    for(let page=0;page<20;page++){
+      const reply=await http('/api/tools?listing=catalog&limit=100&offset='+offset,
+        {token:legacyPass});
+      expect(reply.status).toBe(200);
+      expect(reply.data.ok).toBe(true);
+      const catalog=reply.data.result;
+      for(const tool of catalog.tools){
+        names.push(tool.name);
+        expect(tool).toMatchObject({profiles:['read_only'],
+          writes:false,money:false,destructive:false,
+          annotations:{readOnlyHint:true,destructiveHint:false}});
+      }
+      if(catalog.next===null)break;
+      expect(catalog.next).toBeGreaterThan(offset);
+      offset=catalog.next;
+    }
+    expect(names).toHaveLength(manifest.data.counts.tools);
+    expect(new Set(names).size).toBe(names.length);
+    expect(manifest.data.areas).toEqual([...new Set(
+      names.map(name=>registry.tools.find(t=>
+        (t.name.startsWith('stripe_')?t.name:'stripe_'+t.name)===name)?.area??'server')
+    )].sort());
+    expect(names).toContain('stripe_account_get');
+    expect(names).not.toContain('stripe_call');
+    expect(names).not.toContain('stripe_batch');
   });
   it('lists and executes real selected-account read metadata, but not any write',async()=>{
     const who=await http('/api/whoami',{token:mainPass});
