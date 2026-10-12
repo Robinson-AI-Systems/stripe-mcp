@@ -16,7 +16,7 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
       !/db:/.test(ci)||!/mock:/.test(ci)||!/unit:/.test(ci))
     errors.push('The original checks and main CI policy must remain enabled');
   if(!/types:\s*\[opened, synchronize, reopened, edited\]/.test(targets)||
-     !/name:\s*target-main/.test(targets)||
+     !/^\s*target-main:\s*$/m.test(targets)||
      !/test "\$BASE_BRANCH" = main/.test(targets))
     errors.push('PR-target gate must reject non-main targets, including edits');
   const cron=promote.match(/^\s*- cron:\s*['"]([^'"]+)['"]/gm)??[];
