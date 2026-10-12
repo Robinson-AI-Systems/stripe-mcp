@@ -80,6 +80,19 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         stripe_account: stripeAccount, mode, profile, listing, kind: 'connector',
         expires_at: clock() + ttlSeconds * 1000, revoked_at: null });
     },
+    async createRtcReadOnlyPass({id,account,token,expiresAt}){
+      if(!accountRows.has(account)||!encryptedTestKeys.has(account)||
+        accountRows.get(account).live_enabled===true) return false;
+      tokens.set(hashToken(token),{token_hash:hashToken(token),client_id:id,
+        stripe_account:account,mode:'test',profile:'read_only',listing:'compact',
+        kind:'pass',result_scope:randomUUID(),allow_writes:false,
+        money_limit_cents:0,areas:null,for_hub:false,rate_limit_per_minute:120,
+        expires_at:expiresAt.getTime(),revoked_at:null});return true;
+    },
+    async getRtcPass(token){
+      const row=tokens.get(hashToken(token));
+      return row?.kind==='pass'&&!row.revoked_at&&row.expires_at>clock()?structuredClone(row):null;
+    },
     async getAccessToken(accessToken) {
       const row = tokens.get(hashToken(accessToken));
       if (!row || row.revoked_at || row.expires_at <= clock()) return null;

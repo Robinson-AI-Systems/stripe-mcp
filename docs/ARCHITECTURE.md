@@ -312,3 +312,13 @@ No Stripe endpoint has been registered from this deployment change. A Vercel REA
 build or a Stripe webhook listing does not prove Vercel Authentication permits
 Stripe ingress, authentic signed delivery, or provider retries. External TEST
 acceptance remains gated until a legitimate signed event reaches this route.
+
+
+## RTC pass issuance boundary (#154)
+Only a passphrase/origin/CSRF-protected owner POST issues a random 32-byte
+RTC bearer, then deposits it in the existing encrypted one-time reveal store.
+The permanent oauth_tokens row contains only a hash and restricted TEST/read_only
+scope, 24-hour expiry, zero money and zero write authority. The MCP OAuth
+connector continues to query kind='connector' only; passes do not authorize
+/api/mcp. The pass-only HTTPS API and shared database rate limiter follow in
+R-2; issuing a pass is not itself proof of Toolkit integration.

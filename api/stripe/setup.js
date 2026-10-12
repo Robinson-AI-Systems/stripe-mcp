@@ -6,6 +6,7 @@ import { createReportDownloader } from '../../src/stripe/report-download.js';
 import { createWebhookSignatureStore, createOwnerWebhookProvisioner } from '../../src/webhooks/signature-store.js';
 import { makeStripeClient } from '../../src/stripe/client.js';
 import { runOwnerTestSmoke } from '../../src/acceptance/owner-test-smoke.js';
+import {createReadOnlyTestPassIssuer} from '../../src/core/rtc-passes.js';
 
 export default async function handler(req, res) {
   try {
@@ -32,7 +33,8 @@ export default async function handler(req, res) {
       return runOwnerTestSmoke({account,key,focus});
     }:null;
     return await createSetupHandler({ db, keyStore, oneTimeStore,provisionWebhookSecret,forgetWebhookSecret,
-      runTestSmoke,reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
+      runTestSmoke,issueRtcPass:configured?createReadOnlyTestPassIssuer({db,oneTimeStore}):null,
+      reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
       error: 'temporarily_unavailable', description: 'Configure the private Stripe MCP server before setup'

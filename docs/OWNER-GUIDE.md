@@ -147,3 +147,12 @@ Stripe setting changes occur. No general-purpose manual Dashboard tour is needed
 only inspect an unknown setting when you have a specific workflow requirement.
 G-6 Dashboard comparison, OAuth, signed webhook delivery, H-1 and LIVE remain
 separate gates. Do not enter credentials in chat.
+
+
+## Short-lived RTC read-only pass (PR #154)
+Use the private Stripe MCP setup page, select your enrolled TEST account and
+supply the administrator passphrase. It issues a 24-hour, TEST-only, read-only
+pass with no money authority. Open the returned one-time reveal link and re-enter
+the passphrase; the bearer is never printed in AI output or stored in plain
+text. The pass has a separate connection ID for owner revocation. The upcoming
+HTTPS RTC routes must be finished and tested before using it for Toolkit D-4.
