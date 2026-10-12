@@ -42,7 +42,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async createOAuthClient({ clientId, clientSecret, tokenEndpointAuthMethod = 'client_secret_post',
       redirectUris, clientName }) {
       if (clients.has(clientId)) throw new Error('duplicate client');
-      if (!['none','client_secret_post'].includes(tokenEndpointAuthMethod) ||
+      if (!['none','client_secret_post','client_secret_basic'].includes(tokenEndpointAuthMethod) ||
         (tokenEndpointAuthMethod === 'none' ? clientSecret != null : !clientSecret))
         throw new TypeError('Invalid OAuth client authentication');
       clients.set(clientId, { client_id: clientId,
