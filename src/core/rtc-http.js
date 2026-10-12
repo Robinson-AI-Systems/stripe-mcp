@@ -20,7 +20,11 @@ const INTERNAL=new Set(['stripe_get_result','stripe_whoami']);
 const inScope=(t,areas)=>!Array.isArray(areas)||
   ((!DELEGATES.has(t.name))&&
     (areas.includes(t.area??'server')||INTERNAL.has(t.name)));
-const safeRead=t=>t?.writes===false&&t.money!==true&&
+// Guard and manifest must share the provider-derived money classification.
+// Stripe guarded writes expose moneySpec/safety instead of a money boolean.
+const moneyTool=t=>t?.money===true||t?.moneySpec==='provider-derived'||
+  t?.safety===String.fromCharCode(36);
+const safeRead=t=>t?.writes===false&&!moneyTool(t)&&
   t.destructive!==true&&t.profiles?.includes('read_only');
 const allowedTool=(registry,name,areas)=>registry.tools.find(t=>
   alias(t.name)===name&&safeRead(t)&&inScope(t,areas))??null;
@@ -51,7 +55,7 @@ export function rtcManifest(registry){
   return {rtc:1,server:'robinson-stripe-mcp',prefix:'stripe',
     version:'0.1.0',areas:[...new Set(registry.tools.map(t=>t.area??'server'))].sort(),
     counts:{tools:names.length,writes:registry.tools.filter(t=>t.writes===true).length,
-      money:registry.tools.filter(t=>t.money===true).length},
+      money:registry.tools.filter(moneyTool).length},
     profiles:['read_only','everyday','full'],listingModes:['compact','catalog'],
     modes:['test'],devTools:true,
     conformanceStatus:'pending_full_approval_and_provider_acceptance',

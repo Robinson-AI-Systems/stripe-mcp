@@ -190,3 +190,22 @@ describe('RTC 1 read-failure status accuracy',()=>{
     expect(r.body.error.code).toBe('invalid_args');
   });
 });
+
+describe('RTC actual Stripe money contract metadata',()=>{
+  it('recognizes provider-derived money tools, including mislabelled read metadata',async()=>{
+    const {db}=await fixture();
+    const hidden={name:'masked_money',description:'Must never appear or execute',
+      area:'money',writes:false,profiles:['read_only'],moneySpec:'provider-derived',
+      safety:'$',inputSchema:{type:'object',properties:{}}};
+    const localRegistry={tools:[...registry.tools,hidden],handlers:{...registry.handlers,
+      masked_money:async()=>{throw Error('MONEY TOOL EXECUTED');}}};
+    expect(rtcManifest(localRegistry).counts.money).toBe(1);
+    const handler=createRtcReadOnlyHttpHandler({db,registry:localRegistry});
+    const catalog=res();await handler(req('GET',{listing:'catalog'}),catalog,'catalog');
+    expect(catalog.body.result.tools.map(t=>t.name)).not.toContain('stripe_masked_money');
+    const denied=res();
+    await handler(req('POST',{},{}),denied,'call','stripe_masked_money');
+    expect(denied.statusCode).toBe(403);
+    expect(denied.body.error.code).toBe('refused_by_guard');
+  });
+});
