@@ -59,7 +59,7 @@ async function readNative(setting,ctx){
     typeof value.has_more==='boolean'&&value.data.every(x=>
       /^ba_[A-Za-z0-9]{2,100}$/.test(x.id)&&/^[0-9]{4}$/.test(x.last4)))
     return {complete:!value.has_more,detail:{destinations:value.data.map(x=>({
-      id:x.id,last4:x.last4,status:x.status===undefined?null:x.status}))}};
+      id:x.id,last4:x.last4,status:['new','validated','verified','verification_failed','errored'].includes(x.status)?x.status:null}))}};
   if(setting==='payout_schedule'&&value.available===true&&
     value.accountId===account&&['daily','weekly','monthly','manual'].includes(value.interval))
     return {complete:true,detail:{interval:value.interval,

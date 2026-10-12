@@ -140,6 +140,16 @@ describe('G-6a owner guided settings and honest account verification',()=>{
       {setting:'payment_methods'},restricted.ctx));
     expect(identity.status).toBe('not_readable');
     expect(restricted.sdk.accounts.retrieve).toHaveBeenCalledTimes(1);
+    const malicious=fixture();
+    malicious.sdk.accounts.listExternalAccounts=vi.fn(async()=>({
+      object:'list',has_more:false,data:[{object:'bank_account',id:'ba_TEST123',
+        account:acct,last4:'1234',currency:'usd',country:'US',
+        status:'PRIVATE_BANK_ACCOUNT_VALUE'}]}));
+    const masked=parse(await handlers.admin_check_setting(
+      {setting:'bank_account'},malicious.ctx));
+    expect(masked.status).toBe('observed');
+    expect(masked.detail.destinations[0].status).toBeNull();
+    expect(JSON.stringify(masked)).not.toContain('PRIVATE_BANK_ACCOUNT_VALUE');
   });
 
 });
