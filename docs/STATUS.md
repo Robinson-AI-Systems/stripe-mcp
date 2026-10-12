@@ -9,6 +9,8 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#173 (as-if MERGED) RTC Bearer interoperability and pass identity integrity:** HTTP scheme matching now respects case-insensitive Bearer without accepting altered token bytes; all expired/revoked/unknown valid-format passes issue a sanitized invalid_token challenge. Corrupt pass result_scope/client identity is denied before Stripe TEST execution to protect scoped results. Auth + integrity regressions, seven exact-head CI and review gate required. LIVE off; next #174.
+
 - **#172 (as-if MERGED) RTC pre-parsed body size boundary:** enforce the 16 KiB cap on normalized structured POST bodies even if a dishonest Content-Length is present and raw bytes are unavailable; reject cycles/unserializable structures. TEST RTC integration regression verifies no provider handler runs on oversized parsed payload. Preserves unchanged size limit, rate/owner/LIVE-off gates and checked-only daily Production. Seven exact-head checks and reviews required. Next #173.
 
 - **#171 (as-if MERGED) RTC batch rate units:** reserve all 1–10 read units against the shared PostgreSQL 120/minute TEST pass bucket before any handler execution, not one HTTP unit per ten reads. Fake DB, HTTP and independently connected DB regression tests. No new authority or deployment; seven exact-head checks and unresolved-review audit required. Genuine owner-enrolled Stripe/Hub D-4 acceptance, signed webhooks and OAuth remain unverified; Stripe LIVE OFF. Next #172.
