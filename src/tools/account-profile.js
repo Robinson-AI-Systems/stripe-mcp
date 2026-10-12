@@ -1,3 +1,4 @@
+import {readVerifiedTestAccount} from '../stripe/test-account.js';
 // G-5a: verified selected TEST Stripe account status, never private owner/PII data.
 import {guarded,fail,allProfiles} from './billing-shared.js';
 import {denverLocalTime} from './util.js';
@@ -79,7 +80,7 @@ export const handlers={
     return guarded(ctx,async s=>{
       validate(a);
       let record;
-      try{record=await s.accounts.retrieve();}
+      try{record=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);}
       catch(e){
         if(!restricted(e))throw e;
         return {id:ctx.connection.stripeAccount,available:false,verification:'not_readable',

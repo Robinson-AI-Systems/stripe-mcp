@@ -5,6 +5,10 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#150 owner TEST verification compatibility (proposed, exact-head CI/review required):** Stripe Account objects omit `livemode`; require independently matching authenticated Account ID and a same-client, read-only Balance object with explicit `livemode:false` when absent. Denied Balance read fails closed (owner may need to grant Balance: Read for the enrolled restricted TEST key). Apply across TEST key enrollment/reprobe, G-5 native account readers/writes, G-6 owner readers and custom owner smoke. No decrypted keys, LIVE, approvals or money operations. Real connected TEST and Dashboard acceptance remain PENDING. Official Stripe API: https://docs.stripe.com/api/accounts/object and https://docs.stripe.com/api/balance/balance_object.
+
+- **#149 merged** at `7c9e981b75806e7fbfdbfdc84622ed11ca2185a2`, all five final main CI checks passed; late P2 findings resolved. The historical #149 pending paragraph below is superseded.
+
 - **#149 pending CI (ai/gpt6/oauth-security-review-149):** Three late P2 OAuth/HTTP findings from #144/#146 addressed in code and regression tests: case-insensitive Basic, RFC 6749 challenge on HTTP auth rejection and early original transport-byte checks before DB initialization. Resolve historical review threads only after exact-head tests pass. External custom MCP TEST, SSO OAuth and signed-in Dashboard evidence pending; H-1 gated, LIVE disabled.
 
 

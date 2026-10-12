@@ -1,4 +1,4 @@
-import {verifiedTestAccountRecord} from './account-profile.js';
+import {readVerifiedTestAccount} from '../stripe/test-account.js';
 // G-5b: own-account TEST capability statuses; Connect-only refusal is unreadable, never "disabled".
 import {client,reply,fail,allProfiles} from './billing-shared.js';
 const bad=m=>{throw new TypeError(m);};
@@ -66,9 +66,7 @@ export const handlers={
     try{
       checkArgs(a);
       const s=await client(ctx);
-      const identity=await s.accounts.retrieve();
-      if(!verifiedTestAccountRecord(identity,account))
-        bad('Own-account TEST identity could not be verified');
+      await readVerifiedTestAccount(s,account);
       let page;
       try{page=await s.accounts.listCapabilities(account);}
       catch(e){if(unsupported(e))return reply(unreadable(account));throw e;}

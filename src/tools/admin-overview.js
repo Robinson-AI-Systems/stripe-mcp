@@ -1,3 +1,4 @@
+import {readVerifiedTestAccount} from '../stripe/test-account.js';
 // G-6b: independent TEST owner overview and sanitized verification requirements.
 import {client,reply,fail,allProfiles} from './billing-shared.js';
 import {handlers as accountHandlers,verifiedTestAccountRecord} from './account-profile.js';
@@ -90,7 +91,7 @@ export const handlers={
       const id=requireAdminTestAccount(ctx);
       const sdk=await client(ctx);
       let record;
-      try{record=await sdk.accounts.retrieve();}
+      try{record=await readVerifiedTestAccount(sdk,id);}
       catch(e){
         if([403,404].includes(e?.statusCode??e?.status)||
           ['permission_denied','resource_missing'].includes(e?.code))

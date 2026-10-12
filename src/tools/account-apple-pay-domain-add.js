@@ -1,4 +1,4 @@
-import {verifiedTestAccountRecord} from './account-profile.js';
+import {readVerifiedTestAccount} from '../stripe/test-account.js';
 // G-5d2: register a TEST-only payment-method domain with independent read-back.
 import {defineWrite,gone} from './write.js';
 import {client,fullProfiles} from './billing-shared.js';
@@ -22,9 +22,7 @@ function validate(a){
 async function own(ctx){
   const s=await client(ctx),account=ctx?.connection?.stripeAccount;
   if(!accountOk(account))bad('Select a connected TEST account');
-  const v=await s.accounts.retrieve();
-  if(!verifiedTestAccountRecord(v,account))
-    bad('Selected TEST account identity could not be verified');
+  await readVerifiedTestAccount(s,account);
   return s;
 }
 async function findExact(s,domain){

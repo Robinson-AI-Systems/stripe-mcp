@@ -1,12 +1,7 @@
 // Stripe-specific encrypted key store. No tool or MCP API accepts a Stripe key argument.
 import { makeStripeClient } from './stripe/client.js';
+import { readVerifiedTestAccount } from './stripe/test-account.js';
 import { encryptSecret, decryptSecret, readEncryptionKey } from './core/crypto.js';
-
-// Test-key ownership is a provider fact, not something inferred from a key prefix.
-function verifiedTestIdentity(value,account) {
-  return typeof account==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(account)&&
-    value?.object==='account'&&value.id===account&&value.livemode===false;
-}
 
 // Harmless read probes only. Permission-denied means unavailable; network/provider errors abort setup.
 export async function probeKeyPermissions(stripe) {
@@ -43,12 +38,9 @@ export function createKeyStore({ db, makeClient = makeStripeClient,
       }
       const stripe = makeClient({ key, mode: 'test' });
       let stripeAccount;
-      try { stripeAccount = await stripe.accounts.retrieve(); }
-      catch { throw new Error('Stripe rejected the test key or account details could not be read'); }
-      const account = stripeAccount?.id;
-      if (!verifiedTestIdentity(stripeAccount,account)) {
-        throw new Error('Unable to verify explicit TEST identity for this key');
-      }
+      try { stripeAccount = await readVerifiedTestAccount(stripe); }
+      catch { throw new Error('Unable to verify explicit TEST identity for this key'); }
+      const account = stripeAccount.id;
       const safeLabel = String(label || stripeAccount.business_profile?.name || account).slice(0,100);
       const ciphertext = encryptSecret(key, { aad: 'stripe-account/' + account + '/test', key: encryptionKey });
       const kind = key.startsWith('rk_') ? 'restricted' : 'secret';
@@ -88,13 +80,10 @@ export function createPermissionReprobe({db, keyStoreFactory=createKeyStore,
       throw new Error('TEST key snapshot unavailable: permission update refused');
     }
     const stripe=makeClient({key:snapshot.key,mode:'test'});
-    let identity;
-    try{identity=await stripe.accounts.retrieve();}
+    try{await readVerifiedTestAccount(stripe,account);}
     catch{throw new Error('Selected TEST account identity could not be verified');}
-    if(!verifiedTestIdentity(identity,account))
-      throw new Error('Selected TEST account identity could not be verified');
-    // Never update permission metadata for a key that belongs to another
-    // account or lacks the provider's explicit TEST mode assertion.
+    // Never update permission metadata without exact provider account identity
+    // and explicit TEST evidence, including for Accounts without livemode.
     const permissions=await probe(stripe);
     if (!permissions || typeof permissions!=='object' || Array.isArray(permissions)) {
       throw new Error('Stripe permission probes did not return a verified result');
