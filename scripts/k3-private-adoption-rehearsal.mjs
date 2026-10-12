@@ -102,6 +102,10 @@ export function rehearse(){
     cmd('npx',['--no-install','vitest','run','--config','vitest.config.js',
       ...originalUnit],root,180000);
     cmd('npm',['run','test:db','--',...originalSql],root,240000);
+    // A real service-owned adapter, original Stripe SQL, two independent DB
+    // connections and both directions of preexisting AAD interoperability.
+    // Imported only after private archive identity/install proof.
+    cmd('node',['scripts/k3-private-secret-adapter.mjs'],root,60000);
     return {hubCommit:candidateCommit,sha256,private:true,published:false,
       sourceServiceRepoModified:false,overlaidImports:leaves.length,
       unchangedStripeUnitSuites:originalUnit.length,
