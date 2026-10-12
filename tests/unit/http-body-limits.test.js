@@ -36,3 +36,21 @@ describe('bounded pre-parsed HTTP input', () => {
     expect(incomingBodyWithinLimit({ method: 'GET', headers: {}, query: {} })).toBe(true);
   });
 });
+
+describe('RTC parsed JSON cannot bypass the transport cap',()=>{
+  it('rejects oversized pre-parsed values even with a forged small length',()=>{
+    const payload={data:'x'.repeat(MAX_HTTP_BODY_BYTES)};
+    for(const length of ['2',String(MAX_HTTP_BODY_BYTES)]){
+      expect(incomingBodyWithinLimit({method:'POST',headers:{'content-length':length},
+        body:payload})).toBe(false);
+    }
+  });
+  it('refuses unserializable pre-parsed JSON without a raw body',()=>{
+    const circular={};circular.self=circular;
+    for(const body of [circular,{value:1n}])
+      expect(incomingBodyWithinLimit({method:'POST',headers:{'content-length':'2'},body}))
+        .toBe(false);
+    expect(incomingBodyWithinLimit({method:'POST',headers:{'content-length':'2'},
+      body:{ok:true}})).toBe(true);
+  });
+});
