@@ -115,7 +115,7 @@ export async function verifyRtcService({
     'batch_failed');
     stage='write_refusal';
     // A forbidden tool must be rejected by the guard BEFORE invoking Stripe.
-    const refused=await request('/api/tools/stripe_payment_intent_create',
+    const refused=await request('/api/tools/stripe_payment_cancel',
       {method:'POST',body:{}});
     demand(refused.status===403&&refused.data?.ok===false&&
       refused.data.error?.code==='refused_by_guard',
