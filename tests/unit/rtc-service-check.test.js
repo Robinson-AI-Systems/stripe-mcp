@@ -124,6 +124,34 @@ describe('RTC genuine hosted TEST acceptance runner (network injected, not exter
     expect(await verifyRtcService(options(html))).toMatchObject({
       status:'failed',stage:'manifest',code:'non_json_ingress'});
   });
+  it('rejects old main, unknown revision, mismatched SHA, or missing system variables before using the pass',async()=>{
+    const {wire,seen}=fixture();
+    for(const expectedDeploymentSha of [
+      undefined,'b'.repeat(40),'not-a-commit'
+    ]){
+      const report=await verifyRtcService({...options(wire),expectedDeploymentSha});
+      expect(report.status).toBe('failed');
+      expect(report.stage).toBe('manifest');
+    }
+    expect(seen.every(x=>x.path==='/api/contract')).toBe(true);
+    const mainBranch=async(url,init)=>{
+      const result=await wire(url,init);
+      if(new URL(url).pathname!=='/api/contract')return result;
+      const data=await result.json();
+      data.deployment.ref='main';
+      return new Response(JSON.stringify(data),
+        {status:200,headers:{'content-type':'application/json'}});
+    };
+    expect(await verifyRtcService({...options(mainBranch)})).toMatchObject({
+      status:'failed',stage:'manifest',code:'deployment_mismatch'});
+    const revoked=fixture({revoked:true});
+    expect(await verifyRtcRevocation({origin,approvedOrigin:origin,
+      revokedPass:other,expectedDeploymentSha:'b'.repeat(40),
+      fetcher:revoked.wire})).toMatchObject({
+      status:'failed',code:'deployment_mismatch'});
+    expect(revoked.seen).toHaveLength(1);
+    expect(revoked.seen[0].path).toBe('/api/contract');
+  });
   it('accepts only actual revoked-pass 401, not a generic auth error',async()=>{
     const good=fixture({revoked:true});
     expect(await verifyRtcRevocation({origin,approvedOrigin:origin,
