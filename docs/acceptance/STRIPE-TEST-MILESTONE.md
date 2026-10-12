@@ -140,3 +140,12 @@ account/mode tamper refusal and expired-row rejection with synthetic secrets.
 Source's default one-time store remains deployed and no unpublished import
 enters runtime. Record this slice PASS only on exact #185 CI, distinct from
 package Release, financial owner consent, OAuth bearer or Hub external D-4.
+
+## K-3 private profile adapter service proof (#186, pending exact-head CI)
+The source's actual `isGuardedTestWrite` and `listingForConnection`
+remain Stripe-owned while generic profile exports are privately imported from
+the immutable core archive for six actual source unit and five real disposable
+service PostgreSQL suites. Test mode write declaration/caller/profile
+restrictions must remain safe. Never mark final package adoption or owner
+money approval solely from this import rehearsal. Restore original
+`profiles.js` before CI concludes; no deployed dependency changes.
