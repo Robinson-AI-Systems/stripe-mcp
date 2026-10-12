@@ -52,6 +52,24 @@ const argsOf=req=>{
   if(!isRecord(body)||!incomingBodyWithinLimit(req))return null;
   return body;
 };
+// Normalize the same read arguments before either direct dispatch or batch
+// preflight. Invalid later batch entries must not cause earlier Stripe reads.
+function normalizeReadArgs(args){
+  if(!isRecord(args)||args.detail!==undefined&&
+    !['summary','full'].includes(args.detail))return null;
+  let normalized=args;
+  if(Array.isArray(args.fields)){
+    if(args.fields.length<1||args.fields.length>12||
+      args.fields.some(f=>typeof f!=='string'||f.length>100)||
+      args.fields.join(',').length>600)return null;
+    normalized={...args,fields:args.fields.join(',')};
+  }
+  if(args.fields!==undefined){
+    if(typeof normalized.fields!=='string')return null;
+    try{projectFields({},normalized.fields);}catch{return null;}
+  }
+  return normalized;
+}
 function unpack(output){
   if(output?.isError||!Array.isArray(output?.content)||output.content.length!==1||
     typeof output.content[0]?.text!=='string')return null;
@@ -85,21 +103,8 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
   async function call(name,args,connection){
     const t=allowedTool(registry,name,connection.areas);
     if(!t||!isRecord(args))return {error:'refused_by_guard'};
-    // RTC clients may supply a field array; the core projection rules still
-    // validate the shared comma-separated dotted-field representation.
-    if(args.detail!==undefined&&!['summary','full'].includes(args.detail))
-      return {error:'invalid_args'};
-    let safeArgs=args;
-    if(Array.isArray(args.fields)){
-      if(args.fields.length<1||args.fields.length>12||
-        args.fields.some(f=>typeof f!=='string'||f.length>100)||
-        args.fields.join(',').length>600)return {error:'invalid_args'};
-      safeArgs={...args,fields:args.fields.join(',')};
-    }
-    if(args.fields!==undefined){
-      if(typeof safeArgs.fields!=='string')return {error:'invalid_args'};
-      try{projectFields({},safeArgs.fields);}catch{return {error:'invalid_args'};}
-    }
+    const safeArgs=normalizeReadArgs(args);
+    if(safeArgs===null)return {error:'invalid_args'};
     // Reject unexpected pass-provided credentials and dangerous non-read tools;
     // the registered dispatcher remains the final profile/guard authority.
     const output=await dispatchReadOnlyTool({registry,name:t.name,args:safeArgs,connection,db,services});
@@ -209,7 +214,8 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const args=argsOf(req);
       if(!Array.isArray(args?.calls)||args.calls.length<1||args.calls.length>10||
         args.calls.some(v=>!isRecord(v)||typeof v.name!=='string'||
-          !allowedTool(registry,v.name,connection.areas)||!isRecord(v.args??{})))
+          !allowedTool(registry,v.name,connection.areas)||
+          normalizeReadArgs(v.args??{})===null))
         return error('invalid_args');
       const results=[];
       for(const item of args.calls){
