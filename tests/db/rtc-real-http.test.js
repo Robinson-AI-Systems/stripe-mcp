@@ -90,6 +90,7 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     expect(manifest.status).toBe(200);
     expect(manifest.data).toMatchObject({rtc:1,prefix:'stripe',
       access:'test_read_only_only'});
+    expect(manifest.data.counts.money).toBeGreaterThan(0);
     const missing=await http('/api/whoami');
     expect(missing.status).toBe(401);
     expect(missing.data.error.code).toBe('permission');
