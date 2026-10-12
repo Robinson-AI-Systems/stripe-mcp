@@ -48,11 +48,11 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<button type="submit">Download private CSV</button></form>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
     '<h2>Verify custom MCP TEST reads (owner only)</h2>' +
-    '<p>After owner passphrase authorization, run eight existing read-only G-4/G-5/G-6 MCP handlers against the selected stored TEST connection. No key leaves the server; this does not verify Stripe Dashboard settings, OAuth or webhook delivery.</p>' +
+    '<p>After owner passphrase authorization, select focused G-4 webhook, G-5 account or G-6 readiness checks, or the comprehensive group. Each uses only existing custom MCP read-only handlers with the stored TEST credential; no key leaves the server. This does not verify Dashboard settings, OAuth or webhook delivery.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="run-test-smoke">' +
     '<label>Selected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" maxlength="110" required autocomplete="off"></label>' +
-    '<label>Test group<select name="focus" required><option value="core">Core G-4/G-5/G-6 reads (8)</option><option value="administration">G-6 owner administration (3)</option></select></label>' +
+    '<label>Test group<select name="focus" required><option value="account">G-5 TEST account &amp; payment configuration (4)</option><option value="webhooks">G-4 TEST event &amp; webhook reads (2)</option><option value="readiness">G-6 owner readiness checks (2)</option><option value="core">Core G-4/G-5/G-6 reads (8)</option><option value="administration">G-6 owner administration (3)</option></select></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Run read-only custom MCP TEST checks</button></form>' +
     (smokeResult ? '<h3>Custom MCP TEST result (not Dashboard acceptance)</h3><pre>' +
@@ -307,15 +307,23 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     if (p.action === 'run-test-smoke') {
       if(typeof runTestSmoke!=='function') return send(res,503,htmlPage({csrf:cookie,
         result:'Owner TEST verification is not configured.'}),'text/html; charset=utf-8');
+      // Independent owner-browser allowlist; never render arbitrary returned
+      // MCP tool names, fields or provider data from a mock/compromised runner.
+      const supported={
+        account:['account_get','account_list_capabilities',
+          'account_list_payment_method_settings','account_list_apple_pay_domains'],
+        webhooks:['event_list','webhook_list'],
+        readiness:['admin_list_requirements','admin_check_setting'],
+        core:['account_get','account_list_capabilities',
+          'account_list_payment_method_settings','account_list_apple_pay_domains',
+          'event_list','webhook_list','admin_list_requirements','admin_check_setting'],
+        administration:['stripe_admin_overview','admin_review_security','admin_list_guided_settings']
+      };
       if(typeof p.account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account)||
-        !['core','administration'].includes(p.focus))
+        !Object.hasOwn(supported,p.focus))
         return send(res,400,htmlPage({csrf:cookie,
           result:'Select one exact TEST account and supported smoke group.'}),'text/html; charset=utf-8');
-      const allowed=p.focus==='core'?
-        ['account_get','account_list_capabilities','account_list_payment_method_settings',
-          'account_list_apple_pay_domains','event_list','webhook_list',
-          'admin_list_requirements','admin_check_setting']:
-        ['stripe_admin_overview','admin_review_security','admin_list_guided_settings'];
+      const allowed=supported[p.focus];
       try {
         const report=await runTestSmoke({account:p.account,focus:p.focus});
         // Browser results are a narrow allowlist, not an arbitrary upstream reply.
