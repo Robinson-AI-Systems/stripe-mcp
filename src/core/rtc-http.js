@@ -126,12 +126,18 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     }
     if(!pass||pass.kind!=='pass')return send(res,401,err('permission',401).body);
     if(pass.revoked_at)return send(res,401,err('pass_revoked',401).body);
-    if(!pass.expires_at||new Date(pass.expires_at).getTime()<=Date.now())
+    // Invalid/far-future dates must not become immortal TEST passes.
+    // Owner issuance is at most 24h (+60s allowed for clock drift).
+    const expiry=new Date(pass.expires_at??'invalid').getTime();
+    if(!Number.isFinite(expiry)||expiry<=Date.now()||
+      expiry>Date.now()+86_460_000)
       return send(res,401,err('pass_expired',401).body);
+    // Never coerce null/false/string claims into financial and rate limits.
+    // PostgreSQL INTEGER/BOOLEAN columns return native numbers/booleans.
     if(pass.mode!=='test'||!READ_ONLY.has(pass.profile)||
-      pass.allow_writes!==false||Number(pass.money_limit_cents)!==0||
-      !Number.isInteger(Number(pass.rate_limit_per_minute))||
-      Number(pass.rate_limit_per_minute)<1||Number(pass.rate_limit_per_minute)>600)
+      pass.allow_writes!==false||pass.money_limit_cents!==0||
+      !Number.isInteger(pass.rate_limit_per_minute)||
+      pass.rate_limit_per_minute<1||pass.rate_limit_per_minute>600)
       return send(res,403,err('refused_by_guard',403).body);
     try{
       const owner=await db.getStripeAccount(pass.stripe_account);
