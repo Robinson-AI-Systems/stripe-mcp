@@ -31,7 +31,7 @@ describe('G-6a owner guided settings and honest account verification',()=>{
       expect(entry.steps.every(x=>typeof x==='string'&&x.length>12)).toBe(true);
       const guide=whereIsSetting(key);
       expect(guide).toMatchObject({found:true,changeMade:false});
-      expect(guide.url).toMatch(/^https:\/\/dashboard\.stripe\.com\//);
+      expect(guide.url).toBe('https://dashboard.stripe.com/settings');
       expect(guide.expected).toContain('Verify');
       if(SETTING_READERS[key])expect(names.has(SETTING_READERS[key])).toBe(true);
     }
