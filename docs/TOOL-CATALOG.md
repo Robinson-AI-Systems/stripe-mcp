@@ -310,7 +310,7 @@ watches, then checked by read-back where Stripe exposes the value (Robinson Tool
 | `admin_list_guided_settings` | Paginated TEST-only structured owner settings map with steps, expected results and real reader references | — | built #120 | R |
 | `admin_check_setting` | Provider-observed TEST account verification where accessible; otherwise explicit not_readable and owner steps | — | built #120 | R |
 | `admin_review_security` | TEST masked stored-key metadata, fresh permission-probe availability, scoped connection totals and sanitized webhooks; Dashboard-only 2FA, team, rotation and passes remain unverified | — | built #122 | R |
-| `admin_fees_and_billing` | What Stripe charges this account: fees by type for a period (from balance transactions), Stripe Billing/Tax/Radar fees, and links to Stripe's own invoices | — | N | R |
+| `admin_fees_and_billing` | TEST balance-transaction fee amounts by period, currency and type with explicit page completeness; Billing/Tax/Radar subscription invoices require owner Dashboard comparison | — | built #123 | R |
 
 **Guided settings covered (dashboard-only; full list in `src/data/dashboard-map.js`, every settings page of the
 dashboard):** team members, invitations and roles; two-step login and account security; API keys (create, roll,
