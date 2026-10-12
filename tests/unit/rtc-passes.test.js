@@ -9,16 +9,21 @@ describe('owner-created RTC short-lived TEST pass',()=>{
     const db=createFakeDb({accounts:[{id:account}]});
     await db.saveTestKey({account,label:'TEST',ciphertext:'v1.mock',kind:'restricted',last4:'FAKE'});
     const once=createOneTimeStore({db,encryptionKey:randomBytes(32)});
-    const issuer=createReadOnlyTestPassIssuer({db,oneTimeStore:once,now:()=>Date.now()});
-    const issued=await issuer({account});
+    const issuer=createReadOnlyTestPassIssuer({db,oneTimeStore:once,
+      availableAreas:['server','account'],now:()=>Date.now()});
+    const issued=await issuer({account,areas:'server,account'});
     expect(issued).toMatchObject({account,mode:'test',profile:'read_only',
-      allowWrites:false,moneyLimitCents:0});
+      allowWrites:false,moneyLimitCents:0,areas:['server','account']});
     expect(issued.setupPath).toMatch(/^\/api\/stripe\/setup\?show=/);
     expect(JSON.stringify(issued)).not.toContain('rtc_pass_');
     const reveal=await once.consume(new URL(issued.setupPath,'https://example.test').searchParams.get('show'));
     expect(RTC_PASS_PATTERN.test(reveal)).toBe(true);
     expect((await db.getRtcPass(reveal))).toMatchObject({mode:'test',profile:'read_only',
-      kind:'pass',allow_writes:false,money_limit_cents:0,rate_limit_per_minute:120});
+      kind:'pass',allow_writes:false,money_limit_cents:0,
+      areas:['server','account'],rate_limit_per_minute:120});
+    await expect(issuer({account,areas:'server,payments'})).rejects.toThrow();
+    await expect(issuer({account,areas:'server,server'})).rejects.toThrow();
+    await expect(issuer({account,areas:''})).rejects.toThrow();
     expect(await db.revokeAccessToken(reveal)).toBe(true);
     expect(await db.getRtcPass(reveal)).toBeNull();
   });

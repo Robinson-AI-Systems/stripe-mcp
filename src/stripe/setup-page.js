@@ -51,6 +51,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<p>Owner-only. Creates a 24-hour TEST-only pass with no writes or money authorization. The bearer is shown only through the protected one-time reveal page and can be revoked using the connection ID.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="issue-rtc-pass">' +
+    '<label>Allowed read-only areas (comma-separated, default server only)' +
+    '<input name="areas" maxlength="120" value="server" required></label>' +
     '<label>Connected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Issue 24-hour read-only pass</button></form>' +
@@ -271,11 +273,11 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       if(typeof issueRtcPass!=='function')return send(res,503,htmlPage({csrf:cookie,
         result:'Read-only pass issuance is unavailable.'}),'text/html; charset=utf-8');
       try{
-        const issued=await issueRtcPass({account:p.account});
+        const issued=await issueRtcPass({account:p.account,areas:p.areas??'server'});
         if(!/^\/api\/stripe\/setup\?show=[A-Za-z0-9_-]{32}$/.test(issued.setupPath))
           throw new TypeError('Invalid private handoff');
         return send(res,200,htmlPage({csrf:cookie,result:
-          'Issued one 24-hour TEST read-only pass (writes and money disabled). Connection ID: '+
+          'Issued one 24-hour TEST read-only pass (writes and money disabled, selected areas only). Connection ID: '+
           issued.id+'. Open this owner-only one-time reveal URL, re-enter your passphrase, and never share the credential in chat: '+issued.setupPath}),
           'text/html; charset=utf-8');
       }catch{return send(res,400,htmlPage({csrf:cookie,
