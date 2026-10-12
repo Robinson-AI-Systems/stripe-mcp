@@ -1,3 +1,5 @@
+#150 TEST account verification compatibility: Stripe's documented Account object omits `livemode`; the same TEST SDK client must independently return Balance `livemode:false` if the Account object lacks the field, after matching the exact provider account identity. If Balance: Read is unavailable the native readers, write preflights, owner smoke and encrypted key enrollment/reprobe fail closed, never show settings as accepted and never change account records. No tool added, no default permission grant, no LIVE or money change; real TEST provider and Dashboard acceptance remain pending.
+
 # Tool catalog
 
 #136 G-5/G-6 and opt-in custom-MCP acceptance now share explicit Stripe account TEST identity verification (`livemode:false` required). Missing or malformed provider mode cannot authorize further native reads or guarded writes. Tool registrations, permissions and external acceptance remain unchanged.
