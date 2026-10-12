@@ -113,14 +113,15 @@ export function createDb(sql = getProductionSql()) {
         FROM oauth_tokens WHERE token_hash=${hashToken(token)} AND kind='pass'`;
       return rows[0]??null;
     },
-    async consumeRtcPassRate({token,limit}) {
+    async consumeRtcPassRate({token,limit,units=1}) {
       if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token)||
-        !Number.isInteger(limit)||limit<1||limit>600)
+        (!Number.isInteger(limit)||limit<1||limit>600)||
+        !Number.isInteger(units)||units<1||units>10)
         throw new TypeError('Valid RTC TEST rate selector required');
       const rows=await sql`INSERT INTO rtc_pass_rates (token_hash,window_start,count)
-        VALUES (${hashToken(token)},date_trunc('minute',now()),1)
+        VALUES (${hashToken(token)},date_trunc('minute',now()),${units})
         ON CONFLICT (token_hash,window_start) DO UPDATE SET
-          count=rtc_pass_rates.count+1 RETURNING count`;
+          count=rtc_pass_rates.count+${units} RETURNING count`;
       return Number(rows[0]?.count)<=limit;
     },
     async getRtcPass(token) {

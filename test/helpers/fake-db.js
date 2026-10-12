@@ -97,9 +97,12 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const row=tokens.get(hashToken(token));
       return row?.kind==='pass'?structuredClone(row):null;
     },
-    async consumeRtcPassRate({token,limit}){
+    async consumeRtcPassRate({token,limit,units=1}){
+      if(!Number.isInteger(units)||units<1||units>10||
+        !Number.isInteger(limit)||limit<1||limit>600)
+        throw new TypeError('Valid RTC TEST rate selector required');
       const key=hashToken(token)+'|'+Math.floor(clock()/60000);
-      const count=(rtcPassRates.get(key)??0)+1;
+      const count=(rtcPassRates.get(key)??0)+units;
       rtcPassRates.set(key,count);return count<=limit;
     },
     async getRtcPass(token){

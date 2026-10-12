@@ -242,3 +242,19 @@ describe('RTC HTTPS truthful fields/detail schema and guard',()=>{
     expect(calls).toBe(1);
   });
 });
+
+describe('RTC batch shared rate accounting',()=>{
+  it('charges ten reads per batch and rejects a thirteenth batch',async()=>{
+    const {handler}=await fixture();
+    const calls=Array.from({length:10},()=>({name:'stripe_account_get',args:{}}));
+    for(let i=0;i<12;i++){
+      const r=res();await handler(req('POST',{}, {calls}),r,'batch');
+      expect(r.statusCode).toBe(200);
+      expect(r.body.result.count).toBe(10);
+    }
+    const denied=res();await handler(req('POST',{}, {calls}),denied,'batch');
+    expect(denied.statusCode).toBe(429);
+    expect(denied.body.error.code).toBe('rate_limited');
+    expect(denied.headers['Retry-After']).toBe('60');
+  });
+});
