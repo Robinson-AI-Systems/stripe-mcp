@@ -41,8 +41,8 @@ export function createDb(sql = getProductionSql()) {
     ...createDevSimulationCycleStore(sql),
     async createOAuthClient({ clientId, clientSecret, tokenEndpointAuthMethod = 'client_secret_post',
       redirectUris, clientName }) {
-      if (!clientId || !['client_secret_post','none'].includes(tokenEndpointAuthMethod) ||
-        (tokenEndpointAuthMethod === 'client_secret_post' ? !clientSecret : clientSecret != null) ||
+      if (!clientId || !['client_secret_post','client_secret_basic','none'].includes(tokenEndpointAuthMethod) ||
+        (tokenEndpointAuthMethod === 'none' ? clientSecret != null : !clientSecret) ||
         !Array.isArray(redirectUris) || !redirectUris.length) {
         throw new TypeError('Missing or invalid OAuth client registration fields');
       }
