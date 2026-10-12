@@ -209,3 +209,36 @@ describe('RTC actual Stripe money contract metadata',()=>{
     expect(denied.body.error.code).toBe('refused_by_guard');
   });
 });
+
+describe('RTC HTTPS truthful fields/detail schema and guard',()=>{
+  it('advertises string and array fields without changing MCP registry',async()=>{
+    const {handler}=await fixture(),response=res();
+    await handler(req('GET'),response,'describe','stripe_account_get');
+    expect(response.statusCode).toBe(200);
+    const field=response.body.result.inputSchema.properties.fields;
+    expect(field.oneOf.map(v=>v.type)).toEqual(['string','array']);
+    expect(field.oneOf[1]).toMatchObject({minItems:1,maxItems:12,uniqueItems:true});
+    expect(registry.tools[1].inputSchema.properties.fields).toBeUndefined();
+  });
+  it('refuses malformed detail and field selectors before running any handler',async()=>{
+    const {db}=await fixture();let calls=0;
+    const handler=createRtcReadOnlyHttpHandler({db,registry:{tools:registry.tools,
+      handlers:{...registry.handlers,account_get:async()=>{
+        calls++;return {content:[{type:'text',text:'{}'}]};}}}});
+    for(const bad of [
+      {detail:'everything'},{fields:27},{fields:null},
+      {fields:['__proto__']},{fields:['safe','safe']},
+      {fields:'safe,,other'},{fields:'constructor.name'}
+    ]){
+      const response=res();
+      await handler(req('POST',{},bad),response,'call','stripe_account_get');
+      expect(response.statusCode).toBe(400);
+      expect(response.body.error.code).toBe('invalid_args');
+    }
+    expect(calls).toBe(0);
+    const good=res();await handler(req('POST',{}, {fields:['safe'],
+      detail:'full'}),good,'call','stripe_account_get');
+    expect(good.statusCode).toBe(200);
+    expect(calls).toBe(1);
+  });
+});
