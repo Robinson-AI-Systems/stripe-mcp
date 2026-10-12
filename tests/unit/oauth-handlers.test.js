@@ -57,6 +57,58 @@ describe('personal-use OAuth HTTP endpoints', () => {
     expect(res.statusCode).toBe(400);
     expect(json(res).error).toBe('invalid_client_metadata');
   });
+  it('supports public PKCE-only MCP clients without issuing or accepting client secrets', async () => {
+    const { db, h } = createFixture();
+    const metadata = json(await call(h.metadata, request('GET', {})));
+    expect(metadata.token_endpoint_auth_methods_supported).toContain('none');
+    const registered = json(await call(h.register, request('POST', {
+      redirect_uris: [callback], client_name: 'Public native MCP',
+      token_endpoint_auth_method: 'none'
+    })));
+    expect(registered.token_endpoint_auth_method).toBe('none');
+    expect(registered).not.toHaveProperty('client_secret');
+    const stored = await db.getOAuthClient(registered.client_id);
+    expect(stored.client_secret_hash).toBeNull();
+    const args = authorizeArgs(registered);
+    const authorized = await call(h.authorize, request('POST', {
+      ...args, passphrase: env.ADMIN_PASSPHRASE, profile: 'read_only'
+    }));
+    expect(authorized.statusCode).toBe(302);
+    const code = new URL(authorized.headers.Location).searchParams.get('code');
+    const wrongPkce = await call(h.token, request('POST', {
+      client_id: registered.client_id, grant_type: 'authorization_code',
+      code, code_verifier: 'b'.repeat(43), redirect_uri: callback, resource
+    }));
+    expect(wrongPkce.statusCode).toBe(400);
+    const second = await call(h.authorize, request('POST', {
+      ...args, passphrase: env.ADMIN_PASSPHRASE, profile: 'read_only'
+    }));
+    const newCode = new URL(second.headers.Location).searchParams.get('code');
+    const withSecret = await call(h.token, request('POST', {
+      client_id: registered.client_id, client_secret: 'unexpected',
+      grant_type: 'authorization_code', code: newCode,
+      code_verifier: verifier, redirect_uri: callback, resource
+    }));
+    expect(withSecret.statusCode).toBe(401);
+    const granted = await call(h.token, request('POST', {
+      client_id: registered.client_id, grant_type: 'authorization_code',
+      code: newCode, code_verifier: verifier, redirect_uri: callback, resource
+    }));
+    expect(granted.statusCode).toBe(200);
+    const tokens = json(granted);
+    expect(await db.getAccessToken(tokens.access_token)).toMatchObject({
+      stripe_account: 'acct_fake_one', profile: 'read_only', mode: 'test'
+    });
+    const refreshed = await call(h.token, request('POST', {
+      client_id: registered.client_id, grant_type: 'refresh_token',
+      refresh_token: tokens.refresh_token, resource
+    }));
+    expect(refreshed.statusCode).toBe(200);
+    expect((await call(h.token, request('POST', {
+      client_id: registered.client_id, grant_type: 'refresh_token',
+      refresh_token: tokens.refresh_token, resource
+    }))).statusCode).toBe(400);
+  });
   it('one setup persists through access expiration and rotates refresh without a new login', async () => {
     const { db, h, advance } = createFixture();
     const client = await register(h);

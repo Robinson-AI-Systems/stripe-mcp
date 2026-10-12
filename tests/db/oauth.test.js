@@ -16,6 +16,18 @@ beforeAll(async () => {
 afterAll(async () => { await closeIsolatedSchema(); });
 
 describe('A-3 OAuth security on real isolated PostgreSQL', () => {
+  it('stores a PKCE-only public client with no shared secret while preserving confidential registrations', async () => {
+    await db.createOAuthClient({ clientId: 'public-mcp', clientSecret: null,
+      tokenEndpointAuthMethod: 'none', redirectUris: ['http://localhost:3210/callback'],
+      clientName: 'Public native MCP' });
+    const client = await db.getOAuthClient('public-mcp');
+    expect(client).toMatchObject({ token_endpoint_auth_method: 'none',
+      client_secret_hash: null, redirect_uris: ['http://localhost:3210/callback'] });
+    await expect(db.createOAuthClient({ clientId: 'unsafe-public', clientSecret: 'unexpected',
+      tokenEndpointAuthMethod: 'none', redirectUris: ['https://client.example.test/cb'] }))
+      .rejects.toThrow();
+  });
+
   it('registers a client without storing the client secret, and consumes hashed codes only once', async () => {
     await db.createOAuthClient({ clientId: 'client-1', clientSecret: 'fixture-secret-not-real',
       redirectUris: ['https://example.test/cb'], clientName: 'Example' });
