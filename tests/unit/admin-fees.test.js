@@ -28,9 +28,11 @@ describe('G-6d bounded TEST fees and billing',()=>{
     expect(registry.tools.filter(t=>t.name==='admin_fees_and_billing')).toHaveLength(1);
     const f=fixture(),out=parse(await handlers.admin_fees_and_billing({from:start,to:end},f.ctx));
     expect(out).toMatchObject({complete:true,available:true,transactionsScanned:2,
-      sampleTotals:[{currency:'usd',feeMinor:59,transactions:2}],
+      sampleTotals:[{currency:'usd',grossMinor:800,feeMinor:59,netMinor:741,transactions:2}],
       statementsVerified:false,billingFeesStatus:'not_readable'});
     expect(out.byFeeType).toEqual([{currency:'usd',types:[{type:'stripe_fee',feeMinor:59}]}]);
+    expect(out.byCategory).toEqual([{currency:'usd',categories:[{
+      category:'charge',grossMinor:800,feeMinor:59,netMinor:741,transactions:2}]}]);
     expect(JSON.stringify(out)).not.toContain('PRIVATE_INVOICE_PERSONAL');
     expect(f.sdk.balanceTransactions.list).toHaveBeenCalledWith({
       limit:50,created:{gte:start,lt:end}});
@@ -45,6 +47,12 @@ describe('G-6d bounded TEST fees and billing',()=>{
     expect(v.complete).toBe(false);
     expect(v.transactionsScanned).toBe(2);
     expect(v.sampleTotals.map(x=>x.currency)).toEqual(['eur','usd']);
+    expect(v.sampleTotals).toEqual([
+      {currency:'eur',grossMinor:1000,feeMinor:50,netMinor:950,transactions:1},
+      {currency:'usd',grossMinor:1000,feeMinor:40,netMinor:960,transactions:1}
+    ]);
+    expect(v.byCategory).toHaveLength(2);
+    expect(v.byCategory.every(x=>x.categories[0].category==='charge')).toBe(true);
     expect(v.note).toMatch(/PARTIAL/);
     expect(f.sdk.balanceTransactions.list.mock.calls[1][0].starting_after).toBe('txn_AAAA');
   });

@@ -49,7 +49,7 @@ function rowSafe(v,from,to){
     if(total!==v.fee)bad('Stripe transaction fee does not reconcile to its breakdown');
     breakdown=fees;
   }
-  return {id:v.id,currency:v.currency,fee:v.fee,
+  return {id:v.id,currency:v.currency,amount:v.amount,fee:v.fee,net:v.net,
     reportingCategory:typeof v.reporting_category==='string'&&
       /^[a-z_]{2,50}$/.test(v.reporting_category)?v.reporting_category:null,
     breakdown};
@@ -87,7 +87,7 @@ export const handlers={
       }
       if(own?.object!=='account'||own.id!==account||own.livemode===true)
         bad('Exact own-account TEST identity could not be verified');
-      const sampleTotals={},byFeeType={},seen=new Set();
+      const sampleTotals={},byFeeType={},byCategory={},seen=new Set();
       const limit=a.pageLimit??50,maxPages=a.maxPages??3;
       let cursor=null,complete=false,missingBreakdown=0,pages=0;
       for(let i=0;i<maxPages;i++){
@@ -112,7 +112,15 @@ export const handlers={
           if(seen.has(row.id))bad('Duplicate provider transaction across fee pages');
           seen.add(row.id);
           add(sampleTotals,row.currency,'feeMinor',row.fee);
+          add(sampleTotals,row.currency,'grossMinor',row.amount);
+          add(sampleTotals,row.currency,'netMinor',row.net);
           add(sampleTotals,row.currency,'transactionCount',1);
+          const group=byCategory[row.currency]??(byCategory[row.currency]={});
+          const category=row.reportingCategory??'unknown';
+          add(group,category,'feeMinor',row.fee);
+          add(group,category,'grossMinor',row.amount);
+          add(group,category,'netMinor',row.net);
+          add(group,category,'transactions',1);
           if(row.breakdown){
             for(const fee of row.breakdown)add(byFeeType,row.currency,fee.type,fee.amount);
           }else{
@@ -126,13 +134,30 @@ export const handlers={
         if(!txn(next)||next===cursor)bad('Stripe fee cursor was invalid');
         cursor=next;
       }
+      // Reconcile all signed, currency-scoped sums before presenting a report.
+      // This is a balance ledger sample; it is never a Stripe invoice/statement.
+      for(const [currency,totals] of Object.entries(sampleTotals)){
+        const detail=byFeeType[currency]??{};
+        const detailFees=Object.values(detail).reduce((n,v)=>n+v,0);
+        if(!Number.isSafeInteger(detailFees)||
+          totals.grossMinor-totals.feeMinor!==totals.netMinor||
+          detailFees!==totals.feeMinor)
+          bad('Stripe fee report summaries did not reconcile');
+      }
       return reply({account,mode:'test',available:true,period:{from:a.from,to:a.to},
         complete,transactionsScanned:seen.size,pagesScanned:pages,
         sampleTotals:Object.entries(sampleTotals).sort().map(([currency,v])=>
-          ({currency,feeMinor:v.feeMinor,transactions:v.transactionCount})),
+          ({currency,grossMinor:v.grossMinor,feeMinor:v.feeMinor,
+            netMinor:v.netMinor,transactions:v.transactionCount})),
         byFeeType:Object.entries(byFeeType).sort().map(([currency,values])=>
           ({currency,types:Object.entries(values).sort().map(([type,feeMinor])=>
             ({type,feeMinor}))})),
+        byCategory:Object.entries(byCategory).sort().map(([currency,groups])=>({
+          currency,categories:Object.entries(groups).sort().map(([category,v])=>({
+            category,grossMinor:v.grossMinor,feeMinor:v.feeMinor,
+            netMinor:v.netMinor,transactions:v.transactions
+          }))
+        })),
         missingFeeBreakdowns:missingBreakdown,statementsVerified:false,
         dashboardUrl,billingFeesStatus:'not_readable',taxFeesStatus:'not_readable',
         radarFeesStatus:'not_readable',

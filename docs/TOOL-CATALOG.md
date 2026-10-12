@@ -1,5 +1,7 @@
 # Tool catalog
 
+#129 G-6 admin_fees_and_billing adds safe signed gross/fee/net totals by currency/category, with independent reconciliation; samples are never Stripe billing statements or completed owner audits.
+
 #128 G-6 admin overview adds a bounded owner Dashboard walkthrough checklist and explicitly unverified native-versus-owner acceptance; no setting is automatically owner-confirmed.
 
 #127 G-6 overview/security/guided readers now gate observed native account health on exact independently retrieved TEST account identity; unreadable identity must never yield a healthy section.
