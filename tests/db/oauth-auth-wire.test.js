@@ -68,7 +68,7 @@ describe('real PostgreSQL and localhost HTTP MCP connector bearer boundary',()=>
   });
   it('refuses RTC pass on connector route, malformed bearer and unknown connector',async()=>{
     for(const authorization of [
-      'Bearer '+rtcPass,'Bearer '+connector.slice(0,-1)+'X',
+      'Bearer '+rtcPass,'Bearer '+connector.slice(0,-1)+(connector.endsWith('A')?'B':'A'),
       'Basic '+connector,'Bearer '+connector+' other',
       'Bearer\n'+connector
     ]){
