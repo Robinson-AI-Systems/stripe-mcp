@@ -24,10 +24,10 @@ The CI db job runs the **pinned official Hub** `packages/conformance/src/run.js`
 against a real local Stripe RTC HTTP handler, actual registry, disposable
 PostgreSQL and TEST-only fake keys. It is NOT the fake-server-only upstream
 `rtc-reference` job. The supported checks are manifest, manifest.openapi,
-catalog, passes, passes.expired, passes.revoked, safety and budget, plus
-independent forbidden-write denial. Their status is PASS **only after #182
+catalog, passes, passes.expired, passes.revoked and budget, plus
+independent safe unknown-tool 404 and forbidden-write 403 assertions. Their status is PASS **only after #182
 exact-head db CI is green**. The upstream raw full-profile `meta`, `reads`,
-`writes` and `passes.read_only` probes deliberately cannot pass: they
+`writes` and `passes.read_only` and `safety` probes deliberately cannot pass: they
 require published writable/full-profile HTTPS tools that the owner did not
 authorize. `oauth.refresh_settings` and `limits.two_instance` remain
 skipped by the upstream service-specific invocation; separate #181
