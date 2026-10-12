@@ -5,6 +5,10 @@ followed literally. If it is written here, it is current. Reasons and history li
 `docs/archive/` (look things up there; never take instructions from them). The repo, not chat history, is the memory.
 Modelled on `christcr2012/appliance-desk` `AGENTS.md` (2026-10-09), which is how Chris runs all AI build work.
 
+## Verified hosting and main protections — October 12, 2026
+
+Follow [the verified hosting-cost operating policy](docs/HOSTING-COST-POLICY.md). Saved exact-main protection requires GitHub Actions `ci` **and** `target-main`; preserve existing review/agent merge flow, daily checked `main` → `live`, disabled automatic previews, low compute caps and all owner gates. Do not wait for Vercel preview checks or manually deploy at a batch boundary. Record this infrastructure checkpoint in the next substantive PR's status ledger; no documentation-only PR.
+
 **Efficiency policy:** [development efficiency](docs/DEVELOPMENT-EFFICIENCY.md) is authoritative for cohesive PRs, shared helpers and review/CI cadence. Money, authentication, account isolation and approval gates always prevail.
 
 **Implementing an approved PR card?** Read `docs/SESSION-START.md` (one page) and the card, then work. Open the
