@@ -24,7 +24,14 @@ export function paramsOf(req) {
   if (req.method === 'GET') return req.query || {};
   const contentType = String(req.headers?.['content-type'] || '').split(';')[0].toLowerCase();
   const body = req.body;
-  if (typeof body === 'object' && body !== null && !Array.isArray(body)) return body;
+  if (typeof body === 'object' && body !== null && !Array.isArray(body)) {
+    // Frameworks preparse JSON and form bodies; enforce the same transport cap
+    // as the raw-string path before touching DB or authentication state.
+    try {
+      if (Buffer.byteLength(JSON.stringify(body), 'utf8') <= 16384) return body;
+    } catch { /* Reject unserializable structured bodies. */ }
+    throw new Error('Invalid request body');
+  }
   if (typeof body !== 'string' || Buffer.byteLength(body) > 16384) throw new Error('Invalid request body');
   if (contentType === 'application/x-www-form-urlencoded') return Object.fromEntries(new URLSearchParams(body));
   if (contentType === 'application/json') {
