@@ -57,14 +57,15 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Check signed TEST receipt</button></form>' +
     '<h2>Issue temporary read-only Toolkit pass (TEST only)</h2>' +
-    '<p>Owner-only. Creates a 24-hour TEST-only pass with no writes or money authorization. The bearer is shown only through the protected one-time reveal page and can be revoked using the connection ID.</p>' +
+    '<p>Owner-only. Creates a 1-hour or 24-hour TEST-only pass with no writes or money authorization. The bearer is shown only through the protected one-time reveal page and can be revoked using the connection ID.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="issue-rtc-pass">' +
     '<label>Allowed read-only areas (comma-separated, default server only)' +
     '<input name="areas" maxlength="120" value="server" required></label>' +
+    '<label>Pass lifetime<select name="hours" required><option value="1">1 hour for temporary D-4 testing</option><option value="24" selected>24 hours</option></select></label>' +
     '<label>Connected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-    '<button type="submit">Issue 24-hour read-only pass</button></form>' +
+    '<button type="submit">Issue TEST read-only pass</button></form>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
     '<h2>Automated TEST Setup &amp; Readiness Report (owner only)</h2>' +
     '<p>Select one group for genuine custom MCP TEST reads and a targeted readiness report. Unknown/unreadable settings are NOT presumed to be defaults. No automatic change is made; Stripe Dashboard, OAuth and signed webhook delivery are separate acceptance gates.</p>' +
@@ -313,11 +314,14 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       if(typeof issueRtcPass!=='function')return send(res,503,htmlPage({csrf:cookie,
         result:'Read-only pass issuance is unavailable.'}),'text/html; charset=utf-8');
       try{
-        const issued=await issueRtcPass({account:p.account,areas:p.areas??'server'});
+        const hours=p.hours??'24';
+        if(hours!=='1'&&hours!=='24')throw new TypeError('Invalid pass lifetime');
+        const issued=await issueRtcPass({account:p.account,
+          areas:p.areas??'server',hours:Number(hours)});
         if(!/^\/api\/stripe\/setup\?show=[A-Za-z0-9_-]{32}$/.test(issued.setupPath))
           throw new TypeError('Invalid private handoff');
         return send(res,200,htmlPage({csrf:cookie,result:
-          'Issued one 24-hour TEST read-only pass (writes and money disabled, selected areas only). Connection ID: '+
+          'Issued one '+(issued.lifetimeHours??24)+'-hour TEST read-only pass (writes and money disabled, selected areas only). Connection ID: '+
           issued.id+'. Open this owner-only one-time reveal URL, re-enter your passphrase, and never share the credential in chat: '+issued.setupPath}),
           'text/html; charset=utf-8');
       }catch{return send(res,400,htmlPage({csrf:cookie,
