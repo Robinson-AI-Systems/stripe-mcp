@@ -1,3 +1,5 @@
+#151 G-6 owner TEST administration smoke invokes `stripe_admin_overview({detail:'summary'})` to obtain a truthful status-only 8 KB inline projection. The regular full overview and MCP result-store policy remain unchanged. Native reads precede projection, and the 14 Dashboard checks remain explicitly unconfirmed. No new tools, key scopes, write operations, LIVE activation or money policy changes; connected owner rerun pending.
+
 #150 TEST account verification compatibility: Stripe's documented Account object omits `livemode`; the same TEST SDK client must independently return Balance `livemode:false` if the Account object lacks the field, after matching the exact provider account identity. If Balance: Read is unavailable the native readers, write preflights, owner smoke and encrypted key enrollment/reprobe fail closed, never show settings as accepted and never change account records. No tool added, no default permission grant, no LIVE or money change; real TEST provider and Dashboard acceptance remain pending.
 
 # Tool catalog
