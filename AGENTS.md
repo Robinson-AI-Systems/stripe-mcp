@@ -186,6 +186,20 @@ page. Money is shown in dollars and cents; stored in integer cents.
   descriptions ≤160 characters (`docs/designs/BATCH-C.md`).
 - **Database changes are additive** (`IF NOT EXISTS`); previews share the production database.
 
+## Release branch rule (owner approved October 12, 2026)
+
+Development PRs target `main` and keep all existing exact-head CI and review
+gates. Vercel Production must track **`live`**, not `main`. The
+`.github/workflows/promote-live.yml` job alone automatically fast-forwards
+`live` at most once per America/Denver calendar day after all six main checks
+pass, with an atomic daily marker. Do not merge development PRs into `live`,
+force-update `live`, remove promotion tags, manually trigger deployments, or
+weaken Vercel deployment protection as part of routine development. A
+Production READY state on `main` is not proof `live` branch tracking works.
+Refer to [daily release guide](docs/DAILY-PRODUCTION-PROMOTION.md) and record
+live commit, scheduled promotion job, and actual Vercel deployment separately
+during handoff. Owner permission is still required for Stripe LIVE mode.
+
 ## CI
 
 The repository may be public: anything committed is public forever. CI runs on every PR: secret scan, docs check,
