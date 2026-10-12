@@ -1,6 +1,5 @@
 // RTC 1-compatible HTTPS read-only TEST slice. Passes never authenticate MCP.
 // This public door cannot execute writes, even through meta-tools or batch.
-import {hashToken} from './oauth.js';
 import {incomingBodyWithinLimit,send} from './http.js';
 import {dispatchReadOnlyTool} from './mcp-server.js';
 import {publicToolInfo} from './profiles.js';

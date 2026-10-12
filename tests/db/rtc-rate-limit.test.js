@@ -3,7 +3,7 @@ import {randomBytes} from 'node:crypto';
 import {createDb} from '../../src/db.js';
 import {openIsolatedSchema,closeIsolatedSchema,rawQuery,neonShapedQuery}
   from '../../test/helpers/pg-neon-adapter.js';
-const account='acct_RTC_LIMIT',token='rtc_pass_'+randomBytes(32).toString('base64url');
+const account='acct_RTCLIMIT',token='rtc_pass_'+randomBytes(32).toString('base64url');
 let db,peer;
 beforeAll(async()=>{
   const dsn=process.env.TEST_DATABASE_URL;
