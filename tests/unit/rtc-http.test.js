@@ -323,3 +323,36 @@ describe('RTC strict catalog and saved result pagination',()=>{
     }
   });
 });
+
+describe('RTC legacy unscoped pass never tunnels through MCP meta dispatch',()=>{
+  it('keeps direct TEST reads but removes every delegated discovery/call door',async()=>{
+    const {db}=await fixture();let unsafeCalls=0;
+    const delegators=['stripe_call','stripe_batch','stripe_search_tools',
+      'stripe_describe_tool','api_search'];
+    const extra=delegators.map(name=>({name,area:'server',writes:false,
+      description:'Delegating MCP tool '+name,profiles:['read_only'],
+      inputSchema:{type:'object',properties:{}}}));
+    const handlers=Object.fromEntries(delegators.map(name=>[name,async()=>{
+      unsafeCalls++;return {content:[{type:'text',text:'{}'}]};
+    }]));
+    const http=createRtcReadOnlyHttpHandler({db,registry:{
+      tools:[...registry.tools,...extra],handlers:{...registry.handlers,...handlers}}});
+    const catalog=res();await http(req('GET',{listing:'catalog',limit:'100'}),
+      catalog,'catalog');
+    expect(catalog.statusCode).toBe(200);
+    const names=catalog.body.result.tools.map(t=>t.name);
+    expect(names).toContain('stripe_account_get');
+    for(const name of delegators){
+      const alias=name.startsWith('stripe_')?name:'stripe_'+name;
+      expect(names).not.toContain(alias);
+      const response=res();await http(req('POST',{},{}),response,'call',alias);
+      expect(response.statusCode).toBe(403);
+    }
+    const batch=res();await http(req('POST',{},
+      {calls:[{name:'stripe_call',args:{name:'stripe_account_get'}}]}),batch,'batch');
+    expect(batch.statusCode).toBe(400);
+    const direct=res();await http(req('POST',{},{}),direct,'call','stripe_account_get');
+    expect(direct.statusCode).toBe(200);
+    expect(unsafeCalls).toBe(0);
+  });
+});

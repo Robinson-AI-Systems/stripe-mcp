@@ -138,3 +138,15 @@ CI cancels an obsolete PR run when a newer push arrives.
 **2026-10-10 — Checkout completion cannot be server-generated.** Stripe Checkout Sessions support create/retrieve/expire, not an endpoint to complete/confirm their PaymentIntent. To avoid fictitious event success, V-3c3d provides a genuine TEST hosted Checkout URL only to the authorized developer of an exact run-owned Session; a browser/test operator must use Stripe's hosted flow with a test card. Only read-back of Session complete+paid, its Stripe-generated fully received run-tagged PaymentIntent and independently listed/retrieved original checkout.session.completed Event confirms the run. Pending Session is NOT successful; completed payments/Events are immutable, only open TEST sessions may be expired by cleanup. No LIVE or AI money-out permissions change. Real Stripe TEST provider demonstration remains an acceptance gate before declaring V-3 fully complete.
 
 **2026-10-11 — G-3 Radar/Identity closure and G-4 handoff (#102).** Native TEST-only G-3 scope delivered through #97–#101 with guarded full-only Identity lifecycle and privacy-safe Radar/Identity projections. The Radar rules REST path was absent at the pinned API version, so no fabricated rules CRUD was added; guided Dashboard handling remains. Eleven Radar plus five Identity tools make 16; the catalog's previous count of 18 was corrected. Automated tests and CI are recorded in the acceptance note; no connected TEST account has been used, and this closure is not an authorization to activate LIVE or weaken independent owner money-out approval. G-4 events/webhooks are next by the approved design.
+
+**2026-10-12 — RTC HTTPS pass meta-dispatch closure (security amendment).**
+Even a legacy TEST pass whose stored area grant is null may only use the
+native HTTPS read-only catalog, describe, direct call, result and bounded batch.
+It may not enter MCP meta-dispatch handlers (`stripe_call`, `stripe_batch`,
+`stripe_search_tools`, `stripe_describe_tool`, `api_search`) that use MCP's
+broader profile-level authorization instead of the HTTPS RTC safeRead money
+and scope classification. The standalone `/api/mcp` connector's registered
+meta-tools remain unchanged, as do valid direct TEST reads and scoped results.
+This narrows only RTC pass authority and requires no owner LIVE or spending
+approval. CI includes fake-DB and real PostgreSQL/HTTP evidence. External
+Toolkit Hub D-4 three-route acceptance remains independently unverified.
