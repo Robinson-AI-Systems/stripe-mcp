@@ -100,7 +100,7 @@ function unpack(output){
     typeof output.content[0]?.text!=='string')return null;
   try{return JSON.parse(output.content[0].text);}catch{return null;}
 }
-export function rtcManifest(registry){
+export function rtcManifest(registry,deployment={}){
   const names=registry.tools.map(t=>alias(t.name));
   if(new Set(names).size!==names.length)
     throw new Error('RTC prefixed tool aliases must remain unique');
@@ -108,13 +108,23 @@ export function rtcManifest(registry){
   // Top-level contract counts/profiles describe the HTTPS pass surface, not
   // the larger, separately authenticated /api/mcp registry.
   const exposed=registry.tools.filter(t=>safeRead(t)&&inScope(t,null));
+  // Public build provenance is non-secret. Never invent a revision from
+  // the running main branch, request Host, or an unverified CI assertion.
+  // Missing Vercel system metadata is explicit absence, not a guessed SHA.
+  const sha=typeof deployment.sha==='string'&&
+    /^[a-f0-9]{40}$/.test(deployment.sha)?deployment.sha:null;
+  const ref=typeof deployment.ref==='string'&&
+    /^[a-zA-Z0-9_.-]{1,80}$/.test(deployment.ref)?deployment.ref:null;
+  const environment=['production','preview','development'].includes(
+    deployment.environment)?deployment.environment:null;
   return {rtc:1,server:'robinson-stripe-mcp',prefix:'stripe',
     version:'0.1.0',areas:[...new Set(exposed.map(t=>t.area??'server'))].sort(),
     counts:{tools:exposed.length,writes:0,money:0},
     profiles:['read_only'],listingModes:['compact','catalog'],
     modes:['test'],devTools:true,
     conformanceStatus:'pending_full_approval_and_provider_acceptance',
-    access:'test_read_only_only'};
+    access:'test_read_only_only',
+    ...(sha&&ref&&environment?{deployment:{sha,ref,environment}}:{})};
 }
 export function rtcOpenApi(){
   const json={content:{'application/json':{schema:{type:'object'}}}};
