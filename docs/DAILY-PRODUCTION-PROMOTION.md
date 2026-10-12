@@ -1,31 +1,9 @@
-# Daily Vercel Production branch — deployment release gate
+# Daily production releases and low build cost
 
-Production source is the GitHub `live` branch; development and PRs continue on
-`main`. The `.github/workflows/promote-live.yml` job runs once per UTC day
-at 10:00 UTC (04:00 Colorado MDT / 03:00 MST; GitHub scheduling can be late).
-It promotes only a clean fast-forward main snapshot whose **six** exact-commit
-GitHub Actions checks succeeded: check, unit, db, mock, rtc-reference and ci.
-One atomic Git push updates `live` and an immutable once-per-Colorado-day tag
-`live-promotion/YYYY-MM-DD`. A rerun cannot promote twice on the same day;
-if GitHub does not support the atomic operation or GitHub Actions lacks rights,
-the job fails safely without an unsafe fallback. If checks fail, the code is
-divergent, or main changes during verification, it does not deploy.
+Development PRs target main. Only the scheduled daily promotion workflow writes live: 10:00 UTC (04:00 Denver daylight / 03:00 standard). It requires the existing six exact-head Actions checks and atomically advances live with a dated Colorado-day tag. Unchanged heads skip; failed/missing checks, divergence and consumed day markers refuse release. No manual dispatch, no force-push fallback.
 
-Vercel setting required: Project `stripe-mcp` → Settings → Environments →
-Production → Branch Tracking → `live` → Save. **Verify in Vercel** rather
-than assuming it changed. The Ignored Build Step may additionally be set
-to a strict `live`-only filter; that does not replace Branch Tracking.
+Owner-directed verification on 2026-10-12: Vercel Production Branch Tracking is live, and Preview Branch Tracking is disabled. vercel.json also disables Git deployments on every branch except live, including slash-named branches. Vercel settings apply to the linked project now; the repository rule protects future configurations. GitHub CI and existing offline/SQL/HTTP checks continue without a paid deployment requirement. Do not run Vercel CLI production deployments, promote previews, or release at a development batch boundary without a separate explicit owner instruction.
 
-CI on main is unaffected; Vercel can build Preview deployments for other
-branches unless preview builds are explicitly disabled. The workflow has no
-manual trigger and does not invoke the Stripe API, turn on Stripe LIVE mode,
-remove deployment protection, move money, install secrets, or change the
-existing Vercel, Neon and owner-gated acceptance flows.
+The live branch was provisioned from the previously verified deployed commit before the workflow was enabled. If live is deleted, restore the last verified released SHA deliberately rather than silently recreating it from main. Review Actions → Daily live promotion after the next scheduled run; verify the marker and live ref, then the Vercel deployment's source and status. No production build is triggered merely to test this cost change.
 
-Rollback/recovery: stop scheduled promotions before editing or retargeting
-`live`; inspect its ref and daily marker and require owner authorization
-for an emergency promotion. Never force-push `live` or delete the promotion
-marker as an automated repair. Vercel's rollback and connected branch should
-be independently inspected. If the Vercel branch setting cannot be changed
-with available authorized tools, record that as an explicit uncompleted
-configuration step; do not mark the transition done.
+This does not enable Stripe LIVE, money movement or production-account access. All existing owner gates and deployment protection remain unchanged. Production requests, subscriptions, storage, database use and retained sandboxes can still incur charges; disabling builds does not erase billed usage.

@@ -1,0 +1,14 @@
+name: PR target policy
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+permissions:
+  contents: read
+jobs:
+  target-main:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: test "$BASE_BRANCH" = main

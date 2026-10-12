@@ -3,6 +3,10 @@
 Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
 **Batch A implemented (#9–#17):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys, secure setup code and owner's deployment guide. The custom server is deployed to Vercel, the separate Neon database has initialized all 24 expected application tables, and one owner-enrolled Stripe TEST key is encrypted and recorded as verified. **Real custom-MCP OAuth/connected provider smoke and signed-in Stripe Dashboard acceptance are NOT verified. LIVE is disabled.**
 
+## Deployment cost policy — owner update 2026-10-12
+
+The daily release implementation from #166 is merged. Production Branch Tracking was changed to live and Preview Branch Tracking disabled through the Vercel dashboard and independently read back. The follow-up cost-policy PR adds live-only Git configuration for all branches, pinned release actions and a main-only PR target check. No forced production deployment is used for acceptance; the first scheduled promotion remains to be observed. Stripe LIVE remains disabled. See DAILY-PRODUCTION-PROMOTION.md.
+
 ## Next
 
 - **#166 Daily Production release gate (proposed; six CI checks and Vercel branch verification required):** GitHub `live` branch created from verified Production-ready `8068f52`; new scheduled 10:00 UTC CI-gated, fast-forward-only, atomic `live`+Colorado-day tag update accepts only six successful main checks and never more than one promotion per Denver calendar date. Current Vercel Production Branch Tracking must be switched from `main` to `live` and independently verified before claiming fully operational; branch selection is outside connector's documented update fields. No Stripe LIVE activation, provider writes, money approvals or SSO weakening. See docs/DAILY-PRODUCTION-PROMOTION.md. Expected next roadmap development PR count: #166 as implementation slot 1, remaining four to multiple-of-five #170.
