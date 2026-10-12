@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { paramsOf, incomingBodyWithinLimit, MAX_HTTP_BODY_BYTES } from '../../src/core/http.js';
+import { paramsOf, incomingBodyWithinLimit, safePreparsedObject, MAX_HTTP_BODY_BYTES } from '../../src/core/http.js';
 
 describe('bounded pre-parsed HTTP input', () => {
   it('accepts ordinary structured POST bodies', () => {
@@ -52,5 +52,48 @@ describe('RTC parsed JSON cannot bypass the transport cap',()=>{
         .toBe(false);
     expect(incomingBodyWithinLimit({method:'POST',headers:{'content-length':'2'},
       body:{ok:true}})).toBe(true);
+  });
+});
+
+describe('getter-free detached HTTP JSON', () => {
+  it('rejects active getters and toJSON without invoking them', () => {
+    let invocations = 0;
+    const getter = {client_name:'ok'};
+    Object.defineProperty(getter,'redirect_uris',{enumerable:true,
+      get(){invocations++;throw Error('executed getter');}});
+    const json = {client_name:'ok',toJSON(){invocations++;throw Error('executed toJSON');}};
+    const nested = {args:{fields:['id']}};
+    Object.defineProperty(nested.args,'id',{enumerable:true,get(){invocations++;return 'x';}});
+    for(const body of [getter,json,nested]) {
+      expect(incomingBodyWithinLimit({method:'POST',headers:{'content-length':'100'},body})).toBe(false);
+      expect(()=>paramsOf({method:'POST',headers:{},body})).toThrow('Invalid request body');
+      expect(()=>safePreparsedObject(body)).toThrow('Invalid request body');
+    }
+    expect(invocations).toBe(0);
+  });
+  it('rejects inherited toJSON, symbols, sparse arrays and exotic objects', () => {
+    let invoked = 0;
+    const inherited=Object.create({toJSON(){invoked++;}});
+    inherited.client_name='x';
+    for(const body of [inherited,{list:[,1]}, {list:new Date()},
+      {list:[Symbol('no')]}, {list:{value:()=>{invoked++;}}}]) {
+      expect(()=>safePreparsedObject(body)).toThrow('Invalid request body');
+    }
+    expect(invoked).toBe(0);
+  });
+  it('returns inert detached values and keeps exact raw-wire mismatch refusal', () => {
+    const body={client_name:'safe',redirect_uris:['https://client.example.test/cb']};
+    const cloned=safePreparsedObject(body);
+    expect(cloned).toEqual(body);
+    expect(cloned).not.toBe(body);
+    expect(cloned.redirect_uris).not.toBe(body.redirect_uris);
+    body.redirect_uris[0]='changed';
+    expect(cloned.redirect_uris[0]).toBe('https://client.example.test/cb');
+    expect(incomingBodyWithinLimit({method:'POST',headers:{'content-length':'2'},
+      rawBody:'{}',body:cloned})).toBe(true);
+    expect(incomingBodyWithinLimit({method:'POST',headers:{'content-length':'1'},
+      rawBody:'{}',body:cloned})).toBe(false);
+    expect(()=>safePreparsedObject({client_name:'x'.repeat(MAX_HTTP_BODY_BYTES)}))
+      .toThrow('Invalid request body');
   });
 });
