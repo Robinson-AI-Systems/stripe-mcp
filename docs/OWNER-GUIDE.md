@@ -168,6 +168,9 @@ chat, URL or logs. The hub's real three-route D-4 verification and complete RTC
 write conformance remain pending. Revoke temporary passes by connection ID.
 
 
+## Temporary one-hour Toolkit passes (PR #163)
+The protected owner setup page can issue a one-hour, area-scoped TEST read-only pass for genuine Hub D-4 acceptance. The existing 24-hour default is unchanged. The bearer remains visible only through the one-time owner reveal; revoke the connection after the real test. Selecting one hour does not itself prove any external route was tested.
+
 ## Owner TEST signed webhook receipt lookup (PR #160)
 The private setup page can read whether a single known TEST webhook event was
 recorded by the signed receiver. Enter your enrolled TEST account, native endpoint
