@@ -34,7 +34,7 @@ function createFixture() {
   return { db, h: createOAuthHandlers({ db, env }), now: () => now, advance: n => { now += n; } };
 }
 async function register(h) {
-  const res = await call(h.register, request('POST', { redirect_uris: [callback], client_name: 'Personal agent' }));
+  const res = await call(h.register, request('POST', { redirect_uris: [callback], client_name: 'Personal agent', token_endpoint_auth_method: 'client_secret_post' }));
   expect(res.statusCode).toBe(201);
   return json(res);
 }
@@ -135,6 +135,62 @@ describe('personal-use OAuth HTTP endpoints', () => {
       client_id: registered.client_id, grant_type: 'refresh_token',
       refresh_token: tokens.refresh_token, resource
     }))).statusCode).toBe(400);
+  });
+  it('defaults new confidential clients to Basic while legacy POST and public clients stay opt-in', async () => {
+    const { db, h } = createFixture();
+    const registered = json(await call(h.register, request('POST', {
+      redirect_uris: [callback], client_name: 'Default OAuth client'
+    })));
+    expect(registered.token_endpoint_auth_method).toBe('client_secret_basic');
+    expect(registered.client_secret).toBeTypeOf('string');
+    const stored = await db.getOAuthClient(registered.client_id);
+    expect(stored.token_endpoint_auth_method).toBe('client_secret_basic');
+    expect(stored.client_secret_hash).not.toBe(registered.client_secret);
+    const args = authorizeArgs(registered);
+    const authorized = await call(h.authorize, request('POST', {
+      ...args,passphrase:env.ADMIN_PASSPHRASE,profile:'read_only'
+    }));
+    expect(authorized.statusCode).toBe(302);
+    const code = new URL(authorized.headers.Location).searchParams.get('code');
+    const grant = { grant_type:'authorization_code',code,
+      redirect_uri:callback,code_verifier:verifier,resource };
+    // The persisted Basic client rejects secret-in-body credentials.
+    const rejected = await call(h.token, request('POST', {
+      ...grant,client_id:registered.client_id,client_secret:registered.client_secret
+    }));
+    expect(rejected.statusCode).toBe(401);
+    const header = { authorization:'Basic '+Buffer.from(
+      registered.client_id+':'+registered.client_secret).toString('base64') };
+    const issued = await call(h.token, request('POST',grant,header));
+    expect(issued.statusCode).toBe(200);
+    const tokens = json(issued);
+    expect(await db.getAccessToken(tokens.access_token)).toMatchObject({
+      stripe_account:'acct_fake_one',mode:'test',profile:'read_only'
+    });
+    const refreshed = await call(h.token, request('POST',{
+      grant_type:'refresh_token',refresh_token:tokens.refresh_token,resource
+    },header));
+    expect(refreshed.statusCode).toBe(200);
+    expect(json(refreshed).refresh_token).not.toBe(tokens.refresh_token);
+
+    const legacy = json(await call(h.register, request('POST', {
+      redirect_uris:[callback],token_endpoint_auth_method:'client_secret_post'
+    })));
+    expect(legacy.token_endpoint_auth_method).toBe('client_secret_post');
+    expect((await db.getOAuthClient(legacy.client_id)).token_endpoint_auth_method)
+      .toBe('client_secret_post');
+    const publicClient = json(await call(h.register, request('POST', {
+      redirect_uris:[callback],token_endpoint_auth_method:'none'
+    })));
+    expect(publicClient.token_endpoint_auth_method).toBe('none');
+    expect(publicClient).not.toHaveProperty('client_secret');
+    for(const invalid of ['',null,'implicit']){
+      const response = await call(h.register, request('POST', {
+        redirect_uris:[callback],token_endpoint_auth_method:invalid
+      }));
+      expect(response.statusCode).toBe(400);
+      expect(json(response).error).toBe('invalid_client_metadata');
+    }
   });
   it('authenticates explicitly registered confidential Basic clients for grants and refresh', async () => {
     const { db, h } = createFixture();
