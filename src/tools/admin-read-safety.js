@@ -24,6 +24,9 @@ export function parseAdminReply(r){
 export function verifiedAdminIdentity(value,account){
   return typeof account==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(account)&&
     value?.id===account&&value?.available!==false&&
+    typeof value.chargesEnabled==='boolean'&&
+    typeof value.payoutsEnabled==='boolean'&&
+    typeof value.detailsSubmitted==='boolean'&&
     ['ok','needs_attention','not_readable'].includes(value.verification);
 }
 export async function readAdminTool(handler,args,ctx){

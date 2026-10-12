@@ -1,5 +1,7 @@
 # Tool catalog
 
+#131 G-6 independent owner identity hardening requires actual safe account health fields (three booleans) alongside the matching TEST account ID before native administration read aggregation; echoed ID/status alone never authorizes downstream observations. No new tool or additional Stripe permission.
+
 #130 G-6 guided Dashboard catalogue expands to account reporting time zone, negative-balance preferences, card controls, invoice defaults, reports, API version, Stripe Tax, links, SSO and support contacts. All added settings are guided-only/not_readable, with no new native permissions.
 
 
