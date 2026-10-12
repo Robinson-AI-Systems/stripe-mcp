@@ -8,7 +8,10 @@ export const config = { api: { bodyParser: true } };
 
 export default async function handler(req, res) {
   try {
-    if (allowBrowserProtocol(req, res, { methods: ['GET','POST','DELETE'], mcp: true })) return;
+    // Preflight before DB startup; authenticated responses get the same CORS
+    // headers from the reusable MCP handler itself.
+    if (req.method === 'OPTIONS' && allowBrowserProtocol(req, res,
+      { methods: ['GET','POST','DELETE'], mcp: true })) return;
     const db = createDb();
     await db.initSchema();
     return await createMcpHandler({ db, registry, services:{stripePermissionReprobe:createPermissionReprobe({db}),
