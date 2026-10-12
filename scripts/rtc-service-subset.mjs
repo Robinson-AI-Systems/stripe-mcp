@@ -16,7 +16,7 @@ if(!dsn||!['localhost','127.0.0.1','::1'].includes(new URL(dsn).hostname))
   throw Error('Conformance may use only disposable localhost PostgreSQL');
 const {runConformance}=await import(
   '../rtc-reference/packages/conformance/src/run.js');
-const account='acct_RTC_OFFICIAL_SERVICE';
+const account='acct_RTCOFFICIALSERVICE';
 const pass=()=> 'rtc_pass_'+randomBytes(32).toString('base64url');
 const passes={full:pass(),readOnly:pass(),expired:pass(),revoked:pass()};
 let server,opened=false;
