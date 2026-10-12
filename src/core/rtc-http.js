@@ -42,7 +42,7 @@ const metadata=t=>{
         {type:'array',minItems:1,maxItems:12,uniqueItems:true,
           items:{type:'string',minLength:1,maxLength:100}}]}}};
   return {name:alias(t.name),description:String(t.description).slice(0,160),
-    inputSchema,area:t.area??'server',profiles:t.profiles,
+    inputSchema,area:t.area??'server',profiles:['read_only'],
     writes:false,money:false,destructive:false,
     audience:t.area==='admin'?['owner']:['builder','owner','operator'],
     annotations:{readOnlyHint:true,destructiveHint:false,
@@ -91,11 +91,14 @@ export function rtcManifest(registry){
   const names=registry.tools.map(t=>alias(t.name));
   if(new Set(names).size!==names.length)
     throw new Error('RTC prefixed tool aliases must remain unique');
+  // A public RTC pass never reaches MCP-only tools, money tools or writes.
+  // Top-level contract counts/profiles describe the HTTPS pass surface, not
+  // the larger, separately authenticated /api/mcp registry.
+  const exposed=registry.tools.filter(t=>safeRead(t)&&inScope(t,null));
   return {rtc:1,server:'robinson-stripe-mcp',prefix:'stripe',
-    version:'0.1.0',areas:[...new Set(registry.tools.map(t=>t.area??'server'))].sort(),
-    counts:{tools:names.length,writes:registry.tools.filter(t=>t.writes===true).length,
-      money:registry.tools.filter(moneyTool).length},
-    profiles:['read_only','everyday','full'],listingModes:['compact','catalog'],
+    version:'0.1.0',areas:[...new Set(exposed.map(t=>t.area??'server'))].sort(),
+    counts:{tools:exposed.length,writes:0,money:0},
+    profiles:['read_only'],listingModes:['compact','catalog'],
     modes:['test'],devTools:true,
     conformanceStatus:'pending_full_approval_and_provider_acceptance',
     access:'test_read_only_only'};
@@ -199,7 +202,8 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(route==='whoami'){
       if(req.method!=='GET')return error('invalid_args',405);
       return success({mode:'test',profile:'read_only',listing:connection.listing,
-        allowWrites:false,moneyLimitCents:0,areas:pass.areas??[],
+        allowWrites:false,moneyLimitCents:0,areas:pass.areas??null,
+        legacyUnscoped:pass.areas==null,
         expiresAt:new Date(pass.expires_at).toISOString()});
     }
     if(route==='catalog'){
