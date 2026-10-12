@@ -250,7 +250,8 @@ export function rehearse(){
       cmd('npm',['run','test:db','--',...sql],root,240000);
       dispatchProof={adaptedExport:'mcp-dispatch',originalUnitSuites:unit.length,
         originalHttpSqlSuites:sql.length,sourceMcpSdkTransport:true,
-        sourceTenantResultScope:true,nestedWritesDenied:true,
+        sourceTenantResultScope:true,untrustedNestedWritesDenied:true,
+        guardedSourceMetaRoutesPreserved:true,
         privateOnly:true};
     }finally{
       writeFileSync(dispatchPath,originalDispatch);

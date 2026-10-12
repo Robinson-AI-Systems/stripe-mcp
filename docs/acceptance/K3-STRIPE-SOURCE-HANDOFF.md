@@ -119,3 +119,16 @@ authenticated exact owner financial approval/over-limit override unchanged.
 Session PR-number checkpoint target: #190, only after normal acceptance and
 reviews. Future sessions should align to the next multiple of five if real
 eligible work permits it, without filler or premature stop on one blocked gate.
+
+### #190 explicit source-only guarded meta-route boundary
+Portable core denies all nested writes. Stripe's original source deliberately
+permits an independently guarded TEST single-write via authenticated
+`stripe_call`, while `stripe_batch` must never execute writes. Original
+customer, billing, dispute and developer write-contract tests exposed that
+portable behavior difference. The private adapter **retains the original,
+hardened `stripe_call` and `stripe_batch` dispatch routes** while proving
+the portable dispatcher on the remaining original OAuth MCP SDK/HTTP and
+PostgreSQL paths. This is partial portable adaptation, NOT full drop-in parity,
+not release readiness, and not permission to remove the Stripe-owned handlers.
+Independently implement portable delegated-meta parity as the next eligible
+source milestone without delaying on Hub release/deployment evidence.

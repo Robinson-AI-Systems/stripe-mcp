@@ -27,3 +27,13 @@ remain externally unverified. Re-enter each after its exact evidence source
 becomes available; independently eligible Stripe roadmap work must continue.
 LIVE off, independent transaction-specific money-out approval and $500/account
 Denver-calendar-day cap plus distinct override unchanged. No runtime private dependency.
+
+## Source-guarded meta-route distinction
+The private core currently denies any nested write. Original Stripe explicitly
+allows a single independently guarded TEST write through `stripe_call`,
+but not through `stripe_batch`. The source unit suites discovered this real
+behavior difference; the service adapter deliberately retains both original
+hardened meta routes instead of substituting an incompatible nested-call
+implementation. Complete portable source-equivalent meta dispatch only in a
+separate tested implementation; no owner money gate, account isolation,
+idempotency or test assertion was weakened to force compatibility.
