@@ -4,8 +4,13 @@ import {registry} from '../../src/tools/index.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 const id='acct_SECURITYFIXTURE',privateValue='PRIVATE_TOKEN_AND_URL';
 const parse=v=>JSON.parse(v.content[0].text);
-function fixture({permissions=true,webhook=true,db=true}={}){
-  const sdk={webhookEndpoints:{list:vi.fn(async()=>{
+function fixture({permissions=true,webhook=true,db=true,accountReadable=true}={}){
+  const sdk={accounts:{retrieve:vi.fn(async()=>{
+    if(!accountReadable)throw {statusCode:403,code:'permission_denied'};
+    return {object:'account',id,livemode:false,charges_enabled:true,
+      payouts_enabled:false,details_submitted:true,
+      requirements:{currently_due:[],past_due:[]}};
+  })},webhookEndpoints:{list:vi.fn(async()=>{
     if(!webhook)throw {statusCode:403,code:'permission_denied'};
     return {object:'list',has_more:false,data:[{object:'webhook_endpoint',
       id:'we_SEC123',status:'enabled',livemode:false,created:1790000000,
@@ -48,6 +53,13 @@ describe('G-6c TEST owner security review',()=>{
     expect(result.sections.keyPermissions.status).toBe('not_readable');
     expect(result.sections.webhooks.status).toBe('not_readable');
     expect(result.sections.twoStepLogin.observed).toBe(false);
+  });
+  it('does not observe webhook health if independent owner TEST identity is unreadable',async()=>{
+    const f=fixture({accountReadable:false});
+    const out=parse(await handlers.admin_review_security({},f.ctx));
+    expect(out.sections.webhooks).toMatchObject({status:'not_readable',observed:false});
+    expect(f.sdk.webhookEndpoints.list).not.toHaveBeenCalled();
+    expect(out.sections.key.status).toBe('stored_metadata');
   });
   it('rejects LIVE and incorrect parameters; indirect dispatch remains read-only',async()=>{
     const f=fixture();

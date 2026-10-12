@@ -2,8 +2,9 @@
 import {reply,fail,allProfiles} from './billing-shared.js';
 import {handlers as owner} from './server.js';
 import {handlers as webhooks} from './webhooks-read.js';
+import {handlers as accountHandlers} from './account-profile.js';
 import {whereIsSetting} from '../data/dashboard-map.js';
-import {requireAdminTestAccount,readAdminTool} from './admin-read-safety.js';
+import {requireAdminTestAccount,readAdminTool,verifiedAdminIdentity} from './admin-read-safety.js';
 const bad=m=>{throw new TypeError(m);};
 const guide=setting=>({
   status:'not_readable',observed:false,
@@ -63,7 +64,9 @@ export const handlers={
         result.sections.connections={status:'not_readable',observed:false,
           note:'Connected pass/agent inventory was not accessible to this session.'};
       }
-      const hook=await readAdminTool(webhooks.webhook_list,{limit:5},ctx);
+      const identity=await readAdminTool(accountHandlers.account_get,{},ctx);
+      const hook=verifiedAdminIdentity(identity,id)?
+        await readAdminTool(webhooks.webhook_list,{limit:5},ctx):null;
       if(hook&&Array.isArray(hook.data)&&hook.data.length<=5&&
         typeof hook.has_more==='boolean'&&hook.data.every(v=>
           typeof v.id==='string'&&['enabled','disabled'].includes(v.status))){

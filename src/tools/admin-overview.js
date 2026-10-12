@@ -9,7 +9,7 @@ import {handlers as webhookHandlers} from './webhooks-read.js';
 import {handlers as portalHandlers} from './checkout.js';
 import {DASHBOARD_SETTINGS,whereIsSetting} from '../data/dashboard-map.js';
 import {denverLocalTime} from './util.js';
-import {requireAdminTestAccount,validateAdminArgs,parseAdminReply,readAdminTool} from './admin-read-safety.js';
+import {requireAdminTestAccount,validateAdminArgs,readAdminTool,verifiedAdminIdentity} from './admin-read-safety.js';
 
 const bad=m=>{throw new TypeError(m);};
 const link='https://dashboard.stripe.com/settings';
@@ -108,9 +108,9 @@ export const handlers={
       const id=requireAdminTestAccount(ctx);
       const sections={};
       const guide=(setting)=>whereIsSetting(setting).url;
-      const acc=parseAdminReply(await accountHandlers.account_get({detail:'full'},ctx));
-      const accountObserved=acc?.id===id&&acc?.verification!=='not_readable'&&
-        acc?.available!==false&&['ok','needs_attention'].includes(acc?.verification);
+      const acc=await readAdminTool(accountHandlers.account_get,{detail:'full'},ctx);
+      const ownAccount=verifiedAdminIdentity(acc,id);
+      const accountObserved=ownAccount&&['ok','needs_attention'].includes(acc.verification);
       sections.account={status:accountObserved?acc.verification:'not_readable',
         observed:accountObserved,detail:accountObserved?{
           country:acc.country,defaultCurrency:acc.defaultCurrency,
@@ -119,10 +119,9 @@ export const handlers={
           pastDueCount:acc.pastDueCount,deadlineDenver:acc.deadlineDenver}:null,
         dashboardUrl:guide('account_verification')};
       // Capability statuses are raw observed facts, not an assertion that every method is enabled.
-      let caps=null;
-      try{caps=parseAdminReply(await capabilityHandlers.account_list_capabilities({limit:20},ctx));}
-      catch{/* A failed read must never imply healthy capabilities. */}
-      const capObserved=caps?.account===id&&caps?.available===true&&
+      const caps=ownAccount?
+        await readAdminTool(capabilityHandlers.account_list_capabilities,{limit:20},ctx):null;
+      const capObserved=ownAccount&&caps?.account===id&&caps?.available===true&&
         Array.isArray(caps.capabilities)&&caps.hasMore===false;
       sections.capabilities={status:capObserved?'observed':'not_readable',
         observed:capObserved,detail:capObserved?{
@@ -143,14 +142,14 @@ export const handlers={
       // Reuse the existing registered TEST readers. A reader error is an
       // unobserved section, never an empty successful inventory.
       const read=(fn,args)=>readAdminTool(fn,args,ctx);
-      const [banks,schedule,methods,domains,hooks,portal]=await Promise.all([
+      const [banks,schedule,methods,domains,hooks,portal]=ownAccount?await Promise.all([
         read(payoutHandlers.money_list_bank_accounts,{limit:5}),
         read(payoutHandlers.money_get_payout_schedule,{}),
         read(methodHandlers.account_list_payment_method_settings,{limit:5}),
         read(domainHandlers.account_list_apple_pay_domains,{limit:5}),
         read(webhookHandlers.webhook_list,{limit:5}),
         read(portalHandlers.portal_list_configurations,{limit:5})
-      ]);
+      ]):[null,null,null,null,null,null];
       const observe=(name,detail,complete)=>{
         sections[name]={...sections[name],status:'observed',observed:true,
           complete,detail};

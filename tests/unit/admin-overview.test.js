@@ -68,6 +68,14 @@ describe('G-6b owner overview and safe requirements',()=>{
     expect(JSON.stringify(v)).not.toContain(pii);
     expect(f.sdk.accounts.listCapabilities).toHaveBeenCalledTimes(1);
   });
+  it('requires own TEST identity before checking native payment and webhook summaries',async()=>{
+    const f=fixture({refused:true});
+    const result=parse(await handlers.stripe_admin_overview({},f.ctx));
+    for(const key of ['capabilities','payoutDestination','webhooks',
+      'paymentMethods','paymentDomains','customerPortal'])
+      expect(result.sections[key].status).toBe('not_readable');
+    expect(f.sdk.accounts.listCapabilities).not.toHaveBeenCalled();
+  });
   it('restricted capabilities and account reads never cause a healthy overview',async()=>{
     const v=parse(await handlers.stripe_admin_overview({},
       fixture({refused:true,capRefused:true}).ctx));
