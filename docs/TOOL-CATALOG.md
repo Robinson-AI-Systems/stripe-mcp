@@ -309,7 +309,7 @@ watches, then checked by read-back where Stripe exposes the value (Robinson Tool
 | `admin_list_requirements` | TEST requirement categories and counts, Denver deadlines and private owner Dashboard instructions, never raw personal requirement paths | — | built #121 | R |
 | `admin_list_guided_settings` | Paginated TEST-only structured owner settings map with steps, expected results and real reader references | — | built #120 | R |
 | `admin_check_setting` | Provider-observed TEST account verification where accessible; otherwise explicit not_readable and owner steps | — | built #120 | R |
-| `admin_review_security` | What can be read about security (key kind and age as stored here, restricted-key permissions, webhook endpoints, connections and passes to this server) plus guided checks for two-step login, team roles and API keys | — | N | R |
+| `admin_review_security` | TEST masked stored-key metadata, fresh permission-probe availability, scoped connection totals and sanitized webhooks; Dashboard-only 2FA, team, rotation and passes remain unverified | — | built #122 | R |
 | `admin_fees_and_billing` | What Stripe charges this account: fees by type for a period (from balance transactions), Stripe Billing/Tax/Radar fees, and links to Stripe's own invoices | — | N | R |
 
 **Guided settings covered (dashboard-only; full list in `src/data/dashboard-map.js`, every settings page of the
