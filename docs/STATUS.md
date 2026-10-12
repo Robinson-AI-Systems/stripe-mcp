@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#164 RTC accurate HTTP field schema and validation (proposed; six checks required):** describe advertises both supported field string and array selectors, independently validates safe dotted selectors/detail before executing handlers, returns invalid_args instead of provider error, and preserves MCP schema. No API writes, permissions or LIVE changes. External Hub D-4 still unverified.
+
 - **#163 Owner-selectable one-hour RTC TEST passes (proposed, six CI gates required):** exact 1-hour option for approved D-4 temporary owner-issued area-scoped TEST/read_only passes alongside existing 24-hour default. Same owner passphrase, CSRF, one-time secret, hashed storage and revocation. No LIVE, money or write widening; real D-4 remains pending.
 
 - **#162 RTC money metadata truth and fail-closed discovery (proposed; CI/review required):** counts.money derives from actual guarded provider money specs (`moneySpec`/safety), not only an absent boolean; read-only HTTPS rejects misclassified money-capable handlers. Unit adversarial and actual registry/Postgres HTTP manifest tests. No writes, LIVE or real-provider acceptance claimed. Next #163 service-level conformance and authenticated D-4 routes.

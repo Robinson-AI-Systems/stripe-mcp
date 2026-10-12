@@ -3,6 +3,7 @@
 import {incomingBodyWithinLimit,send} from './http.js';
 import {dispatchReadOnlyTool} from './mcp-server.js';
 import {publicToolInfo} from './profiles.js';
+import {projectFields} from '../tools/result-rules.js';
 
 const AUTH=/^Bearer (rtc_pass_[A-Za-z0-9_-]{43})$/;
 const READ_ONLY=new Set(['read_only']);
@@ -30,8 +31,16 @@ const allowedTool=(registry,name,areas)=>registry.tools.find(t=>
   alias(t.name)===name&&safeRead(t)&&inScope(t,areas))??null;
 const metadata=t=>{
   const info=publicToolInfo(t);
+  // HTTP supports both standard dotted strings and RTC array selectors.
+  // Leave the MCP registry schema unchanged for existing connector clients.
+  const inputSchema={...info.inputSchema,properties:{
+    ...info.inputSchema.properties,
+    fields:{description:'Up to 12 safe dotted fields, as string or array',
+      oneOf:[{type:'string',maxLength:600},
+        {type:'array',minItems:1,maxItems:12,uniqueItems:true,
+          items:{type:'string',minLength:1,maxLength:100}}]}}};
   return {name:alias(t.name),description:String(t.description).slice(0,160),
-    inputSchema:info.inputSchema,area:t.area??'server',profiles:t.profiles,
+    inputSchema,area:t.area??'server',profiles:t.profiles,
     writes:false,money:false,destructive:false,
     audience:t.area==='admin'?['owner']:['builder','owner','operator'],
     annotations:{readOnlyHint:true,destructiveHint:false,
@@ -78,12 +87,18 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(!t||!isRecord(args))return {error:'refused_by_guard'};
     // RTC clients may supply a field array; the core projection rules still
     // validate the shared comma-separated dotted-field representation.
+    if(args.detail!==undefined&&!['summary','full'].includes(args.detail))
+      return {error:'invalid_args'};
     let safeArgs=args;
     if(Array.isArray(args.fields)){
       if(args.fields.length<1||args.fields.length>12||
         args.fields.some(f=>typeof f!=='string'||f.length>100)||
         args.fields.join(',').length>600)return {error:'invalid_args'};
       safeArgs={...args,fields:args.fields.join(',')};
+    }
+    if(args.fields!==undefined){
+      if(typeof safeArgs.fields!=='string')return {error:'invalid_args'};
+      try{projectFields({},safeArgs.fields);}catch{return {error:'invalid_args'};}
     }
     // Reject unexpected pass-provided credentials and dangerous non-read tools;
     // the registered dispatcher remains the final profile/guard authority.
