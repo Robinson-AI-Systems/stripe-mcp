@@ -15,6 +15,7 @@
   ],
   "git": {
     "deploymentEnabled": {
+      "**": false,
       "main": false,
       "live": true
     }
