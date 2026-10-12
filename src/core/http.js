@@ -73,7 +73,7 @@ export function incomingBodyWithinLimit(req) {
   const supplied = req.headers?.['content-length'];
   let declared;
   if (supplied !== undefined) {
-    if (typeof supplied !== 'string' || !/^(0|[1-9]\\d*)$/.test(supplied)) return false;
+    if (typeof supplied !== 'string' || !/^(0|[1-9]\d*)$/.test(supplied)) return false;
     declared = Number(supplied);
     if (!Number.isSafeInteger(declared) || declared > MAX_HTTP_BODY_BYTES) return false;
   }
