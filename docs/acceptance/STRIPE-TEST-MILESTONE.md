@@ -129,3 +129,14 @@ head before marking this local CI layer PASS. The six adapted modules remain
 unadopted; independent authenticated human consent and $500 Colorado day override
 require separate service-owned proof. This is **not** a published GitHub Release,
 installed production dependency, external Stripe TEST call or Hub D-4 certification.
+
+## K-3 one-time-secret service-owned adapter (#185; CI required)
+
+Stripe's actual throwaway `one_time_secrets` SQL is the test target for
+the private Hub `one-time-secrets` export (not a fabricated adapter schema).
+Two independently connected DB clients verify original↔portable ciphertext
+compatibility, exact `stripe-once` AAD and setup URL, atomic consume-once,
+account/mode tamper refusal and expired-row rejection with synthetic secrets.
+Source's default one-time store remains deployed and no unpublished import
+enters runtime. Record this slice PASS only on exact #185 CI, distinct from
+package Release, financial owner consent, OAuth bearer or Hub external D-4.

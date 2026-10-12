@@ -9,6 +9,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#185 (as-if MERGED, acceptance requires CI): service-owned one-time-secret adapted K-3 proof.** Existing #184 checksum-verifiable private-core replay now ALSO tests Hub's adapted `one-time-secrets` export through source Stripe DB schema with two independent PostgreSQL sessions. Bidirectional original/portable ciphertext AAD interoperability, atomic one-use race, tampered account/mode fail closed and SQL expiry must pass. Mapping source is standalone/dependency-free; no runtime core adoption, published release, owner credential, remote provider or money. Remaining adapted exports OAuth bearer, profile, OAuth protocol, write and MCP dispatch require independent review; every money-out still needs separately authenticated transaction owner approval and distinct above-$500 override.
+ 
+
 - **#184 (as-if merged, CI must independently pass) K-3 private-candidate Stripe-owned acceptance:** The source's existing db CI job now checks out Hub at immutable `08f4189`, checksum-verifies the exact *unpublished* private archive digest independently logged in Hub #122, compares four source-verbatim modules, temporarily installs them as imports in throwaway CI (never runtime package dependencies), executes seven original Stripe unit and nine original PostgreSQL suites including actual HTTP, dual connection, owner money consent and daily limit, restores source after. Fails on archive/source SHA drift or non-local SQL, no remote Release; service-adapted exports and real owner/Hub/deployed acceptance remain separate. Seven original CI gates and reviews are mandatory; LIVE off.
  
 

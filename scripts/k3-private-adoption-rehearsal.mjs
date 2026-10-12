@@ -102,7 +102,21 @@ export function rehearse(){
     cmd('npx',['--no-install','vitest','run','--config','vitest.config.js',
       ...originalUnit],root,180000);
     cmd('npm',['run','test:db','--',...originalSql],root,240000);
-    return {hubCommit:candidateCommit,sha256,private:true,published:false,
+    // A real service-owned adapter, original Stripe SQL, two independent DB
+    // connections and both directions of preexisting AAD interoperability.
+    // Imported only after private archive identity/install proof.
+    const oneTimeAdapterSql=JSON.parse(cmd('node',
+      ['scripts/k3-private-secret-adapter.mjs'],root,60000));
+    if(oneTimeAdapterSql.schema!=='actual-stripe-one_time_secrets'||
+      oneTimeAdapterSql.pools!==2||
+      oneTimeAdapterSql.legacyIssuedPortableConsumed!==true||
+      oneTimeAdapterSql.portableIssuedLegacyConsumed!==true||
+      oneTimeAdapterSql.singleUseRace!==true||
+      oneTimeAdapterSql.accountAndModeAadTamperRefused!==true||
+      oneTimeAdapterSql.expiredRefused!==true||
+      oneTimeAdapterSql.providerCalls!==0)
+      throw Error('K-3 original SQL one-time adapter proof incomplete');
+    return {oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
       sourceServiceRepoModified:false,overlaidImports:leaves.length,
       unchangedStripeUnitSuites:originalUnit.length,
       originalSqlSuites:originalSql.length,releaseReady:false};
