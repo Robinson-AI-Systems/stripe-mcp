@@ -12,7 +12,7 @@ function fixture({pages,refused=false,foreign=false,providerLivemode=false}={}){
   const queue=pages??[{object:'list',has_more:false,
     data:[row('A123',1000,59),row('B123',-200,0,'usd',[])]}];
   const sdk={accounts:{retrieve:vi.fn(async()=>({
-    object:'account',id:foreign?'acct_OTHER':id,livemode:providerLivemode}))},
+    object:'account',id:foreign?'acct_OTHER':id,livemode:providerLivemode==='missing'?undefined:providerLivemode}))},
     balanceTransactions:{list:vi.fn(async()=>{
       if(refused)throw {statusCode:403,code:'permission_denied'};
       return queue.shift();
@@ -62,7 +62,7 @@ describe('G-6d bounded TEST fees and billing',()=>{
     expect(v).toMatchObject({available:false,complete:false,sampleTotals:null});
   });
   it('refuses unknown account mode before retrieving fees',async()=>{
-    for(const providerLivemode of [undefined,null,'false']){
+    for(const providerLivemode of ['missing',null,'false']){
       const f=fixture({providerLivemode});
       expect((await handlers.admin_fees_and_billing({from:start,to:end},f.ctx)).isError)
         .toBe(true);

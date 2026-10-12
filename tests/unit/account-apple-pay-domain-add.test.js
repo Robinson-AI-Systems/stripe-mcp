@@ -10,7 +10,7 @@ function fixture({duplicate=false,readBackMatches=true,foreign=false,denied=fals
   const initial={id:'pmd_FIXTURE',object:'payment_method_domain',domain_name:domain,
     enabled:true,livemode:false,apple_pay:{status:'pending'}};
   const sdk={
-    accounts:{retrieve:async()=>({id:foreign?'acct_FOREIGN':acct,object:'account',livemode:identityLivemode})},
+    accounts:{retrieve:async()=>({id:foreign?'acct_FOREIGN':acct,object:'account',livemode:identityLivemode==='missing'?undefined:identityLivemode})},
     paymentMethodDomains:{
       list:async()=>({object:'list',has_more:false,data:
         duplicate||provider.writes.length&&readBackMatches?[initial]:[]}),
@@ -70,7 +70,7 @@ describe('G-5d2 TEST payment-method domain add',()=>{
     }
   });
   it('never creates a domain after missing/malformed provider TEST mode',async()=>{
-    for(const identityLivemode of [undefined,null,'false']){
+    for(const identityLivemode of ['missing',null,'false']){
       const f=fixture({identityLivemode});
       await expect(handlers.account_add_apple_pay_domain({domain,confirm:true},f.ctx))
         .rejects.toThrow();

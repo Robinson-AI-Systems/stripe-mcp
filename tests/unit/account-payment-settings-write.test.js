@@ -13,7 +13,7 @@ function fixture({direct=true,readBackMatches=true,appOwned=false,identityLivemo
   let record={id,object:'payment_method_configuration',active:true,livemode:false,
     parent:direct?null:'pmc_PARENT',metadata:appOwned?{agreementId:'ag_TEST'}:{},card:method('on'),
     us_bank_account:method('off')};
-  const stripe={accounts:{retrieve:async()=>({object:'account',id:acct,livemode:identityLivemode})},
+  const stripe={accounts:{retrieve:async()=>({object:'account',id:acct,livemode:identityLivemode==='missing'?undefined:identityLivemode})},
     paymentMethodConfigurations:{
       retrieve:async()=>{provider.retrieves++;if(provider.writes.length)provider.afterCalls++;return record;},
       update:async(k,p,opts)=>{
@@ -49,7 +49,7 @@ describe('G-5c2 independent guarded payment settings writes',()=>{
     expect(f.provider.writes).toHaveLength(0);
   });
   it('never plans or writes against unknown provider TEST mode',async()=>{
-    for(const identityLivemode of [undefined,null,'false']){
+    for(const identityLivemode of ['missing',null,'false']){
       const f=fixture({identityLivemode});
       await expect(handlers.account_update_payment_method_settings({...args,
         confirm:true},f.ctx)).rejects.toThrow();
