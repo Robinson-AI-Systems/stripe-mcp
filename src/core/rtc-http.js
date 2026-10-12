@@ -133,6 +133,10 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     const success=(result,handle)=>send(res,200,{
       ok:true,result,...(handle?{handle,mode:'test'}:{mode:'test'})});
     const error=(code,status=400)=>send(res,status,err(CODE.has(code)?code:'service_error',status).body);
+    // A provider/storage failure is not a permission refusal. Preserve the
+    // machine-readable RTC reason and the matching HTTP status for all doors.
+    const callErrorStatus=code=>code==='invalid_args'?400:
+      code==='not_found'?404:code==='service_error'?503:403;
     if(route==='whoami'){
       if(req.method!=='GET')return error('invalid_args',405);
       return success({mode:'test',profile:'read_only',listing:connection.listing,
@@ -172,7 +176,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const args=argsOf(req);
       if(!args)return error('invalid_args');
       const value=await call(name,args,connection);
-      return value.error?error(value.error,value.error==='invalid_args'?400:403):
+      return value.error?error(value.error,callErrorStatus(value.error)):
         success(value.result,value.handle);
     }
     if(route==='batch'){
@@ -185,7 +189,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const results=[];
       for(const item of args.calls){
         const value=await call(item.name,item.args??{},connection);
-        if(value.error)return error(value.error,403);
+        if(value.error)return error(value.error,callErrorStatus(value.error));
         results.push({name:item.name,result:value.result});
       }
       return success({results,count:results.length});
@@ -196,7 +200,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const page=Number(req.query?.page??0);
       if(!Number.isInteger(page)||page<0||page>100000)return error('invalid_args');
       const value=await call('stripe_get_result',{handle:name,page},connection);
-      return value.error?error(value.error,404):success(value.result);
+      return value.error?error(value.error,callErrorStatus(value.error)):success(value.result);
     }
     return error('not_found',404);
   };
