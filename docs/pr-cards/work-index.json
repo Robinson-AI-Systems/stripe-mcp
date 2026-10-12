@@ -1089,17 +1089,20 @@
         "pr": 189,
         "gate": "Private portable write in original Stripe money owner approval and actual PG",
         "result": "PENDING_CI_AND_MERGE"
+      },
+      {
+        "pr": 190,
+        "gate": "Original Stripe direct MCP dispatch security and private core SDK HTTP/SQL proof",
+        "result": "PENDING_CI_REVIEW_MERGE"
       }
     ],
     "immutableHubCommit": "08f4189f72dbe1d5b870c7b17daabd39833eff31",
     "privateArchiveSha256": "3038f7664e18ac57e5fdb86daf0884f603a78a446e2f1300f20fd59a92e73ea6",
-    "nextEligibleStripeAdapters": [
-      "mcp-dispatch"
-    ],
+    "nextEligibleStripeAdapters": [],
     "publishedHubPackage": "UNVERIFIED_NOT_AVAILABLE",
     "productionAdoption": "NOT_ATTEMPTED",
     "deployedRtcAndHubD4": "UNVERIFIED",
     "sourceHandoff": "docs/acceptance/K3-STRIPE-SOURCE-HANDOFF.md",
-    "reentry": "After #187 merge, implement and test next source-owned adapted export independently; after Hub final release asset authenticated and checksum-verified, rerun original service adoption gates before committing any dependency; after checked live promotion and actual TEST credentials become available, re-run protected RTC/D-4 tests without forced deploy."
+    "reentry": "After #190 exact-head and merged main checks, reassess current Hub main/core candidate drift and release readiness. Stripe may adopt only an authenticated published immutable asset with verified checksum and independent original-service tests. Separately verify scheduled checked live promotion and original protected TEST/D-4 direct/relay/Sandbox/revocation under existing owner authorization; continue other approved roadmap work whenever any external gate remains unavailable."
   }
 }

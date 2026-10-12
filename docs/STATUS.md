@@ -9,6 +9,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#190 (as-if merged, final exact-head CI and review required):** Original Stripe MCP dispatch now rejects inherited executable handler names and getter-supplied request fields without invoking them, captures and freezes authenticated tenant identity before asynchronous dispatch, and refuses nested `runRead` write escalation. The checksum-pinned private K-3 core dispatcher is temporarily invoked through original Stripe OAuth/MCP HTTP SDK with original PostgreSQL, redaction, area/profile and scoped result policies. Standalone Stripe remains default. This reaches the desired PR-number multiple-of-five checkpoint only when seven exact-head checks, merge and six final-main checks pass. Continue independent Hub publication and actual protected owner TEST/D-4 evidence in next session without using unavailable dependency. No LIVE, forced deployment or real money.
+ 
+
 - **#189 K-3 authentic owner-money guarded write adapter:** Privately installed portable core write temporarily executes original Stripe source `src/tools/write.js` money/ownership/idempotency/approval lifecycle, with the original owner consent and above-$500 override tested against actual disposable PostgreSQL and synthetic provider. Keep standalone core write active at runtime. Next remaining K-3 Stripe adapted boundary is guarded MCP dispatch (#190); Hub release/deploy/TEST external acceptance remain separate and unverified. All existing money authority is preserved.
  
 
