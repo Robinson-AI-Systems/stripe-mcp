@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-10-11",
+  "updated": "2026-10-12",
   "order": [
     "A",
     "B",
@@ -1049,5 +1049,49 @@
       "readiness": "WRITE_CARD_AT_START",
       "ownerInputs": []
     }
-  ]
+  ],
+  "k3StripeAdoption": {
+    "priority": "HIGHEST_STRIPE_SIDE",
+    "scope": "Robinson Toolkit Hub K-3 staged source-owned compatibility",
+    "phase": "PRIVATE_CANDIDATE_TESTING_NOT_RELEASED",
+    "evidence": [
+      {
+        "pr": 183,
+        "gate": "original OAuth/RTC safe inert HTTP",
+        "result": "MERGED_CI_PASS"
+      },
+      {
+        "pr": 184,
+        "gate": "immutable private archive SHA256 original 7 unit and 9 SQL suites",
+        "result": "MERGED_CI_PASS"
+      },
+      {
+        "pr": 185,
+        "gate": "private adapted one-time secrets actual dual-PostgreSQL interoperability",
+        "result": "MERGED_CI_PASS"
+      },
+      {
+        "pr": 186,
+        "gate": "private adapted profiles original Stripe policy unit/SQL",
+        "result": "MERGED_CI_PASS"
+      },
+      {
+        "pr": 187,
+        "gate": "private adapted bearer authentic Stripe OAuth/MCP SQL",
+        "result": "PR_CI_VERIFIED_MERGE_PENDING"
+      }
+    ],
+    "immutableHubCommit": "08f4189f72dbe1d5b870c7b17daabd39833eff31",
+    "privateArchiveSha256": "3038f7664e18ac57e5fdb86daf0884f603a78a446e2f1300f20fd59a92e73ea6",
+    "nextEligibleStripeAdapters": [
+      "oauth-protocol",
+      "write",
+      "mcp-dispatch"
+    ],
+    "publishedHubPackage": "UNVERIFIED_NOT_AVAILABLE",
+    "productionAdoption": "NOT_ATTEMPTED",
+    "deployedRtcAndHubD4": "UNVERIFIED",
+    "sourceHandoff": "docs/acceptance/K3-STRIPE-SOURCE-HANDOFF.md",
+    "reentry": "After #187 merge, implement and test next source-owned adapted export independently; after Hub final release asset authenticated and checksum-verified, rerun original service adoption gates before committing any dependency; after checked live promotion and actual TEST credentials become available, re-run protected RTC/D-4 tests without forced deploy."
+  }
 }
