@@ -135,8 +135,9 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
   it('lists and executes real selected-account read metadata, but not any write',async()=>{
     const who=await http('/api/whoami',{token:mainPass});
     expect(who.status).toBe(200);
-    expect(who.data.result).toMatchObject({mode:'test',profile:'read_only',
-      allowWrites:false,moneyLimitCents:0,areas:['server','account']});
+    expect(who.data.result).toMatchObject({account:acct,mode:'test',
+      profile:'read_only',allowWrites:false,moneyLimitCents:0,
+      areas:['server','account']});
     const searched=await http('/api/tools?listing=catalog&q=stripe_whoami&limit=10',
       {token:mainPass});
     expect(searched.status).toBe(200);
