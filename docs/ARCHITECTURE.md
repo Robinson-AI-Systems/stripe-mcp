@@ -3,7 +3,7 @@
 This file describes what **exists**, and is updated in the same PR that ships it (DRIFT-PROTOCOL checklist B). What the
 system is designed to become is in `docs/designs/`; do not copy design text here before it is built.
 
-As of 2026-10-10: Batch A and the TEST-side trust layer B-1–B-8c2 (#35) are merged. No server, Neon database, live key or real Stripe account is provisioned. Private per-transaction owner TEST approval is implemented; public Stripe write tools and LIVE activation remain disabled (IN-06).
+As of 2026-10-11: Hosted `stripe-mcp` Vercel Production and dedicated Neon Launch `stripe_mcp` are provisioned. All 24 current `SCHEMA_TABLES` tables exist, one encrypted Stripe TEST key with verification timestamp is stored, and no LIVE key or LIVE-enabled account exists. Vercel variables are configured and the production build is READY. **External OAuth/custom-MCP provider smoke and owner Dashboard acceptance are not yet verified.** LIVE activation is disabled (IN-06), and every AI-initiated money-out operation needs independent owner consent.
 
 ## Infrastructure
 
@@ -11,18 +11,17 @@ As of 2026-10-10: Batch A and the TEST-side trust layer B-1–B-8c2 (#35) are me
 |---|---|
 | GitHub repo `Robinson-AI-Systems/stripe-mcp` | Created 2026-10-10; plan committed |
 | GitHub Actions CI | Check + unit + isolated PostgreSQL 17 + stripe-mock v0.202.0; single `ci` gate (A-1, PR #9) |
-| Vercel project | Not created (IN-02) |
-| Neon database | Not created (IN-02) |
-| Stripe keys | None added |
+| Vercel project | `Robinson AI Systems / stripe-mcp`, GitHub-linked from `Robinson-AI-Systems/stripe-mcp` main, Production READY. Vercel Authentication remains enabled. |
+| Neon database | Separate Neon Launch `stripe-mcp` project, `stripe_mcp` PostgreSQL 18 in AWS us-east-1; 0.25 CU max / 300s suspend; 24 expected app tables verified. |
+| Stripe keys | One owner-enrolled encrypted TEST key with verification timestamp; no LIVE keys or enabled LIVE accounts. External provider smoke remains pending. |
 
 ## Environment variables
 
-CI only: `TEST_DATABASE_URL` (must be localhost for DB tests), `BASE_SHA` (docs reconciliation) and `STRIPE_MOCK_EXTERNAL` (CI's disposable mock service). `DATABASE_URL` is now required only when the A-2 production database initializer runs (not at module import); no value is configured. Other deployment variables: none yet. Batch A defines `DATABASE_URL`, `ADMIN_PASSPHRASE`, `PUBLIC_BASE_URL`, `TOKEN_ENCRYPTION_KEY`; record each
-here with its environments when A-5 ships. Never record values.
+CI only: `TEST_DATABASE_URL` (must be localhost for DB tests), `BASE_SHA` (docs reconciliation) and `STRIPE_MOCK_EXTERNAL` (CI disposable mock service). Vercel Production-only variables are `DATABASE_URL` (Sensitive, isolated Neon), `ADMIN_PASSPHRASE` (Sensitive, owner entered), `TOKEN_ENCRYPTION_KEY` (Sensitive, owner entered), and `PUBLIC_BASE_URL` (plain, HTTPS production origin). No secret values, raw credentials or key last-four have been retrieved for documentation. Preview credentials and production key must not be combined.
 
 ## Database tables
 
-A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **sixteen tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. No real Neon database has been created or migrated.
+A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, and B-2 added `live_enable_intents`. All **24 currently declared tables** are created **only when `initSchema()` is invoked**. In CI, creation is confined to an isolated throwaway localhost PostgreSQL schema. The dedicated Neon `stripe_mcp` production database was initialized via the actual server setup flow; read-only metadata check verified exactly the 24 declared tables (not a claim of provider smoke or production feature acceptance).
 
 | Table | Purpose |
 |---|---|
@@ -43,7 +42,7 @@ A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, 
 | `owner_default_account_intents` | Ten-minute owner-only account-default choice with expected prior default and one-use confirmation; SQL advisory-locked atomic update and audit (B-8b2b2) |
 | `owner_money_limit_intents` | Owner-only exact account cap change with old/new cents, 10-minute expiry, row-locked single-use application and audited before/after; no money grant (B-8b2b3) |
 
-Additive indexes support token expiry, lockout, audits, reservations, approvals and live intents. A-5a adds `src/core/crypto.js` AES-256-GCM authenticated encryption (random nonce, additional authenticated context and no plaintext fallback); `src/keys.js` stores and retrieves test-only Stripe keys server-side in encrypted form, and `src/core/one-time-secrets.js` uses atomic database deletion on reveal. A-5b adds the private owner-only `/api/stripe/setup` endpoint with strict origin/CSRF checks, passphrase lockout, account-verification and permission probes; no real owner key has been entered. Read-only `stripe_whoami` and `stripe_list_accounts` are dispatched through the MCP bearer guard. Writes remain denied until Batch B. `TOKEN_ENCRYPTION_KEY` is required only when these functions execute; it is not configured in any deployment. A-3a added hashed client registration, authorization code consumption, access/refresh rotation, revocation, login lockout and account selection methods. A-3b adds HTTP OAuth endpoints and the connector door; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
+Additive indexes support token expiry, lockout, audits, reservations, approvals and live intents. A-5a adds `src/core/crypto.js` AES-256-GCM authenticated encryption (random nonce, additional authenticated context and no plaintext fallback); `src/keys.js` stores and retrieves test-only Stripe keys server-side in encrypted form, and `src/core/one-time-secrets.js` uses atomic database deletion on reveal. A-5b adds the private owner-only `/api/stripe/setup` endpoint with strict origin/CSRF checks, passphrase lockout, account-verification and permission probes; the owner has since enrolled one TEST key, encrypted at rest with a non-null verification timestamp. Read-only `stripe_whoami` and `stripe_list_accounts` are dispatched through the MCP bearer guard. Writes remain denied until Batch B. `TOKEN_ENCRYPTION_KEY` is required only when these functions execute; it is now configured as Sensitive, Production-only in Vercel, with no value disclosed. A-3a added hashed client registration, authorization code consumption, access/refresh rotation, revocation, login lockout and account selection methods. A-3b adds HTTP OAuth endpoints and the connector door; A-5 adds encryption and key handling. Later batches extend schema through their own migrations.
 
 ## Endpoints
 
