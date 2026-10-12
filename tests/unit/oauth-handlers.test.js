@@ -329,3 +329,22 @@ describe('personal-use OAuth HTTP endpoints', () => {
     expect(other.statusCode).toBe(401);
   });
 });
+
+describe('original OAuth HTTP hostile structured bodies',()=>{
+  it('refuses executable registration metadata before client creation',async()=>{
+    const {db,h}=createFixture();
+    let created=0,executed=0;
+    const previous=db.createOAuthClient.bind(db);
+    db.createOAuthClient=async(...args)=>{created++;return previous(...args);};
+    const metadata={redirect_uris:[callback]};
+    Object.defineProperty(metadata,'client_name',{enumerable:true,
+      get(){executed++;return 'unsafe';}});
+    const forged={redirect_uris:[callback],toJSON(){executed++;return {};}};
+    for(const body of [metadata,forged]){
+      const reply=await call(h.register,request('POST',body));
+      expect(reply.statusCode).toBe(400);
+      expect(json(reply).error).toBe('invalid_client_metadata');
+    }
+    expect([created,executed]).toEqual([0,0]);
+  });
+});

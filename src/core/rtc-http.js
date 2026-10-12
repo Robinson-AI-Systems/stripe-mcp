@@ -1,6 +1,6 @@
 // RTC 1-compatible HTTPS read-only TEST slice. Passes never authenticate MCP.
 // This public door cannot execute writes, even through meta-tools or batch.
-import {incomingBodyWithinLimit,send} from './http.js';
+import {incomingBodyWithinLimit,safePreparsedObject,send} from './http.js';
 import {dispatchReadOnlyTool} from './mcp-server.js';
 import {publicToolInfo} from './profiles.js';
 import {projectFields} from '../tools/result-rules.js';
@@ -205,6 +205,16 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(!auth){
       res.setHeader('WWW-Authenticate','Bearer realm="RTC TEST pass"');
       return send(res,401,err('permission',401).body);
+    }
+    // Reject and detach framework-parsed bodies before DB rate accounting,
+    // handler arguments, or any nested property read. Inert JSON only.
+    if (req.method === 'POST') {
+      if (!incomingBodyWithinLimit(req))
+        return send(res,400,err('invalid_args',400).body);
+      let inert;
+      try { inert = safePreparsedObject(req.body); }
+      catch { return send(res,400,err('invalid_args',400).body); }
+      req = {...req,body:inert};
     }
     let pass;
     try{pass=await db.getRtcPassStatus(auth[1]);}catch{

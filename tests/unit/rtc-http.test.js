@@ -462,3 +462,32 @@ describe('RTC HTTPS native G-5 provider field contract',()=>{
     expect(refused.statusCode).toBe(400);
   });
 });
+
+describe('RTC framework-preparsed hostile JSON',()=>{
+  it('refuses getter and toJSON call/batch bodies before pass lookup or provider reads',async()=>{
+    const {db}=await fixture();
+    let lookups=0, invoked=0, reads=0;
+    const guardedDb={...db,async getRtcPassStatus(token){
+      lookups++;return db.getRtcPassStatus(token);
+    }};
+    const guardedRegistry={tools:registry.tools,handlers:{...registry.handlers,
+      account_get:async()=>{reads++;return {content:[{type:'text',text:'{}'}]};}}};
+    const handler=createRtcReadOnlyHttpHandler({db:guardedDb,registry:guardedRegistry});
+    const getterBody={};
+    Object.defineProperty(getterBody,'fields',{enumerable:true,
+      get(){invoked++;return ['available'];}});
+    const nested={calls:[{name:'stripe_account_get',args:{}}]};
+    nested.calls[0].args.toJSON=()=>{invoked++;return {};};
+    for(const [route,name,body] of [
+      ['call','stripe_account_get',getterBody],
+      ['batch',undefined,nested]
+    ]){
+      const request={method:'POST',headers:{authorization:'Bearer '+pass,
+        'content-length':'200'},body};
+      const reply=res();await handler(request,reply,route,name);
+      expect(reply.statusCode).toBe(400);
+      expect(reply.body.error.code).toBe('invalid_args');
+    }
+    expect([lookups,invoked,reads]).toEqual([0,0,0]);
+  });
+});
