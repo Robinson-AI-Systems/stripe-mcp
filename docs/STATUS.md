@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#149 pending CI (ai/gpt6/oauth-security-review-149):** Three late P2 OAuth/HTTP findings from #144/#146 addressed in code and regression tests: case-insensitive Basic, RFC 6749 challenge on HTTP auth rejection and early original transport-byte checks before DB initialization. Resolve historical review threads only after exact-head tests pass. External custom MCP TEST, SSO OAuth and signed-in Dashboard evidence pending; H-1 gated, LIVE disabled.
+
+
 - **#148 OAuth DCR standards default (proposed; five exact-head CI jobs and review required):** Newly registered confidential OAuth clients without an explicit method use HTTP Basic; existing persisted POST clients and explicitly registered POST/public clients remain unchanged. Code exchange, refresh and rejection paths have regression tests. Owner Dashboard walkthrough, external Vercel-protected OAuth and connected custom MCP TEST provider evidence remain pending; H-1 gated and LIVE disabled.
 
 - **#147 isolated owner TEST smoke groups (proposed; CI/review required):** Split existing custom read-only MCP owner verification into G-5 account (4), G-4 events/webhooks (2) and G-6 readiness (2), keeping core (8) and administration (3). Protected owner page validates exact group/tool projections; true TEST account preflight remains mandatory. No real provider or Dashboard acceptance, no LIVE, money or Vercel policy change.
