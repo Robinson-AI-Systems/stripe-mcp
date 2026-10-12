@@ -2,6 +2,7 @@
 import {registry} from '../tools/index.js';
 import {dispatchReadOnlyTool} from '../core/mcp-server.js';
 import {makeStripeClient} from '../stripe/client.js';
+import {verifiedTestAccountRecord} from '../tools/account-profile.js';
 
 const ACCOUNT=/^acct_[A-Za-z0-9]{2,100}$/;
 const TEST_KEY=/^(?:sk|rk)_test_[A-Za-z0-9]{12,}$/;
@@ -79,7 +80,7 @@ export async function runOwnerTestSmoke({account,key,makeClient=makeStripeClient
   try{
     sdk=makeClient({key,mode:'test'});
     const identity=await sdk.accounts.retrieve();
-    if(identity?.object!=='account'||identity.id!==account||identity.livemode===true||
+    if(!verifiedTestAccountRecord(identity,account)||
       typeof identity.charges_enabled!=='boolean'||
       typeof identity.payouts_enabled!=='boolean'||
       typeof identity.details_submitted!=='boolean')

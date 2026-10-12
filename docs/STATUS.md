@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#136 G-5/G-6 strict TEST provider identity (as-if-merged; exact-head CI required):** one shared provider-account validator requires explicit `livemode:false`, not merely the absence of `true`, before G-5 native readers/writes, G-6 native administration, and owner-local custom MCP smoke. Missing, null or string modes fail closed without downstream TEST calls. Genuine external TEST smoke and Dashboard owner walkthrough remain PENDING; G-6 IN_PROGRESS, H-1 gated, LIVE disabled.
+
 - **#135 G-6 owner security probe identity gate (as-if-merged; exact-head CI required):** fresh TEST key-permission reprobe and webhook checks require independent selected-account identity evidence. Stored masked local metadata remains explicitly unverified by the provider. Regression tests assert zero permission/webhook calls after refusal or foreign identity. G-4/G-5/G-6 genuine custom TEST smoke and signed-in owner Dashboard walkthrough still PENDING. H-1 remains blocked, LIVE disabled.
 
 - **#134 G-6 truthful partial owner readback (as-if-merged; exact-head CI required):** bounded capabilities page now differentiates partial observations from unreadable permissions; readiness reports seven native categories as complete/partial/unreadable, separate from unverified Dashboard owner comparison. No Stripe mutation or real TEST connected acceptance; G-6 IN_PROGRESS, H-1 gated, LIVE disabled.

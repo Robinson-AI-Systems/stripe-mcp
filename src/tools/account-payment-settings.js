@@ -1,3 +1,4 @@
+import {verifiedTestAccountRecord} from './account-profile.js';
 // G-5c1: native TEST own-account payment-method configuration visibility.
 import {client,reply,fail,allProfiles} from './billing-shared.js';
 const bad=message=>{throw new TypeError(message);};
@@ -51,7 +52,7 @@ export const handlers={
       check(a);
       const s=await client(ctx);
       const identity=await s.accounts.retrieve();
-      if(identity?.object!=='account'||identity.id!==account||identity.livemode===true)
+      if(!verifiedTestAccountRecord(identity,account))
         bad('Exact own TEST account identity unavailable');
       let p;
       try{p=await s.paymentMethodConfigurations.list({limit:a.limit??10,

@@ -4,12 +4,13 @@ import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 const acct='acct_safefixture',domain='payments.example.com';
 const parse=r=>JSON.parse(r.content[0].text);
-function fixture({duplicate=false,readBackMatches=true,foreign=false,denied=false}={}){
+function fixture({duplicate=false,readBackMatches=true,foreign=false,denied=false,
+  identityLivemode=false}={}){
   const provider={writes:[],retrieves:0};
   const initial={id:'pmd_FIXTURE',object:'payment_method_domain',domain_name:domain,
     enabled:true,livemode:false,apple_pay:{status:'pending'}};
   const sdk={
-    accounts:{retrieve:async()=>({id:foreign?'acct_FOREIGN':acct,object:'account',livemode:false})},
+    accounts:{retrieve:async()=>({id:foreign?'acct_FOREIGN':acct,object:'account',livemode:identityLivemode==='missing'?undefined:identityLivemode})},
     paymentMethodDomains:{
       list:async()=>({object:'list',has_more:false,data:
         duplicate||provider.writes.length&&readBackMatches?[initial]:[]}),
@@ -66,6 +67,14 @@ describe('G-5d2 TEST payment-method domain add',()=>{
       await expect(handlers.account_add_apple_pay_domain({domain:bad,confirm:true},v.ctx))
         .rejects.toThrow();
       expect(v.provider.writes).toHaveLength(0);
+    }
+  });
+  it('never creates a domain after missing/malformed provider TEST mode',async()=>{
+    for(const identityLivemode of ['missing',null,'false']){
+      const f=fixture({identityLivemode});
+      await expect(handlers.account_add_apple_pay_domain({domain,confirm:true},f.ctx))
+        .rejects.toThrow();
+      expect(f.provider.writes).toHaveLength(0);
     }
   });
   it('unobserved provider result and refused permissions never report registration',async()=>{

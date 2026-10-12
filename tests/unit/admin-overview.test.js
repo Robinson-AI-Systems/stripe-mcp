@@ -91,6 +91,17 @@ describe('G-6b owner overview and safe requirements',()=>{
     expect(result.ownerWalkthrough.find(x=>x.setting==='webhook_events').status)
       .toBe('not_readable');
   });
+  it('refuses absent or nonboolean provider TEST mode before native owner readback',async()=>{
+    for(const livemode of [undefined,null,'false']){
+      const f=fixture();
+      const original=f.sdk.accounts.retrieve;
+      f.sdk.accounts.retrieve=vi.fn(async()=>({...await original(),livemode}));
+      expect((await handlers.admin_list_requirements({},f.ctx)).isError).toBe(true);
+      const result=parse(await handlers.stripe_admin_overview({},f.ctx));
+      expect(result.sections.account.status).toBe('not_readable');
+      expect(f.sdk.accounts.listCapabilities).not.toHaveBeenCalled();
+    }
+  });
   it('does not trust an incomplete own-account profile as independent identity',async()=>{
     const f=fixture();
     f.sdk.accounts.retrieve=vi.fn(async()=>({object:'account',id,

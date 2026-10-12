@@ -44,6 +44,11 @@ describe('G-5d1 Apple Pay domain read evidence',()=>{
     expect(out).toMatchObject({available:false,verification:'not_readable',domains:null});
     expect((await fixture({identity:{object:'account',id:'acct_FOREIGN'}}).run({})).isError)
       .toBe(true);
+    for(const livemode of [undefined,null,'false']){
+      const f=fixture({identity:{object:'account',id:account,livemode}});
+      expect((await f.run({})).isError).toBe(true);
+      expect(f.sdk.paymentMethodDomains.list).not.toHaveBeenCalled();
+    }
     const f=fixture();
     expect((await handlers.account_list_apple_pay_domains({},{
       ...f.ctx,connection:{...f.ctx.connection,mode:'live'}})).isError).toBe(true);

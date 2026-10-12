@@ -1,3 +1,4 @@
+import {verifiedTestAccountRecord} from './account-profile.js';
 // G-6d: bounded TEST fee ledger observations, not a Stripe pricing statement.
 import {client,reply,fail,allProfiles} from './billing-shared.js';
 import {requireAdminTestAccount} from './admin-read-safety.js';
@@ -85,7 +86,7 @@ export const handlers={
           return reply(unreadable(account));
         throw e;
       }
-      if(own?.object!=='account'||own.id!==account||own.livemode===true)
+      if(!verifiedTestAccountRecord(own,account))
         bad('Exact own-account TEST identity could not be verified');
       const sampleTotals={},byFeeType={},byCategory={},seen=new Set();
       const limit=a.pageLimit??50,maxPages=a.maxPages??3;

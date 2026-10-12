@@ -7,13 +7,13 @@ const id='pmc_TESTOWN',acct='acct_safefixture';
 const parse=r=>JSON.parse(r.content[0].text);
 const method=preference=>({available:true,
   display_preference:{preference,value:preference}});
-function fixture({direct=true,readBackMatches=true,appOwned=false}={}){
+function fixture({direct=true,readBackMatches=true,appOwned=false,identityLivemode=false}={}){
   const db=createFakeDb({accounts:[{id:acct,label:'Fixture',money_limit_cents:50000}]});
   const provider={writes:[],retrieves:0,afterCalls:0};
   let record={id,object:'payment_method_configuration',active:true,livemode:false,
     parent:direct?null:'pmc_PARENT',metadata:appOwned?{agreementId:'ag_TEST'}:{},card:method('on'),
     us_bank_account:method('off')};
-  const stripe={accounts:{retrieve:async()=>({object:'account',id:acct,livemode:false})},
+  const stripe={accounts:{retrieve:async()=>({object:'account',id:acct,livemode:identityLivemode==='missing'?undefined:identityLivemode})},
     paymentMethodConfigurations:{
       retrieve:async()=>{provider.retrieves++;if(provider.writes.length)provider.afterCalls++;return record;},
       update:async(k,p,opts)=>{
@@ -47,6 +47,14 @@ describe('G-5c2 independent guarded payment settings writes',()=>{
     expect((await handlers.account_update_payment_method_settings(args,live)).isError)
       .toBe(true);
     expect(f.provider.writes).toHaveLength(0);
+  });
+  it('never plans or writes against unknown provider TEST mode',async()=>{
+    for(const identityLivemode of ['missing',null,'false']){
+      const f=fixture({identityLivemode});
+      await expect(handlers.account_update_payment_method_settings({...args,
+        confirm:true},f.ctx)).rejects.toThrow();
+      expect(f.provider.writes).toHaveLength(0);
+    }
   });
   it('does not assert success when readback stays off',async()=>{
     const f=fixture({readBackMatches:false});
