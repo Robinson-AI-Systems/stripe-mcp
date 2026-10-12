@@ -9,6 +9,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#186 (as-if MERGED, CI required): private K-3 profiles source-boundary acceptance.** Stripe CI temporarily re-exports five generic profile primitives from verified private Hub core but retains source-owned guarded TEST write eligibility and compact/catalog account/profile listing policy. Real source unit (6) and PostgreSQL HTTP/RTC/OAuth owner money-limit (5) suites must pass during temporary overlay, restored after. No runtime private dependency, no money activity, no LIVE or remote release. Other adapted exports bearer OAuth, OAuth protocol, guarded write, MCP dispatch still require independent assessment; original K-3 one-time-secret adapted SQL proof persists.
+ 
+
 - **#185 (as-if MERGED, acceptance requires CI): service-owned one-time-secret adapted K-3 proof.** Existing #184 checksum-verifiable private-core replay now ALSO tests Hub's adapted `one-time-secrets` export through source Stripe DB schema with two independent PostgreSQL sessions. Bidirectional original/portable ciphertext AAD interoperability, atomic one-use race, tampered account/mode fail closed and SQL expiry must pass. Mapping source is standalone/dependency-free; no runtime core adoption, published release, owner credential, remote provider or money. Remaining adapted exports OAuth bearer, profile, OAuth protocol, write and MCP dispatch require independent review; every money-out still needs separately authenticated transaction owner approval and distinct above-$500 override.
  
 

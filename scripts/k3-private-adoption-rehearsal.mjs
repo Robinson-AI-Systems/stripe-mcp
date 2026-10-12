@@ -6,6 +6,7 @@ import {existsSync,mkdtempSync,mkdirSync,readFileSync,rmSync,statSync,writeFileS
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createProfileOverlay} from './k3-profile-overlay.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 export const candidateCommit='08f4189f72dbe1d5b870c7b17daabd39833eff31';
@@ -107,6 +108,29 @@ export function rehearse(){
     // Imported only after private archive identity/install proof.
     const oneTimeAdapterSql=JSON.parse(cmd('node',
       ['scripts/k3-private-secret-adapter.mjs'],root,60000));
+    // Rewire only the generic profile methods against this exact installed
+    // private archive; preserve and execute Stripe's own TEST/write/list policy.
+    const profilesPath=join(root,'src/core/profiles.js');
+    const profilesOriginal=readFileSync(profilesPath);
+    let profileAdapterProof;
+    try{
+      writeFileSync(profilesPath,createProfileOverlay(profilesOriginal));
+      const profileUnit=[
+        'tests/unit/profiles.test.js','tests/unit/server-tools.test.js',
+        'tests/unit/rtc-http.test.js','tests/unit/rtc-batch-preflight.test.js',
+        'tests/unit/registry.test.js','tests/unit/write-core.test.js'];
+      const profileDb=[
+        'tests/db/rtc-real-http.test.js','tests/db/rtc-dual-http.test.js',
+        'tests/db/oauth-real-mcp-wire.test.js','tests/db/money-owner-approval.test.js',
+        'tests/db/owner-money-limit.test.js'];
+      cmd('npx',['--no-install','vitest','run','--config','vitest.config.js',
+        ...profileUnit],root,180000);
+      cmd('npm',['run','test:db','--',...profileDb],root,240000);
+      profileAdapterProof={adaptedExport:'profiles',
+        originalUnitSuites:profileUnit.length,originalSqlSuites:profileDb.length,
+        ownerListingPolicyPreserved:true,rawCallerWriteGrantNeverSufficient:true,
+        stripeSourceRestored:true,liveRuntimeChanged:false};
+    }finally{writeFileSync(profilesPath,profilesOriginal);}
     if(oneTimeAdapterSql.schema!=='actual-stripe-one_time_secrets'||
       oneTimeAdapterSql.pools!==2||
       oneTimeAdapterSql.legacyIssuedPortableConsumed!==true||
@@ -116,7 +140,7 @@ export function rehearse(){
       oneTimeAdapterSql.expiredRefused!==true||
       oneTimeAdapterSql.providerCalls!==0)
       throw Error('K-3 original SQL one-time adapter proof incomplete');
-    return {oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
+    return {profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
       sourceServiceRepoModified:false,overlaidImports:leaves.length,
       unchangedStripeUnitSuites:originalUnit.length,
       originalSqlSuites:originalSql.length,releaseReady:false};
