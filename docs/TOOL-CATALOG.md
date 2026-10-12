@@ -308,7 +308,7 @@ watches, then checked by read-back where Stripe exposes the value (Robinson Tool
 | `stripe_admin_overview` | TEST verification/capabilities plus native masked payout banks, schedule, payment configurations/domains, webhook/portal summaries and guided states; unreadable remains explicit | — | built #121; expanded #124 | R |
 | `admin_list_requirements` | TEST requirement categories and counts, Denver deadlines and private owner Dashboard instructions, never raw personal requirement paths | — | built #121 | R |
 | `admin_list_guided_settings` | Paginated TEST-only structured owner settings map with steps, expected results and real reader references | — | built #120 | R |
-| `admin_check_setting` | Provider-observed TEST account verification where accessible; otherwise explicit not_readable and owner steps | — | built #120 | R |
+| `admin_check_setting` | TEST-only observed native verification of account, bank, payout schedule, payment configuration/domains, webhooks and portal with partial/unreadable honesty; never claims Dashboard change | — | built #120; native readback #125 | R |
 | `admin_review_security` | TEST masked stored-key metadata, fresh permission-probe availability, scoped connection totals and sanitized webhooks; Dashboard-only 2FA, team, rotation and passes remain unverified | — | built #122 | R |
 | `admin_fees_and_billing` | TEST balance-transaction fee amounts by period, currency and type with explicit page completeness; Billing/Tax/Radar subscription invoices require owner Dashboard comparison | — | built #123 | R |
 
