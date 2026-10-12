@@ -239,8 +239,9 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       code==='not_found'?404:code==='service_error'?503:403;
     if(route==='whoami'){
       if(req.method!=='GET')return error('invalid_args',405);
-      return success({mode:'test',profile:'read_only',listing:connection.listing,
-        allowWrites:false,moneyLimitCents:0,areas:pass.areas??null,
+      return success({account:pass.stripe_account,mode:'test',profile:'read_only',
+        listing:connection.listing,allowWrites:false,moneyLimitCents:0,
+        areas:pass.areas??null,
         legacyUnscoped:pass.areas==null,
         expiresAt:new Date(pass.expires_at).toISOString()});
     }
