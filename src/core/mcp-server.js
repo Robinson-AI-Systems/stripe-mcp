@@ -8,25 +8,53 @@ import { toStripeToolError } from '../tools/errors.js';
 import { shapeToolResult } from '../tools/util.js';
 import { isToolAllowed, publicToolInfo, listingForConnection, isGuardedTestWrite } from './profiles.js';
 import { randomBytes } from 'node:crypto';
+import { safePreparsedObject } from './http.js';
 import { readDetail,splitResult,resultPage } from '../tools/result-rules.js';
 
-export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} }) {
-  const item = registry.tools.find(t => t.name === name);
-  const guardedWrite=isGuardedTestWrite(item,connection);
-  if (!isToolAllowed(item,connection?.profile,{allowWrites:guardedWrite})) {
+function inertSnapshot(value){
+  const result=safePreparsedObject(value);
+  function freeze(node){
+    if(node&&typeof node==='object'){
+      for(const child of Object.values(node))freeze(child);
+      Object.freeze(node);
+    }
+    return node;
+  }
+  return freeze(result);
+}
+export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} },depth=0,parent=null) {
+  let fixedArgs,fixedConnection,item,handler;
+  try{
+    if(typeof name!=='string'||!/^[a-z][a-z0-9_]{1,80}$/.test(name)||
+      !Number.isInteger(depth)||depth>4||!Array.isArray(registry?.tools)||
+      !registry.handlers)throw new TypeError('Unsafe tool invocation');
+    fixedArgs=inertSnapshot(args??{});
+    fixedConnection=inertSnapshot(connection);
+    item=registry.tools.find(t=>
+      t&&Object.getOwnPropertyDescriptor(t,'name')?.value===name);
+    const slot=Object.getOwnPropertyDescriptor(registry.handlers,name);
+    handler=slot&&Object.hasOwn(slot,'value')?slot.value:null;
+  }catch{return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};}
+  const guardedWrite=isGuardedTestWrite(item,fixedConnection);
+  // A single guarded TEST write may be delegated only through the original
+  // stripe_call meta tool. Arbitrary reads/batches and deeper calls cannot.
+  const nestedWrite=depth>0&&item?.writes!==false;
+  const explicitlyGuarded=nestedWrite&&depth===1&&parent==='stripe_call'&&
+    guardedWrite===true&&fixedConnection.mode==='test';
+  if(!isToolAllowed(item,fixedConnection.profile,{allowWrites:guardedWrite})||
+    nestedWrite&&!explicitlyGuarded){
     return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};
   }
-  const handler = registry.handlers[name];
   if (typeof handler !== 'function') {
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
   try {
-    const raw=shapeToolResult(await handler(args || {},{connection,connectionId:connection?.resultScope,db,services,registry,
+    const raw=shapeToolResult(await handler(fixedArgs,{connection:fixedConnection,connectionId:fixedConnection.resultScope,db,services,registry,
       runRead:(toolName,toolArgs)=>dispatchReadOnlyTool({registry,
-        name:toolName,args:toolArgs,connection,db,services})}),
-      {mode:connection.mode});
+        name:toolName,args:toolArgs,connection:fixedConnection,db,services},depth+1,name)}),
+      {mode:fixedConnection.mode});
     if(raw?.isError)return raw;
-    const requested=args||{};
+    const requested=fixedArgs;
     // Permission re-probe has its own backwards-compatible "compact" detail.
     // Every other read uses the same opt-in dotted field layer.
     const detail=['summary','full'].includes(requested.detail)?requested.detail:undefined;
@@ -42,7 +70,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     if(Buffer.byteLength(JSON.stringify(result),'utf8')<=8192)return result;
     // No fallback that silently clips an oversized provider result. Every
     // persisted byte is already redacted by shapeToolResult above.
-    if(!connection?.resultScope||typeof db?.putScopedResult!=='function'||
+    if(!fixedConnection.resultScope||typeof db?.putScopedResult!=='function'||
       !Array.isArray(result?.content)||result.content.some(p=>p?.type!=='text')) {
       return {isError:true,content:[{type:'text',text:
         'Result exceeds 8 KB and cannot be securely stored for this connection.'}]};
@@ -64,7 +92,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     }catch{records=1;}
     const summary='Saved '+records+' result record(s) from '+name+
       ', '+body.totalBytes+' bytes (TEST connection only)';
-    await db.putScopedResult({handle,connection:connection.resultScope,
+    await db.putScopedResult({handle,connection:fixedConnection.resultScope,
       body,summary,expiresAt:new Date(Date.now()+86400000)});
     return {content:[{type:'text',text:JSON.stringify({
       handle,summary,totalBytes:body.totalBytes,records,expiresInHours:24,
@@ -72,7 +100,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     })}]};
   }
   catch (error) {
-    return toStripeToolError(error,{mode:connection.mode}) ||
+    return toStripeToolError(error,{mode:fixedConnection.mode}) ||
       {isError:true,content:[{type:'text',text:'Could not read account details; check server setup'}]};
   }
 }

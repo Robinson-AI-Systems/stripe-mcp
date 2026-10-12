@@ -95,3 +95,40 @@ owner decision intent is separately consumed, account identity stays bound,
 and an above-$500 transaction requires a second authenticated override.
 Only synthetic provider writes are invoked; no LIVE switch, real money or
 committed private dependency. Do not claim PASSED before #189 exact-head checks.
+
+## #190 original source MCP dispatch + final five-number checkpoint
+Stripe's original direct MCP source now refuses inherited handler names,
+getter-backed request fields and nested guarded-write dispatch. Tenant-bound
+identity and detached arguments are frozen before async policy, provider
+reads and result storage. The immutable private core `mcp-dispatch` uses
+Stripe-owned policy metadata, account/profile authorization, source SDK
+transport, redactor and scoped PostgreSQL result store inside disposable CI.
+Final #190 exact-head CI and original HTTP/SQL tests are required to mark
+this source/private candidate proof PASS.
+
+**Remaining source/deployment/release gates:** No committed published package
+adoption; no Hub final release asset/hash verified; no attested latest deployed
+protected live SHA or genuine connected Hub direct/relay/Sandbox/revocation,
+owner OAuth, Stripe TEST provider reads, signed webhook or G-6 acceptance.
+Hub final release requires current-source drift reconciliation and its complete
+independent adapted matrix. Check re-entry prerequisites after each Hub merge,
+scheduled main-to-live promotion or owner credential enablement. Keep standalone
+Stripe LIVE off, $500 per-account Colorado day policy and independently
+authenticated exact owner financial approval/over-limit override unchanged.
+
+Session PR-number checkpoint target: #190, only after normal acceptance and
+reviews. Future sessions should align to the next multiple of five if real
+eligible work permits it, without filler or premature stop on one blocked gate.
+
+### #190 explicit source-only guarded meta-route boundary
+Portable core denies all nested writes. Stripe's original source deliberately
+permits an independently guarded TEST single-write via authenticated
+`stripe_call`, while `stripe_batch` must never execute writes. Original
+customer, billing, dispute and developer write-contract tests exposed that
+portable behavior difference. The private adapter **retains the original,
+hardened `stripe_call` and `stripe_batch` dispatch routes** while proving
+the portable dispatcher on the remaining original OAuth MCP SDK/HTTP and
+PostgreSQL paths. This is partial portable adaptation, NOT full drop-in parity,
+not release readiness, and not permission to remove the Stripe-owned handlers.
+Independently implement portable delegated-meta parity as the next eligible
+source milestone without delaying on Hub release/deployment evidence.
