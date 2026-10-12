@@ -106,6 +106,16 @@ burned by overclaiming. A passing typecheck, a screenshot or a plan is not evide
   HTTPS API and passes — whether or not the hub ever exists (Chris, 2026-10-10).
 - Committing directly to `main`.
 
+## Permanent outcome-driven development and handoff (owner instruction, 2026-10-12)
+
+This is the standard for this and **every future session**, alongside all hard safety and release gates.
+
+1. **Choose an outcome, not a PR count.** First reconcile current main, active work (including other agents), reviews, CI, live deployment, owner decisions and the accepted work index. Pick the highest-priority eligible milestone and enumerate its finite, remaining acceptance criteria. Group coherent implementation PRs to complete or materially advance that user/developer capability; fix demonstrated security/correctness/CI/review defects first. Five qualifying substantial PRs is a normal session boundary **only**. Never pad, fabricate hardening, weaken checks or skip a needed acceptance to hit five.
+2. **Make blockers executable.** In STATUS and the authoritative acceptance ledger, each pending external/owner/dependency gate must name its exact blocker, required evidence or owner decision, prerequisite, condition that makes work eligible and the next concrete action. Recheck on relevant merges, credential grants, owner authorizations and scheduled promotions. Reconcile authorizations already supplied; never ask again for an already approved exact action. If a step becomes eligible, resume it without waiting for another planning request.
+3. **Separate four proof layers.** Implementation/source exists; meaningful automated verification; actual deployed HTTPS revision/behavior; genuine third-party connected integration/owner acceptance. Each has its own status and evidence. Fake providers, local PostgreSQL/HTTP, upstream reference conformance, GitHub green CI, configuration readback, protected SSO or Vercel READY for an older commit never prove adjacent layers. Use PASSED/FAILED/BLOCKED/UNVERIFIED and do not claim certification without actual-service conformance for the supported subset.
+4. **Protect financial and security invariants.** No placeholders, unauthorized money-out or LIVE, weakened ownership/profile isolation, missing idempotency/audit/recovery, secret disclosure, skipped reviews or forced deployment. Preserve scheduled checked live promotion, protected main, hosting cost caps and production/owner gates. A blocked external step does not block independent eligible approved roadmap work.
+5. **Persist a precise continuation.** Update existing STATUS, work index where applicable, owner-input/blocker record and existing finite acceptance ledger inside the next substantive implementation PR; no duplicate instruction files or docs-only PRs. The final PR's permanent handoff names the milestone, exact main/head/check/deployed revisions, what code/automated/hosted/external evidence passed, all actionable blockers, dependencies, newly eligible work and the next action. Every session ends with a **compact copy-paste continuation prompt** pointing to these authoritative files, a verified checkpoint and the same outcome-first/five-PR-boundary discipline. Do not repeat long history/rules in the prompt.
+
 ## Scope and owner decisions
 
 Build what the current card asks, completely. Other ideas go in `docs/ROADMAP.md` and your report — don't build them
@@ -140,7 +150,7 @@ page. Money is shown in dollars and cents; stored in integer cents.
   budgets) and the card's targeted tests. Never `--no-verify`.
 - **One push per CI cycle.** After a red run, read all failures, reproduce locally, fix them all, push once. "Flake" is
   not a cause; never skip, weaken or quarantine a test.
-- **The `ci` check is the single merge gate**, green at the exact head.
+- **The protected-main GitHub Actions `ci` and `target-main` checks are both required**, green at the exact head, alongside the five other existing exact-head jobs and review-thread gate. Do not rely on disabled Vercel preview checks.
 - **Review:** read `docs/AI-PR-READ-FIRST.md` for anything touching money, keys, guards, auth or passes, and
   record how each applicable constraint is honored. **This repo has no automated review** (Chris, 2026-10-10, IN-01):
   never wait for or request one. If one posts anyway (an organization-wide reviewer), handle its findings like your

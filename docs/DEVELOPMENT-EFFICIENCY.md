@@ -39,6 +39,12 @@ sound. Do not reduce coverage, remove checks, or invent time savings.
    the next correction, and the next approved JIT card. External TEST-account
    and Stripe Dashboard acceptance remain unverified without an owner session.
 
+## Milestone-driven session and measurable acceptance (2026-10-12 owner policy)
+
+Before choosing implementation, consult the finite TEST acceptance ledger, current deployed `live` SHA, owner input gates and active reviews. Name the capability and exact remaining criteria; fix a demonstrated defect before proposing an unrelated improvement. A PR is substantive only when it advances an approved user/developer outcome with meaningful tests. Five PRs is normally where to checkpoint, not a quota. If all eligible work is exhausted, stop earlier with one precise prerequisite instead of small invented fixes.
+
+Use a separate evidence row for source, real local HTTP/PostgreSQL, deployed service and connected external tests. Record successful tests by actual execution environment, never infer real Stripe TEST/OAuth/Hub D-4 from fakes or reference CI. For each BLOCKED row retain blocker, required evidence/decision, dependencies, unlock condition, next actor/action, and last checked observation; re-evaluate after a relevant change. Reuse already approved owner permissions rather than asking twice. Each substantive PR updates existing docs, and the final PR gets the permanent status/handoff; each session supplies a compact repeatable next-session prompt pointing at those records. Preserve seven exact-head checks, review resolution, default-deny LIVE and money owner gates.
+
 ## G-6 focused test packet
 ```sh
 npx vitest run tests/unit/admin-read-safety.test.js tests/unit/admin-guided.test.js tests/unit/admin-overview.test.js tests/unit/admin-security.test.js tests/unit/admin-fees.test.js

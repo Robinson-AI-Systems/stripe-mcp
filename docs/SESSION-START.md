@@ -32,6 +32,10 @@ Your session can end at any moment (the chat stops between actions), so the next
    - **Mandatory pre-merge review-thread gate:** retrieve all PR review threads (including outdated threads) and inspect their resolved state immediately before merge. Address every actionable comment, push fixes where needed, reply with the disposition and explicitly resolve the thread. **Do not merge with any unresolved review thread**, even when `ci` is green, a reviewer approved, or GitHub would otherwise permit the merge. If a thread cannot be resolved with available access, leave the PR open and report the exact blocker; never silently bypass it. If new commits or reviews arrive, inspect threads again before merging.
 3. Continue from the resume note's "Next step". Only when nothing of yours is open: §1 and the next card.
 
+## 0a. Pick and verify a concrete TEST milestone before new PRs
+
+Follow AGENTS "Permanent outcome-driven development and handoff" for every session. Read the current finite `docs/acceptance/STRIPE-TEST-MILESTONE.md` and identify the highest-priority independently eligible acceptance slice. Keep four proof layers separate: code, meaningful automated tests, running deployed SHA, and authentic owner/third-party acceptance. Each blocker must have prerequisite, specific required evidence/owner decision, condition to resume and next action; recheck after relevant owner approval, merged change or scheduled promotion. Do not open five artificial PRs. Preserve the compact, checkpointed continuation prompt and permanent final PR handoff.
+
 ## 1. Find your place (2 minutes)
 
 Work happens in whatever workspace you were given (a cloud agent workspace, a Vercel Sandbox, a laptop). Code reaches
