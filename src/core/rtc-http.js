@@ -178,7 +178,12 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     throw new TypeError('RTC handler dependencies required');
   async function call(name,args,connection){
     const t=allowedTool(registry,name,connection.areas);
-    if(!t||!isRecord(args))return {error:'refused_by_guard'};
+    // Absent tools are 404, but existing tools denied by TEST pass profile,
+    // area, financial classification or write guard remain 403. Do not
+    // conflate an unknown route with an intentionally forbidden operation.
+    if(!t)return {error:registry.tools.some(item=>alias(item.name)===name)?
+      'refused_by_guard':'not_found'};
+    if(!isRecord(args))return {error:'invalid_args'};
     const safeArgs=normalizeReadArgs(args,t);
     if(safeArgs===null)return {error:'invalid_args'};
     // Reject unexpected pass-provided credentials and dangerous non-read tools;

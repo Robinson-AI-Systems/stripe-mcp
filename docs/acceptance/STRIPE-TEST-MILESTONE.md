@@ -16,7 +16,25 @@ Stripe, OAuth, Webhook, or Toolkit Hub D-4. No provider mutation was authorized.
 | Toolkit Hub D-4 direct | UNVERIFIED | Hub reference fixture conformance != authenticated service route. | Short-lived one-hour owner-issued read_only pass; trusted pinned HTTPS endpoint; safe direct TEST metadata call and post-revocation 401. |
 | Toolkit Hub D-4 GitHub relay | BLOCKED | Private relay issue/webhook credentials and signed ingress/immutable bindings have independent Hub owner gates; no real end-to-end routing verified. | Hub D-4 sanctioned private issue binding, HMAC ingress, encrypted relay round trip, actor isolation and revocation, with sanitized proof. |
 | Toolkit Hub D-4 Vercel Sandbox | UNVERIFIED | Offline reference tests do not establish a real Sandbox connection. | Hub Sandbox invokes the same hosted service with scoped read-only TEST pass, records only non-secret result shape and verifies expiry/revocation. |
-| Full RTC 1 conformance | UNVERIFIED | rtc-reference CI runs the upstream fixture. Stripe service has its own real HTTP/DB subset, but writes/full profiles cannot run through TEST HTTPS passes. | Run applicable conformance against the ACTUAL deployed service, report each skipped unsafe/full-profile case separately, do not label restricted subset full certified. |
+| Full RTC 1 conformance | UNVERIFIED (actual-service subset gate #182 added, not full certification) | rtc-reference CI runs the upstream fixture. Stripe service has its own real HTTP/DB subset, but writes/full profiles cannot run through TEST HTTPS passes. | Run applicable conformance against the ACTUAL deployed service, report each skipped unsafe/full-profile case separately, do not label restricted subset full certified. |
+
+## #182 actual-service upstream RTC subset boundary
+
+The CI db job runs the **pinned official Hub** `packages/conformance/src/run.js`
+against a real local Stripe RTC HTTP handler, actual registry, disposable
+PostgreSQL and TEST-only fake keys. It is NOT the fake-server-only upstream
+`rtc-reference` job. The supported checks are manifest, manifest.openapi,
+catalog, passes, passes.expired, passes.revoked and budget, plus
+independent safe unknown-tool 404 and forbidden-write 403 assertions. The owner protected `rtc-service-check` runner now probes registered `stripe_payment_cancel`, not an unregistered `stripe_payment_intent_create`, so a hosted forbidden-write PASS must attest to an existing denied operation. Their status is PASS **only after #182
+exact-head db CI is green**. The upstream raw full-profile `meta`, `reads`,
+`writes` and `passes.read_only` and `safety` probes deliberately cannot pass: they
+require published writable/full-profile HTTPS tools that the owner did not
+authorize. `oauth.refresh_settings` and `limits.two_instance` remain
+skipped by the upstream service-specific invocation; separate #181
+real local SDK OAuth and #165 dual-listener PostgreSQL checks do not turn
+these two upstream skips into a PASS. Overall full certification remains
+false; deployed genuine RTC service/Hub direct, relay and Sandbox remain
+independently unverified.
 
 ## Actionable external blockers and eligibility (recheck each session)
 

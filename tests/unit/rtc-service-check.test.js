@@ -40,7 +40,7 @@ function fixture({wrongAccount=false,invalidWrite=false,provider=false,
         value={ok:true,result:{count:1,results:[{name:'stripe_whoami',
           result:{account,mode:'test'}}]}};
         break;
-      case '/api/tools/stripe_payment_intent_create':
+      case '/api/tools/stripe_payment_cancel':
         status=invalidWrite?200:403;
         value=invalidWrite?{ok:true,result:{created:true}}:
           {ok:false,error:{code:'refused_by_guard'}};
@@ -75,7 +75,7 @@ describe('RTC genuine hosted TEST acceptance runner (network injected, not exter
     expect(seen.every(x=>x.path.indexOf(token)<0)).toBe(true);
     expect(seen.filter(x=>x.method==='POST').map(x=>x.path)).toEqual([
       '/api/tools/stripe_whoami','/api/tools/_batch',
-      '/api/tools/stripe_payment_intent_create']);
+      '/api/tools/stripe_payment_cancel']);
     expect(JSON.stringify(result)).not.toContain(token);
     expect(JSON.stringify(result)).not.toContain(account);
   });
