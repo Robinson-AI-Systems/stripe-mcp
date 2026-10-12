@@ -34,7 +34,14 @@ export default async function handler(req, res) {
       return runOwnerTestSmoke({account,key,focus});
     }:null;
     return await createSetupHandler({ db, keyStore, oneTimeStore,provisionWebhookSecret,forgetWebhookSecret,
-      runTestSmoke,issueRtcPass:configured?createReadOnlyTestPassIssuer({db,oneTimeStore,
+      runTestSmoke,
+      lookupTestReceipt:configured?async({account,endpoint,eventId})=>{
+        // Never expose a raw event: only scoped TEST signature-receipt metadata.
+        const selected=await db.getStripeAccount(account);
+        if(!selected?.test_connected||selected.live_enabled===true)return null;
+        return db.getTestWebhookReceipt({account,endpoint,eventId});
+      }:null,
+      issueRtcPass:configured?createReadOnlyTestPassIssuer({db,oneTimeStore,
         availableAreas:[...new Set(registry.tools.filter(t=>t.writes===false&&
           t.money!==true&&t.destructive!==true&&
           t.profiles?.includes('read_only')).map(t=>t.area??'server'))]}):null,

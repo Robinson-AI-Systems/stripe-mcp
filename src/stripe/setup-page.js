@@ -47,6 +47,15 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Completed TEST report run ID<input name="run" pattern="frr_[A-Za-z0-9]+" required maxlength="110"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Download private CSV</button></form>' +
+    '<h2>Check signed TEST webhook receipt (owner only)</h2>' +
+    '<p>Lookup metadata for one TEST event already validated by the signed receiver. This does not independently prove that Stripe delivered the event from an external network.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="lookup-test-receipt">' +
+    '<label>Enrolled TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" maxlength="110" required></label>' +
+    '<label>TEST webhook endpoint ID<input name="endpoint" pattern="we_[A-Za-z0-9]+" maxlength="110" required></label>' +
+    '<label>TEST event ID<input name="eventId" pattern="evt_[A-Za-z0-9]+" maxlength="110" required></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Check signed TEST receipt</button></form>' +
     '<h2>Issue temporary read-only Toolkit pass (TEST only)</h2>' +
     '<p>Owner-only. Creates a 24-hour TEST-only pass with no writes or money authorization. The bearer is shown only through the protected one-time reveal page and can be revoked using the connection ID.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -226,7 +235,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '</button></form>' : '') +
     '</body></html>';
 }
-export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, runTestSmoke, issueRtcPass, env = process.env }) {
+export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, runTestSmoke, issueRtcPass, lookupTestReceipt, env = process.env }) {
   return async function setup(req, res) {
     if (!only(res, req, ['GET','POST'])) return;
     let origin;
@@ -268,6 +277,37 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     if (login.status !== 'ok') {
       return send(res, 401, htmlPage({ csrf:cookie, result:'Incorrect administrator passphrase.' }),
         'text/html; charset=utf-8');
+    }
+    if(p.action==='lookup-test-receipt'){
+      if(typeof lookupTestReceipt!=='function')
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'TEST receipt readback is unavailable.'}),'text/html; charset=utf-8');
+      if(typeof p.account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account)||
+        typeof p.endpoint!=='string'||!/^we_[A-Za-z0-9]{2,100}$/.test(p.endpoint)||
+        typeof p.eventId!=='string'||!/^evt_[A-Za-z0-9]{2,100}$/.test(p.eventId))
+        return send(res,400,htmlPage({csrf:cookie,
+          result:'Select an exact TEST account, endpoint and event ID.'}),
+          'text/html; charset=utf-8');
+      try{
+        const found=await lookupTestReceipt({account:p.account,
+          endpoint:p.endpoint,eventId:p.eventId});
+        if(!found)return send(res,404,htmlPage({csrf:cookie,
+          result:'No signed TEST receipt recorded for this exact account, endpoint and event.'}),
+          'text/html; charset=utf-8');
+        // Trust only metadata with the requested event identity; never display
+        // provider event objects, signatures, account secrets or stored payloads.
+        const time=new Date(found.receivedAt);
+        if(found.eventId!==p.eventId||
+          typeof found.eventType!=='string'||
+          !/^[a-z][a-z0-9_]{1,60}\.[a-z][a-z0-9_.]{1,75}$/.test(found.eventType)||
+          !Number.isFinite(time.getTime()))throw new TypeError('Receipt not verifiable');
+        return send(res,200,htmlPage({csrf:cookie,
+          result:'Recorded signed TEST receipt. Event type: '+found.eventType+
+            '. Recorded UTC: '+time.toISOString()+
+            '. External Stripe delivery and Vercel ingress remain separately unverified.'}),
+          'text/html; charset=utf-8');
+      }catch{return send(res,503,htmlPage({csrf:cookie,
+        result:'Unable to verify a signed TEST receipt.'}),'text/html; charset=utf-8');}
     }
     if(p.action==='issue-rtc-pass'){
       if(typeof issueRtcPass!=='function')return send(res,503,htmlPage({csrf:cookie,

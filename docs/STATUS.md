@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#160 Owner-private signed TEST webhook receipt readback (as-if-merged; six CI checks required):** account+endpoint+event exact lookup of metadata-only durable signed TEST receipts is now accessible on the same passphrase, origin and CSRF protected owner setup page, with strict returned event identity/type/time validation. Unavailable and unknown receipts fail closed; tests prove no lookup before auth. External Stripe delivery, Vercel ingress, full G-4 acceptance and Toolkit D-4 all remain unverified; LIVE OFF, no provider writes/money. Session ends #160; next #161–#165 after deployed exact-head verification.
+
+
 - **#159 RTC real-service safe-wire acceptance (as-if-merged; exact-head CI required):** new disposable real-Postgres HTTP service integration tests run the actual Stripe registry and RTC guard through loopback requests, exercising public manifest, TEST-only pass whoami, scoped tool metadata/read, financial write refusal, cross-pass result ownership, revocation/expiration. This is real server code in CI, not hub reference fake tests; external owner D-4 direct/relay/Sandbox and full-role conformance remain unverified. No live mode.
 
 
