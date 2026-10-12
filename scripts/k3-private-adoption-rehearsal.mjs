@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {createProfileOverlay} from './k3-profile-overlay.mjs';
 import {createMcpAuthOverlay} from './k3-mcp-auth-overlay.mjs';
 import {createOAuthProtocolOverlay} from './k3-oauth-overlay.mjs';
+import {createPrivateStripeWriteOverlay} from './k3-write-overlay.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 export const candidateCommit='08f4189f72dbe1d5b870c7b17daabd39833eff31';
@@ -202,6 +203,33 @@ export function rehearse(){
       writeFileSync(oauthPath,originalOAuth);
       rmSync(sidecar,{force:true});
     }
+    // Preserve real original write adapter ownership, idempotency, separate
+    // owner approval/reservation and independent provider readback under the
+    // genuinely installed immutable private portable core write.
+    const writePath=join(root,'src/core/write.js');
+    const originalWrite=readFileSync(writePath,'utf8');
+    const writeSidecar=join(root,'src/core/k3-write-original-private.js');
+    let writeAdapterProof;
+    try {
+      if(existsSync(writeSidecar))throw Error('Private write source sidecar exists');
+      writeFileSync(writeSidecar,originalWrite,{flag:'wx'});
+      writeFileSync(writePath,createPrivateStripeWriteOverlay(originalWrite));
+      const unit=['tests/unit/write-core.test.js',
+        'tests/unit/write-contract.test.js','tests/unit/k3-write-seams.test.js'];
+      const sql=['tests/db/k3-write-owner-sql.test.js',
+        'tests/db/money-owner-approval.test.js',
+        'tests/db/owner-money-limit.test.js'];
+      cmd('npx',['--no-install','vitest','run','--config','vitest.config.js',
+        ...unit],root,180000);
+      cmd('npm',['run','test:db','--',...sql],root,240000);
+      writeAdapterProof={adaptedExport:'write',originalUnitSuites:unit.length,
+        sourceSqlSuites:sql.length,ownerApprovalAndOverrideSql:true,
+        originalIdempotencyAndAudit:true,syntheticProviderOnly:true,
+        liveStillDisabled:true,runtimeCoreDependency:false};
+    } finally {
+      writeFileSync(writePath,originalWrite);
+      rmSync(writeSidecar,{force:true});
+    }
     if(oneTimeAdapterSql.schema!=='actual-stripe-one_time_secrets'||
       oneTimeAdapterSql.pools!==2||
       oneTimeAdapterSql.legacyIssuedPortableConsumed!==true||
@@ -211,7 +239,7 @@ export function rehearse(){
       oneTimeAdapterSql.expiredRefused!==true||
       oneTimeAdapterSql.providerCalls!==0)
       throw Error('K-3 original SQL one-time adapter proof incomplete');
-    return {oauthProtocolProof,bearerProof,bearerServiceProof,profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
+    return {writeAdapterProof,oauthProtocolProof,bearerProof,bearerServiceProof,profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
       sourceServiceRepoModified:false,overlaidImports:leaves.length,
       unchangedStripeUnitSuites:originalUnit.length,
       originalSqlSuites:originalSql.length,releaseReady:false};
