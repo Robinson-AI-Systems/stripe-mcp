@@ -15,6 +15,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const oneTimeSecrets = new Map();
   const webhookSigningSecrets = new Map();
   const testWebhookReceipts = new Map();
+  const rtcPassRates = new Map();
   const audit = [];
   const reservations = [];
   const approvals = [];
@@ -88,6 +89,15 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         kind:'pass',result_scope:randomUUID(),allow_writes:false,
         money_limit_cents:0,areas:null,for_hub:false,rate_limit_per_minute:120,
         expires_at:expiresAt.getTime(),revoked_at:null});return true;
+    },
+    async getRtcPassStatus(token){
+      const row=tokens.get(hashToken(token));
+      return row?.kind==='pass'?structuredClone(row):null;
+    },
+    async consumeRtcPassRate({token,limit}){
+      const key=hashToken(token)+'|'+Math.floor(clock()/60000);
+      const count=(rtcPassRates.get(key)??0)+1;
+      rtcPassRates.set(key,count);return count<=limit;
     },
     async getRtcPass(token){
       const row=tokens.get(hashToken(token));
@@ -306,7 +316,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
           typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId) ||
           !(expiresAt instanceof Date)) throw new TypeError('Invalid owner intent');
       if (![...tokens.values()].some(t=>t.stripe_account===account&&t.client_id===clientId&&
-          t.kind==='connector'&&!t.revoked_at)) return false;
+          ['connector','pass'].includes(t.kind)&&!t.revoked_at)) return false;
       revokeIntents.push({id,account,clientId,expiresAt:expiresAt.getTime(),consumedAt:null});
       return true;
     },
@@ -319,7 +329,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const r=revokeIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
       if (!r) return false;
       const eligible=[...tokens.values()].filter(t=>t.stripe_account===r.account&&
-        t.client_id===r.clientId&&t.kind==='connector'&&!t.revoked_at);
+        t.client_id===r.clientId&&['connector','pass'].includes(t.kind)&&!t.revoked_at);
       if(!eligible.length)return false;
       r.consumedAt=clock();
       for(const t of eligible)t.revoked_at=clock();
@@ -530,6 +540,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return structuredClone([...tokens.values()].filter(r=>r.stripe_account===account)
         .slice(offset,offset+limit).map(r=>({
           client_id:r.client_id,mode:r.mode,profile:r.profile,listing:r.listing,
+          kind:r.kind,rate_limit_per_minute:r.rate_limit_per_minute??120,
           created_at:null,last_used_at:null,expires_at:new Date(r.expires_at),
           revoked_at:r.revoked_at?new Date(r.revoked_at):null
         })));

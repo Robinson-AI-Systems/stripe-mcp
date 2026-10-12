@@ -322,3 +322,22 @@ scope, 24-hour expiry, zero money and zero write authority. The MCP OAuth
 connector continues to query kind='connector' only; passes do not authorize
 /api/mcp. The pass-only HTTPS API and shared database rate limiter follow in
 R-2; issuing a pass is not itself proof of Toolkit integration.
+
+
+## RTC HTTPS TEST read-only integration (#155)
+Public GET `/api/contract` reports RTC 1 structure with explicit pending full
+conformance; `/api/openapi.json` enumerates its limited HTTP interface.
+Pass-authenticated GET `/api/whoami`, `/api/tools` and `/api/tools/:name`
+plus POST `/api/tools/:name`, `/api/tools/_batch` and GET `/api/results/:handle`
+share existing registered MCP dispatch, strictly read_only TEST profile and
+per-pass result scope. Legacy MCP handler names are mapped to `stripe_` aliases
+only at the HTTP edge. Expiry/revocation/owner-test-key gates precede every read;
+`rtc_pass_rates` has atomic per-hash minute buckets, denying requests over 120
+by default with HTTP 429. No live/writes/money from these doors. The pinned
+hub reference conformance job tests upstream runner behavior, NOT end-to-end
+Stripe service conformance; run external full suite/real routes separately.
+
+The pre-existing owner connection-revocation transaction was broadened from
+connector-only to selected connector/pass kinds, with single-use owner intent
+and audit preserved. Connection listing now displays pass kind/rate only, not
+bearer or digest. This is mandatory for real D-4 test cleanup.

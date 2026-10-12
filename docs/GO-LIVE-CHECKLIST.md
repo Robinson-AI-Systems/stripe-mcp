@@ -158,3 +158,12 @@ B-8c2 implements two independently password-authenticated TEST-only owner confir
   TEST event; verify valid HMAC, durable unique receipt and replay behavior through
   an owner-private readback. A listing or mock is not delivery evidence. Never
   register to the setup/OAuth/MCP endpoints. LIVE remains disabled.
+
+
+- [ ] Toolkit RTC D-4: complete full service conformance against isolated fake
+  Stripe test server, including write-contract and denied write paths; ensure
+  prefixed discovery and HTTPS 8KB handles. Pinned upstream reference suite in
+  CI tests its own fake, **not** this deployed service. With fresh owner-approved
+  read_only non-production pass verify actual direct CLI, encrypted GitHub-only
+  relay and Vercel Sandbox paths; record neutral evidence and revoke all passes.
+  Validate Vercel Deployment Protection/OAuth without widening access. No LIVE.
