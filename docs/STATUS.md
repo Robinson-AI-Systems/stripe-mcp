@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#131 G-6 owner identity evidence hardening (as-if-merged; exact-head CI required):** require genuine safe account boolean fields with matching account identity before native owner overview/security/guided aggregation; incomplete projections cannot trigger downstream account reads. Regression tests added. This does not constitute connected TEST smoke or authenticated Dashboard acceptance. G-6 remains IN_PROGRESS and H-1 stays gated; LIVE disabled.
+
 - **#130 G-6 expanded structured Dashboard guide coverage (as-if-merged; exact-head CI pending):** eleven additional owner-account payment, invoicing, reporting, security, tax and developer settings have safe procedural guides and honest not_readable native status. Guarded G-6 tests validate no hidden API calls or owner verification claims. Remaining G-6 actual signed-in TEST Dashboard walkthrough and G-4/G-5 connected smoke cannot be completed without independently authenticated owner/test-account access. H-1 remains gated by G-6, no LIVE.
 
 - **#129 G-6 TEST fee reconciliation (as-if-merged; exact-head CI pending):** bounded fee ledger now safely exposes signed gross/fee/net minor-unit samples by currency and reporting category, independently checks accounting equality and fee-detail sums, and retains partial/statement-unverified disclosures. Unit tests include USD negative adjustment and multi-currency sampling. G-6/G-4/G-5 owner-connected TEST evidence and Dashboard walkthrough remain pending; LIVE disabled. Next remaining G-6 Dashboard map evidence/acceptance work.

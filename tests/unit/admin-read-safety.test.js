@@ -24,8 +24,13 @@ describe('shared TEST administrative read safety',()=>{
       expect(parseAdminReply(a)).toBeNull();
   });
   it('requires a proven own TEST account ID before cross-surface observations',()=>{
+    const observed={id:'acct_EFFTEST',verification:'not_readable',
+      chargesEnabled:false,payoutsEnabled:false,detailsSubmitted:false};
+    expect(verifiedAdminIdentity(observed,'acct_EFFTEST')).toBe(true);
     expect(verifiedAdminIdentity({id:'acct_EFFTEST',verification:'not_readable'},
-      'acct_EFFTEST')).toBe(true);
+      'acct_EFFTEST')).toBe(false);
+    expect(verifiedAdminIdentity({...observed,chargesEnabled:'yes'},
+      'acct_EFFTEST')).toBe(false);
     for(const v of [null,{}, {id:'acct_OTHER',verification:'ok'},
       {id:'acct_EFFTEST',verification:'ok',available:false},
       {id:'acct_EFFTEST',verification:'healthy'}])

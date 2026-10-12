@@ -91,6 +91,16 @@ describe('G-6b owner overview and safe requirements',()=>{
     expect(result.ownerWalkthrough.find(x=>x.setting==='webhook_events').status)
       .toBe('not_readable');
   });
+  it('does not trust an incomplete own-account profile as independent identity',async()=>{
+    const f=fixture();
+    f.sdk.accounts.retrieve=vi.fn(async()=>({object:'account',id,
+      livemode:false,charges_enabled:null,payouts_enabled:true,
+      details_submitted:true,requirements:{currently_due:[],past_due:[]}}));
+    const out=parse(await handlers.stripe_admin_overview({},f.ctx));
+    for(const key of ['account','capabilities','paymentMethods','webhooks'])
+      expect(out.sections[key].status).toBe('not_readable');
+    expect(f.sdk.accounts.listCapabilities).not.toHaveBeenCalled();
+  });
   it('restricted capabilities and account reads never cause a healthy overview',async()=>{
     const v=parse(await handlers.stripe_admin_overview({},
       fixture({refused:true,capRefused:true}).ctx));
