@@ -50,9 +50,27 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
         profile:own(grant,'profile'),listing:own(grant,'listing')};
     }
   });
+  async function token(req,res){
+    // Core's generic challenge uses realm "MCP OAuth", while existing
+    // original Stripe OAuth clients assert "Stripe MCP OAuth". Preserve
+    // the exact source WWW-Authenticate contract without changing auth.
+    const previous=res.setHeader;
+    if(typeof previous!=='function') throw TypeError('HTTP response header writer required');
+    res.setHeader=function(name,value){
+      const mapped=String(name).toLowerCase()==='www-authenticate'&&
+        value==='Basic realm="MCP OAuth"'
+        ? 'Basic realm="Stripe MCP OAuth"' : value;
+      return previous.call(this,name,mapped);
+    };
+    try{return await portable.token(req,res);}
+    finally{
+      // Do not leave request-specific response mutations behind.
+      if(Object.hasOwn(res,'setHeader'))delete res.setHeader;
+    }
+  }
   return Object.freeze({
     register:original.register,authorize:original.authorize,
-    token:portable.token,metadata:original.metadata,
+    token,metadata:original.metadata,
     resourceMetadata:original.resourceMetadata
   });
 }

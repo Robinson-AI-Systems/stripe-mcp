@@ -1,9 +1,11 @@
 import {describe,it,expect} from 'vitest';
 import {createStripeOAuthProtocolAdapter} from '../../src/core/k3-oauth-protocol-seams.js';
 import {createOAuthProtocolOverlay} from '../../scripts/k3-oauth-overlay.mjs';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 describe('K-3 portable OAuth protocol / original Stripe identity',()=>{
-  const source=readFileSync(new URL('../../src/core/oauth-handlers.js',import.meta.url),'utf8');
+  const pristine=new URL('../../src/core/k3-oauth-original-private.js',import.meta.url);
+  const source=readFileSync(existsSync(pristine)?pristine:
+    new URL('../../src/core/oauth-handlers.js',import.meta.url),'utf8');
   it('generates a reversible source handler overlay, not a runtime dependency',()=>{
     expect(createOAuthProtocolOverlay(source)).toContain("robinson-mcp-core/oauth-protocol");
     expect(createOAuthProtocolOverlay(source)).toContain('k3-oauth-original-private.js');
