@@ -117,3 +117,15 @@ server's exact 401 `pass_revoked`; HTML SSO, unknown, expired and generic 401
 are not proofs. Recorded direct proof does not certify OAuth, Hub relay/Sandbox,
 signed webhooks or full RTC 1. Never run external acceptance before the deployed
 revision, owner identity and SSO ingress have been verified.
+
+## K-3 Stripe source private package rehearsal (#184 candidate only)
+
+CI now includes a *source-owned* disposable original-service rehearsal against
+a Hub private archive pinned to immutable commit `08f4189` and expected SHA256
+`3038f7664e18ac57e5fdb86daf0884f603a78a446e2f1300f20fd59a92e73ea6`.
+Source parity of four leaf imports, full tar digest/identity, seven original
+unit and nine original SQL/HTTP/dual-connection suites must pass on #184 exact
+head before marking this local CI layer PASS. The six adapted modules remain
+unadopted; independent authenticated human consent and $500 Colorado day override
+require separate service-owned proof. This is **not** a published GitHub Release,
+installed production dependency, external Stripe TEST call or Hub D-4 certification.

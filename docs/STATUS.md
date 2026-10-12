@@ -9,6 +9,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#184 (as-if merged, CI must independently pass) K-3 private-candidate Stripe-owned acceptance:** The source's existing db CI job now checks out Hub at immutable `08f4189`, checksum-verifies the exact *unpublished* private archive digest independently logged in Hub #122, compares four source-verbatim modules, temporarily installs them as imports in throwaway CI (never runtime package dependencies), executes seven original Stripe unit and nine original PostgreSQL suites including actual HTTP, dual connection, owner money consent and daily limit, restores source after. Fails on archive/source SHA drift or non-local SQL, no remote Release; service-adapted exports and real owner/Hub/deployed acceptance remain separate. Seven original CI gates and reviews are mandatory; LIVE off.
+ 
+
 - **#183 K-3 Stripe-owned HTTP security parity (implementation, awaiting exact-head CI):** Reject executable getters, toJSON functions, exotic/cyclic/sparse structured request bodies via descriptor-only detached inert JSON before OAuth owner actions or RTC TEST batch rate/dispatch. Maintain original 16 KiB wire/raw Content-Length limits. Test original OAuth and RTC handler denial with zero accessor/DB/provider invocation; source code and local CI evidence are separate from deployed source. Hub K-3 private candidate is NOT published or adopted and all six adapted interfaces, financial consent and remote D-4 acceptance still require independent proof. No LIVE/spending/forced deployment.
 
 

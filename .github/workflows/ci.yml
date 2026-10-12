@@ -78,6 +78,24 @@ jobs:
       - run: node scripts/rtc-service-subset.mjs
         env:
           TEST_DATABASE_URL: postgresql://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
+      # Hub K-3 private candidate: immutable Git source and separately pinned
+      # actual archive SHA256, installed ONLY inside disposable CI checkout.
+      # No runtime dependency, publication, release or Production build.
+      - uses: actions/checkout@v4
+        with:
+          repository: Robinson-AI-Systems/robinsons-toolkit-hub
+          ref: 08f4189f72dbe1d5b870c7b17daabd39833eff31
+          path: k3-candidate
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: k3-candidate
+      - name: Prove original Stripe imports/SQL through checksum-verified private core
+        run: node scripts/k3-private-adoption-rehearsal.mjs
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
 
   mock:
     runs-on: ubuntu-latest
