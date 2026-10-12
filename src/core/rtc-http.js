@@ -169,7 +169,8 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const args=argsOf(req);
       if(!args)return error('invalid_args');
       const value=await call(name,args,connection);
-      return value.error?error(value.error,403):success(value.result,value.handle);
+      return value.error?error(value.error,value.error==='invalid_args'?400:403):
+        success(value.result,value.handle);
     }
     if(route==='batch'){
       if(req.method!=='POST')return error('invalid_args',405);
