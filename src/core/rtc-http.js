@@ -7,14 +7,23 @@ import {publicToolInfo} from './profiles.js';
 const AUTH=/^Bearer (rtc_pass_[A-Za-z0-9_-]{43})$/;
 const READ_ONLY=new Set(['read_only']);
 const CODE=new Set(['permission','pass_revoked','pass_expired','rate_limited',
-  'invalid_args','not_found','refused_by_guard','service_error']);
+  'invalid_args','not_found','refused_by_guard','outside_scope','service_error']);
 const err=(code,status,extra={})=>({status,body:{ok:false,error:{
   code,what:code.replaceAll('_',' '),cause:'Request could not be completed',
   todo:'Check your TEST pass, permitted tool and arguments.',
   technical:''}},headers:extra});
 const alias=name=>name.startsWith('stripe_')?name:'stripe_'+name;
-const allowedTool=(registry,name)=>registry.tools.find(t=>
-  alias(t.name)===name&&t.writes===false&&t.profiles?.includes('read_only'))??null;
+// A scoped pass cannot tunnel through meta-dispatchers to a different area.
+const DELEGATES=new Set(['stripe_call','stripe_batch','stripe_search_tools',
+  'stripe_describe_tool','api_search']);
+const INTERNAL=new Set(['stripe_get_result','stripe_whoami']);
+const inScope=(t,areas)=>!Array.isArray(areas)||
+  ((!DELEGATES.has(t.name))&&
+    (areas.includes(t.area??'server')||INTERNAL.has(t.name)));
+const safeRead=t=>t?.writes===false&&t.money!==true&&
+  t.destructive!==true&&t.profiles?.includes('read_only');
+const allowedTool=(registry,name,areas)=>registry.tools.find(t=>
+  alias(t.name)===name&&safeRead(t)&&inScope(t,areas))??null;
 const metadata=t=>{
   const info=publicToolInfo(t);
   return {name:alias(t.name),description:String(t.description).slice(0,160),
@@ -61,7 +70,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
   if(!db||!registry?.tools||!registry?.handlers)
     throw new TypeError('RTC handler dependencies required');
   async function call(name,args,connection){
-    const t=allowedTool(registry,name);
+    const t=allowedTool(registry,name,connection.areas);
     if(!t||!isRecord(args))return {error:'refused_by_guard'};
     // Reject unexpected pass-provided credentials and dangerous non-read tools;
     // the registered dispatcher remains the final profile/guard authority.
@@ -102,9 +111,13 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       if(!permitted){res.setHeader('Retry-After','60');
         return send(res,429,err('rate_limited',429).body);}
     }catch{return send(res,503,err('service_error',503).body);}
+    // Fail closed for corrupt area grants; null is the legacy unscoped read-only pass.
+    if(pass.areas!=null&&(!Array.isArray(pass.areas)||
+      pass.areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))))
+      return send(res,403,err('outside_scope',403).body);
     const connection={clientId:pass.client_id,stripeAccount:pass.stripe_account,
       mode:'test',profile:'read_only',listing:'compact',
-      resultScope:pass.result_scope};
+      resultScope:pass.result_scope,areas:pass.areas??null};
     const success=(result,handle)=>send(res,200,{
       ok:true,result,...(handle?{handle,mode:'test'}:{mode:'test'})});
     const error=(code,status=400)=>send(res,status,err(CODE.has(code)?code:'service_error',status).body);
@@ -123,8 +136,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
         area!==undefined&&(typeof area!=='string'||area.length>50)||
         listing!==undefined&&!['compact','catalog'].includes(listing))
         return error('invalid_args');
-      let tools=registry.tools.filter(t=>t.writes===false&&
-        t.profiles?.includes('read_only')&&(!area||t.area===area)&&
+      let tools=registry.tools.filter(t=>safeRead(t)&&inScope(t,connection.areas)&&(!area||t.area===area)&&
         (!q||alias(t.name).includes(q.toLowerCase())||
           t.description?.toLowerCase().includes(q.toLowerCase())));
       if((listing??'catalog')==='compact')
@@ -136,7 +148,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     }
     if(route==='describe'){
       if(req.method!=='GET'||typeof name!=='string')return error('invalid_args');
-      const t=allowedTool(registry,name);
+      const t=allowedTool(registry,name,connection.areas);
       return t?success(metadata(t)):error('not_found',404);
     }
     if(route==='call'){
@@ -151,7 +163,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const args=argsOf(req);
       if(!Array.isArray(args?.calls)||args.calls.length<1||args.calls.length>10||
         args.calls.some(v=>!isRecord(v)||typeof v.name!=='string'||
-          !allowedTool(registry,v.name)||!isRecord(v.args??{})))
+          !allowedTool(registry,v.name,connection.areas)||!isRecord(v.args??{})))
         return error('invalid_args');
       const results=[];
       for(const item of args.calls){
