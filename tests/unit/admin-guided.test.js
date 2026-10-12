@@ -133,6 +133,28 @@ describe('G-6a owner guided settings and honest account verification',()=>{
     const v=parse(await handlers.admin_check_setting({setting:'account_verification'},f.ctx));
     expect(v).toMatchObject({status:'not_readable',observed:false});
   });
+  it('covers additional admin Dashboard-only controls without inventing API support',async()=>{
+    const f=fixture();
+    const settings=['dashboard_timezone','card_decline_rules',
+      'payout_negative_balances','invoice_tax_ids','invoice_delivery',
+      'reporting_exports','developer_api_version','stripe_tax_settings',
+      'payment_link_defaults','team_sso','support_contact'];
+    for(const setting of settings){
+      const guide=whereIsSetting(setting);
+      expect(guide).toMatchObject({found:true,changeMade:false,verifyWith:null});
+      expect(guide.steps.length).toBeGreaterThanOrEqual(3);
+      expect(guide.url).toBe('https://dashboard.stripe.com/settings');
+      const status=parse(await handlers.admin_check_setting({setting},f.ctx));
+      expect(status).toMatchObject({status:'not_readable',observed:false,
+        complete:false,changeMade:false});
+    }
+    expect(f.sdk.accounts.retrieve).not.toHaveBeenCalled();
+    const catalog=parse(await handlers.admin_list_guided_settings({
+      section:'developers',limit:20},f.ctx));
+    expect(catalog.settings.some(s=>s.setting==='developer_api_version')).toBe(true);
+    expect(catalog.settings.some(s=>s.setting==='webhook_events')).toBe(true);
+    expect(JSON.stringify(catalog)).not.toContain(secret);
+  });
   it('preserves partial and refused native observations without success claims',async()=>{
     const f=fixture();
     f.sdk.webhookEndpoints={list:vi.fn(async()=>({
