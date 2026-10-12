@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-6e native owner overview evidence (#124 as-if-merged; CI pending):** aggregate registered TEST readers for masked bank, payout schedule, payment configuration/domain, webhook endpoints and portal; each section observed/partial/not_readable separately, with all mapped guided states. No Stripe mutation/secret/PII. Next G-6f guided setting readback and full acceptance reconciliation. G-4/G-5 actual owner-connected smoke still pending.
+
 - **G-6d bounded TEST fees and billing (#123 as-if-merged; CI pending):** independently scoped TEST balance-transaction ledger scan, fee breakdowns by currency/type, reconciled totals and explicitly partial paging. Stripe Billing/Tax/Radar invoices and pricing remain unverified; owner guided statement checks. Next G-6e expand verified owner overview, then final dashboard map/acceptance. LIVE off; real G-4/G-5 TEST smoke pending.
 
 - **G-6c owner TEST security review (#122 as-if-merged; CI pending):** masked key metadata, read-only permission probe presence, account-scoped connection counts, sanitized TEST webhook status and explicit Dashboard-only gaps (two-step, roles, invitations, apps and key rotation). No secret, pass or LIVE. Next G-6d bounded TEST fees/billing. G-4/G-5 connected Stripe smoke pending.

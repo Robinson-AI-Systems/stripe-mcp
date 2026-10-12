@@ -87,4 +87,58 @@ describe('G-6b owner overview and safe requirements',()=>{
     expect(JSON.stringify(indirect)).not.toContain(pii);
     expect(f.sdk.accounts.retrieve).toHaveBeenCalledTimes(1);
   });
+  it('reuses sanitized native readers and reports observed owner sections only',async()=>{
+    const f=fixture();
+    f.sdk.accounts.listExternalAccounts=vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        object:'bank_account',id:'ba_SAFE1',last4:'1234',
+        currency:'usd',country:'US',status:'new',
+        default_for_currency:true,account:id}]}));
+    f.sdk.accounts.retrieve=vi.fn(async()=>({
+      object:'account',id,livemode:false,charges_enabled:true,
+      payouts_enabled:true,details_submitted:true,
+      requirements:{currently_due:[],past_due:[]},
+      settings:{payouts:{schedule:{interval:'daily',delay_days:2}}}}));
+    f.sdk.paymentMethodConfigurations={list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        object:'payment_method_configuration',id:'pmc_TEST123',
+        active:true,card:{available:true,
+          display_preference:{preference:'on',value:'on'}}}]}))};
+    f.sdk.paymentMethodDomains={list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        object:'payment_method_domain',id:'pmd_TEST123',
+        domain_name:'example.org',enabled:true,livemode:false,
+        apple_pay:{status:'active'}}]}))};
+    f.sdk.webhookEndpoints={list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        object:'webhook_endpoint',id:'we_TEST123',livemode:false,
+        created:1790000000,status:'enabled',enabled_events:['invoice.paid'],
+        url:'https://example.org/PRIVATE_PATH'}]}))};
+    f.sdk.billingPortal={configurations:{list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        id:'bpc_TEST123',active:true,is_default:true,
+        default_return_url:'https://example.org/PRIVATE_TOKEN',
+        features:{invoice_history:{enabled:true}}}]}))}};
+    const v=parse(await handlers.stripe_admin_overview({},f.ctx));
+    for(const name of ['payoutDestination','payoutSchedule','paymentMethods',
+      'paymentDomains','webhooks','customerPortal']){
+      expect(v.sections[name].status).toBe('observed');
+      expect(v.sections[name].complete).toBe(true);
+    }
+    expect(v.sections.tax.status).toBe('not_readable');
+    expect(v.guidedSettings.find(x=>x.setting==='account_verification').status).toBe('ok');
+    expect(v.guidedSettings.find(x=>x.setting==='two_step_login').status)
+      .toBe('not_readable');
+    expect(JSON.stringify(v)).not.toContain('PRIVATE_PATH');
+    expect(JSON.stringify(v)).not.toContain('PRIVATE_TOKEN');
+    expect(JSON.stringify(v)).not.toContain(pii);
+  });
+  it('preserves unreadable states for absent provider methods and incomplete pages',async()=>{
+    const f=fixture();
+    const v=parse(await handlers.stripe_admin_overview({},f.ctx));
+    expect(v.sections.paymentMethods.status).toBe('not_readable');
+    expect(v.sections.customerPortal.status).toBe('not_readable');
+    expect(v.guidedSettings).toHaveLength(
+      Object.keys((await import('../../src/data/dashboard-map.js')).DASHBOARD_SETTINGS).length);
+  });
 });
