@@ -42,6 +42,16 @@ describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
     const spec=rtcOpenApi();
     expect(Object.keys(spec.paths)).toContain('/api/contract');
     expect(Object.keys(spec.paths)).toContain('/api/openapi.json');
+    const attested=rtcManifest(registry,{sha:'a'.repeat(40),
+      ref:'live',environment:'production'});
+    expect(attested.deployment).toEqual({
+      sha:'a'.repeat(40),ref:'live',environment:'production'});
+    for(const deployment of [
+      {sha:'bad',ref:'live',environment:'production'},
+      {sha:'a'.repeat(40),ref:'../main',environment:'production'},
+      {sha:'a'.repeat(40),ref:'live',environment:'unknown'}
+    ])expect(rtcManifest(registry,deployment)).not.toHaveProperty('deployment');
+    expect(rtcManifest(registry)).not.toHaveProperty('deployment');
     expect(spec.components.securitySchemes.rtcTestPass).toMatchObject({
       type:'http',scheme:'bearer'});
     expect(spec.security).toEqual([{rtcTestPass:[]}]);
