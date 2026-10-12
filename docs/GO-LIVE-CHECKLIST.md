@@ -149,3 +149,12 @@ B-8c2 implements two independently password-authenticated TEST-only owner confir
 - [ ] Through the independently authenticated owner page, provision a TEST endpoint's signing secret and demonstrate a genuine signed Stripe TEST event: verify exact original bytes, correct endpoint/account, event ID and type; confirm wrong secret, expired timestamp and wrong endpoint are rejected.
 - [ ] From that same TEST account, demonstrate one native endpoint creation, event-subscription update and read-back, safe URL-only-origin display, and a guarded endpoint deletion with provider tombstone. Record evidence without raw provider secrets or private event data.
 - [ ] Confirm connected TEST account/permission restrictions and LIVE-off remain enforced; record outcome in G-4 external acceptance note before claiming account-backed completion. No go-live authorization is implied by automated CI.
+
+
+- [ ] Sandbox webhook receiver (PR #153): verify deployed raw-byte path is reachable
+  by Stripe through configured Vercel protection without disabling protections for
+  unrelated owner routes, then register an exact TEST endpoint only with approved
+  permissions and encrypted signing secret provisioning. Generate an original Stripe
+  TEST event; verify valid HMAC, durable unique receipt and replay behavior through
+  an owner-private readback. A listing or mock is not delivery evidence. Never
+  register to the setup/OAuth/MCP endpoints. LIVE remains disabled.

@@ -300,3 +300,15 @@ G-4e2 credential lifecycle: the authenticated private setup page can forget one 
 
 ## G-5 native TEST account reads
 `account_get` requires selected TEST account identity to match `stripe.accounts.retrieve()`; only readiness booleans, safe country/currency and requirement counts are returned, never full Account objects or private fields. `account_list_capabilities` independently re-verifies the selected native TEST account, then calls the pinned SDK `accounts.listCapabilities(id)` and projects only capability identifier/status and optional requirement **counts**, not requirement strings. Stripe permission/own-account API denial returns `available:false,verification:not_readable`; it is never interpreted as a disabled capability, no enabled ACH claim, or an accomplished Dashboard setting. Both tools are read-only, never activate LIVE or change money.
+
+
+## Isolated Stripe Sandbox webhook receipt (PR #153)
+The only inbound TEST receiver is `/api/stripe/test-webhooks/:account/:endpoint`.
+Its Vercel file route disables body parsing and requires fresh exact-byte Stripe
+HMAC using the account+endpoint owner-encrypted signing secret. It rejects LIVE,
+Connect, non-POST and unauthenticated requests and stores only unique validated
+TEST event ID/type/time metadata in `test_webhook_receipts` (no raw payload).
+No Stripe endpoint has been registered from this deployment change. A Vercel READY
+build or a Stripe webhook listing does not prove Vercel Authentication permits
+Stripe ingress, authentic signed delivery, or provider retries. External TEST
+acceptance remains gated until a legitimate signed event reaches this route.
