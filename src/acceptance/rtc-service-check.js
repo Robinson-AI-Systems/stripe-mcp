@@ -113,11 +113,19 @@ export async function verifyRtcService({
         'provider_read_unverified');
       // Account profile read is a genuine Stripe API call, unlike stripe_whoami
       // (which reads only this service's own stored account configuration).
-      // Project down to account ID; NEVER print the full provider response.
+      // A permission-denied account_get response may legitimately echo
+      // only the selected local account ID with available:false. Therefore
+      // identity alone is NEVER proof of a successful Stripe API read.
+      // Require three safe booleans observed from the verified TEST provider.
       const provider=await request('/api/tools/stripe_account_get',
-        {method:'POST',body:{fields:['id']}});
+        {method:'POST',body:{fields:['id','chargesEnabled',
+          'payoutsEnabled','detailsSubmitted']}});
+      const snapshot=provider.data?.result;
       demand(provider.status===200&&provider.data.ok===true&&
-        provider.data.result?.id===expectedAccount,
+        snapshot?.id===expectedAccount&&snapshot.available!==false&&
+        typeof snapshot.chargesEnabled==='boolean'&&
+        typeof snapshot.payoutsEnabled==='boolean'&&
+        typeof snapshot.detailsSubmitted==='boolean',
       'provider_read_unverified');
       checks.push('provider_read');
     }
