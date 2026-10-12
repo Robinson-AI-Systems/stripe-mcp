@@ -1,6 +1,6 @@
 # Deploy Robinson Stripe MCP — owner checklist
 
-**Status (2026-10-10):** The server is built through Batch A, but **nothing has been deployed, connected to a real Stripe account, or enabled for live payments**. Follow this only when you choose to set up the server. See [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for the individual approval gates.
+**Status (2026-10-11 Colorado):** A first production **build** for `Robinson-AI-Systems/stripe-mcp` `main` completed READY in existing Vercel project `stripe-mcp` under `Robinson AI Systems`. This is **not an operational deployment**: Neon `DATABASE_URL`, owner passphrase, encryption key, TEST key and end-to-end OAuth have not been verified or configured. `PUBLIC_BASE_URL` was set on Production after the initial build; redeploy when required settings are present. Stripe LIVE is disabled. See [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for separate approval and verification gates.
 
 This is a personal tool for your projects. The normal process is **set it up once, connect your AI agent once, then let OAuth refresh credentials automatically**. You should not have to keep creating API keys or signing in for routine use. An agent app may impose its own renewal or reconnection rules; we cannot override those.
 
@@ -13,6 +13,13 @@ on the **same owner-controlled origin**:
 `STRIPE_PORTAL_RETURN_URL`. Redirect destinations cannot be specified by
 AI tool arguments; missing/mismatched values prevent writes. No LIVE Stripe
 operation or paid deployment is authorized by this instruction.
+
+## Current deployment details (not yet authenticated or usable)
+
+- Vercel project: `stripe-mcp` (team `Robinson AI Systems`, existing Pro plan), linked to the correct GitHub repository `Robinson-AI-Systems/stripe-mcp`, branch `main`.
+- Production origin configured in Vercel: `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` (`PUBLIC_BASE_URL`). Review deployment protection before exposing OAuth discovery to remote AI clients; build READY does not prove endpoint accessibility.
+- Neon organization currently uses the **Launch** usage-billed plan. Original IN-02 called for a free-tier project, so no additional billed Neon database was created during provisioning. Obtain explicit agreement to any metered usage before creating it; do not share an unrelated application's database.
+- Secrets have deliberately not been pasted into GitHub or chat. Complete IN-02/03/04, redeploy with production environment values, then run real TEST/OAuth and owner Dashboard acceptance. Leave LIVE disabled.
 
 ## What you need
 
