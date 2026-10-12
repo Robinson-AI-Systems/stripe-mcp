@@ -61,3 +61,24 @@ describe('RTC corrupted pass claim isolation',()=>{
     }
   });
 });
+
+describe('RTC corrupt pass identity and scoped result ownership',()=>{
+  it('refuses missing/malformed identity fields before authenticated reads',async()=>{
+    const fixture=await makeFixture();
+    for(const fields of [
+      {client_id:null},{client_id:'connector-client'},
+      {stripe_account:'acct_other-with-dash'},
+      {result_scope:null},{result_scope:'not-a-uuid'}
+    ]){
+      const response=await checkStatus(fixture,fields);
+      expect(response.statusCode).toBe(403);
+      expect(response.body.error.code).toBe('refused_by_guard');
+    }
+  });
+  it('returns an auth challenge when the stored pass is expired',async()=>{
+    const response=await checkStatus(await makeFixture(),
+      {expires_at:new Date(Date.now()-1000)});
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['WWW-Authenticate']).toContain('invalid_token');
+  });
+});

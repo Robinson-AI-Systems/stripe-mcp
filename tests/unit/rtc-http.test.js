@@ -258,3 +258,36 @@ describe('RTC batch shared rate accounting',()=>{
     expect(denied.headers['Retry-After']).toBe('60');
   });
 });
+
+describe('RTC HTTP Bearer challenge and pass byte boundaries',()=>{
+  it('accepts case-insensitive schemes but retains exact TEST pass bytes',async()=>{
+    const {handler}=await fixture();
+    for(const scheme of ['bearer','BEARER','bEaReR']){
+      const request=req();request.headers.authorization=scheme+'  '+pass;
+      const response=res();await handler(request,response,'whoami');
+      expect(response.statusCode).toBe(200);
+    }
+    for(const authorization of ['Basic '+pass,'Bearer RTC_PASS_'+pass.slice(9),
+      'Bearer '+pass+' other','Bearer\n'+pass]){
+      const request=req();request.headers.authorization=authorization;
+      const response=res();await handler(request,response,'whoami');
+      expect(response.statusCode).toBe(401);
+      expect(response.headers['WWW-Authenticate']).toContain('Bearer realm=');
+    }
+  });
+  it('sends a challenge for unknown and owner-revoked pass without echoing a secret',async()=>{
+    const {handler,db}=await fixture();
+    const unknown=res();await handler(req('GET',{},undefined,
+      'rtc_pass_'+randomBytes(32).toString('base64url')),unknown,'whoami');
+    expect(unknown.statusCode).toBe(401);
+    expect(unknown.headers['WWW-Authenticate']).toContain('invalid_token');
+    const intent='J'.repeat(32);
+    expect(await db.requestConnectionRevokeIntent({id:intent,account,
+      clientId:'rtc-agent-test1234',expiresAt:new Date(Date.now()+600000)})).toBe(true);
+    expect(await db.consumeConnectionRevokeIntent(intent)).toBe(true);
+    const revoked=res();await handler(req(),revoked,'whoami');
+    expect(revoked.statusCode).toBe(401);
+    expect(revoked.headers['WWW-Authenticate']).toContain('invalid_token');
+    expect(JSON.stringify(revoked.headers)).not.toContain(pass);
+  });
+});

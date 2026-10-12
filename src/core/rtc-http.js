@@ -5,7 +5,8 @@ import {dispatchReadOnlyTool} from './mcp-server.js';
 import {publicToolInfo} from './profiles.js';
 import {projectFields} from '../tools/result-rules.js';
 
-const AUTH=/^Bearer (rtc_pass_[A-Za-z0-9_-]{43})$/;
+// HTTP authentication scheme tokens are case-insensitive; pass bytes are not.
+const AUTH=/^[Bb][Ee][Aa][Rr][Ee][Rr][ \t]+(rtc_pass_[A-Za-z0-9_-]{43})$/;
 const READ_ONLY=new Set(['read_only']);
 const CODE=new Set(['permission','pass_revoked','pass_expired','rate_limited',
   'invalid_args','not_found','refused_by_guard','outside_scope','service_error']);
@@ -129,14 +130,27 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     try{pass=await db.getRtcPassStatus(auth[1]);}catch{
       return send(res,503,err('service_error',503).body);
     }
-    if(!pass||pass.kind!=='pass')return send(res,401,err('permission',401).body);
-    if(pass.revoked_at)return send(res,401,err('pass_revoked',401).body);
+    const denied=(code)=>{
+      res.setHeader('WWW-Authenticate',
+        'Bearer realm="RTC TEST pass", error="invalid_token"');
+      return send(res,401,err(code,401).body);
+    };
+    if(!pass||pass.kind!=='pass')return denied('permission');
+    if(pass.revoked_at)return denied('pass_revoked');
     // Invalid/far-future dates must not become immortal TEST passes.
     // Owner issuance is at most 24h (+60s allowed for clock drift).
     const expiry=new Date(pass.expires_at??'invalid').getTime();
     if(!Number.isFinite(expiry)||expiry<=Date.now()||
       expiry>Date.now()+86_460_000)
-      return send(res,401,err('pass_expired',401).body);
+      return denied('pass_expired');
+    // Reject corrupt identities/scopes before touching any TEST provider.
+    if(typeof pass.client_id!=='string'||
+      !/^rtc-agent-[a-z0-9-]{8,80}$/.test(pass.client_id)||
+      typeof pass.stripe_account!=='string'||
+      !/^acct_[A-Za-z0-9]{2,100}$/.test(pass.stripe_account)||
+      typeof pass.result_scope!=='string'||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(pass.result_scope))
+      return send(res,403,err('refused_by_guard',403).body);
     // Never coerce null/false/string claims into financial and rate limits.
     // PostgreSQL INTEGER/BOOLEAN columns return native numbers/booleans.
     if(pass.mode!=='test'||!READ_ONLY.has(pass.profile)||
