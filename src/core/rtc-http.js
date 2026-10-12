@@ -20,9 +20,12 @@ const INTERNAL=new Set(['stripe_get_result','stripe_whoami']);
 const inScope=(t,areas)=>!Array.isArray(areas)||
   ((!DELEGATES.has(t.name))&&
     (areas.includes(t.area??'server')||INTERNAL.has(t.name)));
-// Guard and manifest must use the same provider-derived money classification.
- // Stripe's defineWrite adapter declares moneySpec/safety, not a money boolean.
-const moneyTool=t=>t?.money===true||t?.moneySpec==='provider-derived'||t?.safety==='
+// Guard and manifest must share the provider-derived money classification.
+// Stripe guarded writes expose moneySpec/safety instead of a money boolean.
+const moneyTool=t=>t?.money===true||t?.moneySpec==='provider-derived'||
+  t?.safety===String.fromCharCode(36);
+const safeRead=t=>t?.writes===false&&!moneyTool(t)&&
+  t.destructive!==true&&t.profiles?.includes('read_only');
 const allowedTool=(registry,name,areas)=>registry.tools.find(t=>
   alias(t.name)===name&&safeRead(t)&&inScope(t,areas))??null;
 const metadata=t=>{
