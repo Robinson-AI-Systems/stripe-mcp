@@ -9,8 +9,8 @@ import {handlers as webhookHandlers} from './webhooks-read.js';
 import {handlers as portalHandlers} from './checkout.js';
 import {DASHBOARD_SETTINGS,whereIsSetting} from '../data/dashboard-map.js';
 import {denverLocalTime} from './util.js';
+import {requireAdminTestAccount,validateAdminArgs,parseAdminReply,readAdminTool} from './admin-read-safety.js';
 
-const accountOk=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
 const bad=m=>{throw new TypeError(m);};
 const link='https://dashboard.stripe.com/settings';
 const categories=Object.freeze({
@@ -25,19 +25,6 @@ const categories=Object.freeze({
   capabilities:'Capability eligibility',
   other:'Other account verification requirements'
 });
-function requireTest(ctx){
-  const id=ctx?.connection?.stripeAccount;
-  if(ctx?.connection?.mode!=='test'||!accountOk(id))bad('Select a connected TEST Stripe account');
-  return id;
-}
-function validate(a,keys){
-  if(!a||typeof a!=='object'||Array.isArray(a)||
-    Object.keys(a).some(k=>!keys.includes(k)))bad('Unsupported owner read arguments');
-}
-const unpack=v=>{
-  if(v?.isError||!Array.isArray(v?.content)||v.content.length!==1)return null;
-  try{return JSON.parse(v.content[0].text);}catch{return null;}
-};
 function safeCount(rows){
   if(rows==null)return null;
   if(!Array.isArray(rows)||rows.length>1000||
@@ -99,8 +86,8 @@ export const tools=[
 export const handlers={
   async admin_list_requirements(a,ctx){
     try{
-      validate(a,[]);
-      const id=requireTest(ctx);
+      validateAdminArgs(a);
+      const id=requireAdminTestAccount(ctx);
       const sdk=await client(ctx);
       let record;
       try{record=await sdk.accounts.retrieve();}
@@ -117,11 +104,11 @@ export const handlers={
   },
   async stripe_admin_overview(a,ctx){
     try{
-      validate(a,[]);
-      const id=requireTest(ctx);
+      validateAdminArgs(a);
+      const id=requireAdminTestAccount(ctx);
       const sections={};
       const guide=(setting)=>whereIsSetting(setting).url;
-      const acc=unpack(await accountHandlers.account_get({detail:'full'},ctx));
+      const acc=parseAdminReply(await accountHandlers.account_get({detail:'full'},ctx));
       const accountObserved=acc?.id===id&&acc?.verification!=='not_readable'&&
         acc?.available!==false&&['ok','needs_attention'].includes(acc?.verification);
       sections.account={status:accountObserved?acc.verification:'not_readable',
@@ -133,7 +120,7 @@ export const handlers={
         dashboardUrl:guide('account_verification')};
       // Capability statuses are raw observed facts, not an assertion that every method is enabled.
       let caps=null;
-      try{caps=unpack(await capabilityHandlers.account_list_capabilities({limit:20},ctx));}
+      try{caps=parseAdminReply(await capabilityHandlers.account_list_capabilities({limit:20},ctx));}
       catch{/* A failed read must never imply healthy capabilities. */}
       const capObserved=caps?.account===id&&caps?.available===true&&
         Array.isArray(caps.capabilities)&&caps.hasMore===false;
@@ -155,9 +142,7 @@ export const handlers={
       }
       // Reuse the existing registered TEST readers. A reader error is an
       // unobserved section, never an empty successful inventory.
-      const read=async(fn,args)=>{
-        try{return unpack(await fn(args,ctx));}catch{return null;}
-      };
+      const read=(fn,args)=>readAdminTool(fn,args,ctx);
       const [banks,schedule,methods,domains,hooks,portal]=await Promise.all([
         read(payoutHandlers.money_list_bank_accounts,{limit:5}),
         read(payoutHandlers.money_get_payout_schedule,{}),

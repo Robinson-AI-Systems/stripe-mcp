@@ -3,21 +3,13 @@ import {reply,fail,allProfiles} from './billing-shared.js';
 import {handlers as owner} from './server.js';
 import {handlers as webhooks} from './webhooks-read.js';
 import {whereIsSetting} from '../data/dashboard-map.js';
-const accountOk=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
+import {requireAdminTestAccount,readAdminTool} from './admin-read-safety.js';
 const bad=m=>{throw new TypeError(m);};
-const json=r=>{
-  if(r?.isError||!Array.isArray(r?.content)||r.content.length!==1)return null;
-  try{return JSON.parse(r.content[0].text);}catch{return null;}
-};
 const guide=setting=>({
   status:'not_readable',observed:false,
   dashboardUrl:whereIsSetting(setting).url,
   steps:whereIsSetting(setting).steps
 });
-async function read(handler,args,ctx){
-  try{return json(await handler(args,ctx));}
-  catch{return null;}
-}
 function safeKey(v,id){
   if(v?.account!==id)return null;
   const keyType=['restricted','standard','unknown'].includes(v.keyType)?
@@ -54,15 +46,13 @@ export const handlers={
     try{
       if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).length)
         bad('Security review takes no parameters');
-      const id=ctx?.connection?.stripeAccount;
-      if(ctx?.connection?.mode!=='test'||!accountOk(id))
-        bad('Select a connected TEST Stripe account');
+      const id=requireAdminTestAccount(ctx);
       const result={account:id,mode:'test',readOnly:true,sections:{}};
-      const info=await read(owner.stripe_whoami,{},ctx);
+      const info=await readAdminTool(owner.stripe_whoami,{},ctx);
       result.sections.key=safeKey(info,id)??guide('api_keys');
-      const probe=await read(owner.stripe_check_key_permissions,{},ctx);
+      const probe=await readAdminTool(owner.stripe_check_key_permissions,{},ctx);
       result.sections.keyPermissions=safeProbe(probe,id)??guide('restricted_key_creation');
-      const connections=await read(owner.stripe_list_connections,{limit:20},ctx);
+      const connections=await readAdminTool(owner.stripe_list_connections,{limit:20},ctx);
       if(connections?.account===id&&Array.isArray(connections.connections)&&
         typeof connections.hasMore==='boolean'&&connections.connections.length<=20){
         result.sections.connections={status:'observed',observed:true,
@@ -73,7 +63,7 @@ export const handlers={
         result.sections.connections={status:'not_readable',observed:false,
           note:'Connected pass/agent inventory was not accessible to this session.'};
       }
-      const hook=await read(webhooks.webhook_list,{limit:5},ctx);
+      const hook=await readAdminTool(webhooks.webhook_list,{limit:5},ctx);
       if(hook&&Array.isArray(hook.data)&&hook.data.length<=5&&
         typeof hook.has_more==='boolean'&&hook.data.every(v=>
           typeof v.id==='string'&&['enabled','disabled'].includes(v.status))){
