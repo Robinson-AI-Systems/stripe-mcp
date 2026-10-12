@@ -33,6 +33,49 @@ async function submit(handler,c,body,origin=env.PUBLIC_BASE_URL){
   await handler(req('POST',{csrf:c.csrf,...body},{origin,cookie:c.cookie}),r);
   return r;
 }
+describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
+  it('checks strict origin, CSRF, passphrase, exact TEST account and redacts report',async()=>{
+    const db=createFakeDb();
+    const calls=[];
+    const runTestSmoke=async({account})=>{
+      calls.push(account);
+      return {account,mode:'test',source:'custom_mcp_dispatch',
+        verifiedIdentity:true,dashboardVerified:false,writeOperations:0,
+        records:['account_get','account_list_capabilities','account_list_payment_method_settings',
+          'account_list_apple_pay_domains','event_list','webhook_list',
+          'admin_list_requirements','admin_check_setting'].map(tool=>({
+            tool,status:tool==='webhook_list'?'partial':'observed'
+          })),key:'rk_test_FAKE_SHOULD_NOT_BE_EXPOSED'};
+    };
+    const handler=createSetupHandler({db,runTestSmoke,env});
+    const c=cookiePage(await page(handler));
+    const request={action:'run-test-smoke',account:'acct_SAFEOWNER',passphrase:env.ADMIN_PASSPHRASE};
+    expect((await submit(handler,c,request,'https://evil.example.test')).statusCode).toBe(403);
+    expect((await submit(handler,{...c,csrf:'wrong'},request)).statusCode).toBe(403);
+    expect((await submit(handler,c,{...request,passphrase:'wrong'})).statusCode).toBe(401);
+    expect((await submit(handler,c,{...request,account:'acct_$OTHER'})).statusCode).toBe(400);
+    expect(calls).toHaveLength(0);
+    const response=await submit(handler,c,request);
+    expect(response.statusCode).toBe(200);
+    expect(calls).toEqual(['acct_SAFEOWNER']);
+    expect(response.body).toContain('custom_mcp_dispatch');
+    expect(response.body).toContain('partial');
+    expect(response.body).not.toContain('rk_test_FAKE_SHOULD_NOT_BE_EXPOSED');
+    expect(response.body).toContain('not Dashboard acceptance');
+  });
+  it('refuses malformed or foreign provider results and never reports completion',async()=>{
+    const db=createFakeDb();
+    const handler=createSetupHandler({db,env,
+      runTestSmoke:async()=>({account:'acct_FOREIGN',mode:'test',records:[]})});
+    const c=cookiePage(await page(handler));
+    const response=await submit(handler,c,{action:'run-test-smoke',
+      account:'acct_SAFEOWNER',passphrase:env.ADMIN_PASSPHRASE});
+    expect(response.statusCode).toBe(503);
+    expect(response.body).toContain('No acceptance recorded');
+    expect(response.body).not.toContain('acct_FOREIGN');
+  });
+});
+
 describe('A-5b owner-only Stripe setup page',()=>{
   it('offers key entry directly in HTML without exposing account data or requiring env key on GET',async()=>{
     const {handler}=await fixture();

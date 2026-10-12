@@ -1,6 +1,6 @@
 # A-3 follow-up — MCP public-client OAuth interoperability (#140)
 
-Status: PROPOSED (exact-head CI, review and merge required). Approved foundation A-3 and external custom MCP acceptance gate.
+Status: MERGED #140 (five exact-head CI checks passed; self-review and merge complete). Approved foundation A-3 and external custom MCP acceptance gate.
 
 ## Drift A
 - The current metadata supports `client_secret_post` only. Current MCP authorization permits PKCE-only public clients; confidential registrations must remain compatible.

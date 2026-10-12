@@ -5,6 +5,7 @@ import { createSetupHandler } from '../../src/stripe/setup-page.js';
 import { createReportDownloader } from '../../src/stripe/report-download.js';
 import { createWebhookSignatureStore, createOwnerWebhookProvisioner } from '../../src/webhooks/signature-store.js';
 import { makeStripeClient } from '../../src/stripe/client.js';
+import { runOwnerTestSmoke } from '../../src/acceptance/owner-test-smoke.js';
 
 export default async function handler(req, res) {
   try {
@@ -22,8 +23,16 @@ export default async function handler(req, res) {
       if(!row)return false;
       return createWebhookSignatureStore({db}).remove({account,endpoint});
     }:null;
+    // This owner-authenticated form alone may invoke the standard server key
+    // loader. Raw credentials never enter the browser, AI connector or report.
+    const runTestSmoke=configured?async({account})=>{
+      const selected=await db.getStripeAccount(account);
+      if(!selected?.test_connected)throw new Error('No encrypted TEST key for selected account');
+      const key=await keyStore.loadKey({account,mode:'test'});
+      return runOwnerTestSmoke({account,key});
+    }:null;
     return await createSetupHandler({ db, keyStore, oneTimeStore,provisionWebhookSecret,forgetWebhookSecret,
-      reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
+      runTestSmoke,reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
       error: 'temporarily_unavailable', description: 'Configure the private Stripe MCP server before setup'
