@@ -10,6 +10,7 @@ import {createProfileOverlay} from './k3-profile-overlay.mjs';
 import {createMcpAuthOverlay} from './k3-mcp-auth-overlay.mjs';
 import {createOAuthProtocolOverlay} from './k3-oauth-overlay.mjs';
 import {createPrivateStripeWriteOverlay} from './k3-write-overlay.mjs';
+import {overlayDispatch} from './k3-dispatch-overlay.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 export const candidateCommit='08f4189f72dbe1d5b870c7b17daabd39833eff31';
@@ -230,6 +231,25 @@ export function rehearse(){
       writeFileSync(writePath,originalWrite);
       rmSync(writeSidecar,{force:true});
     }
+    // Exercise the portable dispatcher against original MCP SDK transport
+    // and actual source localhost HTTP/SQL identity and response handling.
+    const dispatchPath=join(root,'src/core/mcp-server.js');
+    const originalDispatch=readFileSync(dispatchPath,'utf8');
+    let dispatchProof;
+    try{
+      writeFileSync(dispatchPath,overlayDispatch(originalDispatch));
+      const unit=['tests/unit/server-tools.test.js',
+        'tests/unit/mcp-dispatch-safety.test.js'];
+      const sql=['tests/db/oauth-real-mcp-wire.test.js',
+        'tests/db/rtc-real-http.test.js'];
+      cmd('npx',['--no-install','vitest','run','--config','vitest.config.js',
+        ...unit],root,180000);
+      cmd('npm',['run','test:db','--',...sql],root,240000);
+      dispatchProof={adaptedExport:'mcp-dispatch',originalUnitSuites:unit.length,
+        originalHttpSqlSuites:sql.length,sourceMcpSdkTransport:true,
+        sourceTenantResultScope:true,nestedWritesDenied:true,
+        privateOnly:true};
+    }finally{writeFileSync(dispatchPath,originalDispatch);}
     if(oneTimeAdapterSql.schema!=='actual-stripe-one_time_secrets'||
       oneTimeAdapterSql.pools!==2||
       oneTimeAdapterSql.legacyIssuedPortableConsumed!==true||
@@ -239,7 +259,7 @@ export function rehearse(){
       oneTimeAdapterSql.expiredRefused!==true||
       oneTimeAdapterSql.providerCalls!==0)
       throw Error('K-3 original SQL one-time adapter proof incomplete');
-    return {writeAdapterProof,oauthProtocolProof,bearerProof,bearerServiceProof,profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
+    return {dispatchProof,writeAdapterProof,oauthProtocolProof,bearerProof,bearerServiceProof,profileAdapterProof,oneTimeAdapterSql,hubCommit:candidateCommit,sha256,private:true,published:false,
       sourceServiceRepoModified:false,overlaidImports:leaves.length,
       unchangedStripeUnitSuites:originalUnit.length,
       originalSqlSuites:originalSql.length,releaseReady:false};
