@@ -3,6 +3,8 @@
 For Sol 5.6 (or any model) implementing a PR card. Read **this page and your card**, then work. Open other rule files
 only when a step below names them, a section at a time. `AGENTS.md` still governs; this page is its short form.
 
+Read [development efficiency](DEVELOPMENT-EFFICIENCY.md) for PR grouping, shared test/transport helpers and CI measurement; preserve all hard limits.
+
 ## 0. First thing, every session: finish what is already open
 
 Your session can end at any moment (the chat stops between actions), so the next session starts here, not at a new card.

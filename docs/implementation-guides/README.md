@@ -4,7 +4,7 @@ Execution aids for Sol 5.6 and any other implementer. These guides describe **ex
 they do not approve new scope, replace AGENTS/designs/cards, change owner consent, or relax checks.
 
 Verified baseline: `2a71f8a03845ad3bf8c8de9de4207a72596ace78` (main, #93 merged, 2026-10-11).
-No open PRs at inspection. G-2d is next according to STATUS and G-2's approved slice list.
+This #93 snapshot is historic: current main and STATUS determine the next task, never this G-2d example. See [efficiency policy](../DEVELOPMENT-EFFICIENCY.md) for inspected reusable G-6 helpers.
 Recheck GitHub and drift checklist A before using any path or number here; this is a dated code map, not a queue.
 
 ## Read only the applicable section

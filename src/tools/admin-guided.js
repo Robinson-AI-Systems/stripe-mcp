@@ -7,13 +7,9 @@ import {handlers as domainHandlers} from './account-apple-pay-domains.js';
 import {handlers as webhookHandlers} from './webhooks-read.js';
 import {handlers as portalHandlers} from './checkout.js';
 import {reply,fail,allProfiles} from './billing-shared.js';
+import {requireAdminTestAccount,parseAdminReply} from './admin-read-safety.js';
 const categories=['account','payments','billing','security','tax','developers','other'];
 const bad=message=>{throw new TypeError(message);};
-const idOk=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
-function checkCtx(ctx){
-  if(ctx?.connection?.mode!=='test'||!idOk(ctx?.connection?.stripeAccount))
-    bad('Select a connected TEST Stripe account');
-}
 function validateList(a){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>!['section','limit','offset','detail'].includes(k))||
@@ -32,10 +28,6 @@ const asGuide=(key,detail)=>{
     ...(detail==='full'?{steps:DASHBOARD_SETTINGS[key].steps}:{} )};
 };
 
-const safeResponse=response=>{
-  if(response?.isError||!Array.isArray(response?.content)||response.content.length!==1)return null;
-  try{return JSON.parse(response.content[0].text);}catch{return null;}
-};
 // A reader is independently scoped to the selected TEST account, and only its
 // deliberately whitelisted projection may appear in the owner verification.
 const NATIVE_SETTING_READS=Object.freeze({
@@ -50,7 +42,7 @@ async function readNative(setting,ctx){
   const [fn,args]=NATIVE_SETTING_READS[setting]??[];
   if(!fn)return null; // Even a registered key-permission probe cannot verify key creation.
   let value;
-  try{value=safeResponse(await fn(args,ctx));}
+  try{value=parseAdminReply(await fn(args,ctx));}
   catch{return null;}
   if(!value)return null;
   const account=ctx.connection.stripeAccount;
@@ -111,7 +103,7 @@ export const tools=[
 export const handlers={
   async admin_list_guided_settings(a,ctx){
     try{
-      checkCtx(ctx);validateList(a);
+      requireAdminTestAccount(ctx);validateList(a);
       const keys=Object.keys(DASHBOARD_SETTINGS).sort()
         .filter(k=>a.section===undefined||(DASHBOARD_SECTION[k]??'other')===a.section);
       const offset=a.offset??0,limit=Math.min(a.limit??10,a.detail==='full'?5:20);
@@ -125,7 +117,7 @@ export const handlers={
   },
   async admin_check_setting(a,ctx){
     try{
-      checkCtx(ctx);
+      requireAdminTestAccount(ctx);
       if(!a||typeof a!=='object'||Array.isArray(a)||
         Object.keys(a).some(k=>k!=='setting')||
         typeof a.setting!=='string'||a.setting.length>100)
@@ -139,7 +131,7 @@ export const handlers={
             status:'not_readable',observed:false,complete:false,
             note:'This Dashboard-only setting has no native verification. Follow the owner steps and check it in Stripe.'});
         let identity;
-        try{identity=safeResponse(await accountHandlers.account_get({},ctx));}
+        try{identity=parseAdminReply(await accountHandlers.account_get({},ctx));}
         catch{/* Provider identity access can fail; never infer a successful setting. */}
         if(identity?.id!==ctx.connection.stripeAccount||identity?.available===false)
           return reply({...guided,account:ctx.connection.stripeAccount,
@@ -158,7 +150,7 @@ export const handlers={
       if(result?.isError)return reply({...guided,account:ctx.connection.stripeAccount,
         status:'not_readable',observed:false,
         note:'Account verification read was refused or unavailable.'});
-      const value=safeResponse(result);
+      const value=parseAdminReply(result);
       const state=value?.available===false?'not_readable':
         value?.verification==='ok'?'ok':
         value?.verification==='needs_attention'?'needs_attention':'not_readable';

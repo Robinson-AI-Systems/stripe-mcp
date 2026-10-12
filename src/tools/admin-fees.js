@@ -1,7 +1,7 @@
 // G-6d: bounded TEST fee ledger observations, not a Stripe pricing statement.
 import {client,reply,fail,allProfiles} from './billing-shared.js';
+import {requireAdminTestAccount} from './admin-read-safety.js';
 const bad=m=>{throw new TypeError(m);};
-const acct=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
 const txn=x=>typeof x==='string'&&/^txn_[A-Za-z0-9]{2,100}$/.test(x);
 const minor=x=>Number.isSafeInteger(x)&&Math.abs(x)<=1000000000000;
 const currencies=x=>typeof x==='string'&&/^[a-z]{3}$/.test(x);
@@ -75,9 +75,7 @@ export const handlers={
   async admin_fees_and_billing(a,ctx){
     try{
       validate(a);
-      const account=ctx?.connection?.stripeAccount;
-      if(ctx?.connection?.mode!=='test'||!acct(account))
-        bad('Select a connected TEST Stripe account');
+      const account=requireAdminTestAccount(ctx);
       const s=await client(ctx);
       let own;
       try{own=await s.accounts.retrieve();}

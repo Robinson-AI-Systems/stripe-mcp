@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#126 engineering efficiency (as-if-merged; CI pending):** shared strict TEST owner administration transport across four handlers, fail-closed regression tests, npm cache in all four existing verification jobs while preserving the fifth aggregate gate, canonical startup and JIT guidance. No Stripe API, credentials, money, LIVE or owner authorization changes. Next: owner-connected G-6 acceptance and G-4/G-5 smoke still unverified; follow approved H-1 JIT implementation without claiming TEST acceptance.
+
 - **G-6f guarded native guided-settings observation (#125 as-if-merged; exact-head CI pending):** selected TEST account identity and existing independently scoped native bank/schedule/payment/domain/webhook/portal readbacks, explicit incomplete/not_readable, never equate observed with owner-intended configuration. G-6 automated tools implemented, **G-6 remains IN_PROGRESS** pending an actual authenticated owner TEST account walkthrough and Stripe Dashboard map validation; G-4/G-5 connected smoke still pending. No LIVE or money.
 
 - **G-6e native owner overview evidence (#124 as-if-merged; CI pending):** aggregate registered TEST readers for masked bank, payout schedule, payment configuration/domain, webhook endpoints and portal; each section observed/partial/not_readable separately, with all mapped guided states. No Stripe mutation/secret/PII. Next G-6f guided setting readback and full acceptance reconciliation. G-4/G-5 actual owner-connected smoke still pending.
