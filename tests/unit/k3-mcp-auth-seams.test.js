@@ -35,11 +35,11 @@ describe('K-3 Stripe-owned portable bearer seam',()=>{
     await handler({good:false,headers:{authorization:'Bearer '+token}},{});
     expect(actualHeader).toBeUndefined();
     expect(projector({kind:'connector',mode:'live',profile:'full',listing:'catalog',
-      client_id:'x',stripe_account:'acct_ONE',result_scope:'scope'})).toBeNull();
+      client_id:'x',stripe_account:'acct_FAKE_ONE',result_scope:'scope'})).toBeNull();
     expect(projector({kind:'pass',mode:'test',profile:'read_only',listing:'compact',
-      client_id:'x',stripe_account:'acct_ONE',result_scope:'scope'})).toBeNull();
+      client_id:'x',stripe_account:'acct_FAKE_ONE',result_scope:'scope'})).toBeNull();
     expect(projector({kind:'connector',mode:'test',profile:'read_only',listing:'compact',
-      client_id:'x',stripe_account:'acct_ONE',result_scope:'scope'})).toMatchObject({
-        clientId:'x',stripeAccount:'acct_ONE',mode:'test',profile:'read_only'});
+      client_id:'x',stripe_account:'acct_FAKE_ONE',result_scope:'scope'})).toMatchObject({
+        clientId:'x',stripeAccount:'acct_FAKE_ONE',mode:'test',profile:'read_only'});
   });
 });

@@ -18,8 +18,7 @@ export function createStripeCoreMcpAuthenticator({core,db,env=process.env}){
       if(!record||record.kind!=='connector'||record.mode!=='test'||
         !VALID_PROFILES.has(record.profile)||!VALID_LISTINGS.has(record.listing)||
         typeof record.client_id!=='string'||!record.client_id||
-        typeof record.stripe_account!=='string'||
-        !/^acct_[A-Za-z0-9]{2,100}$/.test(record.stripe_account)||
+        typeof record.stripe_account!=='string'||!record.stripe_account||
         typeof record.result_scope!=='string'||!record.result_scope)
         return null;
       return {
