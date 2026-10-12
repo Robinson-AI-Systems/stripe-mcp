@@ -8,7 +8,7 @@ const account='acct_RTCSECURE';
 const token='rtc_pass_'+randomBytes(32).toString('base64url');
 const other='rtc_pass_'+randomBytes(32).toString('base64url');
 function fixture({wrongAccount=false,invalidWrite=false,provider=false,
-  missingArea=false,revoked=false}={}){
+  missingArea=false,revoked=false,permissionDenied=false}={}){
   const seen=[];
   const wire=async(url,init)=>{
     seen.push({path:new URL(url).pathname+new URL(url).search,method:init.method,
@@ -44,8 +44,10 @@ function fixture({wrongAccount=false,invalidWrite=false,provider=false,
           {ok:false,error:{code:'refused_by_guard'}};
         break;
       case '/api/tools/stripe_account_get':
-        value={ok:true,result:{id:provider?'acct_OTHER':account,
-          chargesEnabled:true,payoutsEnabled:false,detailsSubmitted:true}};
+        value={ok:true,result:permissionDenied?
+          {id:account,available:false,verification:'not_readable'}:
+          {id:provider?'acct_OTHER':account,
+            chargesEnabled:true,payoutsEnabled:false,detailsSubmitted:true}};
         break;
       default: throw Error('Unexpected request');
     }
@@ -90,11 +92,12 @@ describe('RTC genuine hosted TEST acceptance runner (network injected, not exter
       [{wrongAccount:true},'identity_mismatch'],
       [{invalidWrite:true},'unsafe_tool_not_refused'],
       [{provider:true},'provider_read_unverified'],
-      [{missingArea:true},'provider_read_unverified']
+      [{missingArea:true},'provider_read_unverified'],
+      [{permissionDenied:true},'provider_read_unverified']
     ]){
       const {wire,seen}=fixture(opts);
       const report=await verifyRtcService({...options(wire),
-        providerRead:opts.provider||opts.missingArea});
+        providerRead:opts.provider||opts.missingArea||opts.permissionDenied});
       expect(report).toMatchObject({status:'failed',code});
       if(opts.wrongAccount)expect(seen).toHaveLength(2);
       if(opts.missingArea)expect(seen.some(s=>
