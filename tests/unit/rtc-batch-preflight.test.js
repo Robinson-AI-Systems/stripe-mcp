@@ -55,3 +55,17 @@ describe('RTC batch preflight before any provider reads',()=>{
     expect(r.body.result.results.every(x=>!('private' in x.result))).toBe(true);
   });
 });
+
+describe('RTC parsed HTTP body byte-cap provider isolation',()=>{
+  it('refuses oversized structured JSON before running any TEST handler',async()=>{
+    const f=await fixture();
+    const oversized={calls:[good],padding:'x'.repeat(17*1024)};
+    const r=response();
+    const bad=request(oversized);
+    bad.headers['content-length']='2';
+    await f.handler(bad,r,'batch');
+    expect(r.statusCode).toBe(400);
+    expect(r.body.error.code).toBe('invalid_args');
+    expect(f.readCount()).toBe(0);
+  });
+});

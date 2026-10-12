@@ -41,9 +41,15 @@ export function incomingBodyWithinLimit(req) {
   } else if (typeof req.body === 'string' || Buffer.isBuffer(req.body)) {
     const bytes = Buffer.byteLength(req.body);
     if (bytes > MAX_HTTP_BODY_BYTES || (declared !== undefined && bytes !== declared)) return false;
-  } else if (declared === undefined && req.body && typeof req.body === 'object') {
-    // Chunked, pre-parsed input without a reliable raw byte count: fail closed.
-    return false;
+  } else if (req.body && typeof req.body === 'object') {
+    // Some frameworks pre-parse JSON and leave a caller-controlled short
+    // Content-Length behind. Always bound the structured payload itself;
+    // the declared length alone is not evidence that the object was small.
+    if (declared === undefined) return false;
+    try {
+      if (Buffer.byteLength(JSON.stringify(req.body), 'utf8') > MAX_HTTP_BODY_BYTES)
+        return false;
+    } catch { return false; }
   }
   return true;
 }
