@@ -44,7 +44,8 @@ function fixture({wrongAccount=false,invalidWrite=false,provider=false,
           {ok:false,error:{code:'refused_by_guard'}};
         break;
       case '/api/tools/stripe_account_get':
-        value={ok:true,result:{id:provider?'acct_OTHER':account}};
+        value={ok:true,result:{id:provider?'acct_OTHER':account,
+          chargesEnabled:true,payoutsEnabled:false,detailsSubmitted:true}};
         break;
       default: throw Error('Unexpected request');
     }
@@ -80,7 +81,8 @@ describe('RTC genuine hosted TEST acceptance runner (network injected, not exter
     expect(result.providerRead).toBe('passed');
     expect(result.checks).toContain('provider_read');
     const request=seen.find(x=>x.path==='/api/tools/stripe_account_get');
-    expect(JSON.parse(request.body)).toEqual({fields:['id']});
+    expect(JSON.parse(request.body)).toEqual({fields:['id','chargesEnabled',
+      'payoutsEnabled','detailsSubmitted']});
     expect(JSON.stringify(result)).not.toContain(account);
   });
   it('refuses forged identity, enabled write and provider account mismatch',async()=>{
