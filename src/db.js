@@ -17,7 +17,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates'
 ]);
 
 let productionSql;
@@ -99,6 +99,24 @@ export function createDb(sql = getProductionSql()) {
         FROM stripe_accounts WHERE id=${account} AND test_key_enc IS NOT NULL
           AND live_enabled=FALSE RETURNING client_id`;
       return rows.length===1;
+    },
+    async getRtcPassStatus(token) {
+      if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token))return null;
+      const rows=await sql`SELECT client_id,stripe_account,mode,profile,listing,
+        kind,result_scope,allow_writes,money_limit_cents,areas,for_hub,
+        rate_limit_per_minute,expires_at,revoked_at
+        FROM oauth_tokens WHERE token_hash=${hashToken(token)} AND kind='pass'`;
+      return rows[0]??null;
+    },
+    async consumeRtcPassRate({token,limit}) {
+      if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token)||
+        !Number.isInteger(limit)||limit<1||limit>600)
+        throw new TypeError('Valid RTC TEST rate selector required');
+      const rows=await sql`INSERT INTO rtc_pass_rates (token_hash,window_start,count)
+        VALUES (${hashToken(token)},date_trunc('minute',now()),1)
+        ON CONFLICT (token_hash,window_start) DO UPDATE SET
+          count=rtc_pass_rates.count+1 RETURNING count`;
+      return Number(rows[0]?.count)<=limit;
     },
     async getRtcPass(token) {
       if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token))return null;
@@ -728,6 +746,11 @@ export function createDb(sql = getProductionSql()) {
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS areas TEXT[]`;
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS for_hub BOOLEAN NOT NULL DEFAULT FALSE`;
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS rate_limit_per_minute INTEGER NOT NULL DEFAULT 120`;
+      await sql`CREATE TABLE IF NOT EXISTS rtc_pass_rates (
+        token_hash TEXT NOT NULL, window_start TIMESTAMPTZ NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(token_hash,window_start)
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS rtc_pass_rates_window_idx ON rtc_pass_rates(window_start)`;
       await sql`CREATE TABLE IF NOT EXISTS result_store (
         handle TEXT PRIMARY KEY,
         connection TEXT NOT NULL,

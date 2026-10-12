@@ -156,3 +156,13 @@ pass with no money authority. Open the returned one-time reveal link and re-ente
 the passphrase; the bearer is never printed in AI output or stored in plain
 text. The pass has a separate connection ID for owner revocation. The upcoming
 HTTPS RTC routes must be finished and tested before using it for Toolkit D-4.
+
+
+## Toolkit HTTPS TEST reads (PR #155)
+The service now provides public `/api/contract` and `/api/openapi.json`, plus
+pass-only `/api/whoami`, `/api/tools`, `/api/tools/{name}` (GET metadata/POST
+read), `/api/tools/_batch`, and `/api/results/{handle}`. Only owner-created
+24-hour TEST read-only passes work. The API cannot execute Stripe writes or
+move money, and the underlying `/api/mcp` remains separate. No pass goes in
+chat, URL or logs. The hub's real three-route D-4 verification and complete RTC
+write conformance remain pending. Revoke temporary passes by connection ID.

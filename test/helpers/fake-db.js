@@ -15,6 +15,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const oneTimeSecrets = new Map();
   const webhookSigningSecrets = new Map();
   const testWebhookReceipts = new Map();
+  const rtcPassRates = new Map();
   const audit = [];
   const reservations = [];
   const approvals = [];
@@ -88,6 +89,15 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         kind:'pass',result_scope:randomUUID(),allow_writes:false,
         money_limit_cents:0,areas:null,for_hub:false,rate_limit_per_minute:120,
         expires_at:expiresAt.getTime(),revoked_at:null});return true;
+    },
+    async getRtcPassStatus(token){
+      const row=tokens.get(hashToken(token));
+      return row?.kind==='pass'?structuredClone(row):null;
+    },
+    async consumeRtcPassRate({token,limit}){
+      const key=hashToken(token)+'|'+Math.floor(clock()/60000);
+      const count=(rtcPassRates.get(key)??0)+1;
+      rtcPassRates.set(key,count);return count<=limit;
     },
     async getRtcPass(token){
       const row=tokens.get(hashToken(token));

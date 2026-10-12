@@ -83,9 +83,26 @@ jobs:
         env:
           STRIPE_MOCK_EXTERNAL: '1'
 
+  rtc-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Robinson-AI-Systems/robinsons-toolkit-hub
+          ref: f8e61dbca058c29ded572a660082429d5a3e6641
+          path: rtc-reference
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: rtc-reference/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit
+        working-directory: rtc-reference
+      - run: npm run test:conformance
+        working-directory: rtc-reference
   ci:
     if: always()
-    needs: [check, unit, db, mock]
+    needs: [check, unit, db, mock, rtc-reference]
     runs-on: ubuntu-latest
     steps:
       - name: Require every verification job
@@ -94,8 +111,10 @@ jobs:
           UNIT: ${{ needs.unit.result }}
           DB: ${{ needs.db.result }}
           MOCK: ${{ needs.mock.result }}
+          RTC: ${{ needs.rtc-reference.result }}
         run: |
           test "$CHECK" = success
           test "$UNIT" = success
           test "$DB" = success
           test "$MOCK" = success
+          test "$RTC" = success
