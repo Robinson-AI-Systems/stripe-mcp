@@ -68,7 +68,9 @@ describe('opt-in custom MCP TEST provider smoke',()=>{
     for(const badKey of [undefined,'', ['sk','live','FAKEFAKEFAKEFAKE'].join('_')])
       await expect(runOwnerTestSmoke({account,key:badKey,...f})).rejects.toThrow();
     for(const record of [{...identity,id:'acct_OTHER'},
-      {...identity,charges_enabled:null},{...identity,livemode:true}]){
+      {...identity,charges_enabled:null},{...identity,livemode:true},
+      {...identity,livemode:undefined},{...identity,livemode:null},
+      {...identity,livemode:'false'}]){
       const v=fixture(record);
       await expect(runOwnerTestSmoke({account,key,...v})).rejects.toThrow(/verification failed/);
       expect(v.dispatch).not.toHaveBeenCalled();

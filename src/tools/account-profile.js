@@ -9,6 +9,9 @@ const fields=['id','country','defaultCurrency','chargesEnabled','payoutsEnabled'
 const selectedSchema={type:'array',maxItems:fields.length,uniqueItems:true,
   items:{type:'string',enum:fields}};
 const safeId=x=>accountId(x);
+// Only an explicit Stripe account livemode:false verifies the selected TEST context.
+export const verifiedTestAccountRecord=(value,expected)=>
+  safeId(expected)&&value?.object==='account'&&value.id===expected&&value.livemode===false;
 function safeListCount(x){
   if(x===undefined||x===null)return null;
   if(!Array.isArray(x)||x.length>1000)return bad('Account verification requirements unreadable');
@@ -21,7 +24,7 @@ function deadline(x){
   return denverLocalTime(x);
 }
 export function accountSafe(v,expected,{detail='summary',select}={}){
-  if(!safeId(expected)||v?.id!==expected||v.object!=='account'||v.livemode===true||
+  if(!verifiedTestAccountRecord(v,expected)||
     typeof v.charges_enabled!=='boolean'||typeof v.payouts_enabled!=='boolean'||
     typeof v.details_submitted!=='boolean')
     bad('Selected TEST Stripe account status unavailable');

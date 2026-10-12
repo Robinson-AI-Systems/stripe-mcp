@@ -8,11 +8,11 @@ const row=(suffix,amount,fee,currency='usd',details=[{type:'stripe_fee',amount:f
   object:'balance_transaction',id:'txn_'+suffix,created:start+60,
   currency,amount,fee,net:amount-fee,reporting_category:'charge',
   fee_details:details,description:'PRIVATE_INVOICE_PERSONAL'});
-function fixture({pages,refused=false,foreign=false}={}){
+function fixture({pages,refused=false,foreign=false,providerLivemode=false}={}){
   const queue=pages??[{object:'list',has_more:false,
     data:[row('A123',1000,59),row('B123',-200,0,'usd',[])]}];
   const sdk={accounts:{retrieve:vi.fn(async()=>({
-    object:'account',id:foreign?'acct_OTHER':id,livemode:false}))},
+    object:'account',id:foreign?'acct_OTHER':id,livemode:providerLivemode}))},
     balanceTransactions:{list:vi.fn(async()=>{
       if(refused)throw {statusCode:403,code:'permission_denied'};
       return queue.shift();
@@ -60,6 +60,14 @@ describe('G-6d bounded TEST fees and billing',()=>{
     const v=parse(await handlers.admin_fees_and_billing({from:start,to:end},
       fixture({refused:true}).ctx));
     expect(v).toMatchObject({available:false,complete:false,sampleTotals:null});
+  });
+  it('refuses unknown account mode before retrieving fees',async()=>{
+    for(const providerLivemode of [undefined,null,'false']){
+      const f=fixture({providerLivemode});
+      expect((await handlers.admin_fees_and_billing({from:start,to:end},f.ctx)).isError)
+        .toBe(true);
+      expect(f.sdk.balanceTransactions.list).not.toHaveBeenCalled();
+    }
   });
   it('fails closed on mismatched fees, duplicate pages, foreign account and LIVE',async()=>{
     const f=fixture({pages:[{object:'list',has_more:false,

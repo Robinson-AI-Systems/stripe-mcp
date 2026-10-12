@@ -1,5 +1,7 @@
 # Tool catalog
 
+#136 G-5/G-6 and opt-in custom-MCP acceptance now share explicit Stripe account TEST identity verification (`livemode:false` required). Missing or malformed provider mode cannot authorize further native reads or guarded writes. Tool registrations, permissions and external acceptance remain unchanged.
+
 #135 G-6 admin_review_security requires independently verified exact TEST-account identity before any new key-permission provider reprobe or native webhook status read. Locally stored masked key metadata remains distinct from proven provider security; no tool or permissions added.
 
 #134 G-6 stripe_admin_overview distinguishes incomplete native TEST capability inventory (observed partial) from unreadable permission and exports separate complete/partial/unreadable native-section counts. No new tool or owner-acceptance claim.

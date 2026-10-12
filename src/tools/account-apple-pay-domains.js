@@ -1,3 +1,4 @@
+import {verifiedTestAccountRecord} from './account-profile.js';
 // G-5d1: native TEST payment-method domains (Apple Pay registration status).
 import {client,reply,fail,allProfiles} from './billing-shared.js';
 const bad=m=>{throw new TypeError(m);};
@@ -37,7 +38,7 @@ export const handlers={
     try{
       check(a);
       const s=await client(ctx),own=await s.accounts.retrieve();
-      if(own?.object!=='account'||own.id!==account||own.livemode===true)
+      if(!verifiedTestAccountRecord(own,account))
         bad('Selected own TEST account identity unavailable');
       let p;
       try{p=await s.paymentMethodDomains.list({limit:a.limit??10,

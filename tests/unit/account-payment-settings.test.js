@@ -38,6 +38,11 @@ describe('G-5c1 TEST native payment method configuration inspection',()=>{
   it('refuses foreign account, LIVE, unexpected or malformed data, unsupported args',async()=>{
     expect((await fixture({identity:{object:'account',id:'acct_FOREIGN'}}).run({})).isError).toBe(true);
     expect((await fixture({identity:{object:'account',id:acct,livemode:true}}).run({})).isError).toBe(true);
+    for(const livemode of [undefined,null,'false']){
+      const f=fixture({identity:{object:'account',id:acct,livemode}});
+      expect((await f.run({})).isError).toBe(true);
+      expect(f.sdk.paymentMethodConfigurations.list).not.toHaveBeenCalled();
+    }
     for(const a of [{limit:0},{limit:50},{starting_after:'abc'},{account:'foreign'}])
       expect((await fixture().run(a)).isError).toBe(true);
     expect(()=>safeConfiguration({...base,card:{available:false,display_preference:{

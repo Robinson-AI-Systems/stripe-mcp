@@ -60,6 +60,11 @@ describe('G-5b safe own-account TEST capabilities',()=>{
       .toBe(true);
     expect((await fixture({identity:{...record,livemode:true}}).run({})).isError)
       .toBe(true);
+    for(const livemode of [undefined,null,'false']){
+      const f=fixture({identity:{...record,livemode}});
+      expect((await f.run({})).isError).toBe(true);
+      expect(f.sdk.accounts.listCapabilities).not.toHaveBeenCalled();
+    }
     expect((await fixture({hasMore:true}).run({})).isError).toBe(true);
     expect((await fixture({records:[{...caps[0],account:'acct_FOREIGN'}]}).run({})).isError)
       .toBe(true);

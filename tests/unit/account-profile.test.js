@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {tools,handlers} from '../../src/tools/account-profile.js';
+import {tools,handlers,verifiedTestAccountRecord} from '../../src/tools/account-profile.js';
 import {registry} from '../../src/tools/index.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 const id='acct_ACCOUNTSAFE',privacy='PRIVATE_TAX_AND_BANK_VALUE';
@@ -52,10 +52,18 @@ describe('G-5a safe account profile',()=>{
     expect((await handlers.account_get({},{
       ...f.ctx,connection:{...f.ctx.connection,mode:'live'}})).isError).toBe(true);
     for(const val of [{...record,id:'acct_FOREIGN'}, {...record,livemode:true},
+      {...record,livemode:undefined},{...record,livemode:null},
+      {...record,livemode:'false'},
       {...record,charges_enabled:'yes'}, {...record,requirements:{
         currently_due:['x'],past_due:'none'}}]){
       expect((await fixture({value:val}).run({detail:'full'})).isError).toBe(true);
     }
+  });
+  it('requires explicit provider TEST identity rather than a missing mode',()=>{
+    expect(verifiedTestAccountRecord(record,id)).toBe(true);
+    for(const livemode of [undefined,null,'false',true])
+      expect(verifiedTestAccountRecord({...record,livemode},id)).toBe(false);
+    expect(verifiedTestAccountRecord({...record,id:'acct_OTHER'},id)).toBe(false);
   });
   it('reports permissions unreadable without inventing empty verification state',async()=>{
     const f=fixture({error:{statusCode:403,code:'permission_denied'}});

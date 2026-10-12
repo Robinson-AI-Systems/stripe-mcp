@@ -1,6 +1,6 @@
 // G-6b: independent TEST owner overview and sanitized verification requirements.
 import {client,reply,fail,allProfiles} from './billing-shared.js';
-import {handlers as accountHandlers} from './account-profile.js';
+import {handlers as accountHandlers,verifiedTestAccountRecord} from './account-profile.js';
 import {handlers as capabilityHandlers} from './account-capabilities.js';
 import {handlers as payoutHandlers} from './money-bank-reads.js';
 import {handlers as methodHandlers} from './account-payment-settings.js';
@@ -46,7 +46,7 @@ function classify(rows){
   return Object.keys(counts).sort().map(key=>({category:key,label:categories[key],count:counts[key]}));
 }
 function verifiedRequirementRecord(record,id){
-  if(record?.object!=='account'||record.id!==id||record.livemode===true)
+  if(!verifiedTestAccountRecord(record,id))
     bad('Independent TEST account identity verification failed');
   const req=record.requirements;
   const fields=['currently_due','past_due','pending_verification','eventually_due'];
