@@ -220,8 +220,11 @@ describe('personal-use OAuth HTTP endpoints', () => {
       const denied = await call(h.token, req);
       expect(denied.statusCode).toBe(401);
       expect(json(denied).error).toBe('invalid_client');
+      expect(denied.headers['WWW-Authenticate']).toBe(req.headers.authorization
+        ? 'Basic realm="Stripe MCP OAuth"' : undefined);
     }
-    const successful = await call(h.token, request('POST', grant, header));
+    const successful = await call(h.token, request('POST', grant,
+      { authorization: header.authorization.replace('Basic ', 'basic ') }));
     expect(successful.statusCode).toBe(200);
     const issued = json(successful);
     expect(await db.getAccessToken(issued.access_token)).toMatchObject({
@@ -229,7 +232,7 @@ describe('personal-use OAuth HTTP endpoints', () => {
     });
     const refreshed = await call(h.token, request('POST', {
       grant_type: 'refresh_token', refresh_token: issued.refresh_token, resource
-    }, header));
+    }, { authorization: header.authorization.replace('Basic ', 'bAsIc ') }));
     expect(refreshed.statusCode).toBe(200);
     const rotated = json(refreshed);
     expect(await db.getAccessToken(rotated.access_token)).toMatchObject({
