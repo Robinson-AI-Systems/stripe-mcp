@@ -341,3 +341,12 @@ The pre-existing owner connection-revocation transaction was broadened from
 connector-only to selected connector/pass kinds, with single-use owner intent
 and audit preserved. Connection listing now displays pass kind/rate only, not
 bearer or digest. This is mandatory for real D-4 test cleanup.
+
+
+## Owner-only TEST webhook receipt lookup (#160)
+The setup route's authenticated POST action lookup-test-receipt takes exact
+account, endpoint and event IDs after same-origin, CSRF and owner-password checks.
+It verifies a connected TEST account with LIVE disabled, then calls the existing
+getTestWebhookReceipt scoped indexed query. The browser renders only checked
+safe event type and UTC time. No webhook bodies, signatures, keys or new table.
+A receipt alone is not independent evidence of external Stripe delivery.

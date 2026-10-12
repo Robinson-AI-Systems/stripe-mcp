@@ -338,3 +338,50 @@ describe('G-1g owner-authenticated CSV browser delivery',()=>{
     expect(result.body).toContain('unavailable');
   });
 });
+
+
+describe('owner-private signed TEST webhook receipt evidence readback',()=>{
+  it('requires exact origin, CSRF and owner passphrase before any receipt read',async()=>{
+    const db=createFakeDb(),calls=[];
+    const lookupTestReceipt=async info=>{
+      calls.push(info);
+      return {eventId:info.eventId,eventType:'invoice.paid',
+        receivedAt:new Date('2026-10-12T13:00:00.000Z')};
+    };
+    const handler=createSetupHandler({db,env,lookupTestReceipt});
+    const c=cookiePage(await page(handler));
+    const action={action:'lookup-test-receipt',account:'acct_TESTPROOF',
+      endpoint:'we_TESTPROOF',eventId:'evt_TESTPROOF',
+      passphrase:env.ADMIN_PASSPHRASE};
+    expect((await submit(handler,c,action,'https://untrusted.test')).statusCode).toBe(403);
+    expect((await submit(handler,{...c,csrf:'wrong'},action)).statusCode).toBe(403);
+    expect((await submit(handler,c,{...action,passphrase:'wrong'})).statusCode).toBe(401);
+    expect((await submit(handler,c,{...action,eventId:'in_WRONG'})).statusCode).toBe(400);
+    expect(calls).toHaveLength(0);
+    const okay=await submit(handler,c,action);
+    expect(okay.statusCode).toBe(200);
+    expect(calls).toEqual([{account:'acct_TESTPROOF',endpoint:'we_TESTPROOF',
+      eventId:'evt_TESTPROOF'}]);
+    expect(okay.body).toContain('invoice.paid');
+    expect(okay.body).toContain('2026-10-12T13:00:00.000Z');
+    expect(okay.body).toContain('separately unverified');
+    expect(okay.body).not.toContain('in_PRIVATE_EVENT');
+  });
+  it('does not expose foreign, missing, or malformed TEST receipts',async()=>{
+    const db=createFakeDb(),candidates=[
+      [null,404],
+      [{eventId:'evt_OTHER',eventType:'invoice.paid',receivedAt:new Date()},503],
+      [{eventId:'evt_TESTPROOF',eventType:'unexpected',receivedAt:new Date()},503],
+      [{eventId:'evt_TESTPROOF',eventType:'invoice.paid',receivedAt:'broken'},503]
+    ];
+    for(const [value,expected] of candidates){
+      const handler=createSetupHandler({db,env,lookupTestReceipt:async()=>value});
+      const c=cookiePage(await page(handler));
+      const reply=await submit(handler,c,{action:'lookup-test-receipt',
+        account:'acct_TESTPROOF',endpoint:'we_TESTPROOF',eventId:'evt_TESTPROOF',
+        passphrase:env.ADMIN_PASSPHRASE});
+      expect(reply.statusCode).toBe(expected);
+      expect(reply.body).not.toContain('evt_OTHER');
+    }
+  });
+});

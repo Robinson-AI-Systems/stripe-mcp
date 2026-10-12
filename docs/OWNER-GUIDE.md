@@ -166,3 +166,13 @@ read), `/api/tools/_batch`, and `/api/results/{handle}`. Only owner-created
 move money, and the underlying `/api/mcp` remains separate. No pass goes in
 chat, URL or logs. The hub's real three-route D-4 verification and complete RTC
 write conformance remain pending. Revoke temporary passes by connection ID.
+
+
+## Owner TEST signed webhook receipt lookup (PR #160)
+The private setup page can read whether a single known TEST webhook event was
+recorded by the signed receiver. Enter your enrolled TEST account, native endpoint
+ID, event ID, and owner passphrase; the page checks origin and CSRF. It displays
+only event type and receipt UTC time, not event contents or the signing secret.
+A successful receipt proves this service's signed-validation storage, not that
+an externally delivered Stripe event reached Vercel: confirm the actual Stripe
+TEST delivery and permitted ingress separately before declaring G-4 accepted.

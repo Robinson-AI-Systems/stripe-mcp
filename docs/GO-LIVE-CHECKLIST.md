@@ -167,3 +167,9 @@ B-8c2 implements two independently password-authenticated TEST-only owner confir
   read_only non-production pass verify actual direct CLI, encrypted GitHub-only
   relay and Vercel Sandbox paths; record neutral evidence and revoke all passes.
   Validate Vercel Deployment Protection/OAuth without widening access. No LIVE.
+
+
+- [ ] #160 owner-private TEST webhook receipt lookup: after external Stripe TEST
+  delivery is separately verified, search its exact event ID on the protected
+  setup page and match the validated type/time. Do not treat a locally inserted
+  fixture or unauthenticated network test as evidence of real Stripe delivery.
