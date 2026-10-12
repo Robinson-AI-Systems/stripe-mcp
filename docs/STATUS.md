@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#154 RTC read-only TEST pass issuance (as-if-merged; CI required):** owner-only passphrase/CSRF creates cryptographic 24-hour Bearer, stored only hashed, TEST/read_only, no writes/money, 120/min intended shared limit. Existing one-time secret page handoff, existing owner connection revocation; pass HTTPS validation and shared atomic rate limit remain next work. No hub route acceptance claimed. Preserve standalone MCP and LIVE OFF.
+
 - **#153 Sandbox-only signed webhook receiver (as-if-merged; exact-head CI required):** dedicated raw-body POST route under `/api/stripe/test-webhooks/[account]/[endpoint]`; scoped encrypted TEST signing secret, 300-second HMAC tolerance, verified explicit TEST/non-Connect event, atomic receipt replay ledger, no event body/PII storage. Unit/real throwaway Postgres evidence only. Genuine Stripe delivery, external route accessibility through Vercel protection, endpoint registration and owner receipt lookup remain PENDING. No Stripe writes, LIVE, or spending; H-1 still gated.
 
 - **#152 TEST Setup & Readiness Report (as-if-merged; CI/review gates required):** owner-private TEST custom MCP smoke now generates a strictly allowlisted, exception-focused readiness assessment. An observed native read is not owner-intended configuration; partial/unreadable/error are differentiated and none imply a required Stripe setting change. Webhook delivery/signature, external OAuth and full Dashboard comparison remain unverified, G-6 IN_PROGRESS, H-1 gated, LIVE disabled. Next approved slice: isolated TEST webhook receiver and genuine signed delivery evidence; do not register a nonreceiver.

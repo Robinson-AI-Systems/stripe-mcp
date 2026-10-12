@@ -156,6 +156,28 @@ describe('separate G-6 owner administration TEST smoke gate',()=>{
   });
 });
 
+describe('owner-only Toolkit RTC read-only pass issuance',()=>{
+  it('requires password, origin and CSRF; never leaks a bearer in responses',async()=>{
+    const db=createFakeDb();
+    let issued=0;
+    const handler=createSetupHandler({db,env,issueRtcPass:async({account})=>{
+      issued++;
+      expect(account).toBe('acct_SAFEPASS');
+      return {id:'rtc-agent-123456abcdef',setupPath:'/api/stripe/setup?show='+'A'.repeat(32)};
+    }});
+    const c=cookiePage(await page(handler));
+    const action={action:'issue-rtc-pass',account:'acct_SAFEPASS',passphrase:env.ADMIN_PASSPHRASE};
+    expect((await submit(handler,c,action,'https://evil.test')).statusCode).toBe(403);
+    expect((await submit(handler,{...c,csrf:'bad'},action)).statusCode).toBe(403);
+    expect((await submit(handler,c,{...action,passphrase:'wrong'})).statusCode).toBe(401);
+    expect(issued).toBe(0);
+    const reply=await submit(handler,c,action);
+    expect(reply.statusCode).toBe(200);
+    expect(reply.body).toContain('rtc-agent-123456abcdef');
+    expect(reply.body).not.toContain('rtc_pass_');
+    expect(issued).toBe(1);
+  });
+});
 describe('A-5b owner-only Stripe setup page',()=>{
   it('offers key entry directly in HTML without exposing account data or requiring env key on GET',async()=>{
     const {handler}=await fixture();

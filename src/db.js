@@ -84,6 +84,31 @@ export function createDb(sql = getProductionSql()) {
         VALUES (${hashToken(accessToken)}, ${refreshToken ? hashToken(refreshToken) : null},
           ${clientId}, ${stripeAccount}, ${mode}, ${profile}, ${listing}, ${expiresAt})`;
     },
+    async createRtcReadOnlyPass({id,account,token,expiresAt}) {
+      if(typeof id!=='string'||!/^rtc-agent-[a-z0-9-]{8,80}$/.test(id)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
+        typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token)||
+        !(expiresAt instanceof Date)||!Number.isFinite(expiresAt.getTime())||
+        expiresAt.getTime()<=Date.now()||expiresAt.getTime()>Date.now()+86460000)
+        throw new TypeError('Safe short-lived RTC TEST pass required');
+      const rows=await sql`INSERT INTO oauth_tokens
+        (token_hash,client_id,stripe_account,mode,profile,listing,kind,
+         allow_writes,money_limit_cents,areas,for_hub,rate_limit_per_minute,expires_at)
+        SELECT ${hashToken(token)},${id},id,'test','read_only','compact','pass',
+          FALSE,0,NULL,FALSE,120,${expiresAt}
+        FROM stripe_accounts WHERE id=${account} AND test_key_enc IS NOT NULL
+          AND live_enabled=FALSE RETURNING client_id`;
+      return rows.length===1;
+    },
+    async getRtcPass(token) {
+      if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token))return null;
+      const rows=await sql`SELECT client_id,stripe_account,mode,profile,listing,
+        kind,result_scope,allow_writes,money_limit_cents,areas,for_hub,
+        rate_limit_per_minute,expires_at,revoked_at
+        FROM oauth_tokens WHERE token_hash=${hashToken(token)} AND kind='pass'
+          AND revoked_at IS NULL AND expires_at>now()`;
+      return rows[0]??null;
+    },
     async getAccessToken(accessToken) {
       if (typeof accessToken !== 'string' || !accessToken) return null;
       const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing, kind, result_scope,
@@ -698,6 +723,11 @@ export function createDb(sql = getProductionSql()) {
       // Older OAuth connections receive one stable, opaque result scope.
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS
         result_scope TEXT NOT NULL DEFAULT gen_random_uuid()::text`;
+      await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS allow_writes BOOLEAN NOT NULL DEFAULT FALSE`;
+      await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS money_limit_cents INTEGER NOT NULL DEFAULT 0`;
+      await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS areas TEXT[]`;
+      await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS for_hub BOOLEAN NOT NULL DEFAULT FALSE`;
+      await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS rate_limit_per_minute INTEGER NOT NULL DEFAULT 120`;
       await sql`CREATE TABLE IF NOT EXISTS result_store (
         handle TEXT PRIMARY KEY,
         connection TEXT NOT NULL,
