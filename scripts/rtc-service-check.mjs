@@ -9,7 +9,8 @@ async function main(){
     process.exitCode=2;return;
   }
   const config={origin:process.env.RTC_SERVICE_ORIGIN,
-    approvedOrigin:process.env.RTC_APPROVED_ORIGIN};
+    approvedOrigin:process.env.RTC_APPROVED_ORIGIN,
+    expectedDeploymentSha:process.env.RTC_EXPECTED_DEPLOYED_SHA};
   const result=mode==='--verify-revocation'?
     await verifyRtcRevocation({...config,revokedPass:process.env.RTC_REVOKED_PASS}):
     await verifyRtcService({...config,pass:process.env.RTC_TEST_PASS,
