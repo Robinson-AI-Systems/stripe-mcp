@@ -47,3 +47,14 @@ connected OAuth, genuine Stripe TEST account read, Stripe-signed webhook
 receipt and Hub D-4 three-route/revocation evidence are separate owner-protected
 acceptance gates. If Vercel system env autoexposure is disabled, record blocker
 and seek owner approval; never silently toggle deployment settings.
+
+## Exact-head CI defect discovered during #180
+An unrelated, preexisting dual-listener PostgreSQL quota test assumed all
+150 concurrent HTTP requests hit the same `date_trunc('minute',now())` SQL
+bucket. CI observed 122 successes when the legitimate shared 120/min quota
+reset across a minute boundary. Make this test independently verify the
+actual SQL bucket before/after the burst and retry **only** straddling
+bursts with separate isolated one-hour TEST passes. Keep strict exact
+120 successful/30 denied expectations inside one bucket, unchanged
+production quota, dual listeners and PostgreSQL atomicity. This is
+clock-boundary CI reliability, NOT an RTC authorization widening.
