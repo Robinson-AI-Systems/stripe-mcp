@@ -5,7 +5,8 @@ import {runOwnerTestSmoke} from '../src/acceptance/owner-test-smoke.js';
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   try{
     const report=await runOwnerTestSmoke({
-      account:process.env.STRIPE_TEST_ACCOUNT,key:process.env.STRIPE_TEST_KEY
+      account:process.env.STRIPE_TEST_ACCOUNT,key:process.env.STRIPE_TEST_KEY,
+      focus:process.env.STRIPE_TEST_SMOKE_FOCUS||'core'
     });
     process.stdout.write(JSON.stringify(report,null,2)+'\n');
     if(report.errors)process.exitCode=1;

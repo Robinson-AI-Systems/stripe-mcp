@@ -40,7 +40,7 @@ describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
     const calls=[];
     const runTestSmoke=async({account})=>{
       calls.push(account);
-      return {account,mode:'test',source:'custom_mcp_dispatch',
+      return {account,mode:'test',focus:'core',source:'custom_mcp_dispatch',
         verifiedIdentity:true,dashboardVerified:false,writeOperations:0,
         records:['account_get','account_list_capabilities','account_list_payment_method_settings',
           'account_list_apple_pay_domains','event_list','webhook_list',
@@ -50,7 +50,8 @@ describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
     };
     const handler=createSetupHandler({db,runTestSmoke,env});
     const c=cookiePage(await page(handler));
-    const request={action:'run-test-smoke',account:'acct_SAFEOWNER',passphrase:env.ADMIN_PASSPHRASE};
+    const request={action:'run-test-smoke',account:'acct_SAFEOWNER',focus:'core',
+      passphrase:env.ADMIN_PASSPHRASE};
     expect((await submit(handler,c,request,'https://evil.example.test')).statusCode).toBe(403);
     expect((await submit(handler,{...c,csrf:'wrong'},request)).statusCode).toBe(403);
     expect((await submit(handler,c,{...request,passphrase:'wrong'})).statusCode).toBe(401);
@@ -70,10 +71,33 @@ describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
       runTestSmoke:async()=>({account:'acct_FOREIGN',mode:'test',records:[]})});
     const c=cookiePage(await page(handler));
     const response=await submit(handler,c,{action:'run-test-smoke',
-      account:'acct_SAFEOWNER',passphrase:env.ADMIN_PASSPHRASE});
+      account:'acct_SAFEOWNER',focus:'core',passphrase:env.ADMIN_PASSPHRASE});
     expect(response.statusCode).toBe(503);
     expect(response.body).toContain('No acceptance recorded');
     expect(response.body).not.toContain('acct_FOREIGN');
+  });
+});
+
+describe('separate G-6 owner administration TEST smoke gate',()=>{
+  it('accepts exactly the three admin tools but never provider payloads or Dashboard success',async()=>{
+    const db=createFakeDb();
+    const fn=async ({account,focus})=>({account,focus,mode:'test',
+      source:'custom_mcp_dispatch',verifiedIdentity:true,dashboardVerified:false,
+      writeOperations:0,key:'rk_test_NEVER_IN_BROWSER',
+      records:['stripe_admin_overview','admin_review_security',
+        'admin_list_guided_settings'].map((tool,i)=>({
+          tool,status:i===2?'not_readable':'partial'}))});
+    const handler=createSetupHandler({db,runTestSmoke:fn,env});
+    const c=cookiePage(await page(handler));
+    const correct={action:'run-test-smoke',account:'acct_SAFEOWNER',
+      focus:'administration',passphrase:env.ADMIN_PASSPHRASE};
+    const out=await submit(handler,c,correct);
+    expect(out.statusCode).toBe(200);
+    expect(out.body).toContain('administration');
+    expect(out.body).toContain('stripe_admin_overview');
+    expect(out.body).not.toContain('rk_test_NEVER_IN_BROWSER');
+    expect(out.body).toContain('not Dashboard acceptance');
+    expect((await submit(handler,c,{...correct,focus:'everything'})).statusCode).toBe(400);
   });
 });
 

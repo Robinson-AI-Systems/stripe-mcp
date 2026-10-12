@@ -16,7 +16,15 @@ const cases=Object.freeze([
   ['G-6','admin_list_requirements',{}],
   ['G-6','admin_check_setting',{setting:'payment_methods'}]
 ]);
+// Separate explicit owner administration pass; no unrestricted tool discovery
+// and no provider mutation even if a registered tool changes classification.
+const adminCases=Object.freeze([
+  ['G-6','stripe_admin_overview',{}],
+  ['G-6','admin_review_security',{}],
+  ['G-6','admin_list_guided_settings',{limit:5}]
+]);
 export const ownerSmokeCases=cases.map(([batch,tool])=>({batch,tool}));
+export const ownerAdminSmokeCases=adminCases.map(([batch,tool])=>({batch,tool}));
 
 // Require the expected safe projection, never infer success from arbitrary JSON.
 function validProjection(tool,data,account){
@@ -53,6 +61,21 @@ function validProjection(tool,data,account){
       return own&&data.setting==='payment_methods'&&
         ['observed','not_readable'].includes(data.status)&&
         typeof data.observed==='boolean';
+    case 'stripe_admin_overview':
+      return own&&data.mode==='test'&&
+        data.verificationReadiness?.status==='awaiting_owner'&&
+        data.verificationReadiness.dashboardWalkthroughVerified===false&&
+        Array.isArray(data.ownerWalkthrough)&&data.ownerWalkthrough.length===14&&
+        data.ownerWalkthrough.every(v=>v.ownerConfirmed===false)&&
+        data.sections&&typeof data.sections==='object';
+    case 'admin_review_security':
+      return own&&data.mode==='test'&&data.readOnly===true&&
+        data.sections?.twoStepLogin?.status==='not_readable'&&
+        data.sections?.apiKeyRotation?.status==='not_readable';
+    case 'admin_list_guided_settings':
+      return own&&data.mode==='test'&&Array.isArray(data.settings)&&
+        data.settings.length<=5&&typeof data.hasMore==='boolean'&&
+        data.settings.every(v=>v.changeMade===false&&v.verification==='not_readable');
     default:return false;
   }
 }
@@ -64,6 +87,9 @@ function classify(tool,response,account){
   try{data=JSON.parse(response.content[0].text);}catch{return 'error';}
   if(!data||typeof data!=='object'||Array.isArray(data)||
     typeof data.handle==='string'||!validProjection(tool,data,account))return 'error';
+  // A guide or a native-only admin read is not a signed-in Dashboard inspection.
+  if(tool==='admin_list_guided_settings')return 'not_readable';
+  if(tool==='stripe_admin_overview'||tool==='admin_review_security')return 'partial';
   if(data.available===false||data.verification==='not_readable'||
     data.status==='not_readable')return 'not_readable';
   if(data.complete===false||data.hasMore===true||data.has_more===true)
@@ -71,8 +97,10 @@ function classify(tool,response,account){
   return 'observed';
 }
 
-export async function runOwnerTestSmoke({account,key,makeClient=makeStripeClient,
+export async function runOwnerTestSmoke({account,key,focus='core',makeClient=makeStripeClient,
   dispatch=dispatchReadOnlyTool}={}){
+  const selected=focus==='core'?cases:focus==='administration'?adminCases:null;
+  if(!selected)throw new TypeError('Select core or administration TEST smoke only');
   if(!ACCOUNT.test(account)||!TEST_KEY.test(key))
     throw new TypeError('A privately provisioned TEST key and exact account are required');
   // Never log or return key, SDK errors, provider records or sensitive URLs.
@@ -91,7 +119,7 @@ export async function runOwnerTestSmoke({account,key,makeClient=makeStripeClient
   const connection={stripeAccount:account,mode:'test',profile:'read_only'};
   const services={stripeForConnection:async()=>sdk};
   const records=[];
-  for(const [batch,tool,args] of cases){
+  for(const [batch,tool,args] of selected){
     const contract=registry.tools.find(t=>t.name===tool);
     if(!contract||contract.writes!==false||contract.annotations?.readOnlyHint!==true)
       throw new Error('Read-only smoke contract unavailable');
@@ -103,7 +131,7 @@ export async function runOwnerTestSmoke({account,key,makeClient=makeStripeClient
   }
   // This only proves this process exercised repository handlers through its
   // dispatch with a real selected TEST client. Dashboard acceptance is separate.
-  return {account,mode:'test',source:'custom_mcp_dispatch',verifiedIdentity:true,
+  return {account,mode:'test',focus,source:'custom_mcp_dispatch',verifiedIdentity:true,
     dashboardVerified:false,writeOperations:0,records,
     observed:records.filter(x=>x.status==='observed').length,
     partial:records.filter(x=>x.status==='partial').length,

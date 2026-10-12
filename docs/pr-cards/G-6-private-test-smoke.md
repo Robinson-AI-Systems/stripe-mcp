@@ -1,5 +1,5 @@
 # G-6 follow-up — Private owner-initiated native TEST readbacks (#141)
-Status: as-if-merged; exact-head CI, review and merge required.
+Status: MERGED #141 (five exact-head CI checks passed; review and merge complete).
 Approved G-4/G-5/G-6 external acceptance aid, not H-1 or Dashboard completion.
 
 ## Drift A
