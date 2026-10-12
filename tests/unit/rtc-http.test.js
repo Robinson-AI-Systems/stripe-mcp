@@ -291,3 +291,35 @@ describe('RTC HTTP Bearer challenge and pass byte boundaries',()=>{
     expect(JSON.stringify(revoked.headers)).not.toContain(pass);
   });
 });
+
+describe('RTC strict catalog and saved result pagination',()=>{
+  it('accepts ordinary decimal pagination and case-insensitive discovery search',async()=>{
+    const {handler}=await fixture();
+    const r=res();await handler(req('GET',{limit:'20',offset:'0',
+      q:'STRIPE_ACCOUNT_GET',listing:'catalog'}),r,'catalog');
+    expect(r.statusCode).toBe(200);
+    expect(r.body.result.tools.map(t=>t.name)).toEqual(['stripe_account_get']);
+  });
+  it('refuses coerced numeric catalog selectors',async()=>{
+    const {handler}=await fixture();
+    for(const query of [
+      {limit:''},{limit:'0x10'},{limit:'1e2'},{limit:null},
+      {limit:['2']},{limit:' 2'},{limit:'01'},
+      {offset:'-0'},{offset:'2e1'},{offset:true},
+      {offset:'999999999999999999999'}
+    ]){
+      const response=res();await handler(req('GET',query),response,'catalog');
+      expect(response.statusCode).toBe(400);
+      expect(response.body.error.code).toBe('invalid_args');
+    }
+  });
+  it('refuses coerced result pages before reading private handles',async()=>{
+    const {handler}=await fixture();
+    const handle='res_'+'a'.repeat(24);
+    for(const page of ['',null,[],true,'0x0','1e0','01',' 0','-0']){
+      const response=res();await handler(req('GET',{page}),response,'result',handle);
+      expect(response.statusCode).toBe(400);
+      expect(response.body.error.code).toBe('invalid_args');
+    }
+  });
+});

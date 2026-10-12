@@ -9,6 +9,8 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#174 (as-if MERGED) strict RTC query pagination:** limit/offset/result page accept only bounded decimal integers (or safe native integer in direct tests), refusing coercion of arrays/null/hex/exponent/whitespace/empty values; catalog search handles uppercase consistently. Test catalog, result endpoints and ordinary pagination. Seven exact-head checks and review required; no provider access widening, LIVE or deployment. Next #175.
+
 - **#173 (as-if MERGED) RTC Bearer interoperability and pass identity integrity:** HTTP scheme matching now respects case-insensitive Bearer without accepting altered token bytes; all expired/revoked/unknown valid-format passes issue a sanitized invalid_token challenge. Corrupt pass result_scope/client identity is denied before Stripe TEST execution to protect scoped results. Auth + integrity regressions, seven exact-head CI and review gate required. LIVE off; next #174.
 
 - **#172 (as-if MERGED) RTC pre-parsed body size boundary:** enforce the 16 KiB cap on normalized structured POST bodies even if a dishonest Content-Length is present and raw bytes are unavailable; reject cycles/unserializable structures. TEST RTC integration regression verifies no provider handler runs on oversized parsed payload. Preserves unchanged size limit, rate/owner/LIVE-off gates and checked-only daily Production. Seven exact-head checks and reviews required. Next #173.
