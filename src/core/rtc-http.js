@@ -39,8 +39,12 @@ const metadata=t=>{
     ...info.inputSchema.properties,
     fields:{description:'Up to 12 safe dotted fields, as string or array',
       oneOf:[{type:'string',maxLength:600},
-        {type:'array',minItems:1,maxItems:12,uniqueItems:true,
-          items:{type:'string',minLength:1,maxLength:100}}]}}};
+        // A native field selector is an array with its own enums/limits.
+        // Preserve that schema rather than advertising arbitrary fields.
+        t.inputSchema?.properties?.fields?.type==='array'?
+          t.inputSchema.properties.fields:
+          {type:'array',minItems:1,maxItems:12,uniqueItems:true,
+            items:{type:'string',minLength:1,maxLength:100}}]}}};
   return {name:alias(t.name),description:String(t.description).slice(0,160),
     inputSchema,area:t.area??'server',profiles:['read_only'],
     writes:false,money:false,destructive:false,
@@ -66,21 +70,30 @@ const argsOf=req=>{
 };
 // Normalize the same read arguments before either direct dispatch or batch
 // preflight. Invalid later batch entries must not cause earlier Stripe reads.
-function normalizeReadArgs(args){
-  if(!isRecord(args)||args.detail!==undefined&&
-    !['summary','full'].includes(args.detail))return null;
-  let normalized=args;
-  if(Array.isArray(args.fields)){
-    if(args.fields.length<1||args.fields.length>12||
-      args.fields.some(f=>typeof f!=='string'||f.length>100)||
-      args.fields.join(',').length>600)return null;
-    normalized={...args,fields:args.fields.join(',')};
+function normalizeReadArgs(args,tool){
+  if(!isRecord(args))return null;
+  const definedDetail=tool?.inputSchema?.properties?.detail;
+  const acceptedDetail=Array.isArray(definedDetail?.enum)?
+    definedDetail.enum:['summary','full'];
+  if(args.detail!==undefined&&!acceptedDetail.includes(args.detail))return null;
+  if(args.fields===undefined)return args;
+  const fields=Array.isArray(args.fields)?args.fields:
+    typeof args.fields==='string'?args.fields.split(',').map(s=>s.trim()):null;
+  if(!fields||fields.length<1||fields.length>12||
+    fields.some(f=>typeof f!=='string'||f.length>100)||
+    fields.join(',').length>600)return null;
+  try{projectFields({},fields.join(','));}catch{return null;}
+  const native=tool?.inputSchema?.properties?.fields;
+  if(native?.type==='array'){
+    if(native.maxItems!==undefined&&fields.length>native.maxItems||
+      native.minItems!==undefined&&fields.length<native.minItems||
+      Array.isArray(native.items?.enum)&&
+        fields.some(f=>!native.items.enum.includes(f)))return null;
+    // Native G-5a/owner reader validates these exact provider-safe names.
+    return {...args,fields};
   }
-  if(args.fields!==undefined){
-    if(typeof normalized.fields!=='string')return null;
-    try{projectFields({},normalized.fields);}catch{return null;}
-  }
-  return normalized;
+  // Generic read tools use the shared dotted projection string layer.
+  return {...args,fields:fields.join(',')};
 }
 function unpack(output){
   if(output?.isError||!Array.isArray(output?.content)||output.content.length!==1||
@@ -156,7 +169,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
   async function call(name,args,connection){
     const t=allowedTool(registry,name,connection.areas);
     if(!t||!isRecord(args))return {error:'refused_by_guard'};
-    const safeArgs=normalizeReadArgs(args);
+    const safeArgs=normalizeReadArgs(args,t);
     if(safeArgs===null)return {error:'invalid_args'};
     // Reject unexpected pass-provided credentials and dangerous non-read tools;
     // the registered dispatcher remains the final profile/guard authority.
@@ -288,7 +301,8 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       if(!Array.isArray(args?.calls)||args.calls.length<1||args.calls.length>10||
         args.calls.some(v=>!isRecord(v)||typeof v.name!=='string'||
           !allowedTool(registry,v.name,connection.areas)||
-          normalizeReadArgs(v.args??{})===null))
+          normalizeReadArgs(v.args??{},allowedTool(registry,v.name,
+            connection.areas))===null))
         return error('invalid_args');
       const results=[];
       for(const item of args.calls){

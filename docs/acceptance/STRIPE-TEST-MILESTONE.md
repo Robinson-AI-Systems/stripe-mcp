@@ -32,6 +32,18 @@ Stripe, OAuth, Webhook, or Toolkit Hub D-4. No provider mutation was authorized.
 
 PRs require all seven exact-head check/unit/db/mock/rtc-reference/ci/target-main jobs and thread-free reviewed merge. Production is promoted only by the scheduled checked main→live workflow. Automatic Vercel previews remain off, Basic builds queued, Neon 0.25 CU/300s idle. No financial writes, paid additions, LIVE enablement or manual deployment follows from TEST acceptance.
 
+## #179 proof qualification and native-safe profile projection
+
+PR #179 closes a real native HTTP selector mismatch: registered G-5 account_get
+accepts only its safe enum field array, whereas the HTTPS adapter had converted
+arrays to strings before native validation. The opt-in provider proof now requests
+`id`, `chargesEnabled`, `payoutsEnabled` and `detailsSubmitted` and requires
+booleans actually returned by a verified Stripe TEST account read. A permission-
+denied fallback `{id,available:false}` must not count as a provider PASS.
+Only status codes are displayed. Offline fake SDK/unit confirmation cannot be
+reclassified as actual external Stripe TEST acceptance. Owner credentials and
+scheduled exact revision hosted ingress remain necessary.
+
 ## Opt-in owner runner added by #177 (source only, not a PASS)
 
 After the scheduled checked `live` deployment and independently verified
