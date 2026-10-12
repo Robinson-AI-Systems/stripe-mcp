@@ -9,7 +9,9 @@ import {openIsolatedSchema,closeIsolatedSchema,neonShapedQuery}
 let db;
 const account='acct_WRITEPG',other='acct_WRITEOTHER';
 const connection={stripeAccount:account,mode:'test',profile:'full'};
-const ctx={connection,connectionId:'k3-client-a',get db(){return db;}};
+let ctx;
+// The real Stripe MCP dispatcher supplies a plain own db reference;
+// never inject executable context getters into portable permission checks.
 const read=(r)=>JSON.parse(r.content[0].text);
 const intentId=s=>('A'.repeat(32)+s).slice(0,48);
 function operation(cents,labels){
@@ -35,6 +37,7 @@ beforeAll(async()=>{
   if(!uri||new URL(uri).hostname!=='127.0.0.1')throw Error('Disposable local SQL only');
   await openIsolatedSchema(uri);
   db=createDb(neonShapedQuery());await db.initSchema();
+  ctx={connection,connectionId:'k3-client-a',db};
   for(const id of [account,other])
     await db.saveTestKey({account:id,label:id,ciphertext:'v1.fake',
       kind:'restricted',last4:'FAKE'});
