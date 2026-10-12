@@ -81,4 +81,75 @@ describe('G-6a owner guided settings and honest account verification',()=>{
     expect(response.isError).toBeUndefined();
     expect(JSON.stringify(response)).not.toContain(secret);
   });
+  it('observes six native TEST settings without asserting intended configuration',async()=>{
+    const f=fixture();
+    f.sdk.accounts.retrieve=vi.fn(async()=>({
+      object:'account',id:acct,livemode:false,country:'US',
+      charges_enabled:true,payouts_enabled:false,details_submitted:true,
+      requirements:{currently_due:[],past_due:[]},
+      settings:{payouts:{schedule:{interval:'daily',delay_days:2}}}}));
+    f.sdk.accounts.listExternalAccounts=vi.fn(async()=>({
+      object:'list',has_more:false,data:[{object:'bank_account',
+        id:'ba_TEST123',account:acct,last4:'1234',
+        currency:'usd',country:'US',status:'new',default_for_currency:true}]}));
+    f.sdk.paymentMethodConfigurations={list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        object:'payment_method_configuration',id:'pmc_TEST123',active:true,
+        card:{available:true,display_preference:{preference:'on',value:'on'}}}]}))};
+    f.sdk.paymentMethodDomains={list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        object:'payment_method_domain',id:'pmd_TEST123',domain_name:'example.org',
+        enabled:true,livemode:false,apple_pay:{status:'active'}}]}))};
+    f.sdk.webhookEndpoints={list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        object:'webhook_endpoint',id:'we_TEST123',status:'enabled',created:1790000000,
+        livemode:false,enabled_events:['invoice.paid'],
+        url:'https://example.org/SECRET_PRIVATE_WEBHOOK'}]}))};
+    f.sdk.billingPortal={configurations:{list:vi.fn(async()=>({
+      object:'list',has_more:false,data:[{
+        id:'bpc_TEST123',active:true,is_default:true,features:{invoice_history:{enabled:true}},
+        default_return_url:'https://example.org/SECRET_PRIVATE_PORTAL'}]}))}};
+    for(const setting of ['bank_account','payout_schedule','payment_methods',
+      'payment_method_domains','webhook_events','customer_portal']){
+      const out=parse(await handlers.admin_check_setting({setting},f.ctx));
+      expect(out).toMatchObject({status:'observed',verification:'observed',
+        observed:true,complete:true,changeMade:false});
+      expect(out).not.toHaveProperty('done');
+      expect(out.note).toMatch(/NOT proof/);
+      expect(JSON.stringify(out)).not.toContain('SECRET_PRIVATE');
+    }
+    expect(parse(await handlers.admin_check_setting(
+      {setting:'two_step_login'},f.ctx)).status).toBe('not_readable');
+    expect(parse(await handlers.admin_check_setting(
+      {setting:'restricted_key_creation'},f.ctx)).status).toBe('not_readable');
+  });
+  it('preserves partial and refused native observations without success claims',async()=>{
+    const f=fixture();
+    f.sdk.webhookEndpoints={list:vi.fn(async()=>({
+      object:'list',has_more:true,data:[{
+        object:'webhook_endpoint',id:'we_TEST123',status:'enabled',created:1790000000,
+        livemode:false,enabled_events:['invoice.paid'],
+        url:'https://example.org/path-secret'}]}))};
+    const partial=parse(await handlers.admin_check_setting({setting:'webhook_events'},f.ctx));
+    expect(partial).toMatchObject({status:'observed',complete:false,observed:true});
+    f.sdk.webhookEndpoints.list=vi.fn(async()=>{throw {statusCode:403,code:'permission_denied'};});
+    const denied=parse(await handlers.admin_check_setting({setting:'webhook_events'},f.ctx));
+    expect(denied).toMatchObject({status:'not_readable',observed:false,complete:false});
+    const restricted=fixture({refused:true});
+    const identity=parse(await handlers.admin_check_setting(
+      {setting:'payment_methods'},restricted.ctx));
+    expect(identity.status).toBe('not_readable');
+    expect(restricted.sdk.accounts.retrieve).toHaveBeenCalledTimes(1);
+    const malicious=fixture();
+    malicious.sdk.accounts.listExternalAccounts=vi.fn(async()=>({
+      object:'list',has_more:false,data:[{object:'bank_account',id:'ba_TEST123',
+        account:acct,last4:'1234',currency:'usd',country:'US',
+        status:'PRIVATE_BANK_ACCOUNT_VALUE'}]}));
+    const masked=parse(await handlers.admin_check_setting(
+      {setting:'bank_account'},malicious.ctx));
+    expect(masked.status).toBe('observed');
+    expect(masked.detail.destinations[0].status).toBeNull();
+    expect(JSON.stringify(masked)).not.toContain('PRIVATE_BANK_ACCOUNT_VALUE');
+  });
+
 });
