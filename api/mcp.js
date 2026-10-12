@@ -1,4 +1,5 @@
 import { createDb } from '../src/db.js';
+import { allowBrowserProtocol } from '../src/core/browser-cors.js';
 import { createMcpHandler } from '../src/core/mcp-server.js';
 import { registry } from '../src/tools/index.js';
 import { createPermissionReprobe } from '../src/keys.js';
@@ -7,6 +8,10 @@ export const config = { api: { bodyParser: true } };
 
 export default async function handler(req, res) {
   try {
+    // Preflight before DB startup; authenticated responses get the same CORS
+    // headers from the reusable MCP handler itself.
+    if (req.method === 'OPTIONS' && allowBrowserProtocol(req, res,
+      { methods: ['GET','POST','DELETE'], mcp: true })) return;
     const db = createDb();
     await db.initSchema();
     return await createMcpHandler({ db, registry, services:{stripePermissionReprobe:createPermissionReprobe({db}),

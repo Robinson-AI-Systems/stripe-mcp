@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#145 browser OAuth/MCP CORS compatibility (proposed; exact-head CI required):** Credentialless browser clients can preflight token, registration, OAuth discovery and bearer-protected MCP endpoints; owner authorization and setup remain non-CORS. CORS never grants an MCP bearer or private owner credentials. External Vercel SSO/OAuth smoke is still pending; LIVE disabled.
+
 - **#144 OAuth confidential-client compatibility (proposed; verify CI before merge):** Explicitly registered `client_secret_basic` clients can exchange authorization codes and rotate refresh credentials using HTTP Basic without mixing body secrets. Existing confidential POST and public PKCE methods retain their defaults. Security and protocol regression tests run through CI. External live browser/custom connector OAuth and provider TEST acceptance still pending; Vercel protection and LIVE policy unchanged.
 
 
