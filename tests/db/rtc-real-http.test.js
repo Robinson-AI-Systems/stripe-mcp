@@ -1,0 +1,148 @@
+import {beforeAll,afterAll,describe,it,expect} from 'vitest';
+import {createServer} from 'node:http';
+import {randomBytes} from 'node:crypto';
+import {createDb} from '../../src/db.js';
+import {registry} from '../../src/tools/index.js';
+import {createRtcReadOnlyHttpHandler,rtcManifest} from '../../src/core/rtc-http.js';
+import {splitResult} from '../../src/tools/result-rules.js';
+import {openIsolatedSchema,closeIsolatedSchema,rawQuery,neonShapedQuery}
+  from '../../test/helpers/pg-neon-adapter.js';
+
+const acct='acct_RTCSERVICE';
+const generatePass=()=> 'rtc_pass_'+randomBytes(32).toString('base64url');
+const mainPass=generatePass(),otherPass=generatePass(),expiredPass=generatePass();
+let db,host,server;
+const createResponseAdapter=res=>{
+  res.status=n=>{res.statusCode=n;return res;};
+  res.send=body=>{res.end(body);return res;};
+};
+async function makeServer(){
+  const rtc=createRtcReadOnlyHttpHandler({db,registry});
+  server=createServer(async(req,res)=>{
+    createResponseAdapter(res);
+    try{
+      const url=new URL(req.url,'http://127.0.0.1');
+      req.query=Object.fromEntries(url.searchParams);
+      if(req.method==='POST'){
+        const chunks=[];
+        for await(const chunk of req)chunks.push(chunk);
+        req.rawBody=Buffer.concat(chunks);
+        req.body=JSON.parse(req.rawBody.toString('utf8'));
+      }
+      if(url.pathname==='/api/contract'){
+        res.setHeader('Cache-Control','no-store');
+        res.setHeader('Content-Type','application/json');
+        return res.status(200).send(JSON.stringify(rtcManifest(registry)));
+      }
+      if(url.pathname==='/api/whoami')
+        return await rtc(req,res,'whoami');
+      if(url.pathname==='/api/tools')
+        return await rtc(req,res,'catalog');
+      if(url.pathname.startsWith('/api/tools/')){
+        const name=decodeURIComponent(url.pathname.slice('/api/tools/'.length));
+        return await rtc(req,res,name==='_batch'?'batch':
+          req.method==='GET'?'describe':'call',name);
+      }
+      if(url.pathname.startsWith('/api/results/'))
+        return await rtc(req,res,'result',url.pathname.slice('/api/results/'.length));
+      res.status(404).send('{}');
+    }catch{
+      if(!res.writableEnded)res.status(500).send('{"error":"test_transport_failed"}');
+    }
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  host='http://127.0.0.1:'+server.address().port;
+}
+async function http(path,{token,method='GET',body}={}){
+  const response=await fetch(host+path,{method,
+    headers:{...(token?{authorization:'Bearer '+token}:{}),
+      ...(body!==undefined?{'content-type':'application/json'}:{})},
+    ...(body!==undefined?{body:JSON.stringify(body)}:{})});
+  return {status:response.status,data:await response.json(),
+    challenge:response.headers.get('www-authenticate')};
+}
+beforeAll(async()=>{
+  const dsn=process.env.TEST_DATABASE_URL;
+  if(!dsn||!['localhost','127.0.0.1','::1'].includes(new URL(dsn).hostname))
+    throw Error('Disposable localhost PostgreSQL required');
+  await openIsolatedSchema(dsn);
+  db=createDb(neonShapedQuery());await db.initSchema();
+  await rawQuery('INSERT INTO stripe_accounts (id,label,test_key_enc) VALUES($1,$2,$3)',
+    [acct,'ISOLATED TEST','v1.fake']);
+  for(const [id,token,areas] of [
+    ['rtc-agent-wiremain',mainPass,['server','account']],
+    ['rtc-agent-wireother',otherPass,['server']],
+    ['rtc-agent-wireexpired',expiredPass,['server']]]){
+    expect(await db.createRtcReadOnlyPass({id,account:acct,token,areas,
+      expiresAt:new Date(Date.now()+3600000)})).toBe(true);
+  }
+  await rawQuery("UPDATE oauth_tokens SET expires_at=now()-interval '1 second' WHERE client_id=$1",
+    ['rtc-agent-wireexpired']);
+  await makeServer();
+});
+afterAll(async()=>{
+  if(server)await new Promise((resolve,reject)=>server.close(e=>e?reject(e):resolve()));
+  await closeIsolatedSchema();
+});
+describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
+  it('serves the real registry manifest while refusing missing or bad authorization',async()=>{
+    const manifest=await http('/api/contract');
+    expect(manifest.status).toBe(200);
+    expect(manifest.data).toMatchObject({rtc:1,prefix:'stripe',
+      access:'test_read_only_only'});
+    const missing=await http('/api/whoami');
+    expect(missing.status).toBe(401);
+    expect(missing.data.error.code).toBe('permission');
+    expect(missing.challenge).toContain('Bearer');
+    const wrong=await http('/api/whoami',{token:'connector_not_a_pass'});
+    expect(wrong.status).toBe(401);
+  });
+  it('lists and executes real selected-account read metadata, but not any write',async()=>{
+    const who=await http('/api/whoami',{token:mainPass});
+    expect(who.status).toBe(200);
+    expect(who.data.result).toMatchObject({mode:'test',profile:'read_only',
+      allowWrites:false,moneyLimitCents:0,areas:['server','account']});
+    const searched=await http('/api/tools?listing=catalog&q=stripe_whoami&limit=10',
+      {token:mainPass});
+    expect(searched.status).toBe(200);
+    expect(searched.data.result.tools.some(t=>t.name==='stripe_whoami')).toBe(true);
+    const read=await http('/api/tools/stripe_whoami',
+      {token:mainPass,method:'POST',body:{}});
+    expect(read.status).toBe(200);
+    expect(read.data.result).toMatchObject({account:acct,mode:'test',profile:'read_only'});
+    const forbidden=registry.tools.find(t=>t.writes===true);
+    expect(forbidden).toBeTruthy();
+    const writeName=forbidden.name.startsWith('stripe_')?
+      forbidden.name:'stripe_'+forbidden.name;
+    const denied=await http('/api/tools/'+encodeURIComponent(writeName),
+      {token:mainPass,method:'POST',body:{confirm:true,dryRun:false}});
+    expect(denied.status).toBe(403);
+    expect(denied.data.error.code).toBe('refused_by_guard');
+  });
+  it('enforces actual scoped result ownership between two different passes',async()=>{
+    const id='res_'+randomBytes(18).toString('base64url');
+    const row=await db.getRtcPassStatus(mainPass);
+    await db.putScopedResult({handle:id,connection:row.result_scope,
+      body:splitResult({payload:'x'.repeat(9000)}),summary:'isolated fixture',
+      expiresAt:new Date(Date.now()+3600000)});
+    const mine=await http('/api/results/'+id,{token:mainPass});
+    expect(mine.status).toBe(200);
+    expect(mine.data.result).toMatchObject({handle:id,page:0});
+    expect(mine.data.result.pageCount).toBeGreaterThan(1);
+    const wrong=await http('/api/results/'+id,{token:otherPass});
+    expect(wrong.status).toBe(404);
+    expect(wrong.data.error.code).toBe('not_found');
+  });
+  it('distinguishes expired from actively owner-revoked credentials',async()=>{
+    const expired=await http('/api/whoami',{token:expiredPass});
+    expect(expired.status).toBe(401);
+    expect(expired.data.error.code).toBe('pass_expired');
+    const id='E'.repeat(32);
+    expect(await db.requestConnectionRevokeIntent({id,account:acct,
+      clientId:'rtc-agent-wireother',expiresAt:new Date(Date.now()+600000)})).toBe(true);
+    expect(await db.consumeConnectionRevokeIntent(id)).toBe(true);
+    const revoked=await http('/api/whoami',{token:otherPass});
+    expect(revoked.status).toBe(401);
+    expect(revoked.data.error.code).toBe('pass_revoked');
+  });
+});

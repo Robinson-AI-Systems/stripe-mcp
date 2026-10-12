@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#159 RTC real-service safe-wire acceptance (as-if-merged; exact-head CI required):** new disposable real-Postgres HTTP service integration tests run the actual Stripe registry and RTC guard through loopback requests, exercising public manifest, TEST-only pass whoami, scoped tool metadata/read, financial write refusal, cross-pass result ownership, revocation/expiration. This is real server code in CI, not hub reference fake tests; external owner D-4 direct/relay/Sandbox and full-role conformance remain unverified. No live mode.
+
+
 - **#158 Owner-selected scoped RTC passes (as-if-merged; six CI gates required):** owner-only CSRF/password TEST pass form now selects at most six verified read-only areas, defaults to server-only, persists exact TEXT[] grant atomically, and the HTTPS boundary enforces it. Adversarial issuer, owner form and real Postgres round-trip tests; 24h TEST, $0 money, no writes/LIVE unchanged. Next #159 real server safe HTTPS conformance and D-4 authentic route setup.
 
 

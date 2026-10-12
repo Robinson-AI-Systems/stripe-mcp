@@ -85,7 +85,10 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     // the registered dispatcher remains the final profile/guard authority.
     const output=await dispatchReadOnlyTool({registry,name:t.name,args:safeArgs,connection,db,services});
     const result=unpack(output);
-    if(result===null)return {error:'service_error'};
+    // An absent or foreign scoped result is a normal not_found, not a server fault.
+    // This must not distinguish expired, missing, or other-pass handles.
+    if(result===null)return {error:t.name==='stripe_get_result'?
+      'not_found':'service_error'};
     const handle=typeof result.handle==='string'&&/^res_[A-Za-z0-9_-]{24,48}$/.test(result.handle)?
       result.handle:undefined;
     return {result,handle};
