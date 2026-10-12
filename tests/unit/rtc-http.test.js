@@ -38,7 +38,20 @@ describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
   it('publishes safe prefixed discovery without changing registered MCP names',async()=>{
     expect(rtcManifest(registry)).toMatchObject({rtc:1,prefix:'stripe',
       profiles:['read_only'],counts:{tools:2,writes:0,money:0},areas:['account','server']});
-    expect(Object.keys(rtcOpenApi().paths)).toContain('/api/contract');
+    const spec=rtcOpenApi();
+    expect(Object.keys(spec.paths)).toContain('/api/contract');
+    expect(Object.keys(spec.paths)).toContain('/api/openapi.json');
+    expect(spec.components.securitySchemes.rtcTestPass).toMatchObject({
+      type:'http',scheme:'bearer'});
+    expect(spec.security).toEqual([{rtcTestPass:[]}]);
+    expect(spec.paths['/api/contract'].get.security).toEqual([]);
+    expect(spec.paths['/api/openapi.json'].get.security).toEqual([]);
+    expect(spec.paths['/api/tools/{name}'].post.requestBody.required).toBe(true);
+    expect(spec.paths['/api/tools/_batch'].post.requestBody.content[
+      'application/json'].schema.properties.calls.maxItems).toBe(10);
+    for(const entry of Object.values(spec.paths))for(const operation of Object.values(entry)){
+      expect(operation.responses[200]).toBeDefined();
+    }
     const {handler}=await fixture(),r=res();
     await handler(req('GET',{limit:'100',listing:'catalog'}),r,'catalog');
     expect(r.body.ok).toBe(true);
