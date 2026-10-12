@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#142 secure enrolled TEST key identity (as-if-merged; exact-head CI and review required):** Initial owner setup now requires genuine provider account object and explicit `livemode:false` before encrypting an enrolled TEST key. The server-only permission reprobe also requires a fresh exact-account provider TEST identity before any permission calls or permission metadata updates. Provider errors, absent modes and foreign accounts fail closed; existing enrolled TEST key is not read/exposed or changed by this implementation. G-4/G-5/G-6 external authenticated smoke, owner Dashboard and OAuth compatibility remain PENDING.
+
+
 - **#141 owner-private custom MCP TEST evidence path (as-if-merged; CI/review required):** The protected same-origin, CSRF-bound and independently passphrase-authenticated setup page can trigger eight read-only native custom MCP handler readbacks for an explicitly selected enrolled TEST account using the server's normal encrypted credential loader; only allowlisted statuses reach the browser. **No raw key, ciphertext, webhook secret, Stripe payload or SDK exception is returned.** This is owner-initiated TEST verification capability, NOT evidence that an owner executed it; G-4/G-5 smoke and G-6 Dashboard walkthrough remain PENDING until actual results are obtained. Vercel SSO is unchanged.
 
 

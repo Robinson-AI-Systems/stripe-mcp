@@ -29,7 +29,8 @@ describe('A-5a encrypted server-only credentials', () => {
   });
   it('stores a provider-verified test key encrypted; public metadata never contains key', async () => {
     const key = generate(), db = createFakeDb(), { stripe, calls, when } = makeFakeStripe();
-    when('accounts.retrieve').resolves({ id:'acct_FAKE123', business_profile:{name:'Personal test'} });
+    when('accounts.retrieve').resolves({object:'account',id:'acct_FAKE123',
+      livemode:false,business_profile:{name:'Personal test'} });
     const store = createKeyStore({ db, encryptionKey:key, makeClient: () => stripe, probe: async () => ({}) });
     const secret = testKey();
     const details = await store.storeTestKey({ key:secret });
@@ -44,6 +45,24 @@ describe('A-5a encrypted server-only credentials', () => {
     await expect(store.loadKey({ account:'missing' })).rejects.toThrow(/No test key/);
     await expect(store.loadKey({ account:'acct_FAKE123', mode:'live' })).rejects.toThrow(/not enabled/);
     await expect(store.storeTestKey({ key:['sk','live','FAKE'].join('_') })).rejects.toThrow(/Only a Stripe test/);
+  });
+  it('refuses missing, LIVE, string or malformed TEST identity without persisting any key',async()=>{
+    for(const returned of [
+      {object:'account',id:'acct_BAD',livemode:true},
+      {object:'account',id:'acct_BAD'},
+      {object:'account',id:'acct_BAD',livemode:'false'},
+      {object:'account',id:'acct_BAD',livemode:null},
+      {object:'customer',id:'acct_BAD',livemode:false}
+    ]) {
+      const db=createFakeDb(),{stripe,when}=makeFakeStripe();
+      when('accounts.retrieve').resolves(returned);
+      let permissions=0;
+      const vault=createKeyStore({db,encryptionKey:generate(),makeClient:()=>stripe,
+        probe:async()=>{permissions++;return {};}});
+      await expect(vault.storeTestKey({key:testKey()})).rejects.toThrow(/TEST identity/);
+      expect(permissions).toBe(0);
+      expect(await db.listStripeAccounts()).toEqual([]);
+    }
   });
   it('issues encrypted one-time records and returns only a setup link, then consumes once', async () => {
     const db = createFakeDb(), key = generate();

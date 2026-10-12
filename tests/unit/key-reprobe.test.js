@@ -18,7 +18,9 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
         expect(account).toBe('acct_testowner');expect(mode).toBe('test');loaded++;
         return {key:secret,expectedCiphertext:'test-fixture-cipher'};
       }}),
-      makeClient:({key,mode})=>{expect(key).toBe(secret);expect(mode).toBe('test');return {fake:true};},
+      makeClient:({key,mode})=>{expect(key).toBe(secret);expect(mode).toBe('test');return {
+        fake:true,accounts:{retrieve:async()=>({object:'account',id:'acct_testowner',livemode:false})}
+      };},
       probe:async client=>{expect(client.fake).toBe(true);checked++;
         return {customers:'ok',refunds:'denied'};}
     });
@@ -50,7 +52,8 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
     const check=createPermissionReprobe({db,
       keyStoreFactory:()=>({loadKeySnapshot:async()=>({
         key:['rk','test','FAKE12345'].join('_'),expectedCiphertext:'original-cipher'})}),
-      makeClient:()=>({}),
+      makeClient:()=>({accounts:{retrieve:async()=>({
+        object:'account',id:account,livemode:false})}}),
       probe:async()=>{
         await db.saveTestKey({account,label:'Fixture',ciphertext:'rotated-cipher',
           kind:'restricted',last4:'0002',permissions:{customers:'denied'}});
@@ -59,6 +62,28 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
     });
     await expect(check({account,mode:'test'})).rejects.toThrow(/could not be updated/);
     expect((await db.getStripeAccount(account)).key_permissions).toEqual({customers:'denied'});
+  });
+  it('requires independently verified provider TEST identity before permissions or metadata update',async()=>{
+    for(const identity of [{object:'account',id:'acct_OTHER',livemode:false},
+      {object:'account',id:'acct_testowner',livemode:true},
+      {object:'account',id:'acct_testowner'},
+      {object:'account',id:'acct_testowner',livemode:'false'}]){
+      const db=createFakeDb({accounts:[{id:'acct_testowner',label:'Fixture'}]});
+      await db.saveTestKey({account:'acct_testowner',label:'Fixture',ciphertext:'cipher-first',
+        kind:'restricted',last4:'FAKE',permissions:{customers:'denied'}});
+      let read=0;
+      const check=createPermissionReprobe({db,
+        keyStoreFactory:()=>({loadKeySnapshot:async()=>({
+          key:['rk','test','FAKE1234'].join('_'),expectedCiphertext:'cipher-first'})}),
+        makeClient:()=>({accounts:{retrieve:async()=>identity}}),
+        probe:async()=>{read++;return {customers:'ok'};}
+      });
+      await expect(check({account:'acct_testowner',mode:'test'}))
+        .rejects.toThrow(/identity could not be verified/);
+      expect(read).toBe(0);
+      expect((await db.getStripeAccount('acct_testowner')).key_permissions)
+        .toEqual({customers:'denied'});
+    }
   });
   it('denies the MCP permission tool unless server probe and selected TEST account exist',async()=>{
     const db=createFakeDb({accounts:[{id:'acct_A',label:'A'}]});
