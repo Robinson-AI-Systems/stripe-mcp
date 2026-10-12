@@ -62,6 +62,9 @@ describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
     expect(calls).toEqual(['acct_SAFEOWNER']);
     expect(response.body).toContain('custom_mcp_dispatch');
     expect(response.body).toContain('partial');
+    expect(response.body).toContain('configuredSettingsVerified');
+    expect(response.body).toContain('webhookDeliveryVerified');
+    expect(response.body).toContain('Only the listed exceptions');
     expect(response.body).not.toContain('rk_test_FAKE_SHOULD_NOT_BE_EXPOSED');
     expect(response.body).toContain('not Dashboard acceptance');
   });

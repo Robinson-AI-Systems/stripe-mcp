@@ -1,5 +1,6 @@
 // Owner-only setup UI. The browser sends Stripe keys directly over HTTPS; no AI tool accepts them.
 import { randomBytes } from 'node:crypto';
+import {buildSetupReadinessReport} from '../acceptance/setup-readiness-report.js';
 import { clientIp, evaluateLogin, secretsMatch, LOCKOUT_WINDOW_MINUTES } from '../core/oauth.js';
 import { publicOrigin, paramsOf, send, escapeHtml, only } from '../core/http.js';
 
@@ -47,8 +48,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Download private CSV</button></form>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
-    '<h2>Verify custom MCP TEST reads (owner only)</h2>' +
-    '<p>After owner passphrase authorization, select focused G-4 webhook, G-5 account or G-6 readiness checks, or the comprehensive group. Each uses only existing custom MCP read-only handlers with the stored TEST credential; no key leaves the server. This does not verify Dashboard settings, OAuth or webhook delivery.</p>' +
+    '<h2>Automated TEST Setup &amp; Readiness Report (owner only)</h2>' +
+    '<p>Select one group for genuine custom MCP TEST reads and a targeted readiness report. Unknown/unreadable settings are NOT presumed to be defaults. No automatic change is made; Stripe Dashboard, OAuth and signed webhook delivery are separate acceptance gates.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="run-test-smoke">' +
     '<label>Selected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" maxlength="110" required autocomplete="off"></label>' +
@@ -335,11 +336,11 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
           report.records.some(v=>!['observed','partial','not_readable','error'].includes(v.status)||
             !allowed.includes(v.tool)))
           throw new TypeError('Unverified custom MCP report');
-        const safe={mode:'test',focus:p.focus,source:'custom_mcp_dispatch',
+        const safe=buildSetupReadinessReport({mode:'test',focus:p.focus,source:'custom_mcp_dispatch',
           dashboardVerified:false,writeOperations:0,
-          records:report.records.map(v=>({tool:v.tool,status:v.status}))};
+          records:report.records.map(v=>({tool:v.tool,status:v.status}))});
         return send(res,200,htmlPage({csrf:cookie,smokeResult:safe,
-          result:'Read-only custom MCP checks finished. Review error/partial/unreadable results; Stripe Dashboard and OAuth acceptance remain separate.'}),
+          result:'Read-only TEST Setup & Readiness Report. Only the listed exceptions merit follow-up; no setting changes or account readiness are certified.'}),
           'text/html; charset=utf-8');
       } catch {
         return send(res,503,htmlPage({csrf:cookie,
