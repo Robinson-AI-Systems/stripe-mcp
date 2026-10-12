@@ -1,6 +1,6 @@
 # Deploy Robinson Stripe MCP — owner checklist
 
-**Status (2026-10-11 Colorado):** Vercel `stripe-mcp` production build is READY after secure `DATABASE_URL` provisioning. Dedicated Neon `stripe-mcp` / `stripe_mcp` database exists and passed read-only SQL connectivity. **Not operational yet:** owner-controlled `ADMIN_PASSPHRASE`, `TOKEN_ENCRYPTION_KEY`, restricted Stripe TEST key, authenticated MCP OAuth and application schema initialization have not been verified. Vercel deployment protection remains enabled; Stripe LIVE is disabled. See [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for the remaining approval and verification gates.
+**Status (verified 2026-10-11 Colorado):** `stripe-mcp` Vercel Production build is READY; dedicated Neon `stripe_mcp` database has all 24 expected app tables. Owner entered `ADMIN_PASSPHRASE` and `TOKEN_ENCRYPTION_KEY` directly into Vercel as Sensitive Production-only settings, and privately enrolled one encrypted, timestamp-verified Stripe TEST key through the setup page. The agent did not view any secret. **Remote custom MCP OAuth, G-4/G-5 real provider smoke and G-6 owner Dashboard walkthrough remain UNVERIFIED**. Vercel Authentication remains enabled; Stripe LIVE remains disabled. Follow [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for outstanding acceptance gates.
 
 This is a personal tool for your projects. The normal process is **set it up once, connect your AI agent once, then let OAuth refresh credentials automatically**. You should not have to keep creating API keys or signing in for routine use. An agent app may impose its own renewal or reconnection rules; we cannot override those.
 
@@ -14,12 +14,12 @@ on the **same owner-controlled origin**:
 AI tool arguments; missing/mismatched values prevent writes. No LIVE Stripe
 operation or paid deployment is authorized by this instruction.
 
-## Current deployment details (not yet authenticated or usable)
+## Current deployment details (TEST enrollment complete; external MCP acceptance pending)
 
 - Vercel project: `stripe-mcp` (team `Robinson AI Systems`, existing Pro plan), linked to the correct GitHub repository `Robinson-AI-Systems/stripe-mcp`, branch `main`.
 - Production origin configured in Vercel: `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` (`PUBLIC_BASE_URL`). Review deployment protection before exposing OAuth discovery to remote AI clients; build READY does not prove endpoint accessibility.
 - After explicit owner authorization for the existing **Launch usage-billed plan**, a separate Neon project `stripe-mcp` was created in AWS us-east-1 with PostgreSQL 18, database `stripe_mcp`, fixed 0.25 CU compute and 5-minute auto-suspend. Isolated SQL connectivity succeeded. Its credential was transferred directly to Vercel as sensitive Production-only `DATABASE_URL`, not to chat, GitHub or other projects. No plan upgrade occurred; monitor actual metered usage.
-- Owner administrator/encryption secrets have deliberately not been pasted into GitHub or chat, and remain unset in Vercel. Production was redeployed after `DATABASE_URL` was set; deployment READY alone does not verify database schema or OAuth. Complete IN-03 and IN-04 privately, redeploy once those values are saved, and then run real TEST/OAuth and owner Dashboard acceptance. Leave LIVE disabled.
+- Owner administrator/encryption settings are configured as Sensitive Production-only variables. Owner TEST key is encrypted in the isolated database (one verified account record; no stored/live-enabled LIVE key). All 24 app tables exist and Vercel Production redeployed READY after owner setup; no secret was copied into GitHub or chat. **Database presence does NOT authenticate any connected Stripe API tools**. Verify Vercel Authentication's effect on the custom OAuth endpoints before connecting external clients, then exercise independent TEST identity, safe G-4/G-5 smoke, and owner Dashboard G-6 reconciliation without disclosing the key. Do not loosen protection blindly or turn on LIVE.
 
 ## What you need
 
