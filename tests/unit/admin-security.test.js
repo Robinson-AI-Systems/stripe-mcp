@@ -21,9 +21,9 @@ function fixture({permissions=true,webhook=true,db=true,accountReadable=true}={}
     listConnectionsForAccount:vi.fn(async()=>db?[{client_id:privateValue}]:[])};
   const ctx={connection:{mode:'test',stripeAccount:id,profile:'read_only'},
     db:store,services:{stripeForConnection:async()=>sdk,
-      stripePermissionReprobe:permissions?async()=>({
+      stripePermissionReprobe:permissions?vi.fn(async()=>({
         account:id,mode:'test',checkedAt:1790000000,
-        permissions:{charges:'read',refunds:'none',secret:privateValue}}):undefined}};
+        permissions:{charges:'read',refunds:'none',secret:privateValue}})):undefined}};
   return {sdk,store,ctx};
 }
 describe('G-6c TEST owner security review',()=>{
@@ -59,7 +59,23 @@ describe('G-6c TEST owner security review',()=>{
     const out=parse(await handlers.admin_review_security({},f.ctx));
     expect(out.sections.webhooks).toMatchObject({status:'not_readable',observed:false});
     expect(f.sdk.webhookEndpoints.list).not.toHaveBeenCalled();
+    expect(f.ctx.services.stripePermissionReprobe).not.toHaveBeenCalled();
+    expect(out.sections.keyPermissions.status).toBe('not_readable');
     expect(out.sections.key.status).toBe('stored_metadata');
+  });
+  it('refuses fresh security permission probes for a foreign TEST account',async()=>{
+    const f=fixture();
+    f.sdk.accounts.retrieve=vi.fn(async()=>({
+      object:'account',id:'acct_DIFFERENT',livemode:false,
+      charges_enabled:true,payouts_enabled:true,details_submitted:true,
+      requirements:{currently_due:[],past_due:[]}}));
+    const result=parse(await handlers.admin_review_security({},f.ctx));
+    expect(result.sections.key.status).toBe('stored_metadata');
+    expect(result.sections.keyPermissions.status).toBe('not_readable');
+    expect(result.sections.webhooks.status).toBe('not_readable');
+    expect(f.ctx.services.stripePermissionReprobe).not.toHaveBeenCalled();
+    expect(f.sdk.webhookEndpoints.list).not.toHaveBeenCalled();
+    expect(result.note).toMatch(/manual Stripe Dashboard/);
   });
   it('rejects LIVE and incorrect parameters; indirect dispatch remains read-only',async()=>{
     const f=fixture();

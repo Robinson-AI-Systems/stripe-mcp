@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#135 G-6 owner security probe identity gate (as-if-merged; exact-head CI required):** fresh TEST key-permission reprobe and webhook checks require independent selected-account identity evidence. Stored masked local metadata remains explicitly unverified by the provider. Regression tests assert zero permission/webhook calls after refusal or foreign identity. G-4/G-5/G-6 genuine custom TEST smoke and signed-in owner Dashboard walkthrough still PENDING. H-1 remains blocked, LIVE disabled.
+
 - **#134 G-6 truthful partial owner readback (as-if-merged; exact-head CI required):** bounded capabilities page now differentiates partial observations from unreadable permissions; readiness reports seven native categories as complete/partial/unreadable, separate from unverified Dashboard owner comparison. No Stripe mutation or real TEST connected acceptance; G-6 IN_PROGRESS, H-1 gated, LIVE disabled.
 
 - **#133 custom-MCP TEST smoke evidence classification (as-if-merged; exact-head CI required):** each of the eight G-4/G-5/G-6 smoke readbacks must match an expected tool-specific and account-bound safe projection. Arbitrary JSON, wrong account, missing read shape and errors are not success. CI tests are mocked; authentic owner TEST run and G-6 Dashboard walkthrough remain pending. LIVE disabled.
