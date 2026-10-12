@@ -7,6 +7,12 @@ Read [development efficiency](DEVELOPMENT-EFFICIENCY.md) for PR grouping, shared
 
 ## 0. First thing, every session: finish what is already open
 
+Release branch note: `main` is development, `live` is Production, and
+daily promotion is handled only by `.github/workflows/promote-live.yml` after
+six green CI checks. See `docs/DAILY-PRODUCTION-PROMOTION.md`; never
+push a PR or release directly to `live`, and inspect Vercel branch tracking
+before calling a Production deployment verified.
+
 Your session can end at any moment (the chat stops between actions), so the next session starts here, not at a new card.
 
 1. `R=$(git remote get-url origin | sed -E 's#.*github.com[:/]##; s#\.git$##')` then
