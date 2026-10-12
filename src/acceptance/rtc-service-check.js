@@ -38,12 +38,25 @@ function reportFailure(stage,reason){
     'account_invalid','http_unavailable','response_too_large','non_json_ingress',
     'invalid_json','manifest_mismatch','identity_mismatch','catalog_mismatch',
     'direct_read_failed','batch_failed','unsafe_tool_not_refused',
-    'revocation_not_proved','provider_read_unverified']);
+    'revocation_not_proved','provider_read_unverified',
+    'deployment_unverified','deployment_mismatch']);
   return {status:'failed',stage,code:known.has(reason)?reason:'http_unavailable'};
 }
+function verifyDeployment(manifest,expectedDeploymentSha){
+  if(typeof expectedDeploymentSha!=='string'||
+    !/^[0-9a-f]{40}$/.test(expectedDeploymentSha))
+    throw new Error('deployment_unverified');
+  const deployed=manifest?.deployment;
+  if(!deployed||!/^[0-9a-f]{40}$/.test(deployed.sha??'')||
+    typeof deployed.ref!=='string'||!deployed.environment)
+    throw new Error('deployment_unverified');
+  if(deployed.sha!==expectedDeploymentSha||deployed.ref!=='live'||
+    deployed.environment!=='production')
+    throw new Error('deployment_mismatch');
+}
 export async function verifyRtcService({
-  origin,approvedOrigin:pin,pass,expectedAccount,fetcher=fetch,
-  now=()=>Date.now(),providerRead=false
+  origin,approvedOrigin:pin,pass,expectedAccount,expectedDeploymentSha,
+  fetcher=fetch,now=()=>Date.now(),providerRead=false
 }){
   let stage='setup';
   try{
@@ -67,6 +80,7 @@ export async function verifyRtcService({
       JSON.stringify(manifest.data.profiles)===JSON.stringify(['read_only'])&&
       manifest.data.counts?.writes===0&&manifest.data.counts.money===0,
     'manifest_mismatch');
+    verifyDeployment(manifest.data,expectedDeploymentSha);
     stage='identity';
     const who=await request('/api/whoami');
     const identity=who.data.result;
@@ -136,12 +150,18 @@ export async function verifyRtcService({
   }
 }
 export async function verifyRtcRevocation({
-  origin,approvedOrigin:pin,revokedPass,fetcher=fetch
+  origin,approvedOrigin:pin,revokedPass,expectedDeploymentSha,fetcher=fetch
 }){
   let stage='revocation';
   try{
     const base=approvedOrigin(origin,pin);
     demand(PASS.test(revokedPass),'credential_invalid');
+    verifyDeployment(await (async()=>{
+      const manifestResponse=await fetcher(base+'/api/contract',
+        {method:'GET',redirect:'manual',headers:{}});
+      demand(manifestResponse.status===200,'deployment_unverified');
+      return jsonReply(manifestResponse);
+    })(),expectedDeploymentSha);
     const result=await fetcher(base+'/api/whoami',{method:'GET',redirect:'manual',
       headers:{authorization:'Bearer '+revokedPass}});
     const data=await jsonReply(result);

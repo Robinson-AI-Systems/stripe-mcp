@@ -89,8 +89,29 @@ describe('real RTC read-only dual HTTP boundary and shared PostgreSQL',()=>{
   it('permits exactly 120 overlapping calls across independent HTTP handlers',async()=>{
     expect(peers).toHaveLength(2);
     expect(peers[0].origin).not.toBe(peers[1].origin);
-    const responses=await Promise.all(Array.from({length:150},(_,index)=>
-      request(peers[index%2],'/api/whoami',{token:limitPass})));
+    // Rate buckets are per PostgreSQL calendar minute. A 150-request CI
+    // burst can straddle a UTC minute boundary, legitimately admitting >120
+    // *across two buckets*. Verify that before asserting one-bucket counts.
+    // Retry only straddling bursts with new short-lived TEST passes; never
+    // alter the real shared 120/min enforcement or weaken the expected 120/30.
+    let responses,sameMinute=false;
+    for(let attempt=0;attempt<3;attempt++){
+      const token=attempt===0?limitPass:makeToken();
+      if(attempt>0){
+        expect(await db.createRtcReadOnlyPass({
+          id:'rtc-agent-twohttp-retry-'+attempt,account,token,areas:['server'],
+          expiresAt:new Date(Date.now()+3600000)})).toBe(true);
+      }
+      const [before]=await rawQuery(
+        "SELECT date_trunc('minute',now())::text AS minute");
+      responses=await Promise.all(Array.from({length:150},(_,index)=>
+        request(peers[index%2],'/api/whoami',{token})));
+      const [after]=await rawQuery(
+        "SELECT date_trunc('minute',now())::text AS minute");
+      sameMinute=before.minute===after.minute;
+      if(sameMinute)break;
+    }
+    expect(sameMinute).toBe(true);
     const accepted=responses.filter(r=>r.status===200);
     const rejected=responses.filter(r=>r.status===429);
     expect(accepted).toHaveLength(120);
