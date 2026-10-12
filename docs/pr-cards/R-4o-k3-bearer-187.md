@@ -28,6 +28,17 @@ No independently authenticated real human owner approval is claimed by
 synthetic automated suites; retain exact owner permission and future external
 G-6 gate. LIVE off, no forced deployments, no money.
 
+## Owner blocker-handling correction (incorporated, no extra PR)
+A failing original OAuth source test exposed a fabricated strict `acct_`
+alphanumeric rule in the first adapter; the actual source accepts underscores
+in account IDs. The adapter now preserves the exact server-issued durable account
+string, without trusting caller-supplied identity. The corrected implementation
+passed the seven PR exact-head checks at `d145d5c3`; the final updated head
+must pass all gates again. Root-cause analysis and repair preceded any blocker
+claim. AGENTS, SESSION-START and DEVELOPMENT-EFFICIENCY now explicitly require
+operation-scoped blockers, authorized remedies, independent work and automatic
+re-entry instead of early handoff.
+
 ## Blocker reentry
 Adapted `oauth-protocol`, `write` and `mcp-dispatch` remain individually
 OPEN pending Stripe-owned source test proof. Actual published package

@@ -21,6 +21,15 @@ Date: 2026-10-12. Stripe remains standalone and LIVE off.
   OAuth/SDK HTTP/refresh/revocation suites. Only mark this row PASS after
   #187 exact-head CI; original source remains active after every rehearsal.
 
+**Additional owner execution rule, permanently recorded with #187:** a blocked
+package release, TEST credential, deployment or Hub acceptance route blocks
+only that dependent operation. Diagnose and attempt authorized source/CI/config
+repairs first, perform independent safe source tests and roadmap work, and
+reopen the blocked gate automatically when its precise evidence arrives. Stop
+only at the five-qualifying-PR session boundary or when no other approved safe
+substantial work is eligible after investigation. Refer to AGENTS.md and
+SESSION-START.md; do not ask the owner to repeat prior grants.
+
 ## K-3 release dependency sequencing
 This is PRIVATE-CANDIDATE compatibility, NOT package adoption. There is no
 GitHub Release/remote asset attestation. Do not add `robinson-mcp-core`
