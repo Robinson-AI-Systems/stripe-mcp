@@ -57,6 +57,32 @@ describe('G-6b owner overview and safe requirements',()=>{
       fixture({refused:true}).ctx));
     expect(denied).toMatchObject({status:'not_readable',observed:false,totals:null});
   });
+  it('G-6 smoke reads real dispatcher under the 8 KB inline limit',async()=>{
+    const f=fixture({unknown:true});
+    const result=await dispatchReadOnlyTool({registry,name:'stripe_admin_overview',
+      args:{detail:'summary'},connection:f.ctx.connection,services:f.ctx.services,db:{}});
+    expect(result.isError).toBeUndefined();
+    expect(Buffer.byteLength(JSON.stringify(result),'utf8')).toBeLessThanOrEqual(8192);
+    const compact=parse(result);
+    expect(compact).toMatchObject({account:id,mode:'test',summaryOnly:true,
+      verificationReadiness:{status:'awaiting_owner',dashboardWalkthroughVerified:false}});
+    expect(compact.ownerWalkthrough).toHaveLength(14);
+    expect(compact.ownerWalkthrough.every(v=>v.ownerConfirmed===false)).toBe(true);
+    expect(compact.sections.account).toMatchObject({status:'not_readable',observed:false});
+    expect(compact.sections.capabilities).toMatchObject({status:'observed',observed:true});
+    expect(compact).not.toHaveProperty('guidedSettings');
+    expect(JSON.stringify(compact)).not.toContain(pii);
+    expect(f.sdk.accounts.listCapabilities).toHaveBeenCalledTimes(1);
+  });
+  it('full detail stays available and rejects unsupported overview arguments',async()=>{
+    const f=fixture();
+    const plain=parse(await handlers.stripe_admin_overview({},f.ctx));
+    const full=parse(await handlers.stripe_admin_overview({detail:'full'},f.ctx));
+    expect(full.guidedSettings).toEqual(plain.guidedSettings);
+    expect(full.ownerWalkthrough).toHaveLength(14);
+    for(const args of [{detail:'invalid'},{detail:null},{unapproved:true}])
+      expect((await handlers.stripe_admin_overview(args,f.ctx)).isError).toBe(true);
+  });
   it('overview independently identifies observed and unreadable account sections',async()=>{
     const f=fixture();
     const v=parse(await handlers.stripe_admin_overview({},f.ctx));

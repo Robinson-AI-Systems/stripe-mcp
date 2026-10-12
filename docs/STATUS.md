@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#151 G-6 owner TEST smoke bounded overview (as-if-merged; exact-head CI required):** owner-reported connected TEST administration smoke `stripe_admin_overview:error`, `admin_review_security:partial`, `admin_list_guided_settings:not_readable`; owner-smoke dispatch has no scoped result store while full owner overview is larger than 8 KB. An explicit status-only overview for smoke preserves actual native TEST readbacks, 14 unchecked Dashboard items, and the existing full view for scoped MCP connections. Adversarial and real dispatcher tests cover size, partial/unreadable state, and invalid arguments. Owner rerun and signed-in Dashboard acceptance pending; H-1 gated and LIVE disabled.
+
+
 - **#150 owner TEST verification compatibility (merged as-if; all five exact-head CI checks required):** Stripe Account objects omit `livemode`; require independently matching authenticated Account ID and a same-client, read-only Balance object with explicit `livemode:false` when absent. Denied Balance read fails closed (owner may need to grant Balance: Read for the enrolled restricted TEST key). Apply across TEST key enrollment/reprobe, G-5 native account readers/writes, G-6 owner readers and custom owner smoke. No decrypted keys, LIVE, approvals or money operations. Real connected TEST and Dashboard acceptance remain PENDING. Official Stripe API: https://docs.stripe.com/api/accounts/object and https://docs.stripe.com/api/balance/balance_object.
 
 - **#149 merged** at `7c9e981b75806e7fbfdbfdc84622ed11ca2185a2`, all five final main CI checks passed; late P2 findings resolved. The historical #149 pending paragraph below is superseded.

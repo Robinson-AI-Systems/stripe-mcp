@@ -19,7 +19,7 @@ function shape(name){
     case 'admin_list_requirements':return {account,mode:'test',status:'ok',observed:true};
     case 'admin_check_setting':return {account,setting:'payment_methods',
       status:'observed',observed:true};
-    case 'stripe_admin_overview':return {account,mode:'test',sections:{account:{observed:true}},
+    case 'stripe_admin_overview':return {account,mode:'test',summaryOnly:true,sections:{account:{observed:true}},
       verificationReadiness:{status:'awaiting_owner',dashboardWalkthroughVerified:false},
       ownerWalkthrough:Array.from({length:14},(_,i)=>({setting:'fixture_'+i,ownerConfirmed:false}))};
     case 'admin_review_security':return {account,mode:'test',readOnly:true,sections:{
@@ -78,6 +78,8 @@ describe('opt-in custom MCP TEST provider smoke',()=>{
       dashboardVerified:false,writeOperations:0,errors:0,
       partial:2,notReadable:1});
     expect(f.dispatch).toHaveBeenCalledTimes(ownerAdminSmokeCases.length);
+    expect(f.dispatch.mock.calls.find(([arg])=>arg.name==='stripe_admin_overview')[0]
+      .args).toEqual({detail:'summary'});
     expect(report.records.map(v=>v.tool)).toEqual(ownerAdminSmokeCases.map(v=>v.tool));
     expect(JSON.stringify(report)).not.toContain(key);
     const forged=fixture();

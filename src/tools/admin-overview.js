@@ -82,7 +82,9 @@ export const tools=[
   {name:'stripe_admin_overview',area:'admin',writes:false,profiles:allProfiles,
     annotations:{readOnlyHint:true},
     description:'Summarize TEST owner account health with observed and unreadable sections kept distinct; never modify settings.',
-    inputSchema:{type:'object',properties:{},additionalProperties:false}}
+    inputSchema:{type:'object',properties:{
+      detail:{type:'string',enum:['summary','full']}
+    },additionalProperties:false}}
 ];
 export const handlers={
   async admin_list_requirements(a,ctx){
@@ -105,7 +107,9 @@ export const handlers={
   },
   async stripe_admin_overview(a,ctx){
     try{
-      validateAdminArgs(a);
+      validateAdminArgs(a,['detail']);
+      if(a.detail!==undefined&&!['summary','full'].includes(a.detail))
+        bad('Choose a supported owner overview detail');
       const id=requireAdminTestAccount(ctx);
       const sections={};
       const guide=(setting)=>whereIsSetting(setting).url;
@@ -236,6 +240,19 @@ export const handlers={
         priorityChecks:ownerWalkthrough.length,
         note:'These are review tasks, not proof an owner has inspected Stripe Dashboard. All settings require authenticated owner comparison in TEST mode.'
       };
+      if(a.detail==='summary'){
+        // Owner smoke lacks persistent result storage. Project genuine native
+        // statuses before the MCP 8 KB inline limit, without bypassing it.
+        const statusSections=Object.fromEntries(Object.entries(sections)
+          .map(([name,value])=>[name,{status:value.status,
+            observed:value.observed===true,
+            ...(typeof value.complete==='boolean'?{complete:value.complete}:{})}]));
+        return reply({account:id,mode:'test',summaryOnly:true,
+          sections:statusSections,verificationReadiness,
+          ownerWalkthrough:ownerWalkthrough.map(v=>({
+            setting:v.setting,status:v.status,ownerConfirmed:v.ownerConfirmed})),
+          note:'Bounded TEST-only status summary. No Dashboard walkthrough confirmed. Full owner overview remains available to scoped MCP connections.'});
+      }
       return reply({account:id,mode:'test',sections,guidedSettings,
         verificationReadiness,ownerWalkthrough,
         attention:Object.entries(sections).filter(([,v])=>v.status==='needs_attention')

@@ -19,7 +19,7 @@ const cases=Object.freeze([
 // Separate explicit owner administration pass; no unrestricted tool discovery
 // and no provider mutation even if a registered tool changes classification.
 const adminCases=Object.freeze([
-  ['G-6','stripe_admin_overview',{}],
+  ['G-6','stripe_admin_overview',{detail:'summary'}],
   ['G-6','admin_review_security',{}],
   ['G-6','admin_list_guided_settings',{limit:5}]
 ]);
@@ -74,7 +74,7 @@ function validProjection(tool,data,account){
         ['observed','not_readable'].includes(data.status)&&
         typeof data.observed==='boolean';
     case 'stripe_admin_overview':
-      return own&&data.mode==='test'&&
+      return own&&data.mode==='test'&&data.summaryOnly===true&&
         data.verificationReadiness?.status==='awaiting_owner'&&
         data.verificationReadiness.dashboardWalkthroughVerified===false&&
         Array.isArray(data.ownerWalkthrough)&&data.ownerWalkthrough.length===14&&
