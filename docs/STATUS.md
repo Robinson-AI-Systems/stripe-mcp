@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#128 G-6 owner walkthrough checklist (as-if-merged; CI pending):** TEST admin_overview now surfaces a bounded, prioritized Dashboard owner-review checklist plus explicit unverified native-vs-owner evidence totals. All 14 high-impact settings stay ownerConfirmed:false; even native 'observed' is not external owner acceptance. Unit tests cover observed/refused and PII. G-6 cannot be complete without owner TEST walkthrough; G-4/G-5 smoke pending. Next G-6 fee-ledger reconciliation and remaining map completeness.
+
 - **#127 G-6 TEST provider provenance (as-if-merged, exact-head CI required):** independent own-account TEST identity is now mandatory before overview reads capabilities or native settings, security review reports observed webhooks, or guided account verification reports success; provider refusal leaves sections not_readable and prevents downstream native requests. Added unit isolation/permission tests. External account TEST smoke and Dashboard walkthrough remain pending; do not mark G-6 complete or start dependent H-1 acceptance yet.
 
 - **#126 engineering efficiency (as-if-merged; CI pending):** shared strict TEST owner administration transport across four handlers, fail-closed regression tests, npm cache in all four existing verification jobs while preserving the fifth aggregate gate, canonical startup and JIT guidance. No Stripe API, credentials, money, LIVE or owner authorization changes. Next: owner-connected G-6 acceptance and G-4/G-5 smoke still unverified; follow approved H-1 JIT implementation without claiming TEST acceptance.

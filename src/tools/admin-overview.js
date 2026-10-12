@@ -200,7 +200,31 @@ export const handlers={
         setting,status:guidedState[setting]??'not_readable',
         verifyWith:whereIsSetting(setting).verifyWith
       }));
+      // A provider observation is not the owner's confirmation of Dashboard intent.
+      // Offer a bounded checklist covering each high-impact G-6 administration area,
+      // without storing a user's answer or fabricating a completed walkthrough.
+      const priority=['account_verification','bank_account','payout_schedule',
+        'payment_methods','payment_method_domains','webhook_events',
+        'customer_portal','two_step_login','team_members','api_keys',
+        'receipt_emails','subscription_retries','tax_registrations',
+        'account_closure'];
+      const ownerWalkthrough=priority.map(setting=>{
+        const guide=whereIsSetting(setting);
+        return {setting,section:guide.section,status:guidedState[setting]??'not_readable',
+          verifyWith:guide.verifyWith,ownerConfirmed:false,
+          requiresDashboardReview:true,dashboardUrl:guide.url};
+      });
+      const verifiedNative=guidedSettings.filter(x=>
+        ['ok','needs_attention','observed'].includes(x.status)).length;
+      const verificationReadiness={
+        status:'awaiting_owner',dashboardWalkthroughVerified:false,
+        totalSettings:guidedSettings.length,nativeObserved:verifiedNative,
+        needsManualVerification:guidedSettings.length,
+        priorityChecks:ownerWalkthrough.length,
+        note:'These are review tasks, not proof an owner has inspected Stripe Dashboard. All settings require authenticated owner comparison in TEST mode.'
+      };
       return reply({account:id,mode:'test',sections,guidedSettings,
+        verificationReadiness,ownerWalkthrough,
         attention:Object.entries(sections).filter(([,v])=>v.status==='needs_attention')
           .map(([k])=>k),
         unreadable:Object.entries(sections).filter(([,v])=>v.status==='not_readable')
