@@ -1,9 +1,11 @@
 # STATUS — current work, blockers and next action
 
 Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
-**Batch A implemented (#9–#17):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys, secure setup code and owner's deployment guide. No Stripe account has been connected; none of this is deployed or live.
+**Batch A implemented (#9–#17):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys, secure setup code and owner's deployment guide. The custom server's Vercel production build is deployed but **not operational or connected to Stripe**; LIVE is disabled.
 
 ## Next
+
+- **IN-02 provisioning checkpoint (2026-10-11 Colorado, documentation-only PR):** Connected Vercel team `Robinson AI Systems` (existing Pro plan) now owns project `stripe-mcp`, linked to `Robinson-AI-Systems/stripe-mcp` `main`. Initial production deployment of merge `0e4ae2c873713e56de50d97af8e550d698eca0fe` was READY; `PUBLIC_BASE_URL` was added for production as `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` **after that build**, so redeploy after all required env values are configured. No separate Neon project, `DATABASE_URL`, `ADMIN_PASSPHRASE`, `TOKEN_ENCRYPTION_KEY`, TEST restricted key, operational OAuth or actual provider acceptance yet. Connected Neon organization is on **usage-billed Launch**, not the originally specified Free plan. New metered database provisioning needs a separately accepted cost decision; do not reuse other projects' databases, publish secrets, remove Vercel protection prematurely or enable LIVE. Review Vercel Authentication / OAuth external client access only after private auth setup is verified.
 
 - **#136 G-5/G-6 strict TEST provider identity (as-if-merged; exact-head CI required):** one shared provider-account validator requires explicit `livemode:false`, not merely the absence of `true`, before G-5 native readers/writes, G-6 native administration, and owner-local custom MCP smoke. Missing, null or string modes fail closed without downstream TEST calls. Genuine external TEST smoke and Dashboard owner walkthrough remain PENDING; G-6 IN_PROGRESS, H-1 gated, LIVE disabled.
 
