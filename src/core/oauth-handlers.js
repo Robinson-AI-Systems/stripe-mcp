@@ -130,7 +130,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
     // RFC 6749: confidential clients may authenticate with HTTP Basic. Never
     // accept two credential mechanisms on the same request.
     const authHeader = String(req.headers?.authorization || '');
-    const match = /^Basic ([A-Za-z0-9+/]+={0,2})$/.exec(authHeader);
+    const match = /^Basic ([A-Za-z0-9+/]+={0,2})$/i.exec(authHeader);
     let basic = null;
     if (match) {
       const decoded = Buffer.from(match[1], 'base64');
@@ -154,6 +154,8 @@ export function createOAuthHandlers({ db, env = process.env }) {
       p.client_secret === undefined && !!basic.secret &&
       secretsMatch(hashToken(basic.secret), client?.client_secret_hash);
     if (!client || !(validPublic || validPost || validBasic)) {
+      // RFC 6749 §5.2 requires an authentication challenge on failed header auth.
+      if (authHeader) res.setHeader('WWW-Authenticate', 'Basic realm="Stripe MCP OAuth"');
       return bad(res, 401, 'invalid_client', 'Client credentials rejected');
     }
     if (p.grant_type === 'authorization_code') {
