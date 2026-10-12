@@ -57,6 +57,33 @@ describe('personal-use OAuth HTTP endpoints', () => {
     expect(res.statusCode).toBe(400);
     expect(json(res).error).toBe('invalid_client_metadata');
   });
+  it('rejects oversized and conflicting registration metadata without creating clients', async () => {
+    const { h } = createFixture();
+    const baseline = { redirect_uris: [callback], client_name: 'Browser MCP' };
+    const invalid = [
+      { ...baseline, redirect_uris: ['https://client.example.test/' + 'x'.repeat(2050)] },
+      { ...baseline, client_name: 'c'.repeat(101) },
+      { ...baseline, client_name: 'malformed\nclient' },
+      { ...baseline, client_name: 42 },
+      { ...baseline, response_types: ['token'] },
+      { ...baseline, response_types: ['code', 'token'] },
+      { ...baseline, grant_types: ['client_credentials'] },
+      { ...baseline, grant_types: ['authorization_code', 'authorization_code'] },
+      { ...baseline, grant_types: ['refresh_token'] }
+    ];
+    for (const metadata of invalid) {
+      const res = await call(h.register, request('POST', metadata));
+      expect(res.statusCode).toBe(400);
+      expect(json(res).error).toBe('invalid_client_metadata');
+      expect(json(res)).not.toHaveProperty('client_id');
+      expect(json(res)).not.toHaveProperty('client_secret');
+    }
+    const valid = await call(h.register, request('POST', {
+      ...baseline, response_types: ['code'],
+      grant_types: ['authorization_code', 'refresh_token']
+    }));
+    expect(valid.statusCode).toBe(201);
+  });
   it('supports public PKCE-only MCP clients without issuing or accepting client secrets', async () => {
     const { db, h } = createFixture();
     const metadata = json(await call(h.metadata, request('GET', {})));

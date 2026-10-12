@@ -25,9 +25,24 @@ export function createOAuthHandlers({ db, env = process.env }) {
     let p;
     try { p = paramsOf(req); } catch { return bad(res, 400, 'invalid_client_metadata', 'Malformed registration'); }
     if (!Array.isArray(p.redirect_uris) || p.redirect_uris.length < 1 || p.redirect_uris.length > 8 ||
-      !p.redirect_uris.every(x => typeof x === 'string' && validRedirectUri(x)) ||
+      !p.redirect_uris.every(x => typeof x === 'string' &&
+        Buffer.byteLength(x, 'utf8') <= 2048 && validRedirectUri(x)) ||
       new Set(p.redirect_uris).size !== p.redirect_uris.length) {
-      return bad(res, 400, 'invalid_client_metadata', 'One to eight valid, distinct redirect URIs required');
+      return bad(res, 400, 'invalid_client_metadata', 'One to eight valid, distinct redirect URIs (max 2048 bytes each) required');
+    }
+    if (p.client_name !== undefined && (typeof p.client_name !== 'string' ||
+      p.client_name.length > 100 || /[\x00-\x1f\x7f]/.test(p.client_name))) {
+      return bad(res, 400, 'invalid_client_metadata', 'Client name must be printable and at most 100 characters');
+    }
+    if (p.response_types !== undefined && (!Array.isArray(p.response_types) ||
+      p.response_types.length !== 1 || p.response_types[0] !== 'code')) {
+      return bad(res, 400, 'invalid_client_metadata', 'Only authorization code response type is supported');
+    }
+    if (p.grant_types !== undefined && (!Array.isArray(p.grant_types) ||
+      !p.grant_types.includes('authorization_code') || p.grant_types.length > 2 ||
+      new Set(p.grant_types).size !== p.grant_types.length ||
+      !p.grant_types.every(x => ['authorization_code','refresh_token'].includes(x)))) {
+      return bad(res, 400, 'invalid_client_metadata', 'Unsupported or duplicate grant types');
     }
     // Public native/MCP clients use S256 PKCE instead of a client secret. The
     // owner passphrase and exact account/profile selection are still required.
@@ -38,7 +53,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
     const id = randomToken(24), secret = method === 'none' ? null : randomToken(32);
     await db.createOAuthClient({ clientId: id, clientSecret: secret,
       tokenEndpointAuthMethod: method, redirectUris: p.redirect_uris,
-      clientName: str(p.client_name).slice(0,100) });
+      clientName: str(p.client_name) });
     return send(res, 201, { client_id: id,
       ...(secret ? { client_secret: secret, client_secret_expires_at: 0 } : {}),
       redirect_uris: p.redirect_uris, token_endpoint_auth_method: method,
