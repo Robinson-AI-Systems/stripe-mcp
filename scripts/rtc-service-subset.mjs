@@ -128,7 +128,7 @@ try{
     throw Error('Unknown RTC call must produce a safe 404 not_found envelope');
   process.stdout.write('SERVICE_PASS unknown_tool_404\n');
   // Invalid write remains 403; actual nonexistent names are distinct 404.
-  const bad=await fetch(url+'/api/tools/stripe_payment_intent_create',{
+  const bad=await fetch(url+'/api/tools/stripe_payment_cancel',{
     method:'POST',headers:{authorization:'Bearer '+passes.full,
       'content-type':'application/json'},body:'{}'});
   if(bad.status!==403||(await bad.json()).error?.code!=='refused_by_guard')
