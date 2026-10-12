@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {randomBytes} from 'node:crypto';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
+import {registry as serviceRegistry} from '../../src/tools/index.js';
 import {createRtcReadOnlyHttpHandler,rtcManifest,rtcOpenApi}
   from '../../src/core/rtc-http.js';
 const account='acct_TESTHTTPRTC';
@@ -371,5 +372,83 @@ describe('RTC legacy unscoped pass never tunnels through MCP meta dispatch',()=>
     const direct=res();await http(req('POST',{},{}),direct,'call','stripe_account_get');
     expect(direct.statusCode).toBe(200);
     expect(unsafeCalls).toBe(0);
+  });
+});
+
+describe('RTC HTTPS native G-5 provider field contract',()=>{
+  it('executes real account_get handler with field arrays and comma selectors, not only generic projections',async()=>{
+    const {db}=await fixture();
+    const native=serviceRegistry.tools.find(t=>t.name==='account_get');
+    expect(native.inputSchema.properties.fields.type).toBe('array');
+    let calls=0;
+    const stripe={accounts:{retrieve:async()=>{
+      calls++;
+      return {object:'account',id:account,livemode:false,
+        charges_enabled:true,payouts_enabled:false,details_submitted:true,
+        country:'US',default_currency:'usd'};
+    }}};
+    const handler=createRtcReadOnlyHttpHandler({db,registry:{
+      tools:[native],handlers:{account_get:serviceRegistry.handlers.account_get}
+    },services:{stripeForConnection:async()=>stripe}});
+    const described=res();
+    await handler(req('GET'),described,'describe','stripe_account_get');
+    expect(described.statusCode).toBe(200);
+    const fields=described.body.result.inputSchema.properties.fields;
+    expect(fields.oneOf.map(item=>item.type)).toEqual(['string','array']);
+    expect(fields.oneOf[1].items.enum).toContain('chargesEnabled');
+    expect(fields.oneOf[1].items.enum).not.toContain('email');
+    for(const selector of [
+      ['id','chargesEnabled','payoutsEnabled','detailsSubmitted'],
+      'id,chargesEnabled,payoutsEnabled,detailsSubmitted'
+    ]){
+      const response=res();
+      await handler(req('POST',{}, {fields:selector}),response,'call','stripe_account_get');
+      expect(response.statusCode).toBe(200);
+      expect(response.body.result).toEqual({id:account,chargesEnabled:true,
+        payoutsEnabled:false,detailsSubmitted:true});
+    }
+    expect(calls).toBe(2);
+    const success=res();
+    await handler(req('POST',{}, {calls:[{name:'stripe_account_get',
+      args:{fields:['id','chargesEnabled']}}]}),success,'batch');
+    expect(success.statusCode).toBe(200);
+    expect(success.body.result.results[0].result).toEqual({
+      id:account,chargesEnabled:true});
+    const before=calls;
+    for(const invalid of [
+      {fields:['id','email']},{fields:'id,email'},
+      {detail:'compact'},{fields:['id','id']}
+    ]){
+      const failed=res();
+      await handler(req('POST',{}, invalid),failed,'call','stripe_account_get');
+      expect(failed.statusCode).toBe(400);
+      expect(failed.body.error.code).toBe('invalid_args');
+    }
+    const batch=res();
+    await handler(req('POST',{}, {calls:[{name:'stripe_account_get',
+      args:{fields:['id']}},{name:'stripe_account_get',
+      args:{fields:['email']}}]}),batch,'batch');
+    expect(batch.statusCode).toBe(400);
+    expect(calls).toBe(before);
+  });
+  it('preserves a specialist read-only detail enum instead of forcing summary/full',async()=>{
+    const {db}=await fixture();
+    const tool={name:'specialist',area:'server',writes:false,profiles:['read_only'],
+      description:'Read specialist status',
+      inputSchema:{type:'object',properties:{detail:{type:'string',
+        enum:['compact','full']}},additionalProperties:false}};
+    let detail;
+    const handler=createRtcReadOnlyHttpHandler({db,registry:{tools:[tool],
+      handlers:{specialist:async args=>{
+        detail=args.detail;
+        return {content:[{type:'text',text:JSON.stringify({status:'ok'})}]};
+      }}}});
+    const allowed=res();await handler(req('POST',{}, {detail:'compact'}),
+      allowed,'call','stripe_specialist');
+    expect(allowed.statusCode).toBe(200);
+    expect(detail).toBe('compact');
+    const refused=res();await handler(req('POST',{}, {detail:'summary'}),
+      refused,'call','stripe_specialist');
+    expect(refused.statusCode).toBe(400);
   });
 });
