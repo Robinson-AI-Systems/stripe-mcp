@@ -5,6 +5,9 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#144 OAuth confidential-client compatibility (proposed; verify CI before merge):** Explicitly registered `client_secret_basic` clients can exchange authorization codes and rotate refresh credentials using HTTP Basic without mixing body secrets. Existing confidential POST and public PKCE methods retain their defaults. Security and protocol regression tests run through CI. External live browser/custom connector OAuth and provider TEST acceptance still pending; Vercel protection and LIVE policy unchanged.
+
+
 - **#143 G-6 custom-MCP owner administration smoke (as-if-merged; exact-head CI and review required):** owner-private TEST acceptance now has separately bounded core and G-6 administration groups (native owner overview, security, guided settings). Authenticated owner POST can choose either; both use actual repository read-only MCP dispatch, strict TEST identity, a fixed tool allowlist and redacted status-only browser projection. Critical safety: admin overview can only be **partial** until a genuine signed-in Dashboard walkthrough; guided-only settings are **not_readable**. No real provider smoke, Dashboard comparison or external OAuth test has been executed by CI. H-1 gated, LIVE off.
 
 

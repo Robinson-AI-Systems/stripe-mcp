@@ -109,6 +109,53 @@ describe('personal-use OAuth HTTP endpoints', () => {
       refresh_token: tokens.refresh_token, resource
     }))).statusCode).toBe(400);
   });
+  it('authenticates explicitly registered confidential Basic clients for grants and refresh', async () => {
+    const { db, h } = createFixture();
+    const metadata = json(await call(h.metadata, request('GET', {})));
+    expect(metadata.token_endpoint_auth_methods_supported).toContain('client_secret_basic');
+    const registered = json(await call(h.register, request('POST', {
+      redirect_uris: [callback], client_name: 'Confidential MCP',
+      token_endpoint_auth_method: 'client_secret_basic'
+    })));
+    expect(registered.token_endpoint_auth_method).toBe('client_secret_basic');
+    const header = { authorization: 'Basic ' + Buffer.from(
+      registered.client_id + ':' + registered.client_secret).toString('base64') };
+    const args = authorizeArgs(registered);
+    const approved = await call(h.authorize, request('POST', {
+      ...args, passphrase: env.ADMIN_PASSPHRASE, profile: 'read_only'
+    }));
+    expect(approved.statusCode).toBe(302);
+    const code = new URL(approved.headers.Location).searchParams.get('code');
+    const grant = { grant_type: 'authorization_code', code,
+      code_verifier: verifier, redirect_uri: callback, resource };
+    for (const req of [
+      request('POST', { ...grant, client_id: registered.client_id, client_secret: registered.client_secret }, header),
+      request('POST', { ...grant, client_id: 'other-client' }, header),
+      request('POST', grant, { authorization: 'Basic invalid' }),
+      request('POST', grant)
+    ]) {
+      const denied = await call(h.token, req);
+      expect(denied.statusCode).toBe(401);
+      expect(json(denied).error).toBe('invalid_client');
+    }
+    const successful = await call(h.token, request('POST', grant, header));
+    expect(successful.statusCode).toBe(200);
+    const issued = json(successful);
+    expect(await db.getAccessToken(issued.access_token)).toMatchObject({
+      stripe_account: 'acct_fake_one', mode: 'test', profile: 'read_only'
+    });
+    const refreshed = await call(h.token, request('POST', {
+      grant_type: 'refresh_token', refresh_token: issued.refresh_token, resource
+    }, header));
+    expect(refreshed.statusCode).toBe(200);
+    const rotated = json(refreshed);
+    expect(await db.getAccessToken(rotated.access_token)).toMatchObject({
+      stripe_account: 'acct_fake_one', mode: 'test', profile: 'read_only'
+    });
+    expect((await call(h.token, request('POST', {
+      grant_type: 'refresh_token', refresh_token: issued.refresh_token, resource
+    }, header))).statusCode).toBe(400);
+  });
   it('one setup persists through access expiration and rotates refresh without a new login', async () => {
     const { db, h, advance } = createFixture();
     const client = await register(h);

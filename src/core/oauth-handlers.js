@@ -32,7 +32,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
     // Public native/MCP clients use S256 PKCE instead of a client secret. The
     // owner passphrase and exact account/profile selection are still required.
     const method = p.token_endpoint_auth_method || 'client_secret_post';
-    if (!['client_secret_post','none'].includes(method)) {
+    if (!['client_secret_post','client_secret_basic','none'].includes(method)) {
       return bad(res, 400, 'invalid_client_metadata', 'Unsupported client authentication');
     }
     const id = randomToken(24), secret = method === 'none' ? null : randomToken(32);
@@ -110,13 +110,33 @@ export function createOAuthHandlers({ db, env = process.env }) {
     let p;
     try { p = paramsOf(req); } catch { return bad(res, 400, 'invalid_request', 'Malformed token request'); }
     if (!validateResource(p.resource)) return bad(res, 400, 'invalid_target', 'Token resource must be this MCP');
-    const client = await db.getOAuthClient(str(p.client_id));
-    const method = client?.token_endpoint_auth_method || 'client_secret_post';
-    const publicClient = method === 'none';
-    if (!client || !['none','client_secret_post'].includes(method) ||
-      (publicClient ? (p.client_secret !== undefined && p.client_secret !== '') :
-        (typeof p.client_secret !== 'string' || !p.client_secret ||
-          !secretsMatch(hashToken(p.client_secret), client.client_secret_hash)))) {
+    // RFC 6749: confidential clients may authenticate with HTTP Basic. Never
+    // accept two credential mechanisms on the same request.
+    const authHeader = String(req.headers?.authorization || '');
+    const match = /^Basic ([A-Za-z0-9+/]+={0,2})$/.exec(authHeader);
+    let basic = null;
+    if (match) {
+      const decoded = Buffer.from(match[1], 'base64');
+      const value = decoded.toString('utf8');
+      const colon = value.indexOf(':');
+      if (decoded.toString('base64') === match[1] && colon > 0 &&
+        colon === value.lastIndexOf(':')) {
+        basic = { id: value.slice(0, colon), secret: value.slice(colon + 1) };
+      }
+    }
+    const clientId = basic?.id || str(p.client_id);
+    const client = await db.getOAuthClient(clientId);
+    const method = client?.token_endpoint_auth_method;
+    const validPublic = method === 'none' && !authHeader &&
+      (p.client_secret === undefined || p.client_secret === '');
+    const validPost = method === 'client_secret_post' && !authHeader &&
+      typeof p.client_secret === 'string' && !!p.client_secret &&
+      secretsMatch(hashToken(p.client_secret), client?.client_secret_hash);
+    const validBasic = method === 'client_secret_basic' && !!basic &&
+      (p.client_id === undefined || p.client_id === clientId) &&
+      p.client_secret === undefined && !!basic.secret &&
+      secretsMatch(hashToken(basic.secret), client?.client_secret_hash);
+    if (!client || !(validPublic || validPost || validBasic)) {
       return bad(res, 401, 'invalid_client', 'Client credentials rejected');
     }
     if (p.grant_type === 'authorization_code') {
@@ -124,19 +144,19 @@ export function createOAuthHandlers({ db, env = process.env }) {
         return bad(res, 400, 'invalid_grant', 'Missing or invalid authorization details');
       }
       const record = await db.consumeAuthCode(p.code);
-      if (!record || record.client_id !== p.client_id || record.redirect_uri !== p.redirect_uri ||
+      if (!record || record.client_id !== clientId || record.redirect_uri !== p.redirect_uri ||
         !verifyPkce(p.code_verifier, record.code_challenge, record.code_challenge_method)) {
         return bad(res, 400, 'invalid_grant', 'Code is expired, used, or failed PKCE');
       }
       const accessToken = randomToken(32), refreshToken = randomToken(32);
-      await db.createAccessToken({ accessToken, refreshToken, clientId: p.client_id,
+      await db.createAccessToken({ accessToken, refreshToken, clientId: clientId,
         stripeAccount: record.stripe_account, mode: record.mode, profile: record.profile, listing: record.listing });
       return send(res, 200, tokenResponse(accessToken, refreshToken));
     }
     if (p.grant_type === 'refresh_token') {
       if (!str(p.refresh_token)) return bad(res, 400, 'invalid_grant', 'Missing refresh token');
       const accessToken = randomToken(32), refreshToken = randomToken(32);
-      const rotated = await db.rotateRefreshToken({ refreshToken: p.refresh_token, clientId: p.client_id,
+      const rotated = await db.rotateRefreshToken({ refreshToken: p.refresh_token, clientId: clientId,
         accessToken, newRefreshToken: refreshToken });
       if (!rotated) return bad(res, 400, 'invalid_grant', 'Refresh credential is expired, used, or revoked');
       return send(res, 200, tokenResponse(accessToken, refreshToken));
@@ -149,7 +169,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
     return send(res, 200, { issuer: origin, authorization_endpoint: origin + '/api/oauth/authorize',
       token_endpoint: origin + '/api/oauth/token', registration_endpoint: origin + '/api/oauth/register',
       response_types_supported: ['code'], grant_types_supported: ['authorization_code','refresh_token'],
-      code_challenge_methods_supported: ['S256'], token_endpoint_auth_methods_supported: ['client_secret_post','none'] });
+      code_challenge_methods_supported: ['S256'], token_endpoint_auth_methods_supported: ['client_secret_post','client_secret_basic','none'] });
   }
   function resourceMetadata(req, res) {
     if (!only(res, req, ['GET'])) return;
