@@ -39,9 +39,15 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async listTables() { return [...createdTables].sort(); },
     async put(key, value) { rows.set(key, structuredClone(value)); },
     async get(key) { return rows.has(key) ? structuredClone(rows.get(key)) : null; },
-    async createOAuthClient({ clientId, clientSecret, redirectUris, clientName }) {
+    async createOAuthClient({ clientId, clientSecret, tokenEndpointAuthMethod = 'client_secret_post',
+      redirectUris, clientName }) {
       if (clients.has(clientId)) throw new Error('duplicate client');
-      clients.set(clientId, { client_id: clientId, client_secret_hash: hashToken(clientSecret),
+      if (!['none','client_secret_post'].includes(tokenEndpointAuthMethod) ||
+        (tokenEndpointAuthMethod === 'none' ? clientSecret != null : !clientSecret))
+        throw new TypeError('Invalid OAuth client authentication');
+      clients.set(clientId, { client_id: clientId,
+        token_endpoint_auth_method: tokenEndpointAuthMethod,
+        client_secret_hash: clientSecret ? hashToken(clientSecret) : null,
         redirect_uris: structuredClone(redirectUris), client_name: clientName || null });
     },
     async getOAuthClient(id) { return structuredClone(clients.get(id) || null); },

@@ -39,13 +39,17 @@ export function createDb(sql = getProductionSql()) {
     ...createDevForwarderStore(sql),
     ...createDevForwarderReplayStore(sql),
     ...createDevSimulationCycleStore(sql),
-    async createOAuthClient({ clientId, clientSecret, redirectUris, clientName }) {
-      if (!clientId || !clientSecret || !Array.isArray(redirectUris) || !redirectUris.length) {
-        throw new TypeError('Missing OAuth client registration fields');
+    async createOAuthClient({ clientId, clientSecret, tokenEndpointAuthMethod = 'client_secret_post',
+      redirectUris, clientName }) {
+      if (!clientId || !['client_secret_post','none'].includes(tokenEndpointAuthMethod) ||
+        (tokenEndpointAuthMethod === 'client_secret_post' ? !clientSecret : clientSecret != null) ||
+        !Array.isArray(redirectUris) || !redirectUris.length) {
+        throw new TypeError('Missing or invalid OAuth client registration fields');
       }
       const data = JSON.stringify({
-        client_secret_hash: hashToken(clientSecret), redirect_uris: redirectUris,
-        client_name: clientName || null
+        token_endpoint_auth_method: tokenEndpointAuthMethod,
+        client_secret_hash: clientSecret ? hashToken(clientSecret) : null,
+        redirect_uris: redirectUris, client_name: clientName || null
       });
       await sql`INSERT INTO oauth_clients (client_id, data) VALUES (${clientId}, ${data}::jsonb)`;
     },

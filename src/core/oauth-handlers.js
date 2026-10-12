@@ -29,14 +29,19 @@ export function createOAuthHandlers({ db, env = process.env }) {
       new Set(p.redirect_uris).size !== p.redirect_uris.length) {
       return bad(res, 400, 'invalid_client_metadata', 'One to eight valid, distinct redirect URIs required');
     }
-    if (p.token_endpoint_auth_method && p.token_endpoint_auth_method !== 'client_secret_post') {
-      return bad(res, 400, 'invalid_client_metadata', 'Only client_secret_post is supported');
+    // Public native/MCP clients use S256 PKCE instead of a client secret. The
+    // owner passphrase and exact account/profile selection are still required.
+    const method = p.token_endpoint_auth_method || 'client_secret_post';
+    if (!['client_secret_post','none'].includes(method)) {
+      return bad(res, 400, 'invalid_client_metadata', 'Unsupported client authentication');
     }
-    const id = randomToken(24), secret = randomToken(32);
-    await db.createOAuthClient({ clientId: id, clientSecret: secret, redirectUris: p.redirect_uris,
+    const id = randomToken(24), secret = method === 'none' ? null : randomToken(32);
+    await db.createOAuthClient({ clientId: id, clientSecret: secret,
+      tokenEndpointAuthMethod: method, redirectUris: p.redirect_uris,
       clientName: str(p.client_name).slice(0,100) });
-    return send(res, 201, { client_id: id, client_secret: secret, client_secret_expires_at: 0,
-      redirect_uris: p.redirect_uris, token_endpoint_auth_method: 'client_secret_post',
+    return send(res, 201, { client_id: id,
+      ...(secret ? { client_secret: secret, client_secret_expires_at: 0 } : {}),
+      redirect_uris: p.redirect_uris, token_endpoint_auth_method: method,
       grant_types: ['authorization_code','refresh_token'], response_types: ['code'] });
   }
   function authorizePage(p, accounts, error = '') {
@@ -106,8 +111,12 @@ export function createOAuthHandlers({ db, env = process.env }) {
     try { p = paramsOf(req); } catch { return bad(res, 400, 'invalid_request', 'Malformed token request'); }
     if (!validateResource(p.resource)) return bad(res, 400, 'invalid_target', 'Token resource must be this MCP');
     const client = await db.getOAuthClient(str(p.client_id));
-    if (!client || typeof p.client_secret !== 'string' || !p.client_secret ||
-      !secretsMatch(hashToken(p.client_secret), client.client_secret_hash)) {
+    const method = client?.token_endpoint_auth_method || 'client_secret_post';
+    const publicClient = method === 'none';
+    if (!client || !['none','client_secret_post'].includes(method) ||
+      (publicClient ? (p.client_secret !== undefined && p.client_secret !== '') :
+        (typeof p.client_secret !== 'string' || !p.client_secret ||
+          !secretsMatch(hashToken(p.client_secret), client.client_secret_hash)))) {
       return bad(res, 401, 'invalid_client', 'Client credentials rejected');
     }
     if (p.grant_type === 'authorization_code') {
@@ -140,7 +149,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
     return send(res, 200, { issuer: origin, authorization_endpoint: origin + '/api/oauth/authorize',
       token_endpoint: origin + '/api/oauth/token', registration_endpoint: origin + '/api/oauth/register',
       response_types_supported: ['code'], grant_types_supported: ['authorization_code','refresh_token'],
-      code_challenge_methods_supported: ['S256'], token_endpoint_auth_methods_supported: ['client_secret_post'] });
+      code_challenge_methods_supported: ['S256'], token_endpoint_auth_methods_supported: ['client_secret_post','none'] });
   }
   function resourceMetadata(req, res) {
     if (!only(res, req, ['GET'])) return;
