@@ -158,7 +158,7 @@ export async function verifyRtcRevocation({
     demand(PASS.test(revokedPass),'credential_invalid');
     verifyDeployment(await (async()=>{
       const manifestResponse=await fetcher(base+'/api/contract',
-        {method:'GET',redirect:'manual'});
+        {method:'GET',redirect:'manual',headers:{}});
       demand(manifestResponse.status===200,'deployment_unverified');
       return jsonReply(manifestResponse);
     })(),expectedDeploymentSha);
