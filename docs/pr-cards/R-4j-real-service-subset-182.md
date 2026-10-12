@@ -15,6 +15,7 @@ Risk: truthful contract, HTTP error behavior and CI verification; no schema migr
 
 ## Build and proof
 
+- Existing owner acceptance runner had erroneously used nonexistent `stripe_payment_intent_create` for its forbidden-write assertion; this cannot prove a real write guard once absent tools correctly return 404. Replaced with registered `stripe_payment_cancel` in owner runner and unit fixture, and this local actual-service gate independently requires that named write be refused as 403.
 - `src/core/rtc-http.js`: distinguish absent versus extant but forbidden tools while keeping area, profile, money and no-write guard authoritative.
 - `scripts/rtc-service-subset.mjs`: own fake TEST account + generated one-hour passes in disposable isolated PostgreSQL; genuine loopback HTTP uses actual Stripe registry and RTC handler. Execute unmodified pinned upstream `runConformance` from Hub commit `f8e61dbc`.
 - Assert upstream actual-service applicability: public manifest, bounded OpenAPI, catalog metadata, pass refusal, expired/revoked refusal, compact budget; the upstream safety probe depends on forbidden write fixtures and is OUT_OF_SUBSET, while a separate real HTTP assertion verifies safe unknown-tool 404 and write 403. Assert full-profile meta/read/write/readonly-write probes remain known OUT_OF_SUBSET (upstream demands write tools), and refresh and two-process checks are SKIP rather than silently PASS. Confirm forbidden write still 403.
