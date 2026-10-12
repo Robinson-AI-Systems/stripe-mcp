@@ -9,6 +9,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#168 owner hosting policy + executable release guard (IN REVIEW):** incorporates docs/HOSTING-COST-POLICY.md and AGENTS.md pointer prepared on ai/codex/hosting-cost-handoff-2026-10-12. CI now exercises a fail-closed static release-policy verifier against Vercel live-only builds, scheduled main→live writer, pinned actions and enforced main-target PR workflow, plus regression tests. Protected-main requires both `ci` and `target-main` exact head; historical five other CI jobs remain. Vercel Production tracks `live`, previews disabled (saved settings); project Basic queued build, Neon 0.25 CU 300s idle and owner spending gates remain. First scheduled promotion, real Stripe TEST/HUB and Basic-build runtime behavior remain UNOBSERVED. Stripe LIVE disabled. Next #169 and #170 implementation PRs after #168 green merge; do not manually deploy.
+
+
 - **#166 Daily Production release gate (proposed; six CI checks and Vercel branch verification required):** GitHub `live` branch created from verified Production-ready `8068f52`; new scheduled 10:00 UTC CI-gated, fast-forward-only, atomic `live`+Colorado-day tag update accepts only six successful main checks and never more than one promotion per Denver calendar date. Current Vercel Production Branch Tracking must be switched from `main` to `live` and independently verified before claiming fully operational; branch selection is outside connector's documented update fields. No Stripe LIVE activation, provider writes, money approvals or SSO weakening. See docs/DAILY-PRODUCTION-PROMOTION.md. Expected next roadmap development PR count: #166 as implementation slot 1, remaining four to multiple-of-five #170.
 
 
