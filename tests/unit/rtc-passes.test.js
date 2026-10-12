@@ -21,6 +21,12 @@ describe('owner-created RTC short-lived TEST pass',()=>{
     expect((await db.getRtcPass(reveal))).toMatchObject({mode:'test',profile:'read_only',
       kind:'pass',allow_writes:false,money_limit_cents:0,
       areas:['server','account'],rate_limit_per_minute:120});
+    const oneHour=await issuer({account,areas:'server',hours:1});
+    expect(oneHour.lifetimeHours).toBe(1);
+    expect(oneHour.expiresAt.getTime()-Date.now()).toBeLessThanOrEqual(3600000);
+    expect(oneHour.expiresAt.getTime()-Date.now()).toBeGreaterThan(3500000);
+    await expect(issuer({account,areas:'server',hours:2})).rejects.toThrow();
+    await expect(issuer({account,areas:'server',hours:'1'})).rejects.toThrow();
     await expect(issuer({account,areas:'server,payments'})).rejects.toThrow();
     await expect(issuer({account,areas:'server,server'})).rejects.toThrow();
     await expect(issuer({account,areas:''})).rejects.toThrow();
