@@ -31,8 +31,19 @@ export const originalSql=Object.freeze([
 const cmd=(bin,args,cwd,timeout=120000)=>{
   const r=spawnSync(bin,args,{cwd,timeout,encoding:'utf8',
     env:{...process.env,NODE_OPTIONS:'',npm_config_audit:'false',npm_config_fund:'false'}});
-  if(r.error||r.status!==0)throw Error('K-3 CI-only verification command failed: '+
-    bin.split('/').at(-1)+' ('+String(r.status)+')');
+  if(r.error||r.status!==0){
+    // CI's nested original-service tests are captured to prevent raw tokens
+    // leaking through ordinary stdout. On failure emit only test titles,
+    // assertion type and source location, redacting credential-sized strings.
+    const failures=(String(r.stdout||'')+'\n'+String(r.stderr||''))
+      .replace(/\x1b\[[0-9;]*m/g,'').split('\n')
+      .filter(line=>/FAIL |AssertionError|Test Files|Tests\s+\d|(?:❯|at )\s*tests\//.test(line))
+      .slice(-24).map(line=>line.slice(0,280)
+        .replace(/[A-Za-z0-9_-]{30,}/g,'[redacted]'));
+    throw Error('K-3 CI-only verification command failed: '+
+      bin.split('/').at(-1)+' ('+String(r.status)+')'+
+      (failures.length?'\n'+failures.join('\n'):''));
+  }
   return r.stdout.trim();
 };
 export function assertDisposableDb(env=process.env){
