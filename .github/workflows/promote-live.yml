@@ -1,0 +1,35 @@
+name: Daily live promotion
+
+on:
+  # GitHub schedules run on the default main branch. 10 UTC is 04:00
+  # Colorado daylight time / 03:00 standard time; Actions may start late.
+  schedule:
+    - cron: '0 10 * * *'
+
+# The dedicated scheduled job is the sole automated writer for live.
+# No manual dispatch, push trigger, force push, Stripe LIVE permission or keys.
+permissions:
+  contents: write
+  checks: read
+
+concurrency:
+  group: daily-live-production-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Promote exactly one checked main snapshot per Denver day
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/promote-live.mjs
