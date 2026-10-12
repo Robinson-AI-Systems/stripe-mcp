@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {runOwnerTestSmoke,ownerSmokeCases,ownerAdminSmokeCases} from '../../src/acceptance/owner-test-smoke.js';
+import {runOwnerTestSmoke,ownerSmokeCases,ownerAdminSmokeCases,ownerSmokeFocusTools} from '../../src/acceptance/owner-test-smoke.js';
 const account='acct_SMOKETEST',key=['sk','test','FAKEFAKEFAKEFAKEFAKE'].join('_');
 const identity={object:'account',id:account,livemode:false,
   charges_enabled:true,payouts_enabled:false,details_submitted:true};
@@ -91,7 +91,31 @@ describe('opt-in custom MCP TEST provider smoke',()=>{
     expect(denied.errors).toBe(1);
     expect(denied.dashboardVerified).toBe(false);
     const invalid=fixture();
-    await expect(runOwnerTestSmoke({account,key,focus:'all',...invalid})).rejects.toThrow(/core or administration/);
+    await expect(runOwnerTestSmoke({account,key,focus:'all',...invalid})).rejects.toThrow(/supported TEST smoke group/);
+    expect(invalid.makeClient).not.toHaveBeenCalled();
+  });
+  it('runs focused G-4/G-5/G-6 subsets with exact read-only contracts',async()=>{
+    const groups={account:4,webhooks:2,readiness:2};
+    for(const [focus,length] of Object.entries(groups)){
+      const f=fixture();
+      const report=await runOwnerTestSmoke({account,key,focus,...f});
+      expect(report).toMatchObject({account,mode:'test',focus,
+        verifiedIdentity:true,source:'custom_mcp_dispatch',
+        dashboardVerified:false,writeOperations:0,errors:0,observed:length});
+      expect(report.records).toHaveLength(length);
+      expect(report.records.map(r=>r.tool)).toEqual(ownerSmokeFocusTools[focus]);
+      expect(f.sdk.accounts.retrieve).toHaveBeenCalledTimes(1);
+      expect(f.dispatch).toHaveBeenCalledTimes(length);
+      expect(f.dispatch.mock.calls.every(([arg])=>
+        arg.connection.profile==='read_only'&&arg.connection.mode==='test'&&
+        arg.registry.tools.find(t=>t.name===arg.name).writes===false)).toBe(true);
+      expect(JSON.stringify(report)).not.toContain(key);
+    }
+    const invalid=fixture();
+    for(const focus of ['all','__proto__',null,'Account']){
+      await expect(runOwnerTestSmoke({account,key,focus,...invalid}))
+        .rejects.toThrow(/supported TEST smoke group/);
+    }
     expect(invalid.makeClient).not.toHaveBeenCalled();
   });
   it('refuses missing keys, live secrets and foreign or incomplete account preflight',async()=>{

@@ -78,6 +78,58 @@ describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
   });
 });
 
+describe('isolated owner TEST acceptance groups',()=>{
+  it('accepts only exact tool results from each focused group and never raw provider records',async()=>{
+    const cases={
+      account:['account_get','account_list_capabilities',
+        'account_list_payment_method_settings','account_list_apple_pay_domains'],
+      webhooks:['event_list','webhook_list'],
+      readiness:['admin_list_requirements','admin_check_setting']
+    };
+    const db=createFakeDb();
+    const runTestSmoke=vi.fn(async({account,focus})=>({
+      account,focus,mode:'test',source:'custom_mcp_dispatch',
+      verifiedIdentity:true,dashboardVerified:false,writeOperations:0,
+      key:'rk_test_DO_NOT_EXPOSE',
+      records:cases[focus].map(tool=>({tool,status:'partial'}))
+    }));
+    const handler=createSetupHandler({db,runTestSmoke,env});
+    const c=cookiePage(await page(handler));
+    for(const focus of Object.keys(cases)){
+      const data={action:'run-test-smoke',account:'acct_SAFEOWNER',focus,
+        passphrase:env.ADMIN_PASSPHRASE};
+      const r=await submit(handler,c,data);
+      expect(r.statusCode).toBe(200);
+      expect(r.body).toContain(focus);
+      expect(r.body).not.toContain('rk_test_DO_NOT_EXPOSE');
+      expect(r.body).toContain('not Dashboard acceptance');
+    }
+    expect(runTestSmoke).toHaveBeenCalledTimes(3);
+    const bad=await submit(handler,c,{action:'run-test-smoke',account:'acct_SAFEOWNER',
+      focus:'all',passphrase:env.ADMIN_PASSPHRASE});
+    expect(bad.statusCode).toBe(400);
+    expect(runTestSmoke).toHaveBeenCalledTimes(3);
+  });
+  it('refuses altered tool names, duplicate tools and foreign focus even from a runner',async()=>{
+    const db=createFakeDb();
+    const base={account:'acct_SAFEOWNER',mode:'test',focus:'webhooks',
+      source:'custom_mcp_dispatch',verifiedIdentity:true,
+      dashboardVerified:false,writeOperations:0};
+    const cases=[
+      [{tool:'event_list',status:'observed'},{tool:'event_list',status:'observed'}],
+      [{tool:'event_list',status:'observed'},{tool:'stripe_get_result',status:'observed'}]
+    ];
+    for(const records of cases){
+      const handler=createSetupHandler({db,env,
+        runTestSmoke:async()=>({...base,records})});
+      const c=cookiePage(await page(handler));
+      const r=await submit(handler,c,{action:'run-test-smoke',account:'acct_SAFEOWNER',
+        focus:'webhooks',passphrase:env.ADMIN_PASSPHRASE});
+      expect(r.statusCode).toBe(503);
+      expect(r.body).toContain('No acceptance recorded');
+    }
+  });
+});
 describe('separate G-6 owner administration TEST smoke gate',()=>{
   it('accepts exactly the three admin tools but never provider payloads or Dashboard success',async()=>{
     const db=createFakeDb();

@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#147 isolated owner TEST smoke groups (proposed; CI/review required):** Split existing custom read-only MCP owner verification into G-5 account (4), G-4 events/webhooks (2) and G-6 readiness (2), keeping core (8) and administration (3). Protected owner page validates exact group/tool projections; true TEST account preflight remains mandatory. No real provider or Dashboard acceptance, no LIVE, money or Vercel policy change.
+
 - **#146 bounded OAuth client registration (proposed; verify exact-head CI):** Public registration now rejects oversized redirect URIs, unprintable/overlong names, and mismatched OAuth response/grant declarations before client creation. Shared HTTP body limits also cover pre-parsed objects. No key, money, LIVE, owner-permission or Vercel protection change. External OAuth/TEST evidence still pending.
 
 - **#145 browser OAuth/MCP CORS compatibility (proposed; exact-head CI required):** Credentialless browser clients can preflight token, registration, OAuth discovery and bearer-protected MCP endpoints; owner authorization and setup remain non-CORS. CORS never grants an MCP bearer or private owner credentials. External Vercel SSO/OAuth smoke is still pending; LIVE disabled.

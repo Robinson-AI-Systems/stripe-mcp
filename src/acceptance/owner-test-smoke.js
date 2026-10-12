@@ -23,6 +23,18 @@ const adminCases=Object.freeze([
   ['G-6','admin_review_security',{}],
   ['G-6','admin_list_guided_settings',{limit:5}]
 ]);
+// Bounded focused probes reduce provider read volume, isolate permission
+// denials and keep the original comprehensive modes backwards-compatible.
+const smokeGroups=Object.freeze({
+  core:cases,
+  account:Object.freeze(cases.slice(0,4)),
+  webhooks:Object.freeze(cases.slice(4,6)),
+  readiness:Object.freeze(cases.slice(6,8)),
+  administration:adminCases
+});
+export const ownerSmokeFocusTools=Object.freeze(Object.fromEntries(
+  Object.entries(smokeGroups).map(([group,items])=>
+    [group,Object.freeze(items.map(([,name])=>name))])));
 export const ownerSmokeCases=cases.map(([batch,tool])=>({batch,tool}));
 export const ownerAdminSmokeCases=adminCases.map(([batch,tool])=>({batch,tool}));
 
@@ -99,8 +111,8 @@ function classify(tool,response,account){
 
 export async function runOwnerTestSmoke({account,key,focus='core',makeClient=makeStripeClient,
   dispatch=dispatchReadOnlyTool}={}){
-  const selected=focus==='core'?cases:focus==='administration'?adminCases:null;
-  if(!selected)throw new TypeError('Select core or administration TEST smoke only');
+  const selected=Object.hasOwn(smokeGroups,focus)?smokeGroups[focus]:null;
+  if(!selected)throw new TypeError('Select a supported TEST smoke group');
   if(!ACCOUNT.test(account)||!TEST_KEY.test(key))
     throw new TypeError('A privately provisioned TEST key and exact account are required');
   // Never log or return key, SDK errors, provider records or sensitive URLs.
