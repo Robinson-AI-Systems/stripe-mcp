@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#163 Owner-selectable one-hour RTC TEST passes (proposed, six CI gates required):** exact 1-hour option for approved D-4 temporary owner-issued area-scoped TEST/read_only passes alongside existing 24-hour default. Same owner passphrase, CSRF, one-time secret, hashed storage and revocation. No LIVE, money or write widening; real D-4 remains pending.
+
 - **#162 RTC money metadata truth and fail-closed discovery (proposed; CI/review required):** counts.money derives from actual guarded provider money specs (`moneySpec`/safety), not only an absent boolean; read-only HTTPS rejects misclassified money-capable handlers. Unit adversarial and actual registry/Postgres HTTP manifest tests. No writes, LIVE or real-provider acceptance claimed. Next #163 service-level conformance and authenticated D-4 routes.
 
 - **#161 RTC HTTP failure classification (proposed; exact-head CI/review required):** real provider/read failures must produce service_error/503, malformed batch projections invalid_args/400, rather than spurious 403s; no access widening, Stripe writes, LIVE or credential changes. Genuine Toolkit D-4 and full RTC conformance remain pending. Next inspect exact-head CI and then remaining RTC read-only acceptance.
