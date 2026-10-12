@@ -2,6 +2,12 @@
 import { makeStripeClient } from './stripe/client.js';
 import { encryptSecret, decryptSecret, readEncryptionKey } from './core/crypto.js';
 
+// Test-key ownership is a provider fact, not something inferred from a key prefix.
+function verifiedTestIdentity(value,account) {
+  return typeof account==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(account)&&
+    value?.object==='account'&&value.id===account&&value.livemode===false;
+}
+
 // Harmless read probes only. Permission-denied means unavailable; network/provider errors abort setup.
 export async function probeKeyPermissions(stripe) {
   const probes = {
@@ -40,8 +46,8 @@ export function createKeyStore({ db, makeClient = makeStripeClient,
       try { stripeAccount = await stripe.accounts.retrieve(); }
       catch { throw new Error('Stripe rejected the test key or account details could not be read'); }
       const account = stripeAccount?.id;
-      if (typeof account !== 'string' || !/^acct_[A-Za-z0-9]+$/.test(account)) {
-        throw new Error('Unable to verify the account for this key');
+      if (!verifiedTestIdentity(stripeAccount,account)) {
+        throw new Error('Unable to verify explicit TEST identity for this key');
       }
       const safeLabel = String(label || stripeAccount.business_profile?.name || account).slice(0,100);
       const ciphertext = encryptSecret(key, { aad: 'stripe-account/' + account + '/test', key: encryptionKey });
@@ -81,7 +87,15 @@ export function createPermissionReprobe({db, keyStoreFactory=createKeyStore,
         !snapshot.expectedCiphertext) {
       throw new Error('TEST key snapshot unavailable: permission update refused');
     }
-    const permissions=await probe(makeClient({key:snapshot.key,mode:'test'}));
+    const stripe=makeClient({key:snapshot.key,mode:'test'});
+    let identity;
+    try{identity=await stripe.accounts.retrieve();}
+    catch{throw new Error('Selected TEST account identity could not be verified');}
+    if(!verifiedTestIdentity(identity,account))
+      throw new Error('Selected TEST account identity could not be verified');
+    // Never update permission metadata for a key that belongs to another
+    // account or lacks the provider's explicit TEST mode assertion.
+    const permissions=await probe(stripe);
     if (!permissions || typeof permissions!=='object' || Array.isArray(permissions)) {
       throw new Error('Stripe permission probes did not return a verified result');
     }

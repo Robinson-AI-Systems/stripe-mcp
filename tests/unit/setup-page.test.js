@@ -21,7 +21,8 @@ function cookiePage(response){
 }
 async function fixture(){
   const db=createFakeDb(),fake=makeFakeStripe(),encryptionKey=randomBytes(32);
-  fake.when('accounts.retrieve').resolves({id:'acct_FAKESETUP',business_profile:{name:'My Project'}});
+  fake.when('accounts.retrieve').resolves({object:'account',id:'acct_FAKESETUP',
+    livemode:false,business_profile:{name:'My Project'}});
   const keyStore=createKeyStore({db,encryptionKey,makeClient:()=>fake.stripe,
     probe:async()=>({customers:'ok',refunds:'denied'})});
   const oneTimeStore=createOneTimeStore({db,encryptionKey});
