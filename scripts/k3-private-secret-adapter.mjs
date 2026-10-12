@@ -10,8 +10,6 @@ import {openIsolatedSchema,closeIsolatedSchema,neonShapedQuery,rawQuery}
   from '../test/helpers/pg-neon-adapter.js';
 import {assertDisposableDb} from './k3-private-adoption-rehearsal.mjs';
 
-const aad=({id,account,mode,kind})=>
-  ['stripe-once',id,account||'',mode||'',kind].join('/');
 function useClient(client) {
   return createDb(async (strings,...values)=>{
     let sql=strings[0];
