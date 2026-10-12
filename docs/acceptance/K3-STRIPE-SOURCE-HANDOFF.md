@@ -85,3 +85,13 @@ durable refresh shim appends generated access/refresh tokens to exactly the
 SQL-rotated original stored account row; missing/wrong client or LIVE claims
 fail closed. This source-level evidence requires exact-head original unit/SQL
 tests; actual deployed OAuth acceptance and final release remain distinct.
+
+## #189 source Stripe owner-money lifecycle versus portable write (pending CI)
+The portable `write` export is temporarily tested behind Stripe's original
+`src/tools/write.js` adapter with service-owned `rmcp_` idempotency and
+account binding. The added original disposable PostgreSQL money-flow suite
+demonstrates AI confirm does not authorize money-out, exact per-transaction
+owner decision intent is separately consumed, account identity stays bound,
+and an above-$500 transaction requires a second authenticated override.
+Only synthetic provider writes are invoked; no LIVE switch, real money or
+committed private dependency. Do not claim PASSED before #189 exact-head checks.
