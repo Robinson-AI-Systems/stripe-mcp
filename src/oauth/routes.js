@@ -1,9 +1,14 @@
 // Stripe MCP composition boundary: reusable core handlers are dependency injected.
 import { createDb } from '../db.js';
 import { createOAuthHandlers } from '../core/oauth-handlers.js';
+import { allowBrowserProtocol } from '../core/browser-cors.js';
 
 export async function handleOAuth(which, req, res) {
   try {
+    // Browser clients may discover/register/exchange through CORS; never enable
+    // cross-origin AJAX on the owner passphrase authorization form.
+    if (which !== 'authorize' && allowBrowserProtocol(req, res,
+      { methods: ['metadata','resourceMetadata'].includes(which) ? ['GET'] : ['POST'] })) return;
     const db = createDb();
     await db.initSchema();
     return await createOAuthHandlers({ db })[which](req, res);
