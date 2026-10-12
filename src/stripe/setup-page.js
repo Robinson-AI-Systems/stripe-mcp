@@ -16,7 +16,7 @@ function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
@@ -47,6 +47,15 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Download private CSV</button></form>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
+    '<h2>Verify custom MCP TEST reads (owner only)</h2>' +
+    '<p>After owner passphrase authorization, run eight existing read-only G-4/G-5/G-6 MCP handlers against the selected stored TEST connection. No key leaves the server; this does not verify Stripe Dashboard settings, OAuth or webhook delivery.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="run-test-smoke">' +
+    '<label>Selected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" maxlength="110" required autocomplete="off"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Run read-only custom MCP TEST checks</button></form>' +
+    (smokeResult ? '<h3>Custom MCP TEST result (not Dashboard acceptance)</h3><pre>' +
+      escapeHtml(JSON.stringify(smokeResult,null,2)) + '</pre>' : '') +
     (result ? '<p role="status">' + escapeHtml(result) + '</p>' : '') +
     (revealed ? '<h2>One-time secret — copy it now</h2><pre>' + escapeHtml(revealed) +
       '</pre><p>It has been deleted from the server and will not appear again.</p>' : '') +
@@ -206,7 +215,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '</button></form>' : '') +
     '</body></html>';
 }
-export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, env = process.env }) {
+export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, runTestSmoke, env = process.env }) {
   return async function setup(req, res) {
     if (!only(res, req, ['GET','POST'])) return;
     let origin;
@@ -291,6 +300,34 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       } catch {
         return send(res,404,htmlPage({csrf:cookie,
           result:'Verified TEST report CSV unavailable. Check the account, run status, and key permissions.'}),
+          'text/html; charset=utf-8');
+      }
+    }
+    if (p.action === 'run-test-smoke') {
+      if(typeof runTestSmoke!=='function') return send(res,503,htmlPage({csrf:cookie,
+        result:'Owner TEST verification is not configured.'}),'text/html; charset=utf-8');
+      if(typeof p.account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account))
+        return send(res,400,htmlPage({csrf:cookie,
+          result:'Select one exact TEST account.'}),'text/html; charset=utf-8');
+      try {
+        const report=await runTestSmoke({account:p.account});
+        // Browser results are a narrow allowlist, not an arbitrary upstream reply.
+        if(report?.account!==p.account||report.mode!=='test'||
+          report.source!=='custom_mcp_dispatch'||report.verifiedIdentity!==true||
+          report.dashboardVerified!==false||report.writeOperations!==0||
+          !Array.isArray(report.records)||report.records.length!==8||
+          report.records.some(v=>!['observed','partial','not_readable','error'].includes(v.status)||
+            !/^(?:account_get|account_list_capabilities|account_list_payment_method_settings|account_list_apple_pay_domains|event_list|webhook_list|admin_list_requirements|admin_check_setting)$/.test(v.tool)))
+          throw new TypeError('Unverified custom MCP report');
+        const safe={mode:'test',source:'custom_mcp_dispatch',
+          dashboardVerified:false,writeOperations:0,
+          records:report.records.map(v=>({tool:v.tool,status:v.status}))};
+        return send(res,200,htmlPage({csrf:cookie,smokeResult:safe,
+          result:'Read-only custom MCP checks finished. Review error/partial/unreadable results; Stripe Dashboard and OAuth acceptance remain separate.'}),
+          'text/html; charset=utf-8');
+      } catch {
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'Private TEST verification could not establish provider identity or readbacks. No acceptance recorded.'}),
           'text/html; charset=utf-8');
       }
     }
