@@ -75,6 +75,48 @@ describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
     expect(revoked.body.error.code).toBe('pass_revoked');
     expect(revoked.statusCode).toBe(401);
   });
+
+  it('enforces area grants on catalog, direct reads, describe and batch',async()=>{
+    const {db}=await fixture();
+    const scopedDb={...db,async getRtcPassStatus(token){
+      const original=await db.getRtcPassStatus(token);
+      return original?{...original,areas:['account']}:original;
+    }};
+    const localRegistry={tools:[...registry.tools,
+      {name:'stripe_call',description:'Delegate to another tool',area:'account',
+        writes:false,profiles:['read_only']},
+      {name:'risky_read',description:'Misclassified money operation',
+        area:'account',writes:false,money:true,profiles:['read_only']}],
+      handlers:{...registry.handlers,
+        stripe_call:async()=>{throw Error('DELEGATION MUST BE BLOCKED');},
+        risky_read:async()=>{throw Error('MONEY MUST BE BLOCKED');}}};
+    const scoped=createRtcReadOnlyHttpHandler({db:scopedDb,registry:localRegistry});
+    const catalog=res();await scoped(req('GET',{limit:'100'}),catalog,'catalog');
+    expect(catalog.body.result.tools.map(t=>t.name)).toContain('stripe_account_get');
+    expect(catalog.body.result.tools.map(t=>t.name)).not.toContain('stripe_call');
+    expect(catalog.body.result.tools.map(t=>t.name)).not.toContain('stripe_risky_read');
+    const allowed=res();
+    await scoped(req('POST',{},{}),allowed,'call','stripe_account_get');
+    expect(allowed.statusCode).toBe(200);
+    for(const [route,name,method,args] of [
+      ['describe','stripe_unsafe_write','GET',undefined],
+      ['call','stripe_risky_read','POST',{}],
+      ['call','stripe_call','POST',{name:'unsafe_write'}],
+      ['batch',undefined,'POST',{calls:[{name:'stripe_call',args:{}}]}]
+    ]){
+      const r=res();await scoped(req(method,{},args),r,route,name);
+      expect(r.statusCode).toBeGreaterThanOrEqual(400);
+    }
+  });
+  it('fails closed if a stored pass has a malformed area grant',async()=>{
+    const {db}=await fixture();
+    const corrupt={...db,async getRtcPassStatus(token){
+      return {...await db.getRtcPassStatus(token),areas:'payments'};
+    }};
+    const r=res();
+    await createRtcReadOnlyHttpHandler({db:corrupt,registry})(req(),r,'whoami');
+    expect(r.statusCode).toBe(403);
+  });
   it('shares rate state across handler instances and refuses 121st call',async()=>{
     const {db,handler}=await fixture();
     const sibling=createRtcReadOnlyHttpHandler({db,registry});
