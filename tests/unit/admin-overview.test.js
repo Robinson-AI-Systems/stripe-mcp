@@ -101,6 +101,32 @@ describe('G-6b owner overview and safe requirements',()=>{
       expect(out.sections[key].status).toBe('not_readable');
     expect(f.sdk.accounts.listCapabilities).not.toHaveBeenCalled();
   });
+  it('retains truthful partial capability observations rather than calling them absent',async()=>{
+    const f=fixture({due:[],past:[]});
+    f.sdk.accounts.listCapabilities=vi.fn(async()=>({
+      object:'list',has_more:false,
+      data:Array.from({length:22},(_,n)=>({
+        object:'capability',id:'cap_'+n,status:'active'}))
+    }));
+    const output=parse(await handlers.stripe_admin_overview({},f.ctx));
+    expect(output.sections.capabilities).toMatchObject({
+      status:'observed',observed:true,complete:false,hasMore:true});
+    expect(output.sections.capabilities.detail.capabilities).toHaveLength(20);
+    expect(output.sections.capabilities.detail.totalObserved).toBe(22);
+    expect(output.verificationReadiness.nativePartial).toBeGreaterThanOrEqual(1);
+    expect(output.verificationReadiness.dashboardWalkthroughVerified).toBe(false);
+    expect(output.ownerWalkthrough.every(x=>x.ownerConfirmed===false)).toBe(true);
+  });
+  it('counts complete and unreadable native section observations separately',async()=>{
+    const f=fixture();
+    const output=parse(await handlers.stripe_admin_overview({},f.ctx));
+    expect(output.verificationReadiness.nativeComplete).toBeGreaterThanOrEqual(0);
+    expect(output.verificationReadiness.nativePartial).toBe(0);
+    expect(output.verificationReadiness.nativeUnreadable).toBeGreaterThan(0);
+    expect(output.verificationReadiness.nativeComplete+
+      output.verificationReadiness.nativePartial+
+      output.verificationReadiness.nativeUnreadable).toBe(7);
+  });
   it('restricted capabilities and account reads never cause a healthy overview',async()=>{
     const v=parse(await handlers.stripe_admin_overview({},
       fixture({refused:true,capRefused:true}).ctx));
