@@ -9,6 +9,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#169 RTC pass claim corruption isolation (proposed, CI and review required):** HTTPS TEST reader now refuses malformed or far-future expiry values, and requires native integer/boolean pass limits rather than coercing null, false or strings into false-zero money authority or valid rate. Four new adversarial unit tests. No stronger operational authority, money-out, Stripe LIVE, webhooks or live deployment. Actual Toolkit Hub D-4/authenticated provider tests remain pending. Next #170 substantive RTC/service acceptance and verify checked daily release observations only when they genuinely occur.
+
+
 - **#168 owner hosting policy + executable release guard (IN REVIEW):** incorporates docs/HOSTING-COST-POLICY.md and AGENTS.md pointer prepared on ai/codex/hosting-cost-handoff-2026-10-12. CI now exercises a fail-closed static release-policy verifier against Vercel live-only builds, scheduled main→live writer, pinned actions and enforced main-target PR workflow, plus regression tests. Protected-main requires both `ci` and `target-main` exact head; historical five other CI jobs remain. Vercel Production tracks `live`, previews disabled (saved settings); project Basic queued build, Neon 0.25 CU 300s idle and owner spending gates remain. First scheduled promotion, real Stripe TEST/HUB and Basic-build runtime behavior remain UNOBSERVED. Stripe LIVE disabled. Next #169 and #170 implementation PRs after #168 green merge; do not manually deploy.
 
 
