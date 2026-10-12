@@ -9,6 +9,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#170 RTC multi-call preflight / release batch boundary (IN REVIEW):** all batch READ arguments (including detail, field arrays, dotted projection constraints) now pass identical validation before invoking the FIRST Stripe handler, preventing wasted TEST requests or stored handles when a later operation is known to be invalid. Tests prove zero handler calls for malformed late entries and full execution/field privacy for two valid calls. Existing #168 hosting cost policy/CI guard and #169 corrupted TEST pass checks preserved. After seven exact-head checks, thread-free merge and post-main CI, stop at multiple-of-five #170 and hand off next #171–#175; daily live promotion remains scheduled only, not manually triggered. Do not claim real Toolkit D-4 direct/relay/Sandbox, Stripe signed webhook delivery, G-4/5/6, or authenticated external OAuth acceptance without evidence; LIVE disabled.
+
+
 - **#169 RTC pass claim corruption isolation (proposed, CI and review required):** HTTPS TEST reader now refuses malformed or far-future expiry values, and requires native integer/boolean pass limits rather than coercing null, false or strings into false-zero money authority or valid rate. Four new adversarial unit tests. No stronger operational authority, money-out, Stripe LIVE, webhooks or live deployment. Actual Toolkit Hub D-4/authenticated provider tests remain pending. Next #170 substantive RTC/service acceptance and verify checked daily release observations only when they genuinely occur.
 
 
