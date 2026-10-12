@@ -49,7 +49,7 @@ describe('source-owned money approval and guarded portable write across original
     const result=read(await op.handler(input,ctx));
     expect(result).toMatchObject({done:true,confirmed:true});
     expect(labels.writes).toBe(1);
-    expect((await db.getMoneyUsage({account,connection:'k3-client-a'})).used_cents).toBe(125);
+    expect(BigInt((await db.getMoneyUsage({account,connection:'k3-client-a'})).used_cents)).toBe(125n);
     const otherCtx={...ctx,connection:{...connection,stripeAccount:other}};
     expect(read(await op.handler(input,otherCtx)).done).toBe(false);
     expect(labels.writes).toBe(1);
