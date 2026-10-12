@@ -21,8 +21,8 @@ Follow the owner-friendly [DEPLOY.md](DEPLOY.md) for each setup step. The checkl
 
 | Done | Item | Where / how | Today | How you know it worked |
 |---|---|---|---|---|
-| [ ] | `DATABASE_URL` configured for this server's own Neon database (IN-02) | Vercel → Environment Variables (Agent after approval) | Not set; `PUBLIC_BASE_URL` configured on Production, but redeploy pending | Server initializes its fourteen additive tables without touching any other project |
-| [ ] | Vercel project and Neon database created (IN-02) | Vercel and Neon connectors (Agent, after you say go) | Vercel project created and GitHub-linked; initial production build READY; independent Neon project not yet created (Neon Launch metered plan) | The server's home page shows its tool counts |
+| [ ] | `DATABASE_URL` configured for this server's own Neon database (IN-02) | Vercel → Environment Variables (Agent after approval) | Configured as sensitive Production-only for dedicated `stripe_mcp`; post-env build READY. Runtime schema initialization not verified | Server initializes its additive tables without touching any other project |
+| [ ] | Vercel project and Neon database created (IN-02) | Vercel and Neon connectors (Agent, after you say go) | Both created and verified; owner approved usage-billed Launch without upgrade, SQL connectivity passed; Vercel Production build READY. OAuth and public runtime verification pending | The server's home page shows its tool counts |
 | [ ] | `ADMIN_PASSPHRASE` and `TOKEN_ENCRYPTION_KEY` set (IN-03) | Vercel → Environment Variables (Owner) | Not set | The setup page asks for the passphrase and accepts a key |
 | [ ] | Test-mode restricted keys added (IN-04) | Stripe dashboard → Developers → API keys, then the server's setup page (Owner) | None | `stripe_whoami` shows the account, TEST, key type and last 4 |
 | [ ] | Connector added in Claude, test mode (Owner) | claude.ai → Settings → Connectors | Not added | Claude answers "who am I connected as?" correctly |
