@@ -3,6 +3,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { requireMcpToken } from './mcp-auth.js';
+import { allowBrowserProtocol } from './browser-cors.js';
 import { toStripeToolError } from '../tools/errors.js';
 import { shapeToolResult } from '../tools/util.js';
 import { isToolAllowed, publicToolInfo, listingForConnection, isGuardedTestWrite } from './profiles.js';
@@ -77,6 +78,8 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
 }
 export function createMcpHandler({ db, registry, services={}, env = process.env }) {
   return async function mcp(req, res) {
+    // Apply CORS on authenticated success and on 401 challenges alike.
+    if (allowBrowserProtocol(req, res, { methods: ['GET','POST','DELETE'], mcp: true })) return;
     const connection = await requireMcpToken(req,res,db,env);
     if (!connection) return;
     const server = new Server({name:'robinson-stripe-mcp',version:'0.1.0'},
