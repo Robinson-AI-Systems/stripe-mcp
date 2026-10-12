@@ -1,5 +1,7 @@
 # Tool catalog
 
+#134 G-6 stripe_admin_overview distinguishes incomplete native TEST capability inventory (observed partial) from unreadable permission and exports separate complete/partial/unreadable native-section counts. No new tool or owner-acceptance claim.
+
 #133 independently validates eight custom-MCP provider-smoke result shapes and selected-account identity; unrecognized JSON cannot count as observed G-4/G-5/G-6 state. No tool registration or write permission changes.
 
 #132 adds an opt-in, read-only owner-local acceptance runner exercising the repository's actual G-4/G-5/G-6 handlers via MCP dispatch. Not a new tool; no provider results or Dashboard settings inferred from mocked CI.

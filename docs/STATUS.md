@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **#134 G-6 truthful partial owner readback (as-if-merged; exact-head CI required):** bounded capabilities page now differentiates partial observations from unreadable permissions; readiness reports seven native categories as complete/partial/unreadable, separate from unverified Dashboard owner comparison. No Stripe mutation or real TEST connected acceptance; G-6 IN_PROGRESS, H-1 gated, LIVE disabled.
+
 - **#133 custom-MCP TEST smoke evidence classification (as-if-merged; exact-head CI required):** each of the eight G-4/G-5/G-6 smoke readbacks must match an expected tool-specific and account-bound safe projection. Arbitrary JSON, wrong account, missing read shape and errors are not success. CI tests are mocked; authentic owner TEST run and G-6 Dashboard walkthrough remain pending. LIVE disabled.
 
 - **#132 opt-in custom-MCP TEST smoke runner (as-if-merged; exact-head CI required):** read-only server-side script exercises the registered G-4/G-5/G-6 handlers through this repository's own MCP dispatch with an independently verified selected TEST Stripe account. No borrowed generic Stripe connector, provider credentials in source, data mutation, or Dashboard-completion claim. CI tests use mocked SDK and prove the runner's no-write/refusal/redaction contracts. Genuine owner-run results remain PENDING until executed against a securely configured TEST account.

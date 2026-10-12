@@ -121,10 +121,16 @@ export const handlers={
       // Capability statuses are raw observed facts, not an assertion that every method is enabled.
       const caps=ownAccount?
         await readAdminTool(capabilityHandlers.account_list_capabilities,{limit:20},ctx):null;
+      // A bounded first page is evidence, not proof of a full capability
+      // inventory. Preserve partial observations instead of erasing them.
       const capObserved=ownAccount&&caps?.account===id&&caps?.available===true&&
-        Array.isArray(caps.capabilities)&&caps.hasMore===false;
+        Array.isArray(caps.capabilities)&&caps.capabilities.length<=20&&
+        typeof caps.hasMore==='boolean'&&
+        Number.isSafeInteger(caps.totalObserved)&&caps.totalObserved>=caps.capabilities.length;
       sections.capabilities={status:capObserved?'observed':'not_readable',
-        observed:capObserved,detail:capObserved?{
+        observed:capObserved,complete:capObserved?!caps.hasMore:false,
+        hasMore:capObserved?caps.hasMore:null,
+        detail:capObserved?{
           capabilities:caps.capabilities.map(v=>({id:v.id,status:v.status})),
           totalObserved:caps.totalObserved}:null,
         dashboardUrl:guide('payment_methods')};
@@ -216,9 +222,15 @@ export const handlers={
       });
       const verifiedNative=guidedSettings.filter(x=>
         ['ok','needs_attention','observed'].includes(x.status)).length;
+      const nativeSections=['capabilities','payoutDestination','payoutSchedule',
+        'paymentMethods','paymentDomains','webhooks','customerPortal']
+        .map(name=>sections[name]);
       const verificationReadiness={
         status:'awaiting_owner',dashboardWalkthroughVerified:false,
         totalSettings:guidedSettings.length,nativeObserved:verifiedNative,
+        nativeComplete:nativeSections.filter(s=>s.observed&&s.complete===true).length,
+        nativePartial:nativeSections.filter(s=>s.observed&&s.complete===false).length,
+        nativeUnreadable:nativeSections.filter(s=>!s.observed).length,
         needsManualVerification:guidedSettings.length,
         priorityChecks:ownerWalkthrough.length,
         note:'These are review tasks, not proof an owner has inspected Stripe Dashboard. All settings require authenticated owner comparison in TEST mode.'
