@@ -5,6 +5,7 @@ import {verifyRtcService,verifyRtcRevocation}
 
 const origin='https://stripe-acceptance.example.test';
 const account='acct_RTCSECURE';
+const deployedSha='a'.repeat(40);
 const token='rtc_pass_'+randomBytes(32).toString('base64url');
 const other='rtc_pass_'+randomBytes(32).toString('base64url');
 function fixture({wrongAccount=false,invalidWrite=false,provider=false,
@@ -18,7 +19,8 @@ function fixture({wrongAccount=false,invalidWrite=false,provider=false,
     switch(new URL(url).pathname){
       case '/api/contract':
         value={rtc:1,prefix:'stripe',access:'test_read_only_only',
-          profiles:['read_only'],counts:{tools:2,writes:0,money:0}};
+          profiles:['read_only'],counts:{tools:2,writes:0,money:0},
+          deployment:{sha:deployedSha,ref:'live',environment:'production'}};
         break;
       case '/api/whoami':
         if(revoked){status=401;value={ok:false,error:{code:'pass_revoked'}};break;}
@@ -57,7 +59,7 @@ function fixture({wrongAccount=false,invalidWrite=false,provider=false,
   return {wire,seen};
 }
 const options=wire=>({origin,approvedOrigin:origin,pass:token,
-  expectedAccount:account,fetcher:wire});
+  expectedAccount:account,expectedDeploymentSha:deployedSha,fetcher:wire});
 
 describe('RTC genuine hosted TEST acceptance runner (network injected, not external certification)',()=>{
   it('runs only approved safe HTTP doors and returns redacted evidence',async()=>{
@@ -125,11 +127,11 @@ describe('RTC genuine hosted TEST acceptance runner (network injected, not exter
   it('accepts only actual revoked-pass 401, not a generic auth error',async()=>{
     const good=fixture({revoked:true});
     expect(await verifyRtcRevocation({origin,approvedOrigin:origin,
-      revokedPass:other,fetcher:good.wire})).toMatchObject({
+      revokedPass:other,expectedDeploymentSha:deployedSha,fetcher:good.wire})).toMatchObject({
       status:'passed',checks:['revocation']});
     const live=fixture();
     expect(await verifyRtcRevocation({origin,approvedOrigin:origin,
-      revokedPass:token,fetcher:live.wire})).toMatchObject({
+      revokedPass:token,expectedDeploymentSha:deployedSha,fetcher:live.wire})).toMatchObject({
       status:'failed',code:'revocation_not_proved'});
   });
 });
