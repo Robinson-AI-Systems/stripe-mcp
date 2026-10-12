@@ -38,7 +38,7 @@ export function buildSetupReadinessReport(smoke) {
     smoke.records.some(v=>!expected[smoke.focus].includes(v.tool)||!ALLOWED.has(v.status)))
     throw new TypeError('An authenticated TEST readback is required');
   const checks=smoke.records.map(({tool,status})=>({
-    check:labels[tool],status,
+    tool,check:labels[tool],status,
     meaning:status==='observed'?'Native read returned a bounded valid response; configuration intent is not verified.':
       status==='partial'?'Native evidence is incomplete; no setup conclusion can be drawn.':
       status==='not_readable'?'Not available through this key or API; cannot assume a default.':
@@ -48,7 +48,7 @@ export function buildSetupReadinessReport(smoke) {
     [status,checks.filter(v=>v.status===status).length]));
   // Do not turn every Dashboard-only item into an owner chore.
   const exceptions=smoke.records.filter(v=>v.status!=='observed').map(v=>({
-    check:labels[v.tool],status:v.status,
+    tool:v.tool,check:labels[v.tool],status:v.status,
     next:v.status==='error'?'Retry this read-only TEST check; review permissions or service health if it repeats.':
       v.status==='partial'?'Review the complete native readback before drawing a conclusion.':
         'Unknown from this read. Only inspect in Dashboard if your workflow requires this setting.'
