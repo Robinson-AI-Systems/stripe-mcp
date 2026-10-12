@@ -5,6 +5,8 @@ Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.
 
 ## Next
 
+- **G-6c owner TEST security review (#122 as-if-merged; CI pending):** masked key metadata, read-only permission probe presence, account-scoped connection counts, sanitized TEST webhook status and explicit Dashboard-only gaps (two-step, roles, invitations, apps and key rotation). No secret, pass or LIVE. Next G-6d bounded TEST fees/billing. G-4/G-5 connected Stripe smoke pending.
+
 - **G-6b TEST owner overview and requirements (#121 as-if-merged; CI pending):** safe category counts, Colorado deadline, dashboard guidance, partial observed account/capability overview, explicit unreadable sections and no private requirements. Next G-6c security review, G-6d fees/billing and remaining guided verification. G-4/G-5 connected TEST smoke pending, LIVE off.
 
 - **G-6a guided Dashboard administration (#120 as-if-merged; exact-head CI pending):** structured TEST-only owner Dashboard settings catalog and independent account-verification observation, 12 extended setting groups and contract-style URL/expected/verifyWith. Unreadable is never reported healthy; no Dashboard mutation, secret or LIVE. Next G-6b admin overview and requirements, then security and fees. G-5 native implementation complete, real own-account TEST key smoke for G-4/G-5 still pending.
