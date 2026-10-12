@@ -111,7 +111,7 @@ export function rehearse(){
     // Rewire only the generic profile methods against this exact installed
     // private archive; preserve and execute Stripe's own TEST/write/list policy.
     const profilesPath=join(root,'src/core/profiles.js');
-    const profilesOriginal=readFileSync(profilesPath);
+    const profilesOriginal=readFileSync(profilesPath,'utf8');
     let profileAdapterProof;
     try{
       writeFileSync(profilesPath,createProfileOverlay(profilesOriginal));
