@@ -10,7 +10,8 @@ beforeAll(async()=>{
     throw Error('Disposable local Postgres required');
   await openIsolatedSchema(dsn);
   db=createDb(neonShapedQuery());await db.initSchema();
-  await rawQuery('INSERT INTO stripe_accounts(id,label) VALUES($1,$2)',[account,'TEST']);
+  await rawQuery('INSERT INTO stripe_accounts(id,label,test_key_enc) VALUES($1,$2,$3)',
+    [account,'TEST','v1.fake-encrypted-fixture']);
 });
 afterAll(async()=>closeIsolatedSchema());
 describe('RTC pass durable TEST read-only scope',()=>{
