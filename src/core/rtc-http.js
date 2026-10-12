@@ -48,6 +48,16 @@ const metadata=t=>{
       idempotentHint:true,openWorldHint:true}};
 };
 const isRecord=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+// Never let JS Number coercion turn null, arrays, hex, exponent or empty
+// HTTP pagination selectors into valid provider/result reads.
+function boundedPage(value,defaultValue,min,max){
+  if(value===undefined)return defaultValue;
+  if(typeof value==='number')return Number.isSafeInteger(value)&&
+    value>=min&&value<=max?value:null;
+  if(typeof value!=='string'||!/^(0|[1-9][0-9]*)$/.test(value))return null;
+  const parsed=Number(value);
+  return Number.isSafeInteger(parsed)&&parsed>=min&&parsed<=max?parsed:null;
+}
 const argsOf=req=>{
   const body=req.body;
   if(!isRecord(body)||!incomingBodyWithinLimit(req))return null;
@@ -193,19 +203,20 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     }
     if(route==='catalog'){
       if(req.method!=='GET')return error('invalid_args',405);
-      const limit=Number(req.query?.limit??20);
-      if(!Number.isInteger(limit)||limit<1||limit>100)return error('invalid_args');
+      const limit=boundedPage(req.query?.limit,20,1,100);
+      const offset=boundedPage(req.query?.offset,0,0,100000);
+      if(limit===null||offset===null)return error('invalid_args');
       const q=req.query?.q,area=req.query?.area,listing=req.query?.listing;
-      const offset=Number(req.query?.offset??0),audience=req.query?.audience;
+      const audience=req.query?.audience;
       if(q!==undefined&&(typeof q!=='string'||q.length>100)||
         area!==undefined&&(typeof area!=='string'||area.length>50)||
         listing!==undefined&&!['compact','catalog'].includes(listing)||
-        !Number.isInteger(offset)||offset<0||offset>100000||
         audience!==undefined&&!['owner','operator','builder'].includes(audience))
         return error('invalid_args');
+      const needle=q?.toLowerCase();
       let tools=registry.tools.filter(t=>safeRead(t)&&inScope(t,connection.areas)&&(!area||t.area===area)&&
-        (!q||alias(t.name).includes(q.toLowerCase())||
-          t.description?.toLowerCase().includes(q.toLowerCase()))&&
+        (!needle||alias(t.name).includes(needle)||
+          t.description?.toLowerCase().includes(needle))&&
         (!audience||metadata(t).audience.includes(audience)));
       if((listing??'catalog')==='compact')
         tools=tools.filter(t=>['stripe_whoami','stripe_search_tools','stripe_describe_tool',
@@ -246,8 +257,8 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(route==='result'){
       if(req.method!=='GET'||typeof name!=='string'||
         !/^res_[A-Za-z0-9_-]{24,48}$/.test(name))return error('invalid_args');
-      const page=Number(req.query?.page??0);
-      if(!Number.isInteger(page)||page<0||page>100000)return error('invalid_args');
+      const page=boundedPage(req.query?.page,0,0,100000);
+      if(page===null)return error('invalid_args');
       const value=await call('stripe_get_result',{handle:name,page},connection);
       return value.error?error(value.error,callErrorStatus(value.error)):success(value.result);
     }
