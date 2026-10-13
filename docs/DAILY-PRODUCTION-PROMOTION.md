@@ -1,6 +1,6 @@
 # Daily production releases and low build cost
 
-Development PRs target main. Only the scheduled daily promotion workflow writes live: 10:00 UTC (04:00 Denver daylight / 03:00 standard). It requires the existing six exact-head Actions checks and atomically advances live with a dated Colorado-day tag. Unchanged heads skip; failed/missing checks, divergence and consumed day markers refuse release. No manual dispatch, no force-push fallback.
+Development PRs target main. Only the scheduled daily promotion workflow writes live: 00:01 America/Denver (12:01 a.m. local time, including daylight saving changes; GitHub may start late). It requires the existing six exact-head Actions checks and atomically advances live with a dated Colorado-day tag. Unchanged heads skip; failed/missing checks, divergence and consumed day markers refuse release. No manual dispatch, no force-push fallback.
 
 Owner-directed verification on 2026-10-12: Vercel Production Branch Tracking is live, and Preview Branch Tracking is disabled. vercel.json also disables Git deployments on every branch except live, including slash-named branches. Vercel settings apply to the linked project now; the repository rule protects future configurations. GitHub CI and existing offline/SQL/HTTP checks continue without a paid deployment requirement. Do not run Vercel CLI production deployments, promote previews, or release at a development batch boundary without a separate explicit owner instruction.
 

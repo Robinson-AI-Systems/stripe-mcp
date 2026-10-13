@@ -1,10 +1,10 @@
 name: Daily live promotion
 
 on:
-  # GitHub schedules run on the default main branch. 10 UTC is 04:00
-  # Colorado daylight time / 03:00 standard time; Actions may start late.
+  # Owner schedule: 00:01 Denver, including DST; GitHub may start late.
   schedule:
-    - cron: '0 10 * * *'
+    - cron: '1 0 * * *'
+      timezone: America/Denver
 
 # The dedicated scheduled job is the sole automated writer for live.
 # No manual dispatch, push trigger, force push, Stripe LIVE permission or keys.

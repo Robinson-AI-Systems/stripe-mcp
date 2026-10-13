@@ -1,3 +1,7 @@
+**Setup checkpoint — 2026-10-13:** Stage-aware setup verified: one checked encrypted TEST key, zero LIVE keys/enabled accounts or MCP sessions. Existing hosting/Secrets support next TEST OAuth/native receiver acceptance; Vercel protection and every independent money-out/LIVE gate preserved. All six release workflows target 00:01 America/Denver, Vercel tracks live, Basic queued builds and disabled automatic previews verified. No scheduled release event observed yet; owner authorized one manual release after green checks. Saved configuration, deployed exact revision and authentic connected acceptance remain separate.
+
+**Owner release timing update — 2026-10-13:** Daily checked main-to-live release now targets 00:01 America/Denver using GitHub native timezone support, so both daylight and standard time remain 12:01 a.m. All exact-head CI, atomic daily-marker, fast-forward, preview/build-cost and independent live/provider approval gates remain unchanged. Owner separately approved one manual release after this setup work completes; schedule syntax/CI, actual deployment and connected acceptance remain distinct evidence. GitHub scheduling can be delayed; no guaranteed start time is claimed.
+
 # STATUS — current work, blockers and next action
 
 ## Current gateway recovery disposition — 2026-10-12
