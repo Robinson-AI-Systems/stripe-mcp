@@ -1,6 +1,7 @@
 // Protected-environment only, never use bearer/secret arguments or echo responses.
 import {verifyHostedStandaloneMcp,verifyHostedMcpRevocation}
   from '../src/acceptance/hosted-custom-mcp.js';
+import {makeProtectedServiceFetch} from '../src/acceptance/protected-service-fetch.js';
 const [mode,...extra]=process.argv.slice(2);
 if(!['--connected','--revoked'].includes(mode)||extra.length){
   process.stderr.write('Use --connected or --revoked; configure protected MCP_* and RTC_* environment values.\n');
@@ -8,7 +9,10 @@ if(!['--connected','--revoked'].includes(mode)||extra.length){
 }else{
   const shared={origin:process.env.RTC_SERVICE_ORIGIN,
     approvedOrigin:process.env.RTC_APPROVED_ORIGIN,
-    expectedDeploymentSha:process.env.RTC_EXPECTED_DEPLOYED_SHA};
+    expectedDeploymentSha:process.env.RTC_EXPECTED_DEPLOYED_SHA,
+    fetcher:makeProtectedServiceFetch({origin:process.env.RTC_SERVICE_ORIGIN,
+      approvedOrigin:process.env.RTC_APPROVED_ORIGIN,
+      oidcToken:process.env.VERCEL_OIDC_TOKEN})};
   const report=mode==='--connected'?
     await verifyHostedStandaloneMcp({...shared,
       token:process.env.MCP_CONNECTED_ACCESS_TOKEN,

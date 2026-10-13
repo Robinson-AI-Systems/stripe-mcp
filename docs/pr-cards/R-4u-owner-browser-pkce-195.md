@@ -23,3 +23,8 @@ Stripe payment, key/plaintext provider access, LIVE, relay or shared-core adopti
 - Must revoke temporary TEST client/connection from private setup even after failure; no live mode/spending.
 - Unit fakes plus actual localhost HTTP callback tests; CI does NOT certify real owner browser/OAuth/Stripe read.
 - FINITE external acceptance source checks distinct from deployed and genuine owner run. Next: actual owner-run scheduled `live`, signed webhook and Hub direct/relay/Sandbox, G-6 Dashboard; independent evidence.
+
+## CI first-head defect and protected ingress remediation
+
+- First #195 exact-head `unit` failed because a successful DCR with invalid metadata was not flagged as requiring owner cleanup; now mark registered immediately after HTTP 201, before validating returned fields. The test correctly requires cleanup. `check` also found an unused test import, removed.
+- Owner can OPTIONALLY provide short-lived `VERCEL_OIDC_TOKEN` from their protected Vercel CLI session for Trusted Sources. The bounded shared HTTP helper enforces exact pinned HTTPS origin, rejects cross-origin/redirects/downgrades and never logs the token. This does NOT modify Vercel deployment protection, add a bypass or authorize development→production Trusted Sources; that owner setting is a separate gate. All four owner-run TEST acceptance scripts share the helper. If SSO remains inaccessible, external acceptance stays blocked.

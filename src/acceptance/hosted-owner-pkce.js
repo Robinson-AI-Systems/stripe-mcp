@@ -111,6 +111,9 @@ export async function verifyOwnerBrowserPkce({
         response_types:['code'],grant_types:['authorization_code','refresh_token']
       })});
     assert(dcr.status===201,'dcr_unverified');
+    // A successful DCR may have created a client even if its returned metadata
+    // cannot be trusted. Treat all later errors as requiring owner cleanup.
+    registered=true;
     const client=await boundedJson(dcr);
     assert(CLIENT.test(client?.client_id)&&
       client.token_endpoint_auth_method==='none'&&
@@ -118,7 +121,6 @@ export async function verifyOwnerBrowserPkce({
       Array.isArray(client.redirect_uris)&&
       client.redirect_uris.length===1&&
       client.redirect_uris[0]===callback.redirectUri,'dcr_unverified');
-    registered=true;
     stage='owner_browser';
     const authorize=new URL(base+'/api/oauth/authorize');
     for(const [key,value] of Object.entries({

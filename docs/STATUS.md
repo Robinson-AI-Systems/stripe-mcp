@@ -21,6 +21,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#195 first-head CI repair and protected ingress:** Correct real DCR-response ambiguity: after server 201, owner cleanup/revocation required even if client metadata is malformed. Removed lint error. All four owner-invoked hosted TEST runners now support an optional owner-supplied short-lived Vercel Trusted Sources OIDC header to the exact pinned HTTPS service origin only; no redirects or cross-host sending, no SSO setting change. Authorized development→production Trusted Sources configuration and any actual hosted TEST/OAuth evidence remain separately gated.
+
+
 - **#195 owner browser interactive TEST OAuth PKCE acceptance (CI pending):** Source-only opt-in harness pins actual `live` SHA, registers public OAuth DCR client, launches owner browser with S256 PKCE and ephemeral loopback state-bound code callback, exchanges code only once on original Stripe OAuth host and verifies TEST/read_only account using original MCP SDK. Never sees the owner's login passphrase or returns bearer/refresh. Temporary connection MUST be owner-revoked through private page. Genuine owner-executed remote OAuth/Stripe provider/Webhook/Hub acceptance stays UNVERIFIED until real evidence. Following batch next normal five PRs only for eligible substantial approved work, no filler; LIVE off and scheduled-only deploy.
 
 

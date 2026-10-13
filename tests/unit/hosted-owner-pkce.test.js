@@ -1,5 +1,4 @@
 import {describe,it,expect,vi} from 'vitest';
-import {randomBytes} from 'node:crypto';
 import {createOwnerOAuthCallback,verifyOwnerBrowserPkce}
   from '../../src/acceptance/hosted-owner-pkce.js';
 const sha='a'.repeat(40),origin='https://stripe-owner.example.test';
