@@ -21,6 +21,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#195 owner browser interactive TEST OAuth PKCE acceptance (CI pending):** Source-only opt-in harness pins actual `live` SHA, registers public OAuth DCR client, launches owner browser with S256 PKCE and ephemeral loopback state-bound code callback, exchanges code only once on original Stripe OAuth host and verifies TEST/read_only account using original MCP SDK. Never sees the owner's login passphrase or returns bearer/refresh. Temporary connection MUST be owner-revoked through private page. Genuine owner-executed remote OAuth/Stripe provider/Webhook/Hub acceptance stays UNVERIFIED until real evidence. Following batch next normal five PRs only for eligible substantial approved work, no filler; LIVE off and scheduled-only deploy.
+
+
 - **#194 standalone hosted OAuth refresh acceptance (CI pending):** Owner opt-in protected runner builds on #193 SDK: exact live attestation, pre-refresh scoped TEST/read_only SDK check, one no-retry real custom OAuth token refresh, new SDK scope parity, prior access 401. New remote token is never printed or saved and owner must revoke TEST connection via the protected page. This is only local source/fixture proof until independently operated; interactive PKCE, provider TEST, webhook, Hub routes UNVERIFIED. LIVE remains off, no deployments, purchases or money permissions.
 
 
