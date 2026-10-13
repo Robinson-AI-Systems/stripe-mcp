@@ -132,3 +132,16 @@ PostgreSQL paths. This is partial portable adaptation, NOT full drop-in parity,
 not release readiness, and not permission to remove the Stripe-owned handlers.
 Independently implement portable delegated-meta parity as the next eligible
 source milestone without delaying on Hub release/deployment evidence.
+
+## Current architectural disposition — owner request 2026-10-12
+
+Source original `stripe_call` guarded TEST delegation and read-only `stripe_batch` remain authoritative.
+Do not make portable nested-write parity the next mandatory outcome: optional candidate adoption may explicitly
+exclude these meta dispatchers. No generic dispatcher change is required to let Hub invoke the existing RTC HTTPS
+surface. Existing eleven-export core release guards remain open, never waived here; a future narrowed release
+requires an explicit Hub release card reconciling human/machine scope and adopter exclusions.
+Prioritize independently eligible Stripe capability and genuine harmless RTC TEST acceptance using exact deployed
+revision/secure short-lived pass, with direct/relay/Sandbox/revocation separate from package publication/adoption.
+LIVE off; transaction-specific independent owner money approval and separate above-$500 Colorado-day override,
+account isolation, original PostgreSQL, idempotency, audit and error/result behavior unchanged.
+This dated disposition supersedes the earlier handoff's mandatory delegated-dispatch-uniformity next step.

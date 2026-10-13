@@ -1051,7 +1051,7 @@
     }
   ],
   "k3StripeAdoption": {
-    "priority": "HIGHEST_STRIPE_SIDE",
+    "priority": "OPTIONAL_REUSE_NOT_GATEWAY_CRITICAL_PATH",
     "scope": "Robinson Toolkit Hub K-3 staged source-owned compatibility",
     "phase": "PRIVATE_CANDIDATE_TESTING_NOT_RELEASED",
     "evidence": [
@@ -1078,33 +1078,45 @@
       {
         "pr": 187,
         "gate": "private adapted bearer authentic Stripe OAuth/MCP SQL",
-        "result": "PR_CI_VERIFIED_MERGE_PENDING"
+        "result": "MERGED_CI_PASS_PER_PR190_HANDOFF"
       },
       {
         "pr": 188,
         "gate": "Source-owned original OAuth UI/SQL with privately staged token protocol",
-        "result": "PENDING_CI_AND_MERGE"
+        "result": "MERGED_CI_PASS_PER_PR190_HANDOFF"
       },
       {
         "pr": 189,
         "gate": "Private portable write in original Stripe money owner approval and actual PG",
-        "result": "PENDING_CI_AND_MERGE"
+        "result": "MERGED_CI_PASS_PER_PR190_HANDOFF"
       },
       {
         "pr": 190,
         "gate": "Hardened original MCP dispatch and portable direct paths; Stripe guarded call/batch meta routes preserved",
-        "result": "PENDING_CI_REVIEW_MERGE"
+        "result": "MERGED_CI_PASS_PER_PR190_HANDOFF"
       }
     ],
     "immutableHubCommit": "08f4189f72dbe1d5b870c7b17daabd39833eff31",
     "privateArchiveSha256": "3038f7664e18ac57e5fdb86daf0884f603a78a446e2f1300f20fd59a92e73ea6",
-    "nextEligibleStripeAdapters": [
-      "mcp-dispatch delegated stripe_call/stripe_batch parity"
-    ],
+    "nextEligibleStripeAdapters": [],
     "publishedHubPackage": "UNVERIFIED_NOT_AVAILABLE",
     "productionAdoption": "NOT_ATTEMPTED",
     "deployedRtcAndHubD4": "UNVERIFIED",
     "sourceHandoff": "docs/acceptance/K3-STRIPE-SOURCE-HANDOFF.md",
-    "reentry": "Continue independently eligible Stripe source meta-route K-3 parity after #190. Preserve original guarded TEST stripe_call and non-writing stripe_batch until authentic owner-money and indirect source suites pass with portable equivalent. Publication/committed package dependency separately requires immutable remote Hub Release asset and checksum. Protected Hub D-4 needs checked live SHA plus owner-authorized genuine TEST pass/revocation."
+    "reentry": "Optional chosen-export adoption only after independently verified immutable publication and original Stripe regression/rollback proof. Preserve original guarded stripe_call and read-only stripe_batch; no mandatory portable meta-dispatch parity. RTC TEST deployed/direct/relay/Sandbox/revocation acceptance is independent and requires exact running revision and secure owner-issued isolated read-only pass."
+  },
+  "gatewayBoundary": {
+    "sharedCoreAdoption": "OPTIONAL_NOT_REQUIRED_FOR_RTC",
+    "serviceOwnership": [
+      "direct MCP",
+      "provider credentials",
+      "canonical schemas",
+      "guarded execution",
+      "durable state",
+      "approval",
+      "results"
+    ],
+    "gatewayOwnership": "Hub broker/routing/grant mapping; separately issued scoped service pass",
+    "acceptance": "Existing service-owned isolation and deployed TEST route/denial/revocation gates remain OPEN"
   }
 }

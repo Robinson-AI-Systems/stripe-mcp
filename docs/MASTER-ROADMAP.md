@@ -1,5 +1,11 @@
 **Current handoff (2026-10-11, #113 as-if-merged):** G-4 code and automated acceptance reconciled. Genuine connected Stripe TEST event-to-owned-webhook smoke remains PENDING, not passed. Next approved implementation G-5 safe account profile/capability reads followed by carefully gated account settings. See STATUS and G-4 acceptance. LIVE remains OFF.
 
+## Gateway dependency correction — 2026-10-12
+
+RTC interface work and authorized nonproduction Hub route acceptance are independent of K-3 package adoption.
+Follow current STATUS/index and service isolation/owner gates. Optional reuse must not block provider capability
+or require replacing service-owned dispatch/state. Hub's H-1–H-3 work belongs in its repository.
+
 # MASTER ROADMAP — the one handoff
 
 **Current 2026-10-11 external acceptance checkpoint (verified live):** Vercel + isolated Neon + 24 app tables and one encrypted/verified owner TEST key are deployed. This is **not** authentic custom-MCP G-4/G-5 provider smoke, G-6 signed-in Dashboard walkthrough or OAuth connection acceptance. G-6 remains IN_PROGRESS and H-1 remains gated; LIVE OFF. See `docs/STATUS.md` "Next" for the next session's **one-time #136 carried PR credit (slot 1/5, four new production PRs remaining)**; #137–#139 are infrastructure/documentation only and excluded from that five-development-PR count. Always verify current main and approved cards before work.
