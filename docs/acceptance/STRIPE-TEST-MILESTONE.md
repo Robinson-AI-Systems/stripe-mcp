@@ -207,3 +207,7 @@ Full review found owner setup invokes the complete additive SQL initialization o
 ## #204 original endpoint HTTP preflight (proposal)
 
 The owner API gateway previously initialized Neon before applying original-request body-size/media safeguards. The proposed fix rejects unsupported methods, invalid declared body lengths and oversized/mismatched forms before DB use with existing shared HTTP helpers. Exact-head CI and code review required. No Vercel release, no Stripe permission change and no shortcut around private password or CSRF.
+
+## #205 real HTTP + disposable PostgreSQL owner setup journey (proposed)
+
+The isolated test server serves the original `createSetupHandler` over an actual listening Node HTTP socket and the same `createDb` adapter with local disposable PostgreSQL: browser URL form parsing, private account metadata listing, password/CSRF/Origin denial, stable identity-error stage, bounded synthetic report output, real encrypted one-time consume/replay. No Vercel auth, public network or Stripe TEST provider connection is impersonated. #204 separately tests the actual API gateway's original HTTP wire-size boundary; #205 proves the inner handler and persisted behavior. External owner TEST/PKCE/webhook/Hub acceptance stays unverified, and CI green is not sufficient for production release.
