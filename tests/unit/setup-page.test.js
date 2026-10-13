@@ -64,6 +64,68 @@ describe('canonical owner setup origin',()=>{
   });
 });
 
+describe('owner TEST feedback visibly above all forms',()=>{
+  it('puts the read-only TEST form on the first screen and no success claim on initial GET',async()=>{
+    const {handler}=await fixture();
+    const response=await page(handler);
+    const html=response.body;
+    expect(html.indexOf('id="readiness-tests"')).toBeLessThan(
+      html.indexOf('Provision TEST webhook signature verification'));
+    expect(html).not.toContain('id="owner-feedback"');
+    expect(html).toContain('Run read-only custom MCP TEST checks');
+  });
+  it('shows a readable report at the top with per-tool statuses but never claims full acceptance',async()=>{
+    const db=createFakeDb();
+    const runTestSmoke=async({account,focus})=>({
+      account,focus,mode:'test',source:'custom_mcp_dispatch',
+      verifiedIdentity:true,dashboardVerified:false,writeOperations:0,
+      key:'rk_test_NOT_FOR_BROWSER',
+      records:[
+        {tool:'stripe_admin_overview',status:'observed'},
+        {tool:'admin_review_security',status:'partial'},
+        {tool:'admin_list_guided_settings',status:'not_readable'}
+      ]});
+    const handler=createSetupHandler({db,runTestSmoke,env});
+    const c=cookiePage(await page(handler));
+    const reply=await submit(handler,c,{action:'run-test-smoke',account:'acct_SAFEOWNER',
+      focus:'administration',passphrase:env.ADMIN_PASSPHRASE});
+    expect(reply.statusCode).toBe(200);
+    const html=reply.body;
+    expect(html.indexOf('id="owner-feedback"')).toBeLessThan(
+      html.indexOf('id="readiness-tests"'));
+    expect(html).toContain('Read-only TEST report returned — readiness NOT certified.');
+    expect(html).toContain('Checks returned: <strong>3</strong>');
+    expect(html).toContain('Observed: 1; partial: 1; not readable: 1; error: 0.');
+    expect(html).toContain('Administration overview');
+    expect(html).toContain('Security review');
+    expect(html).toContain('Dashboard-only guided settings');
+    expect(html).toContain('View sanitized technical report');
+    expect(html).toContain('aria-live="polite"');
+    expect(html).not.toContain('rk_test_NOT_FOR_BROWSER');
+    expect(html).not.toContain('Account ready');
+  });
+  it('shows rejected or failed owner requests at the top without pretending a smoke report ran',async()=>{
+    const db=createFakeDb(),runTestSmoke=vi.fn(async()=>{throw Error('private upstream credential');});
+    const handler=createSetupHandler({db,runTestSmoke,env});
+    const c=cookiePage(await page(handler));
+    const payload={action:'run-test-smoke',account:'acct_SAFEOWNER',
+      focus:'administration',passphrase:env.ADMIN_PASSPHRASE};
+    const failed=await submit(handler,c,payload);
+    expect(failed.statusCode).toBe(503);
+    expect(failed.body.indexOf('id="owner-feedback"')).toBeLessThan(
+      failed.body.indexOf('id="readiness-tests"'));
+    expect(failed.body).toContain('No acceptance recorded');
+    expect(failed.body).not.toContain('Read-only TEST report returned');
+    expect(failed.body).not.toContain('private upstream credential');
+    const denied=await submit(handler,c,{...payload,passphrase:'incorrect'});
+    expect(denied.statusCode).toBe(401);
+    expect(denied.body.indexOf('id="owner-feedback"')).toBeLessThan(
+      denied.body.indexOf('id="readiness-tests"'));
+    expect(denied.body).toContain('Incorrect administrator passphrase.');
+    expect(runTestSmoke).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
   it('checks strict origin, CSRF, passphrase, exact TEST account and redacts report',async()=>{
     const db=createFakeDb();

@@ -17,12 +17,50 @@ function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
 }
+// All owner responses appear above the forms that initiated them.
+// A TEST report means some read attempts returned classifications, NOT that
+// settings, Stripe Dashboard, external OAuth or signed delivery passed.
+function renderOwnerFeedback(result, smokeResult) {
+  if (!result && !smokeResult) return '';
+  const checks = smokeResult?.checks || [];
+  const counts = smokeResult?.counts;
+  const summary = smokeResult
+    ? '<p><strong>Read-only TEST report returned — readiness NOT certified.</strong> ' +
+      'This is not Dashboard acceptance, connected OAuth acceptance or signed webhook delivery evidence.</p>' +
+      '<p>Checks returned: <strong>' + checks.length + '</strong>. ' +
+      'Observed: ' + counts.observed + '; partial: ' + counts.partial +
+      '; not readable: ' + counts.not_readable + '; error: ' + counts.error + '.</p>' +
+      '<h3>Individual TEST read outcomes</h3><ol>' +
+      checks.map(v=>'<li><strong>' + escapeHtml(v.check) + '</strong> (' +
+        escapeHtml(v.tool) + '): <strong>' + escapeHtml(v.status) +
+        '</strong>. ' + escapeHtml(v.meaning) + '</li>').join('') +
+      '</ol><p>' + escapeHtml(smokeResult.ownerAction) + '</p>' +
+      '<details><summary>View sanitized technical report</summary><pre>' +
+        escapeHtml(JSON.stringify(smokeResult,null,2)) + '</pre></details>'
+    : '';
+  return '<section id="owner-feedback" role="status" aria-live="polite" aria-atomic="true" ' +
+    'aria-labelledby="owner-feedback-heading" tabindex="-1">' +
+    '<h2 id="owner-feedback-heading">Owner request response</h2>' +
+    (result ? '<p>' + escapeHtml(result) + '</p>' : '') +
+    summary + '</section>';
+}
+
 function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null }) {
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
-    '<style>body{font:16px system-ui,sans-serif;max-width:500px;margin:4vh auto;padding:16px}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
+    '<style>body{font:16px system-ui,sans-serif;max-width:600px;margin:4vh auto;padding:16px}#owner-feedback{border:2px solid currentColor;padding:14px;border-radius:10px;margin:18px 0}#owner-feedback h2{margin-top:0}#owner-feedback li{margin:8px 0}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
     '<h1>Robinson Stripe MCP — private setup</h1>' +
+    renderOwnerFeedback(result,smokeResult) +
+    '<h2 id="readiness-tests">Automated TEST Setup &amp; Readiness Report (owner only)</h2>' +
+    '<p>Select one group for genuine custom MCP TEST reads and a targeted readiness report. Unknown/unreadable settings are NOT presumed to be defaults. No automatic change is made; Stripe Dashboard, OAuth and signed webhook delivery are separate acceptance gates.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="run-test-smoke">' +
+    '<label>Selected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" maxlength="110" required autocomplete="off"></label>' +
+    '<label>Test group<select name="focus" required><option value="account">G-5 TEST account &amp; payment configuration (4)</option><option value="webhooks">G-4 TEST event &amp; webhook reads (2)</option><option value="readiness">G-6 owner readiness checks (2)</option><option value="core">Core G-4/G-5/G-6 reads (8)</option><option value="administration">G-6 owner administration (3)</option></select></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Run read-only custom MCP TEST checks</button></form>' +
+
     '<h2>Provision TEST webhook signature verification</h2>' +
     '<p>Enter the webhook signing secret directly on this password-protected page, never in AI chat. Only an existing TEST endpoint on the specified connected account can be saved. Re-provision after rotating the secret.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -67,17 +105,6 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Issue TEST read-only pass</button></form>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
-    '<h2>Automated TEST Setup &amp; Readiness Report (owner only)</h2>' +
-    '<p>Select one group for genuine custom MCP TEST reads and a targeted readiness report. Unknown/unreadable settings are NOT presumed to be defaults. No automatic change is made; Stripe Dashboard, OAuth and signed webhook delivery are separate acceptance gates.</p>' +
-    '<form method="post" autocomplete="off">' + formHidden +
-    '<input type="hidden" name="action" value="run-test-smoke">' +
-    '<label>Selected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" maxlength="110" required autocomplete="off"></label>' +
-    '<label>Test group<select name="focus" required><option value="account">G-5 TEST account &amp; payment configuration (4)</option><option value="webhooks">G-4 TEST event &amp; webhook reads (2)</option><option value="readiness">G-6 owner readiness checks (2)</option><option value="core">Core G-4/G-5/G-6 reads (8)</option><option value="administration">G-6 owner administration (3)</option></select></label>' +
-    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-    '<button type="submit">Run read-only custom MCP TEST checks</button></form>' +
-    (smokeResult ? '<h3>Custom MCP TEST result (not Dashboard acceptance)</h3><pre>' +
-      escapeHtml(JSON.stringify(smokeResult,null,2)) + '</pre>' : '') +
-    (result ? '<p role="status">' + escapeHtml(result) + '</p>' : '') +
     (revealed ? '<h2>One-time secret — copy it now</h2><pre>' + escapeHtml(revealed) +
       '</pre><p>It has been deleted from the server and will not appear again.</p>' : '') +
     '<form method="post" autocomplete="off">' + formHidden +
