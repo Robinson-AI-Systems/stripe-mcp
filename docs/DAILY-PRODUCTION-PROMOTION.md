@@ -7,3 +7,7 @@ Owner-directed verification on 2026-10-12: Vercel Production Branch Tracking is 
 The live branch was provisioned from the previously verified deployed commit before the workflow was enabled. If live is deleted, restore the last verified released SHA deliberately rather than silently recreating it from main. Review Actions → Daily live promotion after the next scheduled run; verify the marker and live ref, then the Vercel deployment's source and status. No production build is triggered merely to test this cost change.
 
 This does not enable Stripe LIVE, money movement or production-account access. All existing owner gates and deployment protection remain unchanged. Production requests, subscriptions, storage, database use and retained sandboxes can still incur charges; disabling builds does not erase billed usage.
+
+## Active development and explicit release (owner, 2026-10-13)
+
+Main advances while agents work; live records the released snapshot. Scheduled promotion refreshes remote heads and waits at most ten minutes for pending exact-head checks, retains all six required checks, and refuses failure or divergence. A one-off explicit owner request permits a leased, non-forced fast-forward after CI, followed by exact-SHA Vercel READY and production-alias verification. This does not permit automatic releases at development batch boundaries or enable Stripe LIVE operations.
