@@ -21,6 +21,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#194 standalone hosted OAuth refresh acceptance (CI pending):** Owner opt-in protected runner builds on #193 SDK: exact live attestation, pre-refresh scoped TEST/read_only SDK check, one no-retry real custom OAuth token refresh, new SDK scope parity, prior access 401. New remote token is never printed or saved and owner must revoke TEST connection via the protected page. This is only local source/fixture proof until independently operated; interactive PKCE, provider TEST, webhook, Hub routes UNVERIFIED. LIVE remains off, no deployments, purchases or money permissions.
+
+
 - **#193 standalone custom-MCP SDK hosted TEST probe (CI pending):** Owner opt-in tool attests exact pinned live SHA before passing a connector bearer through the official MCP SDK to only the same-origin `/api/mcp` endpoint; checks TEST account/profile, read-only catalog and safe local whoami, plus a separate exact revoked-token 401 check. Fake-fetch unit tests are NOT external custom-MCP OAuth/PCKE or Stripe API acceptance. External pass/owner flow still unverified, production live remains behind, no manual deployment or LIVE/spend.
 
 
