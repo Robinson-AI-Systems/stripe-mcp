@@ -51,4 +51,28 @@ describe('owner hosting cost / daily live policy',()=>{
       expect(releasePolicyViolations(x)).not.toEqual([]);
     }
   });
+  it('rejects a second cron even if its YAML entry puts timezone first',()=>{
+    const x=inputs();
+    x.promote=x.promote.replace('      timezone: America/Denver',
+      "      timezone: America/Denver\n    - timezone: UTC\n      cron: '30 12 * * *'");
+    expect(releasePolicyViolations(x)).toContain(
+      'Release workflow must remain scheduled-only and use checked promotion script');
+  });
+  it('allows one valid schedule when timezone precedes cron',()=>{
+    const x=inputs();
+    x.promote=x.promote.replace(
+      "    - cron: '1 0 * * *'\n      timezone: America/Denver",
+      "    - timezone: America/Denver\n      cron: '1 0 * * *'");
+    expect(releasePolicyViolations(x)).toEqual([]);
+  });
+  it('rejects inline schedule lists and repeated cron keys',()=>{
+    const x=inputs();
+    x.promote=x.promote.replace("    - cron: '1 0 * * *'",
+      "    - {timezone: America/Denver, cron: '1 0 * * *'}");
+    expect(releasePolicyViolations(x)).not.toEqual([]);
+    const y=inputs();
+    y.promote=y.promote.replace('      timezone: America/Denver',
+      "      timezone: America/Denver\n      cron: '30 12 * * *'");
+    expect(releasePolicyViolations(y)).not.toEqual([]);
+  });
 });
