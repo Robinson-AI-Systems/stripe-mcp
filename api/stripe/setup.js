@@ -20,6 +20,11 @@ export default async function handler(req, res) {
   if(!only(res,req,['GET','POST']))return;
   if(!incomingBodyWithinLimit(req))
     return send(res,413,{error:'invalid_owner_request',description:'Owner form body length invalid or oversized'});
+  if(req.method==='POST'){
+    const type=String(req.headers?.['content-type']||'').split(';')[0].trim().toLowerCase();
+    if(!['application/x-www-form-urlencoded','application/json'].includes(type))
+      return send(res,415,{error:'unsupported_content_type'});
+  }
   try {
     const db = createDb();
     await ensureSchema(()=>db.initSchema());
