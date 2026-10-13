@@ -21,7 +21,7 @@ function adapt(res){
 }
 async function start(){
   const runner=createOwnerSmokeRunner({
-    db,keyStore:{loadKey:async()=> 'rk_test_FIXTUREONLYACCOUNTTOKEN'},
+    db,keyStore:{loadKey:async()=> 'fake-private-credential-from-injected-runner'},
     run:async({account:id,focus})=>{
       smokeReads++;
       if(smokeMode==='denied')throw new OwnerSmokeFailure('provider_denied');
@@ -140,7 +140,7 @@ describe('real owner setup HTTP and disposable PostgreSQL',()=>{
     expect(report.html).toContain('Read-only TEST report returned');
     expect(report.html).toContain('Observed: 0; partial: 2; not readable: 1; error: 0');
     expect(report.html).toContain('not Dashboard acceptance');
-    expect(report.html).not.toContain('rk_test_FIXTUREONLYACCOUNTTOKEN');
+    expect(report.html).not.toContain('fake-private-credential-from-injected-runner');
     expect(smokeReads).toBeGreaterThanOrEqual(2);
   });
   it('consumes a real encrypted one-time secret once and lifts it above all other forms',async()=>{
