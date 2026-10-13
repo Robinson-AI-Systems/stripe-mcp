@@ -244,6 +244,19 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     catch { return send(res, 503, { error: 'server_not_configured', description: 'Set PUBLIC_BASE_URL first' }); }
     res.setHeader('Content-Security-Policy',
       "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+    // The owner's Vercel project may have multiple public aliases. Serving a
+    // form on a noncanonical alias makes the browser send that alias as Origin
+    // while POST deliberately accepts only PUBLIC_BASE_URL. Redirect only GET
+    // to the fixed configured issuer; never trust Host to grant POST access.
+    // Deliberately drop query values (including one-time reveal selectors).
+    const requestHost=req.headers?.host;
+    if(req.method==='GET' && typeof requestHost==='string' &&
+       requestHost.toLowerCase()!==new URL(origin).host.toLowerCase()){
+      res.setHeader('Referrer-Policy','no-referrer');
+      res.setHeader('Location',origin+'/api/stripe/setup');
+      return send(res,302,'Open the canonical Stripe owner setup page.',
+        'text/plain; charset=utf-8');
+    }
     if (req.method === 'GET') {
       const csrf = randomBytes(32).toString('base64url');
       res.setHeader('Set-Cookie', 'stripe_setup_csrf=' + csrf +

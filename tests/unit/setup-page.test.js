@@ -34,6 +34,36 @@ async function submit(handler,c,body,origin=env.PUBLIC_BASE_URL){
   await handler(req('POST',{csrf:c.csrf,...body},{origin,cookie:c.cookie}),r);
   return r;
 }
+describe('canonical owner setup origin',()=>{
+  it('redirects alternate Vercel alias GET to the configured issuer without creating a CSRF cookie',async()=>{
+    const {handler}=await fixture();
+    const r=res();
+    await handler(req('GET',{liveEnable:'secret-selector',show:'one-time-selector'},
+      {host:'stripe-mcp-psi.vercel.app'}),r);
+    expect(r.statusCode).toBe(302);
+    expect(r.headers.Location).toBe(env.PUBLIC_BASE_URL+'/api/stripe/setup');
+    expect(r.headers['Set-Cookie']).toBeUndefined();
+    expect(r.headers['Cache-Control']).toBe('no-store');
+    expect(r.headers['Referrer-Policy']).toBe('no-referrer');
+    expect(r.body).not.toContain('secret-selector');
+    expect(r.body).not.toContain('one-time-selector');
+  });
+  it('serves a protected form on the canonical host and refuses alias-origin POST',async()=>{
+    const {handler}=await fixture();
+    const canonical=res();
+    await handler(req('GET',{}, {host:'stripe.example.test'}),canonical);
+    expect(canonical.statusCode).toBe(200);
+    const c=cookiePage(canonical);
+    const r=res();
+    await handler(req('POST',{csrf:c.csrf,action:'run-test-smoke',
+      account:'acct_SAFEOWNER',focus:'administration',passphrase:env.ADMIN_PASSPHRASE},
+      {host:'stripe-mcp-psi.vercel.app',origin:'https://stripe-mcp-psi.vercel.app',
+        cookie:c.cookie}),r);
+    expect(r.statusCode).toBe(403);
+    expect(r.body).toContain('Origin check failed');
+  });
+});
+
 describe('owner-authenticated TEST smoke on existing custom MCP',()=>{
   it('checks strict origin, CSRF, passphrase, exact TEST account and redacts report',async()=>{
     const db=createFakeDb();

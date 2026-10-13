@@ -154,3 +154,7 @@ passphrase, origin check, CSRF, explicit per-account consent and a valid live ke
 No live key can be uploaded through the current TEST-only setup page. B-8 must
 later wire the first-step tool and live credential onboarding. Do not enter any
 live key, activate this flag or run real money tests without separate approval.
+
+### Canonical owner setup address across Vercel aliases (2026-10-13)
+
+Use `PUBLIC_BASE_URL` as the owner form and OAuth issuer origin, not an interchangeable alternate production alias. At this project's verified setup the canonical owner URL is `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app/api/stripe/setup`; the alternate `stripe-mcp-psi.vercel.app` hostname produced a 403 Origin check on POST. The setup page will redirect alternate-host GET to the canonical fixed destination after #199 reaches Production; no POST alias origins, OAuth issuers, key permissions or CSRF checks are relaxed. Do not alter `PUBLIC_BASE_URL` casually: changing the issuer needs an explicit deployment/connector migration plan. Do not interpret a successful redirect as a live OAuth or Stripe provider test.
