@@ -1,3 +1,19 @@
+## Reusable developer OAuth and evidence boundary — 2026-10-13
+
+Owner authorized replacing repeated manual pass setup with renewable implementing-agent
+connections. Production product capabilities remain unchanged; full developer TEST/preview
+profiles retain original server write/financial/resource guards. Native OAuth owner consent
+hands authorization back to protected client storage via PKCE plus an encrypted mobile callback.
+The rtool developer client reuses/refreshes that connection and invokes the actual custom MCP.
+The completion recovery review records catalog/runtime differences, obsolete recipes and
+a finite path to finish the intended products without introducing blanket limitations.
+Source/automated/deployed/provider/Hub/revocation/cleanup evidence remain separately tracked
+in developer-evidence.json. Standard connectors remain development infrastructure aids only.
+New handoff/client regressions and mandatory provenance checks are part of this PR; exact-head
+CI, reviewed release and real owner consent/provider acceptance remain pending. Managed cloud clients use an explicit private encrypted developer vault; desktops may use
+the OS keyring. Never place credentials in a prompt, Git or plaintext credential file. This is an implementation checkpoint, not full real-world acceptance.
+See pr-cards/DEVELOPER-CONNECTION.md. No production provider activation or paid resource change.
+
 **#205 original owner TEST workflow HTTP/PostgreSQL integration (2026-10-13, proposed):** Adds an isolated local real HTTP server backed by disposable PostgreSQL to exercise the owner page's actual passphrase lockout, canonical Origin/CSRF, saved account listing, selected TEST verification failure stage, allowlisted report and single-use encrypted reveal over actual network requests. Stripe provider is deliberately stubbed, not an external API acceptance, and no LIVE or real money is involved. This closes a *source-and-CI* end-to-end acceptance gap which unit-only page tests missed; user requested grouping all #201–#205 before a single release, so no intermediate branch was promoted to live. Exact-head CI/review, final-main CI, next checked daily promotion, READY source SHA and owner TEST rerun remain distinct gates.
 
 **#204 original HTTP setup preflight (2026-10-13, proposed):** The server's actual `api/stripe/setup.js` invoked Neon schema bootstrapping before rejecting invalid HTTP methods and did not enforce the hardened original-body `incomingBodyWithinLimit` check. The owner audit now adds fail-closed method, body-size/Content-Length consistency and POST media-type rejection *before* any DB/key work; source tests invoke the genuine entrypoint and confirm 413/415/405 with no exposed credential text. No auth/approval weakening, no isolated deployment. #201–#203 remain on main only; consolidate all changes for one future checked release.
