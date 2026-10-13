@@ -117,6 +117,12 @@ burned by overclaiming. A passing typecheck, a screenshot or a plan is not evide
   HTTPS API and passes — whether or not the hub ever exists (Chris, 2026-10-10).
 - Committing directly to `main`.
 
+## Automatic session PR alignment and same-conversation intervention (owner 2026-10-13)
+
+At **every** session start, count the highest assigned PR number (including external/concurrent PRs), target the next higher multiple of five, and automatically use the number of substantial eligible implementation PRs needed to reach it (immediately after #200, target #205). Recalculate when concurrent PR assignment moves that target. Never pad with trivial/documentation-only PRs, bypass acceptance, or treat numbering as proof of progress.
+
+If the expected batch cannot be completed, first fix actionable code/CI/review/configuration problems and continue independently eligible roadmap work. If a real owner-only prerequisite or execution limit remains, **pause in the same conversation** with the exact blocker, remedies attempted, secure owner UI/action or approval, remaining work and the immediate resumption step. Do not expose secrets or ask for them in chat. Do **not** produce a next-chat continuation prompt for an incomplete batch; resume here after the owner responds. Only after a genuinely completed aligned batch and final-main verification post the permanent PR handoff and a compact next-session prompt retaining both rules.
+
 ## Permanent outcome-driven development and handoff (owner instruction, 2026-10-12)
 
 This is the standard for this and **every future session**, alongside all hard safety and release gates.

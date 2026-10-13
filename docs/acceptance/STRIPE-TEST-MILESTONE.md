@@ -179,3 +179,7 @@ credential, duplicate Authorization evidence and 503 SQL outage are
 separate intentional requirements; restored source remains default. See
 `K3-STRIPE-SOURCE-HANDOFF.md`. Genuine deployed OAuth, owner login
 money consent, Hub D-4 and published package adoption remain UNVERIFIED.
+
+## #197 release guard review repair (proposed; not deployed evidence)
+
+The merged #196 unresolved review found an additional timezone-first cron item could bypass the source release validator. #197 changes the checker to inspect the entire single-item schedule with reordered-key regression coverage, and records the automatic multiple-of-five session boundary and same-conversation owner-intervention policy in existing instructions. The fix remains source-only until the exact PR head and main checks pass; it does not verify scheduled execution, an authenticated custom MCP, genuine Stripe TEST reads, signed delivery or Hub routes. Latest independently rechecked GitHub main/live baseline at session start: `1ded9276a4dc3310802360221ca21d195e197b64`; no unauthorized manual release.

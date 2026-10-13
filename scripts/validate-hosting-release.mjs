@@ -19,9 +19,21 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
      !/^\s*target-main:\s*$/m.test(targets)||
      !/test "\$BASE_BRANCH" = main/.test(targets))
     errors.push('PR-target gate must reject non-main targets, including edits');
-  const cron=promote.match(/^\s*- cron:\s*['"]([^'"]+)['"]/gm)??[];
-  if(cron.length!==1||!/cron:\s*['"]1 0 \* \* \*['"]/.test(cron[0])||
-     !/- cron:\s*['"]1 0 \* \* \*['"][^\n]*\n\s+timezone:\s*America\/Denver\s*\n/.test(promote)||
+  // Fail closed on the entire schedule list, not just items beginning with "- cron".
+  // GitHub YAML allows an item to put timezone before cron; a second such item
+  // must never evade our one-daily-release guard.
+  const scheduleHeadings=[...promote.matchAll(/^  schedule:\s*$/gm)];
+  const scheduleBody=promote.match(/^  schedule:\s*\n((?:(?: {4,}[^\n]*|[ \t]*)\n)*)/m)?.[1];
+  const rows=scheduleBody?.split('\n').map(line=>line.trim())
+    .filter(line=>line&&!line.startsWith('#'))??[];
+  const requiredCron="cron: '1 0 * * *'";
+  const requiredTimezone='timezone: America/Denver';
+  const matches=(row,property)=>row===property||row===property.replace(/'/g,'"');
+  const oneCorrectSchedule=rows.length===2&&(
+    (matches(rows[0],'- '+requiredCron)&&rows[1]===requiredTimezone)||
+    (rows[0]==='- '+requiredTimezone&&matches(rows[1],requiredCron))
+  );
+  if(scheduleHeadings.length!==1||!oneCorrectSchedule||
      /workflow_dispatch\s*:|workflow_call\s*:|\bpush\s*:/.test(promote)||
      !/contents:\s*write/.test(promote)||
      !/checks:\s*read/.test(promote)||

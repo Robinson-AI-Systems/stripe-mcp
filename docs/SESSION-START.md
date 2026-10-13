@@ -36,6 +36,10 @@ Your session can end at any moment (the chat stops between actions), so the next
 
 Follow AGENTS "Permanent outcome-driven development and handoff" for every session. Read the current finite `docs/acceptance/STRIPE-TEST-MILESTONE.md` and identify the highest-priority independently eligible acceptance slice. Keep four proof layers separate: code, meaningful automated tests, running deployed SHA, and authentic owner/third-party acceptance. Each blocker must have prerequisite, specific required evidence/owner decision, condition to resume and next action; recheck after relevant owner approval, merged change or scheduled promotion. Do not open five artificial PRs. Preserve the compact, checkpointed continuation prompt and permanent final PR handoff.
 
+## 0b. Session numbering and intervention checkpoint (2026-10-13)
+
+From the actual highest assigned GitHub PR number (including outside-agent PRs), finish at the **next higher multiple of five**, with only genuine substantial PRs. Recalculate after concurrent numbering changes; never manufacture work. When a batch cannot safely finish, exhaust authorized repairs and independent eligible tasks, then pause **this same chat** with the exact owner-only prerequisite, prior attempts, protected UI action and next resume step; do not close with a continuation prompt. Produce the short next-chat handoff only after completed aligned merges and exact-final-main checks. AGENTS' safety gates always override numbering.
+
 ## 1. Find your place (2 minutes)
 
 Work happens in whatever workspace you were given (a cloud agent workspace, a Vercel Sandbox, a laptop). Code reaches
