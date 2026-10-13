@@ -1,5 +1,6 @@
 import {describe,it,expect,vi} from 'vitest';
 import {runOwnerTestSmoke,ownerSmokeCases,ownerAdminSmokeCases,ownerSmokeFocusTools} from '../../src/acceptance/owner-test-smoke.js';
+import {OwnerSmokeFailure} from '../../src/acceptance/owner-smoke-failure.js';
 const account='acct_SMOKETEST',key=['sk','test','FAKEFAKEFAKEFAKEFAKE'].join('_');
 const identity={object:'account',id:account,livemode:false,
   charges_enabled:true,payouts_enabled:false,details_submitted:true};
@@ -151,5 +152,21 @@ describe('opt-in custom MCP TEST provider smoke',()=>{
     expect(result.notReadable).toBeGreaterThan(0);
     expect(result.errors).toBeGreaterThan(0);
     expect(JSON.stringify(result)).not.toContain('secret_private');
+  });
+});
+
+describe('diagnostic TEST preflight stages',()=>{
+  it('rejects Stripe authentication without dispatch or raw provider error',async()=>{
+    const f=fixture();
+    f.sdk.accounts.retrieve.mockRejectedValue(Object.assign(new Error('private key and customer info'),{statusCode:403}));
+    await expect(runOwnerTestSmoke({account,key,...f})).rejects.toMatchObject({
+      name:'OwnerSmokeFailure',stage:'provider_denied'});
+    expect(f.dispatch).not.toHaveBeenCalled();
+  });
+  it('classifies identity shape deficiency separately from denied access',async()=>{
+    const f=fixture({...identity,charges_enabled:null});
+    await expect(runOwnerTestSmoke({account,key,...f})).rejects.toMatchObject({
+      name:'OwnerSmokeFailure',stage:'identity_incomplete'});
+    expect(f.dispatch).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 // Owner-only setup UI. The browser sends Stripe keys directly over HTTPS; no AI tool accepts them.
 import { randomBytes } from 'node:crypto';
 import {buildSetupReadinessReport} from '../acceptance/setup-readiness-report.js';
+import {OwnerSmokeFailure,ownerSmokeFailureMessage} from '../acceptance/owner-smoke-failure.js';
 import { clientIp, evaluateLogin, secretsMatch, LOCKOUT_WINDOW_MINUTES } from '../core/oauth.js';
 import { publicOrigin, paramsOf, send, escapeHtml, only } from '../core/http.js';
 
@@ -449,9 +450,13 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         return send(res,200,htmlPage({csrf:cookie,smokeResult:safe,
           result:'Read-only TEST Setup & Readiness Report. Only the listed exceptions merit follow-up; no setting changes or account readiness are certified.'}),
           'text/html; charset=utf-8');
-      } catch {
+      } catch(error) {
+        // Only private, typed and allowlisted verification stages may be
+        // surfaced. Arbitrary errors and Stripe bodies remain undisclosed.
+        const safe=error instanceof OwnerSmokeFailure?error:
+          new OwnerSmokeFailure('report_rejected');
         return send(res,503,htmlPage({csrf:cookie,
-          result:'Private TEST verification could not establish provider identity or readbacks. No acceptance recorded.'}),
+          result:ownerSmokeFailureMessage(safe)}),
           'text/html; charset=utf-8');
       }
     }
