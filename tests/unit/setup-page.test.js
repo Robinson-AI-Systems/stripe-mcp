@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { createSetupHandler } from '../../src/stripe/setup-page.js';
+import {OwnerSmokeFailure} from '../../src/acceptance/owner-smoke-failure.js';
+import {createOwnerSmokeRunner} from '../../src/acceptance/owner-smoke-runner.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
 import { createKeyStore } from '../../src/keys.js';
 import { createOneTimeStore } from '../../src/core/one-time-secrets.js';
@@ -509,7 +511,7 @@ describe('owner TEST diagnostic stage contract',()=>{
       [new OwnerSmokeFailure('identity_unverified'),'identity_unverified'],
       [new OwnerSmokeFailure('identity_incomplete'),'identity_incomplete'],
       [new OwnerSmokeFailure('tool_unavailable'),'tool_unavailable'],
-      [new Error('rk_test_PRIVATE_PASSWORD'),'report_rejected']
+      [new Error('rk_test_PRIVATE_PASSWORD'),'unavailable']
     ]){
       const handler=createSetupHandler({db,env,runTestSmoke:async()=>{throw error}});
       const token=cookiePage(await page(handler));

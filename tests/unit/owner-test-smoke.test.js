@@ -1,6 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
 import {runOwnerTestSmoke,ownerSmokeCases,ownerAdminSmokeCases,ownerSmokeFocusTools} from '../../src/acceptance/owner-test-smoke.js';
-import {OwnerSmokeFailure} from '../../src/acceptance/owner-smoke-failure.js';
 const account='acct_SMOKETEST',key=['sk','test','FAKEFAKEFAKEFAKEFAKE'].join('_');
 const identity={object:'account',id:account,livemode:false,
   charges_enabled:true,payouts_enabled:false,details_submitted:true};

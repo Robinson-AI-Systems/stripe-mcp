@@ -433,8 +433,14 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         return send(res,400,htmlPage({csrf:cookie,
           result:'Select one exact TEST account and supported smoke group.'}),'text/html; charset=utf-8');
       const allowed=supported[p.focus];
+      let report;
+      try { report=await runTestSmoke({account:p.account,focus:p.focus}); }
+      catch(error){
+        const safe=error instanceof OwnerSmokeFailure?error:new OwnerSmokeFailure('unavailable');
+        return send(res,503,htmlPage({csrf:cookie,result:ownerSmokeFailureMessage(safe)}),
+          'text/html; charset=utf-8');
+      }
       try {
-        const report=await runTestSmoke({account:p.account,focus:p.focus});
         // Browser results are a narrow allowlist, not an arbitrary upstream reply.
         if(report?.account!==p.account||report.mode!=='test'||report.focus!==p.focus||
           report.source!=='custom_mcp_dispatch'||report.verifiedIdentity!==true||

@@ -12,7 +12,7 @@ const advice=Object.freeze({
 });
 export class OwnerSmokeFailure extends Error {
   constructor(stage) {
-    super('TEST verification unavailable');
+    super('Own TEST account verification failed; no other smoke reads executed');
     this.name='OwnerSmokeFailure';
     this.stage=Object.hasOwn(advice,stage)?stage:'unavailable';
   }
