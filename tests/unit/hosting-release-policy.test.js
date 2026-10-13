@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {releasePolicyViolations,verifyRepositoryReleasePolicy}
   from '../../scripts/validate-hosting-release.mjs';
 const read=p=>readFileSync(p,'utf8');
@@ -10,6 +11,9 @@ function inputs(){return {
   promote:read('.github/workflows/promote-live.yml')
 };}
 describe('owner hosting cost / daily live policy',()=>{
+  it('exercises real atomic promotion, pending checks and concurrent main updates',()=>{
+    execFileSync('node',['--test','scripts/promote-live.test.mjs'],{stdio:'pipe'});
+  });
   it('enforces real checked-in deployment configuration',()=>{
     expect(verifyRepositoryReleasePolicy()).toBe(true);
     expect(releasePolicyViolations(inputs())).toEqual([]);
