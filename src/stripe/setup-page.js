@@ -25,7 +25,8 @@ function renderOwnerFeedback(result, smokeResult) {
   const checks = smokeResult?.checks || [];
   const counts = smokeResult?.counts;
   const summary = smokeResult
-    ? '<p><strong>Read-only TEST report returned — readiness NOT certified.</strong></p>' +
+    ? '<p><strong>Read-only TEST report returned — readiness NOT certified.</strong> ' +
+      'This is not Dashboard acceptance, connected OAuth acceptance or signed webhook delivery evidence.</p>' +
       '<p>Checks returned: <strong>' + checks.length + '</strong>. ' +
       'Observed: ' + counts.observed + '; partial: ' + counts.partial +
       '; not readable: ' + counts.not_readable + '; error: ' + counts.error + '.</p>' +
