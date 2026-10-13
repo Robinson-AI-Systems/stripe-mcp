@@ -40,4 +40,15 @@ describe('owner hosting cost / daily live policy',()=>{
     const y=inputs();y.targets=y.targets.replace('reopened, edited','reopened');
     expect(releasePolicyViolations(y)).not.toEqual([]);
   });
+  it('requires one daily 00:01 Denver schedule rather than a fixed UTC offset',()=>{
+    for(const change of [
+      s=>s.replace('timezone: America/Denver','timezone: UTC'),
+      s=>s.replace('      timezone: America/Denver\n',''),
+      s=>s.replace('1 0 * * *','0 10 * * *'),
+      s=>s.replace('      timezone: America/Denver','      timezone: America/Denver\n    - cron: \'1 0 * * *\'')
+    ]){
+      const x=inputs();x.promote=change(x.promote);
+      expect(releasePolicyViolations(x)).not.toEqual([]);
+    }
+  });
 });

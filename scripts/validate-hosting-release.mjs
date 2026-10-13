@@ -20,7 +20,8 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
      !/test "\$BASE_BRANCH" = main/.test(targets))
     errors.push('PR-target gate must reject non-main targets, including edits');
   const cron=promote.match(/^\s*- cron:\s*['"]([^'"]+)['"]/gm)??[];
-  if(cron.length!==1||!/cron:\s*['"]0 10 \* \* \*['"]/.test(cron[0])||
+  if(cron.length!==1||!/cron:\s*['"]1 0 \* \* \*['"]/.test(cron[0])||
+     !/- cron:\s*['"]1 0 \* \* \*['"][^\n]*\n\s+timezone:\s*America\/Denver\s*\n/.test(promote)||
      /workflow_dispatch\s*:|workflow_call\s*:|\bpush\s*:/.test(promote)||
      !/contents:\s*write/.test(promote)||
      !/checks:\s*read/.test(promote)||
