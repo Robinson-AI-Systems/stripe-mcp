@@ -44,6 +44,7 @@ describe('canonical owner setup origin',()=>{
     expect(r.headers.Location).toBe(env.PUBLIC_BASE_URL+'/api/stripe/setup');
     expect(r.headers['Set-Cookie']).toBeUndefined();
     expect(r.headers['Cache-Control']).toBe('no-store');
+    expect(r.headers['Referrer-Policy']).toBe('no-referrer');
     expect(r.body).not.toContain('secret-selector');
     expect(r.body).not.toContain('one-time-selector');
   });

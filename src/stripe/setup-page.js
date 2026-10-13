@@ -252,6 +252,7 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     const requestHost=req.headers?.host;
     if(req.method==='GET' && typeof requestHost==='string' &&
        requestHost.toLowerCase()!==new URL(origin).host.toLowerCase()){
+      res.setHeader('Referrer-Policy','no-referrer');
       res.setHeader('Location',origin+'/api/stripe/setup');
       return send(res,302,'Open the canonical Stripe owner setup page.',
         'text/plain; charset=utf-8');
