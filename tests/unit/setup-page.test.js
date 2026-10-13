@@ -524,3 +524,81 @@ describe('owner TEST diagnostic stage contract',()=>{
     }
   });
 });
+
+describe('all owner setup workflows — private UX, isolation and safe GET',()=>{
+  it('keeps exactly one copy of each owner form under explicit native groups',async()=>{
+    const {handler}=await fixture();
+    const response=await page(handler);
+    const html=response.body;
+    const actions=['list-test-accounts','run-test-smoke','provision-webhook-secret',
+      'forget-webhook-secret','download-report','lookup-test-receipt','issue-rtc-pass',
+      'add-key','request-revoke','request-disable-live','request-default-account',
+      'request-money-limit','view-money-requests'];
+    for(const action of actions){
+      expect(html.split('name="action" value="'+action+'"')).toHaveLength(2);
+    }
+    expect(html.match(/<details class="owner-group"/g)).toHaveLength(9);
+    expect(html.match(/<\/details>/g)).toHaveLength(9);
+    expect(html).toContain('id="webhook-tools"');
+    expect(html).toContain('id="rtc-pass-tools"');
+    expect(html).toContain('id="live-disable-tools"');
+    expect(html.indexOf('id="readiness-tests"')).toBeLessThan(
+      html.indexOf('id="webhook-tools"'));
+    expect(html).not.toContain('id="owner-follow-up"');
+  });
+  it('rejects malformed GET selectors before database reads and protects referrer',async()=>{
+    const {db,handler}=await fixture();
+    db.getLiveEnableIntent=vi.fn();
+    const r=await page(handler,{show:'<script>alert(1)</script>',liveEnable:'_'.repeat(1500)});
+    expect(r.statusCode).toBe(200);
+    expect(r.body).not.toContain('type="hidden" name="id" value="&lt;script&gt;');
+    expect(db.getLiveEnableIntent).not.toHaveBeenCalled();
+    expect(r.headers['Referrer-Policy']).toBe('no-referrer');
+    expect(r.headers['X-Frame-Options']).toBe('DENY');
+    expect(r.headers['Cache-Control']).toBe('no-store');
+  });
+  it('lists only exact enrolled TEST accounts after owner password and escapes stored labels',async()=>{
+    const {db,handler}=await fixture();
+    db.listStripeAccounts=vi.fn(async()=>[
+      {id:'acct_OWNERTEST',label:'Sample <b>rental</b>',is_default:true,test_connected:true},
+      {id:'acct_LIVEONLY',label:'Must not display',is_default:false,test_connected:false}
+    ]);
+    const c=cookiePage(await page(handler));
+    const wrong=await submit(handler,c,{action:'list-test-accounts',passphrase:'incorrect'});
+    expect(wrong.statusCode).toBe(401);
+    expect(wrong.body).not.toContain('acct_OWNERTEST');
+    expect(db.listStripeAccounts).not.toHaveBeenCalled();
+    const okay=await submit(handler,c,{action:'list-test-accounts',passphrase:env.ADMIN_PASSPHRASE});
+    expect(okay.statusCode).toBe(200);
+    expect(okay.body).toContain('acct_OWNERTEST');
+    expect(okay.body).toContain('Sample &lt;b&gt;rental&lt;/b&gt;');
+    expect(okay.body).toContain('default for new connections');
+    expect(okay.body).not.toContain('acct_LIVEONLY');
+    expect(okay.body).not.toContain('Must not display');
+    expect(okay.body.indexOf('id="enrolled-accounts"')).toBeLessThan(
+      okay.body.indexOf('id="readiness-tests"'));
+  });
+  it('rejects malformed private inventory rather than printing unverified records',async()=>{
+    const {db,handler}=await fixture();
+    db.listStripeAccounts=vi.fn(async()=>[{id:'acct_OWNER',label:'bad',test_connected:true,is_default:'yes'}]);
+    const c=cookiePage(await page(handler));
+    const r=await submit(handler,c,{action:'list-test-accounts',passphrase:env.ADMIN_PASSPHRASE});
+    expect(r.statusCode).toBe(503);
+    expect(r.body).not.toContain('acct_OWNER');
+    expect(r.body).toContain('No key or account details returned.');
+  });
+  it('displays one-time credentials prominently before unrelated setup forms',async()=>{
+    const {oneTimeStore,handler}=await fixture();
+    const issued=await oneTimeStore.issue({kind:'rtc-pass',account:'acct_SAFEOWNER',mode:'test',
+      secret:'test-owner-private-token',ttlSeconds:3600});
+    const c=cookiePage(await page(handler));
+    const revealed=await submit(handler,c,{action:'reveal',id:issued.id,
+      passphrase:env.ADMIN_PASSPHRASE});
+    expect(revealed.statusCode).toBe(200);
+    expect(revealed.body).toContain('test-owner-private-token');
+    expect(revealed.body.indexOf('One-time secret — copy it now')).toBeLessThan(
+      revealed.body.indexOf('id="readiness-tests"'));
+    expect(revealed.body).toContain('id="owner-follow-up"');
+    expect(revealed.headers['Cache-Control']).toBe('no-store');
+  });
+});

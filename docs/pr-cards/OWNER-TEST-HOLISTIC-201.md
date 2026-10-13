@@ -1,6 +1,6 @@
 # OWNER-TEST-HOLISTIC-201 — owner TEST diagnostic readback and comprehensive setup audit
 
-Status: proposed for #201. Real owner received non-actionable TEST verification failure immediately after source #200 went live. Neon stores a restricted TEST key with prior permission snapshot. No authenticated positive TEST run is yet proven.
+Status: #201 merged; related owner-page UX follow-up #202. Real owner received non-actionable TEST verification failure immediately after source #200 went live. Neon stores a restricted TEST key with prior permission snapshot. No authenticated positive TEST run is yet proven.
 
 **Audit scope:** test form/account credentials and independent TEST identity/Balance, registered read-only dispatcher/result shaping, allowed report and egress; all setup forms for CSRF, owner password, lost feedback, one-time secret disclosure, staged approvals, no-cache, guarded LIVE, and account isolation. Fix each demonstrated flaw with focused regressions across coherent PRs before one consolidated release; do not pad PR count or deploy one fix at a time.
 
