@@ -188,3 +188,21 @@ only event type and receipt UTC time, not event contents or the signing secret.
 A successful receipt proves this service's signed-validation storage, not that
 an externally delivered Stripe event reached Vercel: confirm the actual Stripe
 TEST delivery and permitted ingress separately before declaring G-4 accepted.
+
+## Coding-agent development access (2026-10-13)
+
+The implementing agent uses a renewable native OAuth connection, not a new copied RTC
+pass for every retest. `rtool developer-connect ALIAS --profile full` prepares one mobile
+link using the custom service. Choose the intended account/resources and authorize once;
+return to chat without copying secrets. The agent reruns the command to finish privately,
+then uses developer-check, developer-tools and developer-call. Existing original service
+write previews, owner approvals and resource guards still apply. This developer workflow
+does not reduce the finished product's tool capabilities.
+
+On a managed POSIX cloud runner, configure RTOOL_DEVELOPER_VAULT_DIR to an absolute private
+folder outside every Git checkout. The CLI creates a separate 0600 encryption key and
+AES-GCM encrypted connection files in a 0700 folder; keep that private runner state for
+resumes. OS credential managers remain the desktop default. Neither option places secrets
+in chats, prompts, Git or shared artifacts. Initial provider consent or an expired/revoked
+underlying authorization can still require a new owner sign-in. Source/tests are not
+proof that the new deployed workflow has been exercised against the real provider.
