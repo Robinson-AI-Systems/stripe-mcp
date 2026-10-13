@@ -21,6 +21,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#192 hosted G-4 receiver route preflight (CI pending):** New owner opt-in, credential-free HTTPS GET-only tool first attests the exact observed `live` deployment SHA, then requires the TEST webhook route's local 405 JSON. It refuses SSO HTML, stale main/preview SHA, invalid selectors and unexpected responses, without sending a pass, secret, provider event or write. This is only ingress readiness, NOT genuine signed Stripe delivery or a verified database receipt. Production `live` was still 8068f52 at the start; normal scheduled promotion and protected owner execution are required. No Stripe LIVE, spending, force deploy or shared-core adoption.
+
+
 - **#190 (as-if merged, final exact-head CI and review required):** Original Stripe MCP dispatch now rejects inherited executable handler names and getter-supplied request fields without invoking them, captures and freezes authenticated tenant identity before asynchronous dispatch, and refuses nested `runRead` write escalation. The checksum-pinned private K-3 core dispatcher is temporarily invoked through original Stripe OAuth/MCP HTTP SDK with original PostgreSQL, redaction, area/profile and scoped result policies. Standalone Stripe remains default. This reaches the desired PR-number multiple-of-five checkpoint only when seven exact-head checks, merge and six final-main checks pass. Continue independent Hub publication and actual protected owner TEST/D-4 evidence in next session without using unavailable dependency. No LIVE, forced deployment or real money.
  
 

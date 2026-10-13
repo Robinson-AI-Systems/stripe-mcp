@@ -18,6 +18,10 @@ Stripe, OAuth, Webhook, or Toolkit Hub D-4. No provider mutation was authorized.
 | Toolkit Hub D-4 Vercel Sandbox | UNVERIFIED | Offline reference tests do not establish a real Sandbox connection. | Hub Sandbox invokes the same hosted service with scoped read-only TEST pass, records only non-secret result shape and verifies expiry/revocation. |
 | Full RTC 1 conformance | UNVERIFIED (actual-service subset gate #182 added, not full certification) | rtc-reference CI runs the upstream fixture. Stripe service has its own real HTTP/DB subset, but writes/full profiles cannot run through TEST HTTPS passes. | Run applicable conformance against the ACTUAL deployed service, report each skipped unsafe/full-profile case separately, do not label restricted subset full certified. |
 
+## #192 owner-only hosted webhook route preflight
+
+New `scripts/hosted-webhook-preflight.mjs` uses a pinned protected origin, independently observed live deployment SHA, exact TEST account and endpoint selector. It sends only public GET requests (no bearer/secret/Stripe API call); success requires the receiver's own method-not-allowed 405 JSON after live attestation, not an SSO/redirect/404. Unit fixture regressions are source-only pending PR CI. Passing this optional preflight proves only deployed route reachability and does NOT verify the configured signing secret, durable receipt, genuine Stripe-signed TEST event or duplicate denial. Existing external signed-delivery and owner-private receipt evidence remain UNVERIFIED until the actual authorized provider delivery occurs.
+
 ## #182 actual-service upstream RTC subset boundary
 
 The CI db job runs the **pinned official Hub** `packages/conformance/src/run.js`

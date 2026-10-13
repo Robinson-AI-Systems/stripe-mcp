@@ -5,7 +5,7 @@ import {isIP} from 'node:net';
 const PASS=/^rtc_pass_[A-Za-z0-9_-]{43}$/;
 const ACCOUNT=/^acct_[A-Za-z0-9]{2,100}$/;
 const MAX_RESPONSE=64*1024;
-function approvedOrigin(origin,pinned){
+export function approvedOrigin(origin,pinned){
   if(typeof origin!=='string'||origin!==pinned)throw new Error('origin_not_pinned');
   let url;
   try{url=new URL(origin);}catch{throw new Error('origin_invalid');}
@@ -42,7 +42,7 @@ function reportFailure(stage,reason){
     'deployment_unverified','deployment_mismatch']);
   return {status:'failed',stage,code:known.has(reason)?reason:'http_unavailable'};
 }
-function verifyDeployment(manifest,expectedDeploymentSha){
+export function verifyDeployment(manifest,expectedDeploymentSha){
   if(typeof expectedDeploymentSha!=='string'||
     !/^[0-9a-f]{40}$/.test(expectedDeploymentSha))
     throw new Error('deployment_unverified');
