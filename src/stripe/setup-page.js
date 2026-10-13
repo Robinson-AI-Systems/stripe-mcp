@@ -46,13 +46,142 @@ function renderOwnerFeedback(result, smokeResult) {
     summary + '</section>';
 }
 
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null }) {
+  const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent);
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
-    '<style>body{font:16px system-ui,sans-serif;max-width:600px;margin:4vh auto;padding:16px}#owner-feedback{border:2px solid currentColor;padding:14px;border-radius:10px;margin:18px 0}#owner-feedback h2{margin-top:0}#owner-feedback li{margin:8px 0}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
+    '<style>body{font:16px system-ui,sans-serif;max-width:600px;margin:4vh auto;padding:16px}.owner-group{margin:16px 0;border:1px solid #aaa;border-radius:10px;padding:12px}.owner-group summary{font-weight:700;cursor:pointer}#owner-follow-up{border:2px solid currentColor;padding:14px;border-radius:10px;margin:16px 0}#owner-feedback{border:2px solid currentColor;padding:14px;border-radius:10px;margin:18px 0}#owner-feedback h2{margin-top:0}#owner-feedback li{margin:8px 0}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
     '<h1>Robinson Stripe MCP — private setup</h1>' +
     renderOwnerFeedback(result,smokeResult) +
+    (hasPrivateFollowUp ? '<section id="owner-follow-up" aria-label="Owner follow-up" tabindex="-1"><h2>Private result or confirmation</h2>' : '') +
+    (revealed ? '<h2>One-time secret — copy it now</h2><pre>' + escapeHtml(revealed) +
+      '</pre><p>It has been deleted from the server and will not appear again.</p>' : '') +
+    (show ? '<form method="post">' + formHidden +
+      '<input type="hidden" name="action" value="reveal">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(show) + '">' +
+      '<label>Administrator passphrase<input type="password" name="passphrase" required></label>' +
+      '<button type="submit">Reveal this one-time secret</button></form>' : '') +
+    (liveIntent ? '<h2>Approve LIVE account activation</h2>' +
+      '<p>Selected account: <strong>' + escapeHtml(liveIntent.label || liveIntent.stripe_account) +
+      '</strong> (' + escapeHtml(liveIntent.stripe_account) + '). This will allow REAL Stripe changes if enabled later. Do not proceed unless you intend that.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="enable-live">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(liveIntent.id) + '">' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<label><input type="checkbox" name="ownerLiveConsent" value="yes" required> I personally authorize LIVE mode for this exact Stripe account.</label>' +
+      '<button type="submit">Approve this LIVE account (final step)</button></form>' : '') +
+    (moneyDecisionIntent ? '<h2>Final owner confirmation — TEST ' +
+      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'OVER-LIMIT OVERRIDE' : 'INDIVIDUAL MONEY-OUT') +
+      '</h2><p>Exact account: ' + escapeHtml(moneyDecisionIntent.stripe_account) +
+      '; tool: ' + escapeHtml(moneyDecisionIntent.tool) +
+      '; Stripe-derived target: ' + escapeHtml(moneyDecisionIntent.target) +
+      '; amount: <strong>' + escapeHtml(usd(Number(moneyDecisionIntent.amount_cents))) +
+      ' USD</strong>; mode: TEST; request key: ' + escapeHtml(moneyDecisionIntent.request_key) +
+      '; preview must be confirmed before: ' + escapeHtml(new Intl.DateTimeFormat('en-US',{
+        timeZone:'America/Denver',dateStyle:'medium',timeStyle:'short'
+      }).format(new Date(Math.min(new Date(moneyDecisionIntent.expires_at).getTime(),
+        new Date(moneyDecisionIntent.request_expires_at).getTime())))) +
+      ' (earliest request or preview expiry). Once approved, the transaction authorization is usable for at most 10 minutes after confirmation and never beyond the original request expiry.</p><p>' + (moneyDecisionIntent.kind === 'override' ?
+        'This is a SECOND separate owner confirmation for spending above the account daily cap. It does not change the standing limit.' :
+        'This approval alone permits no operation above the daily cap; that would need a separate owner override.') +
+      ' No Stripe money moves through this page.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-money-decision">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(moneyDecisionIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerMoneyConsent" value="yes" required> I personally authorize ONLY this exact ' +
+      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'over-limit override' : 'TEST money-out request') +
+      ', account, Stripe target, amount and request key.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Confirm this ' +
+      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'separate override' : 'individual approval') +
+      '</button></form>' : '') +
+    (revokeIntent ? '<h2>Confirm removal of this connection</h2>' +
+      '<p>Account: <strong>' + escapeHtml(revokeIntent.label || revokeIntent.stripe_account) +
+      '</strong> (' + escapeHtml(revokeIntent.stripe_account) + '), client ID: <strong>' +
+      escapeHtml(revokeIntent.client_id) + '</strong>. Its current access and refresh tokens will be revoked. This cannot be undone for that connection.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-revoke">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(revokeIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerRevokeConsent" value="yes" required> I personally authorize revoking exactly this connection.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Revoke this connection</button></form>' : '') +
+    (disableIntent ? '<h2>Final owner confirmation: disable LIVE</h2>' +
+      '<p>Account: <strong>' + escapeHtml(disableIntent.label || disableIntent.stripe_account) +
+      '</strong> (' + escapeHtml(disableIntent.stripe_account) +
+      '). This blocks LIVE connections until a separately authorized activation.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-disable-live">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(disableIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerDisableConsent" value="yes" required> I personally authorize disabling LIVE access for this exact account.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Disable LIVE access</button></form>' : '') +
+    (defaultIntent ? '<h2>Final owner confirmation: default account</h2>' +
+      '<p>New default: <strong>' + escapeHtml(defaultIntent.label || defaultIntent.stripe_account) +
+      '</strong> (' + escapeHtml(defaultIntent.stripe_account) +
+      '). Prior default: ' + escapeHtml(defaultIntent.expected_default || '(none)') +
+      '. Existing connections will not be moved. An intervening change cancels this request.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-default-account">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(defaultIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerDefaultConsent" value="yes" required> I personally approve this exact default-account selection.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Set default account</button></form>' : '') +
+    (moneyLimitIntent ? '<h2>Final owner confirmation: daily account limit</h2>' +
+      '<p>Account: <strong>' + escapeHtml(moneyLimitIntent.label || moneyLimitIntent.stripe_account) +
+      '</strong> (' + escapeHtml(moneyLimitIntent.stripe_account) +
+      '). Current limit: <strong>' + escapeHtml(usd(moneyLimitIntent.expected_limit_cents)) +
+      '</strong>. New limit: <strong>' + escapeHtml(usd(moneyLimitIntent.new_limit_cents)) +
+      '</strong>. Already used today: <strong>' + escapeHtml(usd(moneyLimitIntent.usedTodayCents)) +
+      '</strong>. All spending already reserved today still counts. Each AI money-out still needs your independent authenticated approval, and requests above this limit need a second explicit override.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-money-limit">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(moneyLimitIntent.id) + '">' +
+      '<label><input type="checkbox" name="ownerLimitConsent" value="yes" required> I personally authorize changing the daily limit for this exact account.</label>' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<button type="submit">Set this account limit</button></form>' : '') +
+    (moneyInbox ? '<h2>Verified pending requests</h2>' +
+      '<p>Stripe account: <strong>' + escapeHtml(moneyInbox.account) +
+      '</strong>. Shared Colorado-day usage: ' + escapeHtml(usd(moneyInbox.usedCents)) +
+      '. Daily limit: ' + escapeHtml(usd(moneyInbox.limitCents)) + '.</p>' +
+      (moneyInbox.rows.length ? '<ol>' + moneyInbox.rows.map(item =>
+        '<li>Operation: ' + escapeHtml(item.tool) +
+        '; target: ' + escapeHtml(item.target) +
+        '; amount: ' + escapeHtml(usd(Number(item.amount_cents))) +
+        '; TEST mode; request key: ' + escapeHtml(item.request_key) +
+        '; note: ' + escapeHtml(item.description) +
+        '; expires: ' + escapeHtml(item.expiresLocal) +
+        '; status: ' + escapeHtml(item.approvedFresh ? (item.needsOverride ?
+          (item.allow_over_limit ? 'Owner approved with separate override' :
+            'Approved; separate over-limit owner action required') : 'Owner approved, not consumed') :
+            'Awaiting owner approval (or renewed approval)') +
+        (item.approvedFresh && (!item.needsOverride || item.allow_over_limit) ? '' :
+          '<form method="post" autocomplete="off">' + formHidden +
+          '<input type="hidden" name="action" value="request-money-decision">' +
+          '<input type="hidden" name="account" value="' + escapeHtml(moneyInbox.account) + '">' +
+          '<input type="hidden" name="requestKey" value="' + escapeHtml(item.request_key) + '">' +
+          '<input type="hidden" name="kind" value="' +
+            (item.approvedFresh ? 'override' : 'approve') + '">' +
+          '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+          '<button type="submit">Privately preview ' +
+            (item.approvedFresh ? 'separate over-limit confirmation' : 'individual approval') +
+            '</button></form>') +
+        '</li>').join('') + '</ol>' : '<p>No verified pending requests.</p>') +
+      '<p>Each preview is independent. Submitting the preview form does not grant approval.</p>' : '') +
+    (hasPrivateFollowUp ? '</section>' : '') +
+    (enrolledAccounts!==null ? '<section id="enrolled-accounts" role="status"><h2>TEST accounts enrolled in this MCP</h2>' +
+      (enrolledAccounts.length?'<ul>'+enrolledAccounts.map(a=>
+        '<li><strong>'+escapeHtml(a.label)+'</strong>: <code>'+escapeHtml(a.id)+'</code>'+
+        (a.default?' (default for new connections)':'')+'</li>').join('')+'</ul>':
+        '<p>No enrolled TEST accounts were found.</p>') +
+      '<p>An enrolled key is not proof that Stripe still accepts it. Copy the exact account ID to the read-only verification form. No key bytes are shown.</p></section>' : '') +
+    '<details class="owner-group" id="saved-test-accounts"><summary>Find the exact TEST account ID already enrolled</summary>' +
+    '<p>Verify your administrator passphrase to display only stored TEST account IDs. This does not decrypt a key or contact Stripe.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="list-test-accounts">' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">List enrolled TEST account IDs</button></form></details>' +
+
     '<h2 id="readiness-tests">Automated TEST Setup &amp; Readiness Report (owner only)</h2>' +
     '<p>Select one group for genuine custom MCP TEST reads and a targeted readiness report. Unknown/unreadable settings are NOT presumed to be defaults. No automatic change is made; Stripe Dashboard, OAuth and signed webhook delivery are separate acceptance gates.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -62,6 +191,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Run read-only custom MCP TEST checks</button></form>' +
 
+    '<details class="owner-group" id="webhook-tools"><summary>TEST webhooks and private report files</summary>' +
     '<h2>Provision TEST webhook signature verification</h2>' +
     '<p>Enter the webhook signing secret directly on this password-protected page, never in AI chat. Only an existing TEST endpoint on the specified connected account can be saved. Re-provision after rotating the secret.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -95,6 +225,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>TEST event ID<input name="eventId" pattern="evt_[A-Za-z0-9]+" maxlength="110" required></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Check signed TEST receipt</button></form>' +
+    '</details>' +
+    '<details class="owner-group" id="rtc-pass-tools"><summary>Issue temporary read-only Toolkit passes</summary>' +
     '<h2>Issue temporary read-only Toolkit pass (TEST only)</h2>' +
     '<p>Owner-only. Creates a 1-hour or 24-hour TEST-only pass with no writes or money authorization. The bearer is shown only through the protected one-time reveal page and can be revoked using the connection ID.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -105,29 +237,17 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Connected TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Issue TEST read-only pass</button></form>' +
+    '</details>' +
+    '<details class="owner-group" id="test-key-tools"><summary>Add or rotate an encrypted TEST key</summary>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
-    (revealed ? '<h2>One-time secret — copy it now</h2><pre>' + escapeHtml(revealed) +
-      '</pre><p>It has been deleted from the server and will not appear again.</p>' : '') +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="add-key">' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<label>Stripe TEST restricted or secret key<input type="password" name="key" required autocomplete="off"></label>' +
     '<label>Account label (optional)<input name="label" maxlength="100"></label>' +
     '<button type="submit">Verify account and save encrypted test key</button></form>' +
-    (show ? '<form method="post">' + formHidden +
-      '<input type="hidden" name="action" value="reveal">' +
-      '<input type="hidden" name="id" value="' + escapeHtml(show) + '">' +
-      '<label>Administrator passphrase<input type="password" name="passphrase" required></label>' +
-      '<button type="submit">Reveal this one-time secret</button></form>' : '') +
-    (liveIntent ? '<h2>Approve LIVE account activation</h2>' +
-      '<p>Selected account: <strong>' + escapeHtml(liveIntent.label || liveIntent.stripe_account) +
-      '</strong> (' + escapeHtml(liveIntent.stripe_account) + '). This will allow REAL Stripe changes if enabled later. Do not proceed unless you intend that.</p>' +
-      '<form method="post" autocomplete="off">' + formHidden +
-      '<input type="hidden" name="action" value="enable-live">' +
-      '<input type="hidden" name="id" value="' + escapeHtml(liveIntent.id) + '">' +
-      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<label><input type="checkbox" name="ownerLiveConsent" value="yes" required> I personally authorize LIVE mode for this exact Stripe account.</label>' +
-      '<button type="submit">Approve this LIVE account (final step)</button></form>' : '') +
+    '</details>' +
+    '<details class="owner-group" id="revoke-tools"><summary>Disconnect an AI client</summary>' +
     '<h2>Disconnect an AI connection (owner only)</h2>' +
     '<p>Use a Stripe account ID and the AI client ID from the account connection list. This signs out that connection; it never touches customer payments.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -136,16 +256,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>AI client ID<input name="clientId" required maxlength="160" autocomplete="off"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview connection removal</button></form>' +
-    (revokeIntent ? '<h2>Confirm removal of this connection</h2>' +
-      '<p>Account: <strong>' + escapeHtml(revokeIntent.label || revokeIntent.stripe_account) +
-      '</strong> (' + escapeHtml(revokeIntent.stripe_account) + '), client ID: <strong>' +
-      escapeHtml(revokeIntent.client_id) + '</strong>. Its current access and refresh tokens will be revoked. This cannot be undone for that connection.</p>' +
-      '<form method="post" autocomplete="off">' + formHidden +
-      '<input type="hidden" name="action" value="confirm-revoke">' +
-      '<input type="hidden" name="id" value="' + escapeHtml(revokeIntent.id) + '">' +
-      '<label><input type="checkbox" name="ownerRevokeConsent" value="yes" required> I personally authorize revoking exactly this connection.</label>' +
-      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<button type="submit">Revoke this connection</button></form>' : '') +
+    '</details>' +
+    '<details class="owner-group" id="live-disable-tools"><summary>Emergency LIVE disable only</summary>' +
     '<h2>Emergency: disable LIVE access (owner only)</h2>' +
     '<p>This only switches LIVE mode OFF for a selected Stripe account. It cannot enable LIVE, create payments or change bank details.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -153,16 +265,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Stripe account ID<input name="account" maxlength="80" required autocomplete="off"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview emergency LIVE disable</button></form>' +
-    (disableIntent ? '<h2>Final owner confirmation: disable LIVE</h2>' +
-      '<p>Account: <strong>' + escapeHtml(disableIntent.label || disableIntent.stripe_account) +
-      '</strong> (' + escapeHtml(disableIntent.stripe_account) +
-      '). This blocks LIVE connections until a separately authorized activation.</p>' +
-      '<form method="post" autocomplete="off">' + formHidden +
-      '<input type="hidden" name="action" value="confirm-disable-live">' +
-      '<input type="hidden" name="id" value="' + escapeHtml(disableIntent.id) + '">' +
-      '<label><input type="checkbox" name="ownerDisableConsent" value="yes" required> I personally authorize disabling LIVE access for this exact account.</label>' +
-      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<button type="submit">Disable LIVE access</button></form>' : '') +
+    '</details>' +
+    '<details class="owner-group" id="default-tools"><summary>Choose the default account</summary>' +
     '<h2>Choose default account for new AI connections (owner only)</h2>' +
     '<p>Existing AI connections remain on their original accounts. Only the initial selection shown to new connections changes.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -170,17 +274,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Stripe account ID<input name="account" maxlength="80" required autocomplete="off"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview new default account</button></form>' +
-    (defaultIntent ? '<h2>Final owner confirmation: default account</h2>' +
-      '<p>New default: <strong>' + escapeHtml(defaultIntent.label || defaultIntent.stripe_account) +
-      '</strong> (' + escapeHtml(defaultIntent.stripe_account) +
-      '). Prior default: ' + escapeHtml(defaultIntent.expected_default || '(none)') +
-      '. Existing connections will not be moved. An intervening change cancels this request.</p>' +
-      '<form method="post" autocomplete="off">' + formHidden +
-      '<input type="hidden" name="action" value="confirm-default-account">' +
-      '<input type="hidden" name="id" value="' + escapeHtml(defaultIntent.id) + '">' +
-      '<label><input type="checkbox" name="ownerDefaultConsent" value="yes" required> I personally approve this exact default-account selection.</label>' +
-      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<button type="submit">Set default account</button></form>' : '') +
+    '</details>' +
+    '<details class="owner-group" id="limit-tools"><summary>Change the daily money-out limit</summary>' +
     '<h2>Change the daily AI money-out limit (owner only)</h2>' +
     '<p>The standard remains $500 per Stripe account per Colorado day, shared by every AI connection. Changing an account limit never removes your separate approval requirement for each outgoing transaction.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -189,19 +284,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>New daily limit in USD (example 500.00)<input name="newLimitUsd" inputmode="decimal" required autocomplete="off"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview daily money-out limit</button></form>' +
-    (moneyLimitIntent ? '<h2>Final owner confirmation: daily account limit</h2>' +
-      '<p>Account: <strong>' + escapeHtml(moneyLimitIntent.label || moneyLimitIntent.stripe_account) +
-      '</strong> (' + escapeHtml(moneyLimitIntent.stripe_account) +
-      '). Current limit: <strong>' + escapeHtml(usd(moneyLimitIntent.expected_limit_cents)) +
-      '</strong>. New limit: <strong>' + escapeHtml(usd(moneyLimitIntent.new_limit_cents)) +
-      '</strong>. Already used today: <strong>' + escapeHtml(usd(moneyLimitIntent.usedTodayCents)) +
-      '</strong>. All spending already reserved today still counts. Each AI money-out still needs your independent authenticated approval, and requests above this limit need a second explicit override.</p>' +
-      '<form method="post" autocomplete="off">' + formHidden +
-      '<input type="hidden" name="action" value="confirm-money-limit">' +
-      '<input type="hidden" name="id" value="' + escapeHtml(moneyLimitIntent.id) + '">' +
-      '<label><input type="checkbox" name="ownerLimitConsent" value="yes" required> I personally authorize changing the daily limit for this exact account.</label>' +
-      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<button type="submit">Set this account limit</button></form>' : '') +
+    '</details>' +
+    '<details class="owner-group" id="money-approval-tools"><summary>Review pending TEST money-out requests</summary>' +
     '<h2>Pending money-out requests (private TEST owner review)</h2>' +
     '<p>Viewing requests never approves or executes money. Each grant requires a separate password-authenticated confirmation for one exact request; crossing the account daily limit requires a second separate confirmation. No LIVE or Stripe payment tool is enabled here.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -209,59 +293,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Privately view pending TEST requests</button></form>' +
-    (moneyInbox ? '<h2>Verified pending requests</h2>' +
-      '<p>Stripe account: <strong>' + escapeHtml(moneyInbox.account) +
-      '</strong>. Shared Colorado-day usage: ' + escapeHtml(usd(moneyInbox.usedCents)) +
-      '. Daily limit: ' + escapeHtml(usd(moneyInbox.limitCents)) + '.</p>' +
-      (moneyInbox.rows.length ? '<ol>' + moneyInbox.rows.map(item =>
-        '<li>Operation: ' + escapeHtml(item.tool) +
-        '; target: ' + escapeHtml(item.target) +
-        '; amount: ' + escapeHtml(usd(Number(item.amount_cents))) +
-        '; TEST mode; request key: ' + escapeHtml(item.request_key) +
-        '; note: ' + escapeHtml(item.description) +
-        '; expires: ' + escapeHtml(item.expiresLocal) +
-        '; status: ' + escapeHtml(item.approvedFresh ? (item.needsOverride ?
-          (item.allow_over_limit ? 'Owner approved with separate override' :
-            'Approved; separate over-limit owner action required') : 'Owner approved, not consumed') :
-            'Awaiting owner approval (or renewed approval)') +
-        (item.approvedFresh && (!item.needsOverride || item.allow_over_limit) ? '' :
-          '<form method="post" autocomplete="off">' + formHidden +
-          '<input type="hidden" name="action" value="request-money-decision">' +
-          '<input type="hidden" name="account" value="' + escapeHtml(moneyInbox.account) + '">' +
-          '<input type="hidden" name="requestKey" value="' + escapeHtml(item.request_key) + '">' +
-          '<input type="hidden" name="kind" value="' +
-            (item.approvedFresh ? 'override' : 'approve') + '">' +
-          '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-          '<button type="submit">Privately preview ' +
-            (item.approvedFresh ? 'separate over-limit confirmation' : 'individual approval') +
-            '</button></form>') +
-        '</li>').join('') + '</ol>' : '<p>No verified pending requests.</p>') +
-      '<p>Each preview is independent. Submitting the preview form does not grant approval.</p>' : '') +
-    (moneyDecisionIntent ? '<h2>Final owner confirmation — TEST ' +
-      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'OVER-LIMIT OVERRIDE' : 'INDIVIDUAL MONEY-OUT') +
-      '</h2><p>Exact account: ' + escapeHtml(moneyDecisionIntent.stripe_account) +
-      '; tool: ' + escapeHtml(moneyDecisionIntent.tool) +
-      '; Stripe-derived target: ' + escapeHtml(moneyDecisionIntent.target) +
-      '; amount: <strong>' + escapeHtml(usd(Number(moneyDecisionIntent.amount_cents))) +
-      ' USD</strong>; mode: TEST; request key: ' + escapeHtml(moneyDecisionIntent.request_key) +
-      '; preview must be confirmed before: ' + escapeHtml(new Intl.DateTimeFormat('en-US',{
-        timeZone:'America/Denver',dateStyle:'medium',timeStyle:'short'
-      }).format(new Date(Math.min(new Date(moneyDecisionIntent.expires_at).getTime(),
-        new Date(moneyDecisionIntent.request_expires_at).getTime())))) +
-      ' (earliest request or preview expiry). Once approved, the transaction authorization is usable for at most 10 minutes after confirmation and never beyond the original request expiry.</p><p>' + (moneyDecisionIntent.kind === 'override' ?
-        'This is a SECOND separate owner confirmation for spending above the account daily cap. It does not change the standing limit.' :
-        'This approval alone permits no operation above the daily cap; that would need a separate owner override.') +
-      ' No Stripe money moves through this page.</p>' +
-      '<form method="post" autocomplete="off">' + formHidden +
-      '<input type="hidden" name="action" value="confirm-money-decision">' +
-      '<input type="hidden" name="id" value="' + escapeHtml(moneyDecisionIntent.id) + '">' +
-      '<label><input type="checkbox" name="ownerMoneyConsent" value="yes" required> I personally authorize ONLY this exact ' +
-      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'over-limit override' : 'TEST money-out request') +
-      ', account, Stripe target, amount and request key.</label>' +
-      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<button type="submit">Confirm this ' +
-      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'separate override' : 'individual approval') +
-      '</button></form>' : '') +
+    '</details>' +
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, runTestSmoke, issueRtcPass, lookupTestReceipt, env = process.env }) {
@@ -272,6 +304,8 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     catch { return send(res, 503, { error: 'server_not_configured', description: 'Set PUBLIC_BASE_URL first' }); }
     res.setHeader('Content-Security-Policy',
       "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+    res.setHeader('Referrer-Policy','no-referrer');
+    res.setHeader('X-Frame-Options','DENY');
     // The owner's Vercel project may have multiple public aliases. Serving a
     // form on a noncanonical alias makes the browser send that alias as Origin
     // while POST deliberately accepts only PUBLIC_BASE_URL. Redirect only GET
@@ -289,10 +323,14 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       const csrf = randomBytes(32).toString('base64url');
       res.setHeader('Set-Cookie', 'stripe_setup_csrf=' + csrf +
         '; Max-Age=600; Path=/api/stripe/setup; HttpOnly; Secure; SameSite=Strict');
-      const liveId = String(req.query?.liveEnable || '');
+      // Never execute owner intent lookups from malformed GET selectors.
+      const show=typeof req.query?.show==='string'&&/^[A-Za-z0-9_-]{32}$/.test(req.query.show)
+        ?req.query.show:'';
+      const liveId=typeof req.query?.liveEnable==='string'&&
+        /^[A-Za-z0-9_-]{32}$/.test(req.query.liveEnable)?req.query.liveEnable:'';
       const liveIntent = liveId && typeof db.getLiveEnableIntent === 'function'
         ? await db.getLiveEnableIntent(liveId) : null;
-      return send(res, 200, htmlPage({ csrf, show: req.query?.show || '', liveIntent }),
+      return send(res, 200, htmlPage({ csrf, show, liveIntent }),
         'text/html; charset=utf-8');
     }
     // Require an exact same-origin browser form and its double-submit CSRF token.
@@ -319,6 +357,28 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     if (login.status !== 'ok') {
       return send(res, 401, htmlPage({ csrf:cookie, result:'Incorrect administrator passphrase.' }),
         'text/html; charset=utf-8');
+    }
+    if(p.action==='list-test-accounts'){
+      if(typeof db?.listStripeAccounts!=='function')
+        return send(res,503,htmlPage({csrf:cookie,result:'Account directory is unavailable.'}),
+          'text/html; charset=utf-8');
+      try{
+        const rows=await db.listStripeAccounts();
+        if(!Array.isArray(rows)||rows.length>50||rows.some(row=>
+          typeof row?.id!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(row.id)||
+          typeof row.label!=='string'||row.label.length>100||
+          typeof row.test_connected!=='boolean'||typeof row.is_default!=='boolean'))
+          throw new TypeError('Invalid enrolled account inventory');
+        const enrolledAccounts=rows.filter(row=>row.test_connected).map(row=>({
+          id:row.id,label:row.label,default:row.is_default}));
+        return send(res,200,htmlPage({csrf:cookie,enrolledAccounts,
+          result:'Stored TEST account IDs listed from private enrollment metadata. Provider identity has not been rechecked.'}),
+          'text/html; charset=utf-8');
+      }catch{
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'Could not verify the private enrolled TEST account inventory. No key or account details returned.'}),
+          'text/html; charset=utf-8');
+      }
     }
     if(p.action==='lookup-test-receipt'){
       if(typeof lookupTestReceipt!=='function')
