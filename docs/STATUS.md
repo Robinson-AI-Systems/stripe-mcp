@@ -1,5 +1,17 @@
 # STATUS — current work, blockers and next action
 
+## Current gateway recovery disposition — 2026-10-12
+
+Owner requested cross-repository architecture/planning correction. Prioritize independently usable provider tools
+and existing approved RTC/isolation acceptance; do not wait for K-3 publication or force internal code adoption.
+Hub agent owns fixed broker surface, registry, routing, grant mapping, cache, forwarding audit and scale testing.
+This service agent owns authenticated RTC/mode/resource isolation, original direct-MCP parity and safe deployed
+read/denial/revocation evidence. A public manifest, reference conformance or private-core rehearsal is not proof
+of actual hosted acceptance. Full provider roadmap and existing external gates remain; no card is closed here.
+Next: reconcile current implementation/concurrency and existing RTC acceptance gaps, obtain exact deployed
+revision and authorized short-lived read_only non-production pass securely, and run the supported harmless read
+and denials through Hub when available. Never alias preview to TEST without real isolation or expose credentials.
+
 Updated 2026-10-11. Repository created by Chris; plan written by Claude (Opus 5.5) in the Appliance Desk planning system.
 **Batch A implemented (#9–#17):** tested foundation, durable OAuth, pinned Stripe API reference, encrypted keys, secure setup code and owner's deployment guide. The custom server is deployed to Vercel, the separate Neon database has initialized all 24 expected application tables, and one owner-enrolled Stripe TEST key is encrypted and recorded as verified. **Real custom-MCP OAuth/connected provider smoke and signed-in Stripe Dashboard acceptance are NOT verified. LIVE is disabled.**
 

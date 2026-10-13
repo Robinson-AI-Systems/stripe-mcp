@@ -150,3 +150,11 @@ meta-tools remain unchanged, as do valid direct TEST reads and scoped results.
 This narrows only RTC pass authority and requires no owner LIVE or spending
 approval. CI includes fake-DB and real PostgreSQL/HTTP evidence. External
 Toolkit Hub D-4 three-route acceptance remains independently unverified.
+
+## 2026-10-12 — owner-requested independent server / universal gateway planning repair
+
+RTC external interoperability is independent of shared internal implementation. Hub owns compact broker,
+routing and grant mapping; this service owns provider credentials, canonical tools, state and guarded dispatch.
+Core adoption is optional and separately gated; do not require K-3 for RTC/Hub acceptance or reduce standalone
+capability for common code. Existing source/fake/deployed/real evidence and every owner/CI/release gate remain.
+This explicit docs/planning request permits this focused documentation PR; routine cadence remains unchanged.
