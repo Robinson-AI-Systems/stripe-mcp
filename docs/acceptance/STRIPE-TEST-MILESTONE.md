@@ -203,3 +203,7 @@ This PR groups existing owner forms by intent using accessible native sections, 
 ## #203 owner setup schema performance (proposal; not deployed)
 
 Full review found owner setup invokes the complete additive SQL initialization on each GET/POST, regardless of whether the request will run TEST verification or whether the same warmed function already completed schema setup. Proposed #203 memoizes a promise per serverless isolate, waits for it under concurrency, never serves a request before first schema initialization, resets the promise upon failure for a safe retry, and naturally reinitializes from scratch after a new deployment. All owner auth/CSRF/Origin, private key access, TEST readback validation and independent money confirmation remain unchanged. Unit tests are synthetic; they do not prove real Stripe provider acceptance or Vercel latency.
+
+## #204 original endpoint HTTP preflight (proposal)
+
+The owner API gateway previously initialized Neon before applying original-request body-size/media safeguards. The proposed fix rejects unsupported methods, invalid declared body lengths and oversized/mismatched forms before DB use with existing shared HTTP helpers. Exact-head CI and code review required. No Vercel release, no Stripe permission change and no shortcut around private password or CSRF.

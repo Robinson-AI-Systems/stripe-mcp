@@ -1,4 +1,5 @@
 import { createDb } from '../../src/db.js';
+import {incomingBodyWithinLimit,only,send} from '../../src/core/http.js';
 import {createSchemaOnce} from '../../src/core/schema-once.js';
 import { createKeyStore } from '../../src/keys.js';
 import { createOneTimeStore } from '../../src/core/one-time-secrets.js';
@@ -15,6 +16,15 @@ import {registry} from '../../src/tools/index.js';
 const ensureSchema=createSchemaOnce();
 
 export default async function handler(req, res) {
+  // Preflight the original HTTP request before starting Neon/schema work.
+  if(!only(res,req,['GET','POST']))return;
+  if(!incomingBodyWithinLimit(req))
+    return send(res,413,{error:'invalid_owner_request',description:'Owner form body length invalid or oversized'});
+  if(req.method==='POST'){
+    const type=String(req.headers?.['content-type']||'').split(';')[0].trim().toLowerCase();
+    if(!['application/x-www-form-urlencoded','application/json'].includes(type))
+      return send(res,415,{error:'unsupported_content_type'});
+  }
   try {
     const db = createDb();
     await ensureSchema(()=>db.initSchema());

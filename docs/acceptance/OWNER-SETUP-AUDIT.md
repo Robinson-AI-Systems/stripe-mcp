@@ -29,3 +29,7 @@
 - No owner privilege, key, account-mapping, billing limit or LIVE state is silently changed by the UX/performance audit.
 - Remaining external gates: authenticated connected MCP OAuth + SDK/PKCE/revocation; genuine Stripe TEST provider read; Stripe-signed TEST event and owner-private receipt; Hub direct/relay/Sandbox; owner Dashboard intent. CI and Vercel READY **never** certify these.
 - Release policy: Development PRs target main, checked exact-head CI; after one consolidated readiness batch and an explicitly authorized release or the existing checked daily promotion, verify exact live commit and Vercel READY/alias. No one-fix-at-a-time manual deploy.
+
+## Original HTTP request envelope (PR #204)
+
+The deployed owner handler now denies unapproved methods, unsupported POST content types and unsafe/oversized original HTTP body metadata before Neon/schema startup, reusing the repository's established 16KB protection. The original entrypoint—not solely the downstream owner form helper—is exercised by regression tests, and legitimate bounded form data remains accepted for ordinary password, Origin and CSRF verification. This is source-level security proof, not a real authenticated Stripe TEST read.
