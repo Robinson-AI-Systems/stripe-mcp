@@ -21,6 +21,9 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 ## Next
 
+- **#193 standalone custom-MCP SDK hosted TEST probe (CI pending):** Owner opt-in tool attests exact pinned live SHA before passing a connector bearer through the official MCP SDK to only the same-origin `/api/mcp` endpoint; checks TEST account/profile, read-only catalog and safe local whoami, plus a separate exact revoked-token 401 check. Fake-fetch unit tests are NOT external custom-MCP OAuth/PCKE or Stripe API acceptance. External pass/owner flow still unverified, production live remains behind, no manual deployment or LIVE/spend.
+
+
 - **#192 hosted G-4 receiver route preflight (CI pending):** New owner opt-in, credential-free HTTPS GET-only tool first attests the exact observed `live` deployment SHA, then requires the TEST webhook route's local 405 JSON. It refuses SSO HTML, stale main/preview SHA, invalid selectors and unexpected responses, without sending a pass, secret, provider event or write. This is only ingress readiness, NOT genuine signed Stripe delivery or a verified database receipt. Production `live` was still 8068f52 at the start; normal scheduled promotion and protected owner execution are required. No Stripe LIVE, spending, force deploy or shared-core adoption.
 
 
