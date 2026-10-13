@@ -33,3 +33,7 @@
 ## Original HTTP request envelope (PR #204)
 
 The deployed owner handler now denies unapproved methods, unsupported POST content types and unsafe/oversized original HTTP body metadata before Neon/schema startup, reusing the repository's established 16KB protection. The original entrypoint—not solely the downstream owner form helper—is exercised by regression tests, and legitimate bounded form data remains accepted for ordinary password, Origin and CSRF verification. This is source-level security proof, not a real authenticated Stripe TEST read.
+
+## Original owner form real HTTP and disposable PostgreSQL acceptance (#205)
+
+`tests/db/owner-setup-real-http.test.js` starts a genuine local HTTP listener with the real setup HTML/POST handler and isolated PostgreSQL schema. It proves canonical Origin/CSRF/password denial, owner-only enrolled TEST account discovery, the precise typed failure response, safe three-tool report rendering from an explicitly synthetic runner, and encryption-backed single-use reveal (second POST denied). Separate #204 tests cover the original deployed Vercel API envelope before DB use. These are tests of real application code and SQL with a fake provider, **not** a Stripe TEST API read, signed event, live deployment or external OAuth session.
