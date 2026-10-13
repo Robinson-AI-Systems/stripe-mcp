@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { createSetupHandler } from '../../src/stripe/setup-page.js';
+import {OwnerSmokeFailure} from '../../src/acceptance/owner-smoke-failure.js';
+import {createOwnerSmokeRunner} from '../../src/acceptance/owner-smoke-runner.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
 import { createKeyStore } from '../../src/keys.js';
 import { createOneTimeStore } from '../../src/core/one-time-secrets.js';
@@ -474,6 +476,51 @@ describe('owner-private signed TEST webhook receipt evidence readback',()=>{
         passphrase:env.ADMIN_PASSPHRASE});
       expect(reply.statusCode).toBe(expected);
       expect(reply.body).not.toContain('evt_OTHER');
+    }
+  });
+});
+
+describe('owner TEST diagnostic stage contract',()=>{
+  it('separates non-enrolled, key-unavailable and upstream stages behind owner auth',async()=>{
+    const db=createFakeDb();
+    const keyStore={loadKey:vi.fn(async()=>{throw Error('key material decrypt failure with private secret');})};
+    const failures=[
+      [null,'not_enrolled',false],
+      [{test_connected:false},'not_enrolled',false],
+      [{test_connected:true},'key_unavailable',true]
+    ];
+    for(const [record,stage,shouldLoad] of failures){
+      db.getStripeAccount=vi.fn(async()=>record);
+      keyStore.loadKey.mockClear();
+      const runTestSmoke=createOwnerSmokeRunner({db,keyStore,run:vi.fn()});
+      const handler=createSetupHandler({db,runTestSmoke,env});
+      const c=cookiePage(await page(handler));
+      const reply=await submit(handler,c,{action:'run-test-smoke',account:'acct_SAFEOWNER',
+        focus:'administration',passphrase:env.ADMIN_PASSPHRASE});
+      expect(reply.statusCode).toBe(503);
+      expect(reply.body).toContain('TEST stage: '+stage);
+      expect(reply.body).toContain('No acceptance recorded.');
+      expect(reply.body).not.toContain('private secret');
+      expect(keyStore.loadKey).toHaveBeenCalledTimes(shouldLoad?1:0);
+    }
+  });
+  it('shows only stable typed stages and hides fabricated provider failures',async()=>{
+    const db=createFakeDb();
+    for(const [error,stage] of [
+      [new OwnerSmokeFailure('provider_denied'),'provider_denied'],
+      [new OwnerSmokeFailure('identity_unverified'),'identity_unverified'],
+      [new OwnerSmokeFailure('identity_incomplete'),'identity_incomplete'],
+      [new OwnerSmokeFailure('tool_unavailable'),'tool_unavailable'],
+      [new Error('rk_test_PRIVATE_PASSWORD'),'unavailable']
+    ]){
+      const handler=createSetupHandler({db,env,runTestSmoke:async()=>{throw error}});
+      const token=cookiePage(await page(handler));
+      const reply=await submit(handler,token,{action:'run-test-smoke',
+        account:'acct_SAFEOWNER',focus:'administration',passphrase:env.ADMIN_PASSPHRASE});
+      expect(reply.statusCode).toBe(503);
+      expect(reply.body).toContain('TEST stage: '+stage);
+      expect(reply.body).not.toContain('rk_test_PRIVATE_PASSWORD');
+      expect(reply.body).not.toContain('TEST report returned');
     }
   });
 });

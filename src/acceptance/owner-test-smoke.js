@@ -3,6 +3,7 @@ import {registry} from '../tools/index.js';
 import {dispatchReadOnlyTool} from '../core/mcp-server.js';
 import {makeStripeClient} from '../stripe/client.js';
 import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {OwnerSmokeFailure} from './owner-smoke-failure.js';
 
 const ACCOUNT=/^acct_[A-Za-z0-9]{2,100}$/;
 const TEST_KEY=/^(?:sk|rk)_test_[A-Za-z0-9]{12,}$/;
@@ -124,9 +125,12 @@ export async function runOwnerTestSmoke({account,key,focus='core',makeClient=mak
       typeof identity.charges_enabled!=='boolean'||
       typeof identity.payouts_enabled!=='boolean'||
       typeof identity.details_submitted!=='boolean')
-      throw new Error('Account identity not independently verified');
-  }catch{
-    throw new Error('Own TEST account verification failed; no other smoke reads executed');
+      throw new OwnerSmokeFailure('identity_incomplete');
+  }catch(error){
+    if(error instanceof OwnerSmokeFailure)throw error;
+    if(error?.statusCode===401||error?.statusCode===403)
+      throw new OwnerSmokeFailure('provider_denied');
+    throw new OwnerSmokeFailure('identity_unverified');
   }
   const connection={stripeAccount:account,mode:'test',profile:'read_only'};
   const services={stripeForConnection:async()=>sdk};
@@ -134,7 +138,7 @@ export async function runOwnerTestSmoke({account,key,focus='core',makeClient=mak
   for(const [batch,tool,args] of selected){
     const contract=registry.tools.find(t=>t.name===tool);
     if(!contract||contract.writes!==false||contract.annotations?.readOnlyHint!==true)
-      throw new Error('Read-only smoke contract unavailable');
+      throw new OwnerSmokeFailure('tool_unavailable');
     let status='error';
     try{
       status=classify(tool,await dispatch({registry,name:tool,args,connection,services,db:{}}),account);
