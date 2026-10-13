@@ -1,4 +1,5 @@
 import { createDb } from '../../src/db.js';
+import {createSchemaOnce} from '../../src/core/schema-once.js';
 import { createKeyStore } from '../../src/keys.js';
 import { createOneTimeStore } from '../../src/core/one-time-secrets.js';
 import { createSetupHandler } from '../../src/stripe/setup-page.js';
@@ -9,10 +10,14 @@ import {createOwnerSmokeRunner} from '../../src/acceptance/owner-smoke-runner.js
 import {createReadOnlyTestPassIssuer} from '../../src/core/rtc-passes.js';
 import {registry} from '../../src/tools/index.js';
 
+// A serverless isolate shares one schema gate across its warm requests.
+// Fresh deployments/isolate cold starts still perform the complete additive schema init.
+const ensureSchema=createSchemaOnce();
+
 export default async function handler(req, res) {
   try {
     const db = createDb();
-    await db.initSchema();
+    await ensureSchema(()=>db.initSchema());
     // On GET there is no need to read the encryption secret; missing configuration
     // prevents key storage/reveal but never leaks a plaintext alternative.
     const configured = req.method === 'POST';
