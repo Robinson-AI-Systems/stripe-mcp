@@ -14,13 +14,14 @@ const profiles = new Set(['everyday', 'full']);
  * afterApply({ctx,args,before,key,prepared,status}) -> settlement / audit finalization
  */
 export function defineWrite({ name, read, summarize, apply, readAfter, verify, idempotency,
+  resultId = null,
   inverse = () => null, needsConfirm = true, prepare = null, beforeApply = null,
   afterApply = null, targetGuard = null, modeGuard = null, classifyError = () => 'uncertain' }) {
   if (!/^[a-z][a-z0-9_]{1,48}$/.test(name)) throw new TypeError('Valid tool name required');
   for (const [label, func] of Object.entries({ read, summarize, apply, readAfter, verify, idempotency, inverse })) {
     if (typeof func !== 'function') throw new TypeError(name + ': ' + label + ' must be a function');
   }
-  for (const [label, func] of Object.entries({ prepare, beforeApply, afterApply, targetGuard, modeGuard, classifyError })) {
+  for (const [label, func] of Object.entries({ prepare, beforeApply, afterApply, targetGuard, modeGuard, classifyError, resultId })) {
     if (func !== null && typeof func !== 'function') throw new TypeError(name + ': ' + label + ' must be a function');
   }
   if (needsConfirm !== true) throw new Error('Confirmation is required for every write before the safety layer is finished');
@@ -143,9 +144,25 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
       return respond({ done: false, confirmed: false, idempotencyKey: key,
         warning: 'Provider action may have succeeded, but its audit could not be finalized' }, true);
     }
+    // A verified resource ID lets clients continue with an exact read or cleanup
+    // rather than querying by name. No unverified or raw provider object escapes.
+    let verifiedResourceId, receiptWarning;
+    if (completed && resultId) {
+      try {
+        const candidate = await resultId(before, observed, args, ctx);
+        if (typeof candidate !== 'string' ||
+          !/^[a-z][a-z0-9]*_[A-Za-z0-9]{2,100}$/.test(candidate)) {
+          throw new TypeError('Invalid verified resource identifier');
+        }
+        verifiedResourceId = candidate;
+      } catch {
+        receiptWarning = 'Action confirmed, but its safe resource ID is unavailable; reconcile from the audit key';
+      }
+    }
     return respond({ done: completed, confirmed: completed, mode: connection.mode,
       idempotencyKey: key, summary,
-      ...(!completed ? { warning: status === 'rejected'
+      ...(verifiedResourceId ? { resourceId: verifiedResourceId } : {}),
+      ...(receiptWarning ? { warning: receiptWarning } : !completed ? { warning: status === 'rejected'
         ? 'Stripe definitively rejected the request; no money moved and the reservation was released'
         : 'Read-back did not confirm the change, or the provider outcome is uncertain' } : {}) });
   }

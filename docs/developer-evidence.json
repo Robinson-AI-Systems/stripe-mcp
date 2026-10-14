@@ -19,15 +19,47 @@
     },
     {
       "layer": "deployed",
-      "status": "unverified"
+      "status": "verified",
+      "source": "deployment_provider",
+      "service": "robinson-stripe-mcp",
+      "commit": "b7cc291bb88bcd44a9b111281e3ef5f770046748",
+      "origin": "https://stripe-mcp-chris-projects-de6cd1bf.vercel.app",
+      "transport": "deployment_api",
+      "observations": [
+        "production_READY_exact_live_sha",
+        "release_verified_on_2026-10-13"
+      ]
     },
     {
       "layer": "custom_transport",
-      "status": "unverified"
+      "status": "verified",
+      "source": "custom_service",
+      "service": "robinson-stripe-mcp",
+      "commit": "b7cc291bb88bcd44a9b111281e3ef5f770046748",
+      "origin": "https://stripe-mcp-chris-projects-de6cd1bf.vercel.app",
+      "transport": "native_mcp",
+      "observations": [
+        "authenticated_initialize_and_tools_list",
+        "stripe_whoami_TEST_full_profile",
+        "original_service_customer_create_and_delete"
+      ]
     },
     {
       "layer": "provider",
-      "status": "unverified"
+      "status": "unverified",
+      "source": "custom_service",
+      "service": "robinson-stripe-mcp",
+      "commit": "b7cc291bb88bcd44a9b111281e3ef5f770046748",
+      "origin": "https://stripe-mcp-chris-projects-de6cd1bf.vercel.app",
+      "transport": "native_mcp",
+      "observations": [
+        "permitted_read",
+        "permitted_write",
+        "provider_readback",
+        "TEST_account_status_booleans_observed_requirements_not_readable",
+        "synthetic_customer_created_retrieved_deleted_readback_deleted_true",
+        "denied_resource_access_and_denied_identity_access_NOT_YET_TESTED"
+      ]
     },
     {
       "layer": "hub",
@@ -39,7 +71,16 @@
     },
     {
       "layer": "cleanup",
-      "status": "unverified"
+      "status": "unverified",
+      "source": "custom_service",
+      "service": "robinson-stripe-mcp",
+      "commit": "b7cc291bb88bcd44a9b111281e3ef5f770046748",
+      "origin": "https://stripe-mcp-chris-projects-de6cd1bf.vercel.app",
+      "transport": "native_mcp",
+      "observations": [
+        "one_owned_disposable_TEST_customer_deleted_and_confirmed",
+        "full_fixture_cleanup_matrix_not_yet_verified"
+      ]
     }
   ]
 }
