@@ -149,6 +149,7 @@ function fixture({showEvent=false,foreign=false}={}){
           type.startsWith('customer.subscription.')?
           'subscription':type.startsWith('payment_intent')?'payment_intent':
           type.split('.')[0],prefix=sourceType==='subscription'?'sub':
+          sourceType==='payment_method'?'pm':
           sourceType==='customer'?'cus':
           sourceType==='payment_intent'?'pi':
           sourceType==='product'?'prod':
@@ -167,7 +168,8 @@ function fixture({showEvent=false,foreign=false}={}){
           calledEvent.startsWith('customer.subscription.')?
           'sub':calledEvent.startsWith('payment_intent.')?'pi':
           calledEvent.startsWith('product.')?'prod':
-          calledEvent.startsWith('price.')?'price':'cus';
+          calledEvent.startsWith('price.')?'price':
+          calledEvent.startsWith('payment_method.')?'pm':'cus';
         const source=get(sourceType+'_FAKE123');
         return {object:'event',id:'evt_FAKE123',livemode:false,
           type:calledEvent,account,data:{object:source}};
