@@ -1,6 +1,6 @@
 // Durable TEST cleanup: never guess IDs, initiate refunds, or infer deletions.
 import {APP_METADATA_KEYS} from '../tools/app-guard.js';
-import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js';
+import {cleanupTestConnectSeller,cleanupTestClock,gone} from './dependent-cleanup.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
   connected_account:'acct',event:'evt',charge:'ch',dispute:'du',
@@ -141,8 +141,13 @@ async function safeOperation(s,row,was,key,ctx,run){
         return (await s.invoices.retrieve(id)).status==='void';
       }
       if(was.status==='draft'){
-        await s.invoices.del(id,{},opts);
-        return (await s.invoices.retrieve(id)).deleted===true;
+        // Stripe may respond with an exact 404 after deleting a draft.
+        // Require a matching deleted receipt before accepting either a
+        // deleted tombstone or an independent resource_missing readback.
+        const ack=await s.invoices.del(id,{},opts);
+        if(ack?.object!=='invoice'||ack.id!==id||ack.deleted!==true)
+          return false;
+        return gone(()=>s.invoices.retrieve(id),id);
       }
       return false;
     case 'payment_intent':

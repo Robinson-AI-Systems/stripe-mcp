@@ -1,3 +1,18 @@
+## Further genuine Stripe TEST Event acceptance — 2026-10-13 Denver, deployed #211
+
+Authenticated restricted custom Stripe MCP TEST, LIVE disabled, selected account `acct_1UKOq546Dan0UEUV`. Exact Vercel production `live` READY commit `3cb4831d85a30950b9ee0e1e5f13488faa83eba5`; merged source #215 remains on `main` until the normal checked daily release. Four **additional** guarded, previewed and confirmed `dev_trigger_event` actions completed. Each independent `event_list` then `event_get` retrieved the corresponding original Stripe Event and source identity (not just the run ledger):
+
+| Event type | Completed native run | Independently retrieved Event | Exact source | Mutable cleanup |
+| --- | --- | --- | --- | --- |
+| `product.updated` | `run_8c43a77a7682c53babfe8537` | `evt_1UQKhw46Dan0UEUV7o0GBPXp` | `prod_VRD8a2C2IGtXk0` | Product archived |
+| `price.updated` | `run_b4e3e5e752e04c85dcdc413b` | `evt_1UQKjJ46Dan0UEUVSMESIsdP` | `price_1UQKjI46Dan0UEUVdqwHb48G` | Price and parent product archived |
+| `invoice.created` | `run_2f46ecc21b9581ec23a9ba95` | `evt_1UQKjL46Dan0UEUVPMfOS8wI` | `in_1UQKjL46Dan0UEUVwi4Rktdp` | Customer deleted; invoice row **UNCERTAIN** (see below) |
+| `payment_intent.canceled` | `run_e5e47acda99cb5efbfe66dbf` | `evt_3UQKnX46Dan0UEUV1969xHee` | `pi_3UQKnX46Dan0UEUV1dbc6Pbl` | PaymentIntent and customer cleaned |
+
+Together with the four already verified customer/product/price events, **eight distinct native TEST event types** have source-observed evidence. Every cleanup retained immutable Stripe Events. The old #211 implementation misleadingly returned `done:false` even for completely cleaned mutable fixtures; the newer #213 `allEligibleCleaned` fix remains unverified until scheduled release.
+
+**Separate detected invoice cleanup defect:** For `invoice.created`, guarded cleanup returned an `uncertain` invoice ledger row; separate native `invoice_get` returned Stripe `404/resource_missing` and separate `customer_get` returned `deleted:true`. Proposed #216 corrects *future* draft-invoice confirmation with an exact deleted:true provider receipt plus independent missing-resource verification. The old uncertain ledger row remains unresolved pending safe reconciliation; no blanket inference of earlier deletion receipt, signed webhook, Dashboard success, money settlement or LIVE activation. Do not repeat provider creation just to reproduce this already captured evidence.
+
 ## Further custom TEST Event observations (October 13 Denver time)
 
 Separate native custom Stripe Cloud TEST event runs: customer.created, customer.updated, product.created and price.created returned done:true/confirmed:true after real guarded provider actions and native Stripe Event observation. Each run's guarded cleanup independently deleted synthetic customers or archived synthetic product/price records and intentionally retained the immutable Event. On original deployed #211, this returned generic done:false because of legitimate Event retention; merged #213 fixes that only in main until checked daily release. Event_get(detail:full) independently retrieved the original three creation Event IDs with exact source types/IDs after cleanup. The owner administration native overview reported six fully observed and one partially observed section, while all 40 Dashboard settings still await signed-in human comparison; account verification requirements remained not_readable. This proves recorded Stripe TEST Events, NOT signed webhook receipt, OAuth revocation, Toolkit Hub federation, exhaustive 17-type coverage or LIVE activation.
