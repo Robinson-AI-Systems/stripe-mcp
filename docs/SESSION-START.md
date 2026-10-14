@@ -1,145 +1,95 @@
-# SESSION-START — one page to begin (or resume) an implementation session
+# SESSION-START — implement, then catch up released acceptance
 
-For Sol 5.6 (or any model) implementing a PR card. Read **this page and your card**, then work. Open other rule files
-only when a step below names them, a section at a time. `AGENTS.md` still governs; this page is its short form.
+## 0. Reconcile and recover
 
-Read [development efficiency](DEVELOPMENT-EFFICIENCY.md) for PR grouping, shared test/transport helpers and CI measurement; preserve all hard limits.
+Read the governing instructions and the current permanent handoff, not historical
+status entries as new work. Verify actual main, live, the READY production revision,
+open/unfinished PRs, exact-head CI and unresolved reviews. Preserve concurrent work.
+Recover your interrupted/red PR first; inspect all failures and batch their remedies.
 
-## 0. First thing, every session: finish what is already open
+## 1. Catch up released work before new implementation
 
-Release branch note: `main` is development, `live` is Production, and
-daily promotion is handled only by `.github/workflows/promote-live.yml` after
-six green CI checks. See `docs/DAILY-PRODUCTION-PROMOTION.md`; never
-push a PR or release directly to `live`, and inspect Vercel branch tracking
-before calling a Production deployment verified.
+Fetch main/live refs once. Independently verify production environment, source SHA,
+READY state and origin through trusted deployment evidence. A schedule timestamp,
+workflow success, matching branches or service self-report alone is insufficient.
+Run `npm run session:status` for the compact queue; add `-- --deployed FULL_SHA
+--state READY --latest-pr NUMBER` only with freshly verified observations. The command
+is offline/read-only and never executes acceptance, releases or provider mutations.
+Without a shell use the same ledger and GitHub compare/deployment evidence manually.
 
-Your session can end at any moment (the chat stops between actions), so the next session starts here, not at a new card.
+If main = live = READY production, catch up **every authorized pending live check**.
+If they differ, still run tasks whose required revisions are included in production.
+Missing/shallow ancestry needs an exact compare or targeted history fetch, not a guess.
+Recheck BLOCKED tasks against current owner decisions; do not request approvals again.
+A newly observed scheduled, delayed, recovery or separately authorized manual release
+uses this same procedure. Do not wait for the nominal release time or initiate a release
+just to finish a development batch. Follow the existing checked release policy.
 
-1. `R=$(git remote get-url origin | sed -E 's#.*github.com[:/]##; s#\.git$##')` then
-   `gh api "repos/$R/pulls?state=open" --jq '.[]|select(.head.ref|startswith("ai/<tool>/"))|"\(.number) \(.head.ref) \(.head.sha)"'`
-   with `<tool>` = your own branch prefix (`sol`, `gpt6`, `claude` …). **Yours** = branches under your own prefix,
-   including ones a previous session of yours opened (one agent that used several prefixes, e.g. `sol` and `gpt6`,
-   checks each). Another agent's PR is not yours: leave it alone unless Chris asks.
-2. For each of your open PRs, first fetch its exact head — `git fetch origin <branch> && git checkout -B <branch>
-   FETCH_HEAD`, confirm `git rev-parse HEAD` equals the PR's head SHA — and read its resume note (§4). Then check `ci`
-   at that head
-   (`gh api "repos/$R/commits/<sha>/check-runs" --jq '.check_runs[]|"\(.id) \(.name) \(.conclusion)"'`).
-   - **Red → that is your task now.** Read every failure (job logs may not download; use
-     `gh api "repos/$R/check-runs/<id>/annotations"`), reproduce locally, fix all of them, push once, re-check.
-   - **Green and acceptance met → bring it up to date, then merge** (PLAYBOOK Steps 5 and 9): if
-     `gh api "repos/$R/compare/main...<sha>" --jq .behind_by` is above 0, `git fetch origin main && git merge origin/main`,
-     run the checks, push, and merge only when `ci` is green at that new head. **Pending →** build the next slice meanwhile.
-   - **Mandatory pre-merge review-thread gate:** retrieve all PR review threads (including outdated threads) and inspect their resolved state immediately before merge. Address every actionable comment, push fixes where needed, reply with the disposition and explicitly resolve the thread. **Do not merge with any unresolved review thread**, even when `ci` is green, a reviewer approved, or GitHub would otherwise permit the merge. If a thread cannot be resolved with available access, leave the PR open and report the exact blocker; never silently bypass it. If new commits or reviews arrive, inspect threads again before merging.
-3. Continue from the resume note's "Next step". Only when nothing of yours is open: §1 and the next card.
+## 1a. Choose a substantial outcome
 
-## 0a. Pick and verify a concrete TEST milestone before new PRs
+Read the authoritative work index/roadmap and the highest-priority eligible card.
+State its observable result and finite acceptance before editing. Read only its named
+code seams, design sections and fixtures; reuse existing helpers and task/packet tools.
+Group compatible operations into a complete usable workflow, including callers/tests.
+Line counts are review estimates, not mandatory artificial slice boundaries. A larger
+cohesive PR needs explicit integration/risk/verification coverage. Preserve actual
+migration ordering, risk isolation and every business/security/financial decision gate.
+Do not revisit passing hardening without a demonstrated defect or approved requirement.
 
-Follow AGENTS "Permanent outcome-driven development and handoff" for every session. Read the current finite `docs/acceptance/STRIPE-TEST-MILESTONE.md` and identify the highest-priority independently eligible acceptance slice. Keep four proof layers separate: code, meaningful automated tests, running deployed SHA, and authentic owner/third-party acceptance. Each blocker must have prerequisite, specific required evidence/owner decision, condition to resume and next action; recheck after relevant owner approval, merged change or scheduled promotion. Do not open five artificial PRs. Preserve the compact, checkpointed continuation prompt and permanent final PR handoff.
+## 3. Build, verify, publish
 
-## 0b. Session numbering and intervention checkpoint (2026-10-13)
+Use focused behavioral tests/lint at meaningful seams while developing. Local commits
+are recovery points, not reasons to run the entire suite or push after every small edit.
+Before publishing the coherent tree, run all existing mandatory checks and applicable
+unit/database/provider-shape/browser gates once. File changes invalidate affected proof.
+On a shared limited runner, cap Vitest workers (for example `--maxWorkers=2`) and
+run at most two full suites concurrently; preserve the same test selectors/coverage.
+Batch known CI/review fixes; inspect all failed jobs before the next correction push.
+While CI waits, advance the approved immediate successor; at most two unmerged PRs.
+Follow existing REST/Sandbox fallbacks if local execution is unavailable; report actual
+Actions evidence honestly. Merge only exact-head green checks plus required reviews.
 
-From the actual highest assigned GitHub PR number (including outside-agent PRs), finish at the **next higher multiple of five**, with only genuine substantial PRs. Recalculate after concurrent numbering changes; never manufacture work. When a batch cannot safely finish, exhaust authorized repairs and independent eligible tasks, then pause **this same chat** with the exact owner-only prerequisite, prior attempts, protected UI action and next resume step; do not close with a continuation prompt. Produce the short next-chat handoff only after completed aligned merges and exact-final-main checks. AGENTS' safety gates always override numbering.
+**PR merge readiness and product acceptance are separate.** A safe implementation PR
+may merge with deployment-dependent proof queued, when all pre-merge gates pass and
+no explicit card/owner rule requires that proof before merge. Keep such a milestone
+IN_PROGRESS/awaiting acceptance. An explicit pre-merge gate still blocks that PR; move
+to independently eligible work. Never mark code/CI as deployed or real-provider proof.
 
-## 1. Find your place (2 minutes)
+## 4. Maintain one release acceptance queue
 
-Work happens in whatever workspace you were given (a cloud agent workspace, a Vercel Sandbox, a laptop). Code reaches
-GitHub only as git commits pushed to an `ai/*` branch. Never copy source files through tool output.
+The marked JSON block in the authoritative status ledger is the running queue, not a
+second roadmap. Preserve existing card IDs/evidence and reconcile older open obligations
+into it before declaring the catch-up complete. Keep each task's priority, exact minimum
+reviewed source revision, procedure, prerequisites, gates, last evidence and disposition.
+`dependsOn` names acceptance tasks that must have recorded genuine PASSED evidence;
+source implementation dependencies remain in the existing work index. Split broad seed
+rows into exact scenario rows as fixtures/revisions are reconciled. No fake pass entries.
+After every meaningful merge, add any new deployment-dependent checks in that PR; pin
+its source commit, never a guessed future merge SHA. After a release, execute cleared
+checks promptly, record sanitized read/write/denial/readback/cleanup proof, and retain
+failed/uncertain fixture recovery tasks. New changes, rollback, authorization or environment
+changes reopen affected proof. NEVER copy credentials/private fixture IDs into the queue.
 
-1. `git fetch origin && git status -sb && git log --oneline -5`; `npm ci` once per checkout.
-   **Before opening a new branch**, read existing PRs and their latest exact-head CI: a failed predecessor takes
-   priority over the next card and must be corrected without a new prompt.
-2. `sed -n '1,40p' docs/STATUS.md` → the **Next** section names the card.
-3. Resume note? `ls docs/pr-cards/*.progress.md 2>/dev/null` — if your card has one, continue from its "Next step".
-   Do not restart work it lists as done.
-4. Read your card (`docs/pr-cards/<ID>.md`). If the roadmap says JIT (no card yet), write it first from the design
-   (`docs/pr-cards/README.md`, 40–100 lines). Read only what the card's "Read only these" list says.
-5. For implementation detail, select one recipe or remaining-work row from
-   [implementation guides](implementation-guides/README.md). Reconcile its baseline and proposed paths in drift A;
-   the card should link only the sections it uses, not require reading all guides.
+## 5. Checkpoint and finish
 
-**GitHub REST fallback (no usable local shell):** Use the connected GitHub REST interface for repository reads, branch creation, file/tree/commit writes, PRs, exact-head check-runs, job logs/annotations, review threads and expected-head merges. REST calls **do not execute local tests**. Run repository tests through the PR's ordinary GitHub Actions CI; never describe them as locally passed. For example, inspect `GET /repos/{owner}/{repo}/commits/{sha}/check-runs`, `GET /repos/{owner}/{repo}/actions/runs?head_sha={sha}` and the failed run's jobs/annotations. If the connector has separate read/write actions, prefer those; do not assume an arbitrary REST fetch supports writes. Follow the same exact-head CI, secret, test, review, draft-PR and merge gates as a shell workflow. Keep the CI workflow unchanged and do not use a direct commit to `main` as a shortcut.
+Keep a short progress note on interrupted branches: head, done/proof, one next action,
+CI/review state, successor and exact blocker. Diagnose and attempt authorized remedies
+before deferring; isolate the operation and continue approved independent work. Limited
+release frequency is planned queued acceptance, never a project-wide stop.
 
-## 2. Never do these without Chris (AGENTS "Hard limits")
+Normal implementation sessions deliver five substantial merged PRs including inherited
+work; adjust to the next higher PR-number multiple of five using actual allocation and
+recalculate for concurrency. No special six-PR rule, filler or documentation-only quota.
+This owner-requested repository optimization is scoped maintenance, not a five-feature
+batch. Preserve safety even when no further eligible work or an execution limit remains.
+At completed-session end update status/cards/index, verify final main, leave a permanent
+handoff on the final merged PR and automatically give a short continuation prompt:
+repository + verified handoff + next outcome + queue pointer. Refer to the repository
+for rules/order rather than recopying them. Preserve interrupted-session obligations.
 
-A live Stripe key or any live-mode write; moving real money; buying anything; a secret anywhere in code, docs, tests,
-logs, PR text or tool results; changing the Appliance Desk repo or other projects; changing app-owned Stripe records;
-widening default key or pass permissions; committing to `main`; skipping, disabling or weakening tests.
+## 6. Safety and specialized procedures
 
-## 3. The work loop
-
-1. Branch `ai/<tool>/<topic>` from latest `main` (or the card's base).
-2. Drift check: `docs/implementation-contracts/DRIFT-PROTOCOL.md` **checklist A** (table in the PR, card corrected
-   first).
-3. Build one work unit → its tests → run them (`npx vitest run <files>`; `npm run test:db -- <file>` when it touches
-   SQL; `npm run test:mock -- <file>` when it adds or changes a Stripe call) → `npm run check` → **commit locally** →
-   update the resume note (§4). Repeat. Red → fix one failing file at a time, then the full check once.
-4. **Code first, then docs.** In an implementation PR, edit only the docs checklist B names.
-5. When the card is complete: update the docs **as if this PR had already merged** (card `MERGED (#n)`, STATUS,
-   `work-index.json`, TOOL-CATALOG marks, ARCHITECTURE when infra changed — checklist B), push once, open the PR,
-   then follow PLAYBOOK Steps 5–9.
-
-## 4. Resume note — so stopping never loses your place
-
-Keep `docs/pr-cards/<ID>.progress.md` (≤20 lines) on your branch and update it after every commit:
-
-```
-Card: B-1 · Branch: ai/sol/b-1-safety · Last commit: <sha> <subject>
-Done: 1 money spec + dollar line (tests pass) · 2 daily limit
-Next step: 3 read-back verify — write verify() for refunds, then its unit test
-Blocked: none
-```
-
-Delete it in the card's final commit.
-
-## 5. Anti-stall rules (AGENTS "Working without stalling" — mandatory)
-
-- Files over ~300 lines by section only (`grep -n` the heading, then `sed -n 'A,Bp'`, ≤150 lines). Never read
-  `vendor/stripe-openapi/*.json` whole; query it with `node scripts/openapi-find.mjs "<words>"` once A-4 exists.
-- Every search has a path and `| head -50`. Only commands that finish by themselves; `timeout 600` for slow ones.
-- Pipe long output through `| tail -80`. Same command fails twice → change approach or record the blocker.
-- After ~10 reads/searches without an edit, make the smallest next edit.
-- CI and reviews: check once, act on what is new, then do other work. Red CI is actionable work, not a pause.
-- For new tool registrations, update registry, profile-count and discovery tests in the same commit;
-  lint plus pinned SDK/stripe-mock request-shape tests precede any claim that a tool works.
-
-## 6. Keep moving: problems are not blockers
-
-| Engineering problem — **fix it yourself, never stop** | Real blocker — stop and ask Chris |
-|---|---|
-| Red CI, lint errors, a failing or outdated test, a wrong API parameter, a merge conflict, a failure that "looks flaky", unclear existing code, a missing card (write it), docs that disagree with code, a card that is too big (split it and record the split) | A hard limit (§2); an owner decision (`IN-xx`) the **current step** truly needs; a design that cannot work (write a dated amendment, then continue other work while it waits) |
-
-**Mandatory blocker decision before stopping:** (1) Diagnose and attempt an authorized repair, checking source defects, configuration, dependencies, stale instructions and prior owner decisions. (2) Finish available implementation/verification; recording a blocker is not sufficient. (3) If an external credential, permission, decision or evidence remains unavailable, isolate *that specific operation*, log its exact prerequisite and eligibility/re-entry condition, and continue the highest-priority approved independent work from the remaining roadmap. (4) Requeue deferred work automatically when the condition clears. Do not end the five-substantial-PR batch early or issue a continuation prompt simply because one preferred milestone cannot advance. Stop early only with verifiable proof that every remaining safe substantial task is ineligible, or a specific execution limitation; include fixes attempted and the smallest missing external action. Never weaken tests, approval gates, financial protections or produce fictional acceptance evidence.
-
-**Validate in thin slices.** Write the smallest piece plus its test, then run that test and lint the files you touched
-(`npx vitest run <file>`, `npx eslint <files>`) **before** writing the next piece. Never write more than about 150
-production lines without running tests. Look up every external API parameter before coding it — in the vendored API description
-(`node scripts/openapi-find.mjs "<words>"` once it exists), or, for calls the design routes through a pinned official
-package instead, in that package's types and documentation — a wrong parameter is the most common CI failure.
-Run the full `npm run check` and `npm test` before every push: CI should only confirm what you already know.
-
-**No shell?** If your workspace cannot run commands (you edit through a GitHub connector), you cannot validate locally:
-open the PR as a **draft** after the first slice and push **each slice once the previous run has finished** — CI is
-your test runner (this replaces "one push
-per CI cycle"). Read failures from check-run annotations and fix them before adding the next slice.
-
-**CI cadence: one complete run per fix batch.** Every push starts a full CI run, and that is intended: the merge gate
-must be green at the exact head, because a fix in one place can break another. So make each run count:
-- **Never push while your PR's CI run is still in progress.** Wait for every job to finish (PLAYBOOK Step 10's bounded
-  wait; build the next slice locally meanwhile), collect **all** failures, fix them together, then push once.
-- Run the checks locally first whenever you can (`npm run check`, `npm test`, and the db/mock tests the change touches),
-  so CI confirms rather than discovers.
-- "Re-run failed jobs" on GitHub is only for an infrastructure hiccup with no code change (a runner or network error);
-  any code change gets a full run.
-
-**Leave an exact recovery point.** Never end a turn with a plan, a promise ("I'll now …") or a summary while work
-remains. End every turn right after a push whose resume note's "Next step" is the exact next action — a command or a
-file and function, e.g. "CI red at 8adb4bf: `tests/unit/billing.test.js` expects old message; update it, then lint
-`src/tools/billing.js`".
-
-**Stopping** happens only for a real blocker. Before stopping: update the resume note and `docs/STATUS.md`, then
-commit and push them with the work, and say in one plain-English paragraph what is done and exactly what Chris needs to decide.
-
-## Restart message for Chris to paste when a session stops
-
-> Continue the Stripe MCP work. Read `docs/SESSION-START.md` and do §0 first: finish any open PR of yours (fix red
-> CI, then merge) before starting the next card. Then keep going card after card; stop only for a real blocker (§6).
+Governing instructions, existing PLAYBOOK/hosting rules, owner decisions and the card's
+specific safety procedures remain binding. Reuse saved authorized developer connections.
+Security, money-out approval, production activation, spend, isolation, exact fixture
+cleanup, secret handling and all required local/Actions tests are unchanged.
