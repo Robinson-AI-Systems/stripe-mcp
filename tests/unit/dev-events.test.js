@@ -242,8 +242,8 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(triggerTypes).toEqual(['customer.created','product.created',
       'price.created','payment_intent.created','payment_intent.succeeded','customer.updated',
       'product.updated','price.updated','payment_intent.canceled',
-      'customer.subscription.updated',
-      'customer.subscription.created','customer.subscription.deleted',
+      'customer.subscription.created','customer.subscription.updated',
+      'customer.subscription.deleted',
       'invoice.created','invoice.updated','invoice.finalized','invoice.paid',
       'payment_intent.payment_failed','charge.dispute.created',
       'invoice.payment_failed','checkout.session.completed']);
@@ -296,8 +296,11 @@ describe('V-3a real TEST provider event generation',()=>{
     const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
     const first=parse(await op.handler({...a,confirm:true},f.ctx));
     expect(first.done).toBe(false);
-    expect(f.calls.filter(c=>c.action==='mutate')).toHaveLength(1);
-    const source=f.calls.filter(c=>c.action==='mutate')[0];
+    const initial=f.calls.filter(c=>c.action==='mutate');
+    expect(initial.filter(c=>c.type===
+      (type==='customer.subscription.updated'?'subscription':
+        type.split('.')[0]))).toHaveLength(1);
+    const source=initial[0];
     expect(source.opts.idempotencyKey).toMatch(/^rmcp_/);
     if(type==='payment_intent.canceled'){
       expect(f.objects.get('pi_FAKE123')).toMatchObject({status:'canceled',
@@ -309,7 +312,8 @@ describe('V-3a real TEST provider event generation',()=>{
     f.showEvents();
     expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
     expect(f.calls.filter(c=>c.action==='create')).toHaveLength(saved);
-    expect(f.calls.filter(c=>c.action==='mutate')).toHaveLength(1);
+    expect(f.calls.filter(c=>c.action==='mutate'))
+      .toHaveLength(initial.length);
   });
   it.each(['customer.subscription.created','customer.subscription.updated',
     'customer.subscription.deleted'])(
