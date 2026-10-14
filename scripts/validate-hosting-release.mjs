@@ -26,14 +26,23 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
   const scheduleBody=promote.match(/^  schedule:\s*\n((?:(?: {4,}[^\n]*|[ \t]*)\n)*)/m)?.[1];
   const rows=scheduleBody?.split('\n').map(line=>line.trim())
     .filter(line=>line&&!line.startsWith('#'))??[];
-  const requiredCron="cron: '1 0 * * *'";
+  // The 00:01 owner release is primary. GitHub can drop cron events,
+  // so exactly two later off-peak retry windows recover a missed trigger.
+  // The immutable daily tag and atomic guarded promotion still cap at ONE
+  // release per Denver day; changing or adding any cron fails policy CI.
+  const approvedCrons=["cron: '1 0 * * *'",
+    "cron: '17 0 * * *'","cron: '43 0 * * *'"];
   const requiredTimezone='timezone: America/Denver';
   const matches=(row,property)=>row===property||row===property.replace(/'/g,'"');
-  const oneCorrectSchedule=rows.length===2&&(
-    (matches(rows[0],'- '+requiredCron)&&rows[1]===requiredTimezone)||
-    (rows[0]==='- '+requiredTimezone&&matches(rows[1],requiredCron))
-  );
-  if(scheduleHeadings.length!==1||!oneCorrectSchedule||
+  // Preserve both GitHub-valid key orders for each *exact* approved item.
+  // The three pairs must be the only schedule rows, in this order.
+  const onlyApprovedSchedules=rows.length===approvedCrons.length*2&&
+    approvedCrons.every((cron,i)=>{
+      const [first,second]=rows.slice(i*2,i*2+2);
+      return (matches(first,'- '+cron)&&second===requiredTimezone)||
+        (first==='- '+requiredTimezone&&matches(second,cron));
+    });
+  if(scheduleHeadings.length!==1||!onlyApprovedSchedules||
      /workflow_dispatch\s*:|workflow_call\s*:|\bpush\s*:/.test(promote)||
      !/contents:\s*write/.test(promote)||
      !/checks:\s*read/.test(promote)||
