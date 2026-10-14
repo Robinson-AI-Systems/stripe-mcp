@@ -49,6 +49,16 @@ function fixture({showEvent=false,foreign=false}={}){
     customers:{create:async(b,o)=>creates('customer','cus',b,o),
       retrieve:async id=>get(id),
       update:async(id,b,o)=>mutate('customer',id,b,o)},
+    paymentMethods:{
+      attach:async(p,{customer},o)=>{
+        if(p!=='pm_card_chargeCustomerFail')throw Error('Unexpected TEST declining card');
+        return creates('payment_method','pm',
+          {customer,type:'card',metadata:{}},o);
+      },
+      update:async(id,p,o)=>mutate('payment_method',id,p,o),
+      retrieve:async id=>get(id),
+      detach:async(id,_p,o)=>mutate('payment_method',id,{customer:null},o)
+    },
     paymentIntents:{create:async(b,o)=>{
       const pi=creates('payment_intent','pi',b,o);
       if(b.payment_method==='pm_card_createDispute'&&!pi.latest_charge){
@@ -115,8 +125,10 @@ function fixture({showEvent=false,foreign=false}={}){
       finalizeInvoice:async(id,_params,o)=>mutate('invoice',id,
         {status:get(id).amount_due===3600?'open':'paid',auto_advance:false},o),
       pay:async(id,p,o)=>{
-        if(p.payment_method!=='pm_card_chargeCustomerFail')
-          throw Error('Unexpected TEST failed-invoice payment method');
+        const card=get(p.payment_method);
+        if(card.object!=='payment_method'||card.customer!==get(id).customer||
+          card.metadata?.rtc_run!==get(id).metadata?.rtc_run)
+          throw Error('Untracked or foreign TEST failed-invoice payment method');
         await mutate('invoice',id,{status:'open',attempted:true,
           attempt_count:1,amount_due:3600,amount_remaining:3600,
           amount_paid:0},o);
@@ -463,7 +475,7 @@ describe('V-3a real TEST provider event generation',()=>{
     const run=[...f.runs.values()][0];
     expect(run.status).toBe('running');
     expect(f.ledger.get(run.id).map(x=>x.object_type))
-      .toEqual(['customer','invoice','invoice_item']);
+      .toEqual(['customer','invoice','invoice_item','payment_method']);
     expect(f.objects.get('ii_FAKE123')).toMatchObject({
       invoice:'in_FAKE123',customer:'cus_FAKE123',amount:3600,
       metadata:{rtc_run:run.id}});

@@ -1,6 +1,6 @@
 // V-3 incomplete TEST trigger recovery inspection. This reader never resumes,
 // cleans, or creates Stripe objects and does not infer that an Event was absent.
-import {planTrigger,triggerTypes,inspectIncompleteOriginalEvent} from '../dev/triggers.js';
+import {resolveTriggerPlan,triggerTypes,inspectIncompleteOriginalEvent} from '../dev/triggers.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
 import {allProfiles,client,reply} from './billing-shared.js';
 import {gone} from './write.js';
@@ -12,7 +12,8 @@ const identities={
   price:['price','price'],subscription:['sub','subscription'],
   invoice:['in','invoice'],payment_intent:['pi','payment_intent'],
   invoice_item:['ii','invoiceitem'],checkout_session:['cs_test','checkout.session'],
-  charge:['ch','charge'],dispute:['du','dispute'],event:['evt','event']
+  charge:['ch','charge'],dispute:['du','dispute'],
+  payment_method:['pm','payment_method'],event:['evt','event']
 };
 const read={
   customer:(s,id)=>s.customers.retrieve(id),
@@ -24,7 +25,8 @@ const read={
   invoice_item:(s,id)=>s.invoiceItems.retrieve(id),
   checkout_session:(s,id)=>s.checkout.sessions.retrieve(id),
   charge:(s,id)=>s.charges.retrieve(id),
-  dispute:(s,id)=>s.disputes.retrieve(id)
+  dispute:(s,id)=>s.disputes.retrieve(id),
+  payment_method:(s,id)=>s.paymentMethods.retrieve(id)
 };
 const ref=x=>typeof x==='string'?x:x?.id;
 const own=(o,row,run,byStep)=>{
@@ -49,6 +51,10 @@ const own=(o,row,run,byStep)=>{
     ref(o.customer)!==byStep.get('customer_1')?.object_id)return false;
   if(row.object_type==='invoice_item')
     return ref(o.invoice)===byStep.get('invoice_1')?.object_id;
+  if(row.object_type==='payment_method')
+    return o.type==='card'&&
+      (ref(o.customer)===byStep.get('customer_1')?.object_id||
+        o.customer===null&&row.cleaned===true);
   if(row.object_type==='subscription')
     return Array.isArray(o.items?.data)&&o.items.data.some(item=>
       ref(item.price)===byStep.get('price_1')?.object_id);
@@ -70,6 +76,7 @@ function safeState(type,o){
       o.status:null;
   if(type==='checkout_session')
     return ['open','expired','complete'].includes(o.status)?o.status:null;
+  if(type==='payment_method')return o.customer===null?'detached':'attached';
   if(['charge','dispute','invoice_item'].includes(type))
     return 'financial_evidence_retained';
   return null;
@@ -145,7 +152,7 @@ export const handlers={
     const type=triggerTypes.find(t=>'event-'+t.replaceAll('_','-')
       .replaceAll('.','-')===run.scenario);
     if(!type)return gone('Not a supported native TEST trigger run');
-    const plan=planTrigger({type,requestKey:run.request_key},account);
+    const plan=resolveTriggerPlan({type,requestKey:run.request_key},account,run);
     if(plan.runId!==run.id||plan.planDigest!==run.plan_digest||
       plan.scenario!==run.scenario)
       return gone('Immutable TEST trigger plan differs from ledger');

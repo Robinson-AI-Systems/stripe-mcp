@@ -12,6 +12,7 @@ const refs={customer:['customers','customer'],product:['products','product'],
   invoice:['invoices','invoice'],payment_intent:['paymentIntents','payment_intent'],
   charge:['charges','charge'],dispute:['disputes','dispute'],
   invoice_item:['invoiceItems','invoiceitem'],refund:['refunds','refund'],
+  payment_method:['paymentMethods','payment_method'],
   checkout_session:['checkout.sessions','checkout.session']};
 const immutable=new Set(['charge','dispute','refund','invoice_item']);
 const providerRead=(stripe,type,id)=>{
@@ -22,7 +23,7 @@ const providerRead=(stripe,type,id)=>{
     throw new TypeError('TEST provider reader unavailable');
   return sdk.retrieve(id);
 };
-function inspectState(row,obj,runId,scenario){
+function inspectState(row,obj,runId,scenario,rows){
   const known=refs[row.object_type];
   if(!known||obj?.id!==row.object_id||obj.object!==known[1]||
     obj.livemode===true||Object.keys(obj.metadata??{}).some(x=>
@@ -33,6 +34,16 @@ function inspectState(row,obj,runId,scenario){
     obj.metadata?.rtc_run!==runId)
     return 'unverified';
   switch(row.object_type){
+    case 'payment_method':{
+      if(obj.livemode!==false||obj.type!=='card')return 'unverified';
+      // A recorded detached card must still be owned by the exact original
+      // run, and the provider readback is separate from the SQL cleanup flag.
+      const exactCustomer=rows.find(r=>r.step_name==='customer_1'&&
+        r.object_type==='customer')?.object_id;
+      if(!exactCustomer)return 'unverified';
+      return obj.customer===null?'cleaned':
+        obj.customer===exactCustomer?'outstanding':'unverified';
+    }
     case 'customer':return obj.deleted===true?'cleaned':'outstanding';
     case 'product':case 'price':
       return obj.active===false?'cleaned':obj.active===true?'outstanding':'unverified';
@@ -105,7 +116,7 @@ export const handlers={
       let state='unverified';
       try{
         const obj=await providerRead(stripe,row.object_type,row.object_id);
-        state=inspectState(row,obj,run.id,run.scenario);
+        state=inspectState(row,obj,run.id,run.scenario,rows);
       }catch(error){
         // Strict absent-invoice classification requires an independently
         // verified original draft Event source; never assume other 404s

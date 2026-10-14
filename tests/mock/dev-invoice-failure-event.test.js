@@ -24,6 +24,16 @@ describe('V-3c3c native TEST failed invoice request shapes',()=>{
     expect((await stripe().invoiceItems.retrieve('ii_FAKE123')).object)
       .toBe('invoiceitem');
   });
+  it('attaches and verifies the exact native customer TEST payment-method request',async()=>{
+    const attached=await stripe().paymentMethods.attach(
+      'pm_card_chargeCustomerFail',{customer:'cus_FAKE123'},opts);
+    expect(attached.object).toBe('payment_method');
+    expect(attached.customer).toBe('cus_FAKE123');
+    const updated=await stripe().paymentMethods.update(attached.id,{metadata},opts);
+    expect(updated.object).toBe('payment_method');
+    const loaded=await stripe().paymentMethods.retrieve(attached.id);
+    expect(loaded.object).toBe('payment_method');
+  });
   it('finalizes without automatic payment then sends only synthetic decline attempt',async()=>{
     const invoice=await stripe().invoices.finalizeInvoice('in_FAKE123',{
       auto_advance:false
@@ -31,7 +41,7 @@ describe('V-3c3c native TEST failed invoice request shapes',()=>{
     expect(invoice.object).toBe('invoice');
     try{
       const paid=await stripe().invoices.pay('in_FAKE123',{
-        payment_method:'pm_card_chargeCustomerFail'
+        payment_method:'pm_FAKE123'
       },opts);
       expect(paid.object).toBe('invoice');
     }catch(error){expect(error.type).toBe('StripeCardError');}

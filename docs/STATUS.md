@@ -1,3 +1,17 @@
+### October 14 V-3 tracked invoice-failure TEST provider correction — SOURCE ONLY
+
+A verified Stripe invoice-pay contract mismatch in the native `invoice.payment_failed`
+trigger required a customer-owned PaymentMethod. New immutable plans record a
+separately tagged, independently retrieved TEST card before collection and
+expose guarded detach, source inspection and provider-versus-ledger cleanup
+readback. Existing incomplete source plans are preserved for read-only
+original recovery, never upgraded or auto-retried. Focused unit/Stripe-mock
+source regressions accompany this implementation. This branch has not yet
+passed all required exact-head CI and review, merged to `main`, reached
+checked `live`, or demonstrated a new original Stripe Event. Its queue row
+must stay PENDING until real deployment and selected-account custom TEST
+provider evidence. No LIVE, money-out, spending, approval or owner-grant change.
+
 ### Owner-requested throughput measurement update — October 14, 2026
 
 Focused maintenance: 400–800 changed production lines and 2–5 completely
@@ -271,6 +285,19 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 PR #225 source: native failed-write adapter adds pendingRunId/pendingRunStatus/recordedSteps only after confirmed attempt, durable immutable run-plan and at least one exact recorded source. Previews, auth denials, no-run cases and completed Events remain unchanged. Deployed native rejection receipt proof awaits checked release."
+  },
+  {
+    "id": "STRIPE-V3-TRACKED-INVOICE-DECLINE",
+    "priority": 8,
+    "requiredRevision": "dab8d1edd1a8dfa977da3e4d70bd42d11712bcf0",
+    "task": "Prove genuinely declined run-owned attached TEST invoice card, original invoice.payment_failed Event, guarded detach and independent cleanup readback",
+    "procedure": "docs/pr-cards/V-3.md tracked customer-attached TEST decline repair; tests/unit/dev-invoice-failure-state.test.js; tests/mock/dev-invoice-failure-event.test.js",
+    "gates": "Reviewed exact-head CI, checked READY revision, original selected TEST account and guarded preview+confirm; no legacy run replay, LIVE, owner money out, or untracked PM",
+    "dependsOn": [
+      "STRIPE-V3-RUN-INSPECTION"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source branch: added plan-version-compatible run-owned TEST method lifecycle and negative regressions; no live/provider acceptance performed."
   }
 ]
 ```

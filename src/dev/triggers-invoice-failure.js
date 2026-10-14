@@ -36,11 +36,24 @@ export function matchesInvoiceFailureEvent(plan,object,target){
     return object.id===target.id;
   }catch{return false;}
 }
+// Stripe invoices.pay requires an invoice-customer-owned PaymentMethod.
+export function verifyFailedInvoiceMethod(plan,method,rows){
+  if(!isInvoiceFailureEvent(plan.type))return;
+  if(method?.object!=='payment_method'||method.livemode!==false||
+    method.type!=='card'||method.metadata?.rtc_run!==plan.runId||
+    ref(method.customer)!==rows.get('customer_1')?.object_id||
+    method.id!==rows.get('payment_method_1')?.object_id)
+    fail('Declining TEST card is not attached to the recorded invoice customer');
+}
 export async function ensureFailedInvoicePayment(s,plan,rows,rootKey){
   if(!isInvoiceFailureEvent(plan.type))return;
   const invoiceId=rows.get('invoice_1')?.object_id;
   const itemId=rows.get('invoice_item_1')?.object_id;
-  if(!invoiceId||!itemId)fail('Recorded TEST invoice and invoice line required');
+  const paymentMethodId=rows.get('payment_method_1')?.object_id;
+  if(!invoiceId||!itemId||!/^pm_[A-Za-z0-9]{2,100}$/.test(paymentMethodId??''))
+    fail('Recorded TEST invoice, invoice line and attached declining card required');
+  const method=await s.paymentMethods.retrieve(paymentMethodId);
+  verifyFailedInvoiceMethod(plan,method,rows);
   const item=await s.invoiceItems.retrieve(itemId);
   verifyFailedInvoiceItem(plan,item,rows);
   let invoice=await s.invoices.retrieve(invoiceId);
@@ -62,7 +75,7 @@ export async function ensureFailedInvoicePayment(s,plan,rows,rootKey){
     invoice.attempt_count<1){
     try{
       const result=await s.invoices.pay(invoiceId,{
-        payment_method:'pm_card_chargeCustomerFail'
+        payment_method:paymentMethodId
       },{idempotencyKey:rootKey+'_failure_invoice_pay'});
       if(result?.object!=='invoice'||result.id!==invoiceId||
         result.livemode===true)

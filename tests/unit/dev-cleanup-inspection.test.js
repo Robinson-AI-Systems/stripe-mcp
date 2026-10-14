@@ -119,6 +119,52 @@ describe('provider-verified TEST cleanup inspection',()=>{
     value=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
     expect(value.allEligibleCleanedAndVerified).toBe(true);
   });
+  it('independently classifies run-owned attached, foreign and detached declined cards',async()=>{
+    const f=fixture(),key='invoice-fail-owned-card';
+    const plan=planTrigger({type:'invoice.payment_failed',requestKey:key},account);
+    Object.assign(f.run,{id:plan.runId,request_key:key,
+      scenario:plan.scenario,plan_digest:plan.planDigest});
+    f.rows.splice(0,f.rows.length,
+      {step_name:'customer_1',object_type:'customer',
+        object_id:'cus_VERIFY123',cleaned:true},
+      {step_name:'invoice_1',object_type:'invoice',
+        object_id:'in_VERIFY123',cleaned:false},
+      {step_name:'invoice_item_1',object_type:'invoice_item',
+        object_id:'ii_VERIFY123',cleaned:false},
+      {step_name:'payment_method_1',object_type:'payment_method',
+        object_id:'pm_VERIFY123',cleaned:false},
+      {step_name:'event_1',object_type:'event',
+        object_id:'evt_VERIFY123',cleaned:false});
+    const invoice={id:'in_VERIFY123',object:'invoice',livemode:false,
+      status:'open',currency:'usd',customer:'cus_VERIFY123',amount_paid:0,
+      amount_due:3600,amount_remaining:3600,attempted:true,attempt_count:1,
+      metadata:{rtc_run:f.run.id}};
+    f.setEvent({...f.event,type:'invoice.payment_failed',
+      data:{object:invoice}});
+    const sdk=await f.ctx.services.stripeForConnection();
+    sdk.invoices={retrieve:async()=>invoice};
+    sdk.invoiceItems={retrieve:async()=>({id:'ii_VERIFY123',
+      object:'invoiceitem',livemode:false,metadata:{rtc_run:f.run.id}})};
+    let current={id:'pm_VERIFY123',object:'payment_method',type:'card',
+      livemode:false,customer:'cus_VERIFY123',metadata:{rtc_run:f.run.id}};
+    sdk.paymentMethods={retrieve:async()=>current};
+    const check=()=>handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx);
+    let report=parse(await check());
+    expect(report.eventProviderVerified).toBe(true);
+    expect(report.rows.find(x=>x.type==='payment_method').verification)
+      .toBe('pending_cleanup');
+    current={...current,customer:'cus_FOREIGN123'};
+    report=parse(await check());
+    expect(report.rows.find(x=>x.type==='payment_method').verification)
+      .toBe('provider_unverified');
+    f.rows.find(x=>x.type==='payment_method'||x.object_type==='payment_method').cleaned=true;
+    current={...current,customer:null};
+    report=parse(await check());
+    expect(report.rows.find(x=>x.type==='payment_method').verification)
+      .toBe('verified_cleaned');
+    expect(report.rows.find(x=>x.type==='invoice').verification)
+      .toBe('intentionally_retained');
+  });
   it('registers a read-only selected-account verifier',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});

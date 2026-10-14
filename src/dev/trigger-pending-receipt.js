@@ -1,6 +1,6 @@
 // V-3: actionable, account-scoped receipts for genuinely incomplete native
 // TEST trigger writes. No provider reads/writes and never a success receipt.
-import {planTrigger} from './triggers.js';
+import {resolveTriggerPlan} from './triggers.js';
 const RUN=/^run_[a-f0-9]{24}$/;
 const ACCOUNT=/^acct_[A-Za-z0-9]{2,100}$/;
 const SOURCE_ID={
@@ -28,8 +28,8 @@ export async function pendingTriggerReceipt(a,ctx,response){
   let plan,run,rows;
   const account=ctx.connection.stripeAccount;
   try{
-    plan=planTrigger(a,account);
     run=await ctx.db.getDevRun({account,requestKey:a.requestKey});
+    plan=resolveTriggerPlan(a,account,run);
     if(!run||!RUN.test(run.id)||run.id!==plan.runId||
       run.stripe_account!==account||run.request_key!==a.requestKey||
       run.plan_digest!==plan.planDigest||run.scenario!==plan.scenario||

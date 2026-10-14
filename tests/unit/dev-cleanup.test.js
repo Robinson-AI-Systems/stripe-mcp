@@ -122,6 +122,43 @@ describe('V-2a guarded cleanup, exact provider read-back, and retained money',()
     expect(f.rows.filter(x=>!x.cleaned).map(x=>x.object_type))
       .toEqual(['refund','connected_account','test_clock']);
   });
+  it('detaches a recorded TEST card before its customer and marks only independently verified state',async()=>{
+    const f=fixture();
+    f.run.scenario='event-invoice-payment-failed';
+    f.rows.push({step_name:'payment_method_1',object_type:'payment_method',
+      object_id:'pm_FAKE123',cleaned:false});
+    f.objects.set('pm_FAKE123',{id:'pm_FAKE123',object:'payment_method',
+      livemode:false,metadata:{rtc_run:runId},customer:'cus_FAKE123',
+      type:'card',card:{last4:'0341'}});
+    f.sdk.paymentMethods={
+      retrieve:async id=>f.get(id),
+      detach:async(id,_unused,options)=>{
+        expect(options.idempotencyKey).toMatch(/^rmcp_/);
+        return f.objects.set(id,{...f.get(id),customer:null}),f.get(id);
+      }
+    };
+    const result=parse(await makeDevCleanupWrite().handler(p(),f.ctx));
+    expect(result.cleanup.outcomes.find(x=>x.step==='payment_method_1'))
+      .toMatchObject({status:'cleaned'});
+    expect(f.rows.find(x=>x.step_name==='payment_method_1').cleaned).toBe(true);
+    expect(f.get('pm_FAKE123').customer).toBe(null);
+    expect(f.calls.findIndex(x=>x[0]==='customer_delete')).toBeGreaterThan(-1);
+    expect(result.cleanup.outcomes.find(x=>x.step==='invoice_1'))
+      .toMatchObject({status:'retained',retention:'immutable'});
+  });
+  it('rejects a TEST card owned by another customer before any cleanup mutation',async()=>{
+    const f=fixture();
+    f.rows.push({step_name:'payment_method_1',object_type:'payment_method',
+      object_id:'pm_FAKE123',cleaned:false});
+    f.sdk.paymentMethods={retrieve:async()=>({
+      id:'pm_FAKE123',object:'payment_method',type:'card',livemode:false,
+      customer:'cus_FOREIGN123',metadata:{rtc_run:runId}
+    })};
+    const result=parse(await makeDevCleanupWrite().handler(p(),f.ctx));
+    expect(result.done).toBe(false);
+    expect(f.calls).toHaveLength(0);
+    expect(f.rows.every(x=>!x.cleaned)).toBe(true);
+  });
   it('confirms a draft invoice deletion from exact receipt plus independent 404',async()=>{
     const f=fixture();
     f.objects.set('in_FAKE123',{...f.get('in_FAKE123'),status:'draft'});

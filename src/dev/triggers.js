@@ -32,10 +32,10 @@ export const triggerTypes=Object.freeze([
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice',
   charge:'charge',dispute:'dispute',invoice_item:'invoiceitem',
-  checkout_session:'checkout.session'};
+  payment_method:'payment_method',checkout_session:'checkout.session'};
 const prefix={customer:'cus',product:'prod',price:'price',
   payment_intent:'pi',subscription:'sub',invoice:'in',charge:'ch',dispute:'du',
-  invoice_item:'ii',checkout_session:'cs_test',event:'evt'};
+  invoice_item:'ii',payment_method:'pm',checkout_session:'cs_test',event:'evt'};
 const read=async(s,type,providerId)=>{
   switch(type){
     case 'customer':return s.customers.retrieve(providerId);
@@ -47,11 +47,12 @@ const read=async(s,type,providerId)=>{
     case 'charge':return s.charges.retrieve(providerId);
     case 'dispute':return s.disputes.retrieve(providerId);
     case 'invoice_item':return s.invoiceItems.retrieve(providerId);
+    case 'payment_method':return s.paymentMethods.retrieve(providerId);
     case 'checkout_session':return s.checkout.sessions.retrieve(providerId);
     default:bad('Unsupported TEST provider fixture');
   }
 };
-export function planTrigger(a,account){
+export function planTrigger(a,account,{legacyInvoiceFailure=false}={}){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>!['type','requestKey','dryRun','confirm'].includes(k))||
     !triggerTypes.includes(a.type)||!id(account,'acct')||
@@ -61,7 +62,8 @@ export function planTrigger(a,account){
   const types=isCheckoutEvent(a.type)?
     ['product','price','customer','checkout_session','payment_intent']:
     isInvoiceFailureEvent(a.type)?
-    ['customer','invoice','invoice_item']:
+    (legacyInvoiceFailure?['customer','invoice','invoice_item']:
+      ['customer','invoice','invoice_item','payment_method']):
     isDisputeEvent(a.type)?
     ['customer','payment_intent','charge','dispute']:
     isInvoiceEvent(a.type)?['customer','invoice']:
@@ -72,14 +74,26 @@ export function planTrigger(a,account){
     [a.type.split('.')[0]];
   const steps=types.map(type=>({name:type+'_1',type}))
     .concat([{name:'event_1',type:'event'}]);
-  return {runId,scenario:'event-'+a.type.replaceAll('_','-').replaceAll('.','-'),
+  return {runId,legacyInvoiceFailure,
+    scenario:'event-'+a.type.replaceAll('_','-').replaceAll('.','-'),
     type:a.type,steps,size:1,expectedSteps:steps.length,
     planDigest:hash(JSON.stringify([a.type,steps])),amountCents:
       a.type==='payment_intent.succeeded'||isDisputeEvent(a.type)?3600:0};
 }
+// Preserve the old immutable failed-invoice plan for recorded unfinished runs.
+// New runs record their declining card as a distinct owned cleanup step.
+export function resolveTriggerPlan(a,account,recorded=null){
+  const current=planTrigger(a,account);
+  if(!recorded||recorded.plan_digest===current.planDigest)return current;
+  if(isInvoiceFailureEvent(a.type)){
+    const legacy=planTrigger(a,account,{legacyInvoiceFailure:true});
+    if(recorded.plan_digest===legacy.planDigest)return legacy;
+  }
+  return current;
+}
 function verifyFixture(plan,step,x,objects){
   if(x?.object!==kind[step.type]||!id(x.id,prefix[step.type])||
-    x.livemode===true||(!isDisputeEvent(plan.type)||
+    x.livemode!==false||(!isDisputeEvent(plan.type)||
       !['charge','dispute'].includes(step.type))&&
       x.metadata?.rtc_run!==plan.runId)
     bad('Independent Stripe TEST event fixture provenance differs');
@@ -113,6 +127,9 @@ function verifyFixture(plan,step,x,objects){
     verifyCheckoutSession(plan,x,objects);
   if(isCheckoutEvent(plan.type)&&step.type==='payment_intent')
     verifyCheckoutPayment(plan,x,objects);
+  if(step.type==='payment_method'&&(
+    x.type!=='card'||ref(x.customer)!==objects.get('customer_1')?.object_id))
+    bad('Tracked TEST declining PaymentMethod is not linked to the exact customer');
   if(step.type==='subscription')verifySubscriptionObject(plan,x,objects);
   if(step.type==='invoice'){
     if(isInvoiceFailureEvent(plan.type))
@@ -168,6 +185,8 @@ export async function findGeneratedEvent(s,plan,account,target){
 }
 export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
   if(run.status==='completed')return run;
+  if(plan.legacyInvoiceFailure)
+    bad('Legacy failed-invoice TEST run is read-only; inspect original sources, never replay an untracked payment method');
   if(run.status!=='running'||Date.now()-new Date(run.created_at).getTime()>43200000)
     bad('Stale/uncertain TEST event run cannot be safely resumed');
   const existing=await db.getDevRunObjects({account,id:plan.runId});
@@ -264,6 +283,20 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
             metadata},opts);
           break;
         }
+        case 'payment_method':{
+          const customer=byStep.get('customer_1')?.object_id;
+          if(!id(customer,'cus'))bad('Recorded TEST invoice customer required for declining card');
+          const attached=await s.paymentMethods.attach('pm_card_chargeCustomerFail',
+            {customer},opts);
+          if(!id(attached?.id,'pm')||attached.object!=='payment_method'||
+            attached.livemode!==false||ref(attached.customer)!==customer||
+            attached.type!=='card')
+            bad('Stripe did not attach the declining TEST card to exact customer');
+          await s.paymentMethods.update(attached.id,{metadata},{
+            idempotencyKey:rootKey+'_failure_payment_method_tag'});
+          made=await s.paymentMethods.retrieve(attached.id);
+          break;
+        }
         case 'subscription':{
           const customer=byStep.get('customer_1')?.object_id;
           const price=byStep.get('price_1')?.object_id;
@@ -298,7 +331,7 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         default:bad('Unsupported TEST event action');
       }
       if(made?.object!==kind[step.type]||!id(made.id,prefix[step.type])||
-        made.livemode===true)
+        made.livemode!==false)
         bad('Stripe did not acknowledge expected TEST event source object');
       resourceId=made.id;
     }
@@ -311,7 +344,7 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
     }
-    if(isInvoiceFailureEvent(plan.type)&&step.type==='invoice_item'){
+    if(isInvoiceFailureEvent(plan.type)&&step.type==='payment_method'){
       await ensureFailedInvoicePayment(s,plan,byStep,rootKey);
       const afterAttempt=await s.invoices.retrieve(
         byStep.get('invoice_1')?.object_id);
@@ -456,7 +489,7 @@ export async function verifyRecordedTriggerRun(a,ctx,s){
   const type=triggerTypes.find(x=>'event-'+x.replaceAll('_','-').replaceAll('.','-')===
     run.scenario);
   if(!type)bad('Recorded TEST run is not a supported native event trigger');
-  const plan=planTrigger({type,requestKey:run.request_key},account);
+  const plan=resolveTriggerPlan({type,requestKey:run.request_key},account,run);
   if(plan.runId!==run.id||plan.planDigest!==run.plan_digest||
     plan.scenario!==run.scenario)
     bad('TEST event run no longer matches its immutable approved plan');
