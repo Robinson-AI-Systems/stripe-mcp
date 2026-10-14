@@ -1,3 +1,18 @@
+### 2026-10-14 V-3 additional native TEST event workflows — SOURCE ONLY
+
+After #233 passed seven exact-head CI gates and merged at
+`f71913dafc954545ffd5d3853069126b6d31f9ec`, V-3 implementation
+continued toward the approved approximately 30 common developer Events.
+This branch adds three genuine original TEST event scenarios:
+`payment_intent.created`, `customer.subscription.updated`, and
+`invoice.paid`. These are source and automated-regression work, not
+Stripe-confirmed provider events. Their real TEST readback needs the
+next normal checked main-to-live release plus independent selected-account
+custom MCP Event ID/state checks. V-3 remains IN_PROGRESS; the four
+original unfinished TEST triggers, G-6 owner Dashboard checks and all
+other queued acceptance remain pending. No LIVE, money-out or spending
+authority changed.
+
 ### October 14 V-3 tracked invoice-failure TEST provider correction — SOURCE ONLY
 
 A verified Stripe invoice-pay contract mismatch in the native `invoice.payment_failed`
@@ -297,7 +312,18 @@ open obligations, original fixture ownership, approvals and deployment provenanc
       "STRIPE-V3-RUN-INSPECTION"
     ],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 source branch: added plan-version-compatible run-owned TEST method lifecycle and negative regressions; no live/provider acceptance performed."
+    "lastEvidence": "2026-10-14 #233 merged at f71913dafc954545ffd5d3853069126b6d31f9ec after seven exact-head checks passed. Normal checked live promotion and independent actual TEST provider event/cleanup remain PENDING."
+  },
+  {
+    "id": "STRIPE-V3-THREE-NATIVE-EVENTS",
+    "priority": 8,
+    "requiredRevision": "c1e1618a00786f4421939e469a8ffec5ac1e62c2",
+    "task": "Prove original selected TEST payment_intent.created, customer.subscription.updated and invoice.paid Events with exact provider Event retrieve and original durable run source",
+    "procedure": "docs/pr-cards/V-3.md three additional genuine TEST event workflows; tests/unit/dev-events.test.js; tests/mock/dev-events.test.js",
+    "gates": "Exact-head CI and approved checked live deployment, authenticated selected TEST account, guarded preview/confirm and source Event ID, metadata, and status. Mock, unconfirmed source and provider state are not Event proof.",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source supports 3 new TEST events; no independent deployed provider acceptance yet."
   }
 ]
 ```

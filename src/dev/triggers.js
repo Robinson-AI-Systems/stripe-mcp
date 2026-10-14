@@ -25,7 +25,7 @@ const id=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').te
 const ref=x=>typeof x==='string'?x:x?.id;
 export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
-  'payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
+  'payment_intent.created','payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
   ...invoiceEventTypes,...failedPaymentEventTypes,...disputeEventTypes,
   ...invoiceFailureTypes,...checkoutEventTypes
 ]);
@@ -106,10 +106,12 @@ function verifyFixture(plan,step,x,objects){
     bad('TEST event price differs from exact immutable plan');
   if(step.type==='payment_intent'&&(
     x.amount!==3600||x.amount_received!==
-      (plan.type==='payment_intent.canceled'||isFailedPaymentEvent(plan.type)?0:3600)||
+      (['payment_intent.canceled','payment_intent.created'].includes(plan.type)||
+        isFailedPaymentEvent(plan.type)?0:3600)||
     x.currency!=='usd'||
     (isFailedPaymentEvent(plan.type)?
       !['requires_confirmation','requires_payment_method'].includes(x.status):
+      plan.type==='payment_intent.created'?x.status!=='requires_confirmation':
       plan.type==='payment_intent.canceled'?
       !['requires_confirmation','canceled'].includes(x.status):
       x.status!=='succeeded')||ref(x.customer)!==
@@ -157,9 +159,10 @@ function matchingEvent(e,plan,account,target){
     matchesFailedPaymentEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
       object.status===(isFailedPaymentEvent(plan.type)?
-        'requires_payment_method':plan.type==='payment_intent.canceled'?
+        'requires_payment_method':plan.type==='payment_intent.created'?
+        'requires_confirmation':plan.type==='payment_intent.canceled'?
         'canceled':'succeeded')&&object.amount===3600&&
-      object.amount_received===(plan.type==='payment_intent.canceled'||
+      object.amount_received===(['payment_intent.canceled','payment_intent.created'].includes(plan.type)||
         isFailedPaymentEvent(plan.type)?0:3600)&&
       object.currency==='usd'&&ref(object.customer)===target.customer));
 }
@@ -237,8 +240,8 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
             ...(isFailedPaymentEvent(plan.type)?{}:
               {payment_method:isDisputeEvent(plan.type)?
                 'pm_card_createDispute':'pm_card_visa'}),
-            confirm:plan.type!=='payment_intent.canceled'&&
-              !isFailedPaymentEvent(plan.type),metadata,
+            confirm:!['payment_intent.canceled','payment_intent.created']
+              .includes(plan.type)&&!isFailedPaymentEvent(plan.type),metadata,
             description:'Tracked synthetic TEST event charge'
           },opts);break;
         }

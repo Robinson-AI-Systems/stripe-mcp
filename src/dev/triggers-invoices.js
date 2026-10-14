@@ -1,7 +1,7 @@
 // Real TEST invoice events: zero-value draft, explicit finalization or update.
 // Never invoice, email or debit a real customer. The run owns every source.
 export const invoiceEventTypes=Object.freeze([
-  'invoice.created','invoice.updated','invoice.finalized'
+  'invoice.created','invoice.updated','invoice.finalized','invoice.paid'
 ]);
 export const isInvoiceEvent=x=>invoiceEventTypes.includes(x);
 const ref=x=>typeof x==='string'?x:x?.id;
@@ -19,6 +19,8 @@ export function verifyInvoiceFixture(plan,invoice,byStep){
     fail('Only a synthetic draft may generate invoice.created');
   if(plan.type==='invoice.updated'&&invoice.status!=='draft')
     fail('Only an unfinalized synthetic draft may be updated');
+  if(plan.type==='invoice.paid'&&!['draft','paid'].includes(invoice.status))
+    fail('Unexpected TEST zero-dollar paid invoice state');
   if(plan.type==='invoice.finalized'&&
     !['draft','open','paid'].includes(invoice.status))
     fail('Unexpected TEST invoice finalization state');
@@ -31,6 +33,7 @@ export function matchesInvoiceEvent(plan,object,target){
     case 'invoice.updated':return object.status==='draft'&&
       object.description==='RTC TEST Event Updated Invoice';
     case 'invoice.finalized':return ['open','paid'].includes(object.status);
+    case 'invoice.paid':return object.status==='paid'&&object.amount_due===0;
     default:return false;
   }
 }
@@ -63,6 +66,8 @@ export function ensureInvoiceMutation(plan,invoice){
   if(plan.type==='invoice.updated'&&
     invoice.description!=='RTC TEST Event Updated Invoice')
     fail('Stripe TEST invoice updated state has not independently verified');
+  if(plan.type==='invoice.paid'&&invoice.status!=='paid')
+    fail('Stripe did not independently confirm paid zero-dollar TEST invoice');
   if(plan.type==='invoice.finalized'&&
     !['open','paid'].includes(invoice.status))
     fail('Stripe TEST invoice did not independently finalize');

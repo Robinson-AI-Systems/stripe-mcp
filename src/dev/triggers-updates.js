@@ -15,7 +15,9 @@ const mutations=Object.freeze({
   'price.updated':{type:'price',field:'nickname',
     value:'RTC Event Updated Price'},
   'payment_intent.canceled':{type:'payment_intent',field:'status',
-    value:'canceled'}
+    value:'canceled'},
+  'customer.subscription.updated':{type:'subscription',field:'description',
+    value:'RTC Event Updated Subscription'}
 });
 export function requiresTriggerMutation(plan,step){
   return mutations[plan.type]?.type===step.type;
@@ -50,6 +52,13 @@ export async function mutateEventSource(s,plan,step,source,rootKey){
     case 'price.updated':
       if(!check(source.id,'price'))fail('Expected recorded TEST price');
       changed=await s.prices.update(source.id,{nickname:m.value},opts);
+      break;
+    case 'customer.subscription.updated':
+      if(!check(source.id,'sub')||source.status!=='trialing'||
+        !check(ref(source.customer),'cus'))
+        fail('Only recorded synthetic TEST trial subscription may be updated');
+      changed=source.description===m.value?source:
+        await s.subscriptions.update(source.id,{description:m.value},opts);
       break;
     case 'payment_intent.canceled':
       if(!check(source.id,'pi')||!['requires_confirmation','canceled']

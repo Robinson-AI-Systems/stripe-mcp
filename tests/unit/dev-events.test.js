@@ -105,7 +105,8 @@ function fixture({showEvent=false,foreign=false}={}){
           latest_invoice:invoice.id,items:{data:[{price:b.items[0].price}]}},o);
       },
       retrieve:async id=>get(id),
-      cancel:async(id,_params,o)=>mutate('subscription',id,{status:'canceled'},o)
+      cancel:async(id,_params,o)=>mutate('subscription',id,{status:'canceled'},o),
+      update:async(id,b,o)=>mutate('subscription',id,b,o)
     },
     invoiceItems:{
       create:async(b,o)=>{
@@ -239,10 +240,11 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(parse(handlers.dev_list_triggers({},f.ctx)).types.map(x=>x.type))
       .toEqual(triggerTypes);
     expect(triggerTypes).toEqual(['customer.created','product.created',
-      'price.created','payment_intent.succeeded','customer.updated',
+      'price.created','payment_intent.created','payment_intent.succeeded','customer.updated',
       'product.updated','price.updated','payment_intent.canceled',
-      'customer.subscription.created','customer.subscription.deleted',
-      'invoice.created','invoice.updated','invoice.finalized',
+      'customer.subscription.created','customer.subscription.updated',
+      'customer.subscription.deleted',
+      'invoice.created','invoice.updated','invoice.finalized','invoice.paid',
       'payment_intent.payment_failed','charge.dispute.created',
       'invoice.payment_failed','checkout.session.completed']);
     f.ctx.connection.mode='live';
@@ -290,12 +292,15 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(f.calls.filter(x=>x.action==='create')).toHaveLength(creations);
   });
   it.each(['customer.updated','product.updated','price.updated',
-    'payment_intent.canceled'])('runs %s as actual idempotent TEST mutation',async type=>{
+    'payment_intent.canceled','customer.subscription.updated'])('runs %s as actual idempotent TEST mutation',async type=>{
     const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
     const first=parse(await op.handler({...a,confirm:true},f.ctx));
     expect(first.done).toBe(false);
-    expect(f.calls.filter(c=>c.action==='mutate')).toHaveLength(1);
-    const source=f.calls.filter(c=>c.action==='mutate')[0];
+    const initial=f.calls.filter(c=>c.action==='mutate');
+    expect(initial.filter(c=>c.type===
+      (type==='customer.subscription.updated'?'subscription':
+        type.split('.')[0]))).toHaveLength(1);
+    const source=initial[0];
     expect(source.opts.idempotencyKey).toMatch(/^rmcp_/);
     if(type==='payment_intent.canceled'){
       expect(f.objects.get('pi_FAKE123')).toMatchObject({status:'canceled',
@@ -307,9 +312,11 @@ describe('V-3a real TEST provider event generation',()=>{
     f.showEvents();
     expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
     expect(f.calls.filter(c=>c.action==='create')).toHaveLength(saved);
-    expect(f.calls.filter(c=>c.action==='mutate')).toHaveLength(1);
+    expect(f.calls.filter(c=>c.action==='mutate'))
+      .toHaveLength(initial.length);
   });
-  it.each(['customer.subscription.created','customer.subscription.deleted'])(
+  it.each(['customer.subscription.created','customer.subscription.updated',
+    'customer.subscription.deleted'])(
     'records real TEST trial invoice and verifies %s from provider',async type=>{
       const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
       expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
@@ -322,7 +329,7 @@ describe('V-3a real TEST provider event generation',()=>{
       expect(f.objects.get('sub_FAKE123')).toMatchObject({
         status:type.endsWith('.deleted')?'canceled':'trialing',
         metadata:{rtc_run:run.id}});
-      if(type.endsWith('.deleted')){
+      if(type.endsWith('.deleted')||type.endsWith('.updated')){
         expect(f.calls.filter(x=>x.action==='mutate'&&
           x.type==='subscription')).toHaveLength(1);
       }else expect(f.calls.filter(x=>x.action==='mutate'&&
@@ -352,7 +359,7 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(rows.some(x=>x.object_type==='invoice')).toBe(false);
     expect(rows.some(x=>x.object_type==='subscription')).toBe(true);
   });
-  it.each(['invoice.created','invoice.updated','invoice.finalized'])(
+  it.each(['invoice.created','invoice.updated','invoice.finalized','invoice.paid'])(
     'produces genuine zero-value %s event with no charges',async type=>{
       const f=fixture(),op=makeDevTriggerEventWrite(),a=input(type);
       const first=parse(await op.handler({...a,confirm:true},f.ctx));
@@ -362,7 +369,8 @@ describe('V-3a real TEST provider event generation',()=>{
       const invoice=f.objects.get('in_FAKE123');
       expect(invoice).toMatchObject({amount_due:0,amount_paid:0,
         currency:'usd',metadata:{rtc_run:run.id}});
-      expect(invoice.status).toBe(type==='invoice.finalized'?'paid':'draft');
+      expect(invoice.status).toBe(['invoice.finalized','invoice.paid']
+        .includes(type)?'paid':'draft');
       if(type==='invoice.updated')
         expect(invoice.description).toBe('RTC TEST Event Updated Invoice');
       expect(f.ledger.get(run.id).map(x=>x.object_type))
@@ -377,6 +385,39 @@ describe('V-3a real TEST provider event generation',()=>{
         .toHaveLength(mutations.length);
       expect(f.calls.some(c=>c.type==='payment_intent')).toBe(false);
     });
+  it('records an unconfirmed synthetic PaymentIntent creation without a card charge',async()=>{
+    const f=fixture(),a=input('payment_intent.created'),op=makeDevTriggerEventWrite();
+    const first=parse(await op.handler({...a,confirm:true},f.ctx));
+    expect(first.done).toBe(false);
+    expect(f.objects.get('pi_FAKE123')).toMatchObject({
+      status:'requires_confirmation',amount:3600,amount_received:0,
+      confirm:false});
+    expect(f.calls.some(x=>x.action==='mutate'&&
+      x.type==='payment_intent')).toBe(false);
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    const wrong=fixture({showEvent:true});
+    wrong.sdk.paymentIntents.create=async(body,opts)=>{
+      const made=await fixture().sdk.paymentIntents.create(body,opts);
+      return {...made,status:'succeeded',amount_received:3600};
+    };
+    const invalid=parse(await op.handler({...a,confirm:true},wrong.ctx));
+    expect(invalid.done).toBe(false);
+  });
+  it('requires genuinely updated trial description before accepting subscription.updated',async()=>{
+    const f=fixture(),op=makeDevTriggerEventWrite(),
+      a=input('customer.subscription.updated');
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+    expect(f.objects.get('sub_FAKE123').description)
+      .toBe('RTC Event Updated Subscription');
+    const run=[...f.runs.values()][0];
+    expect(f.ledger.get(run.id).map(x=>x.object_type))
+      .toEqual(['product','price','customer','subscription','invoice']);
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(x=>x.action==='mutate'&&x.type==='subscription'))
+      .toHaveLength(1);
+  });
   it('cannot claim a verified event when a zero-value draft invoice has a foreign run tag',async()=>{
     const f=fixture({foreign:true,showEvent:true});
     const a=input('invoice.created');

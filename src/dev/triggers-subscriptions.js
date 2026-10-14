@@ -2,7 +2,8 @@
 // A trial avoids charging any card; the automatically linked zero-dollar
 // invoice must also be independently verified and tracked for safe cleanup.
 export const subscriptionEventTypes=Object.freeze([
-  'customer.subscription.created','customer.subscription.deleted'
+  'customer.subscription.created','customer.subscription.updated',
+  'customer.subscription.deleted'
 ]);
 const fail=x=>{throw new TypeError(x);};
 const id=(x,p)=>typeof x==='string'&&
@@ -27,7 +28,9 @@ export function matchingSubscriptionEvent(plan,obj,target){
     ref(obj.customer)===target.customer&&
     Array.isArray(obj.items?.data)&&obj.items.data.some(x=>
       ref(x.price)===target.price)&&
-    obj.metadata?.rtc_run===plan.runId;
+    obj.metadata?.rtc_run===plan.runId&&
+    (plan.type!=='customer.subscription.updated'||
+      obj.description==='RTC Event Updated Subscription');
 }
 export async function verifyTrialInvoice(stripe,sub,plan,customerId,key){
   const invoiceId=ref(sub?.latest_invoice);
