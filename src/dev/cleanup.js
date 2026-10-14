@@ -1,6 +1,6 @@
 // Durable TEST cleanup: never guess IDs, initiate refunds, or infer deletions.
 import {APP_METADATA_KEYS} from '../tools/app-guard.js';
-import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js';
+import {cleanupTestConnectSeller,cleanupTestClock,gone} from './dependent-cleanup.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
   connected_account:'acct',event:'evt',charge:'ch',dispute:'du',
