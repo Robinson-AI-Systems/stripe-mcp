@@ -1,6 +1,7 @@
 // Durable TEST cleanup: never guess IDs, initiate refunds, or infer deletions.
 import {APP_METADATA_KEYS} from '../tools/app-guard.js';
-import {cleanupTestConnectSeller,cleanupTestClock} from './dependent-cleanup.js';
+import {cleanupTestConnectSeller,cleanupTestClock,gone,exactMissing} from './dependent-cleanup.js';
+import {verifyRecordedTriggerRun} from './triggers.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
   connected_account:'acct',event:'evt',charge:'ch',dispute:'du',
@@ -104,6 +105,16 @@ export function verifyCleanupIdentity(run,row,obj,rows=[]){
     obj.metadata?.rtc_run!==run.id)
     fail('Provider rtc_run ownership differs from recorded TEST run');
 }
+// Immutable Stripe evidence is intentionally not deletable. This is distinct
+// from a blocked or uncertain cleanup that needs the owner's attention.
+function immutableEvidence(row,was,run){
+  if(['event','refund','charge','dispute','invoice_item'].includes(row.object_type))return true;
+  if(row.object_type==='invoice')return was.status==='paid'||
+    run.scenario==='event-invoice-payment-failed';
+  if(row.object_type==='checkout_session')return was.status==='complete';
+  if(row.object_type==='payment_intent')return was.status==='succeeded';
+  return false;
+}
 async function safeOperation(s,row,was,key,ctx,run){
   const opts={idempotencyKey:key},id=row.object_id;
   switch(row.object_type){
@@ -131,8 +142,13 @@ async function safeOperation(s,row,was,key,ctx,run){
         return (await s.invoices.retrieve(id)).status==='void';
       }
       if(was.status==='draft'){
-        await s.invoices.del(id,{},opts);
-        return (await s.invoices.retrieve(id)).deleted===true;
+        // Stripe may respond with an exact 404 after deleting a draft.
+        // Require a matching deleted receipt before accepting either a
+        // deleted tombstone or an independent resource_missing readback.
+        const ack=await s.invoices.del(id,{},opts);
+        if(ack?.object!=='invoice'||ack.id!==id||ack.deleted!==true)
+          return false;
+        return gone(()=>s.invoices.retrieve(id),id);
       }
       return false;
     case 'payment_intent':
@@ -160,12 +176,35 @@ async function safeOperation(s,row,was,key,ctx,run){
     default:fail('Unrecognized cleanup type');
   }
 }
+// Reconcile ONLY a once-verified, zero-value TEST invoice.created draft that
+// is independently absent now. No past deletion acknowledgment is invented:
+// the complete immutable plan and original Stripe Event must still verify.
+async function verifiedMissingDraftInvoice(run,row,rows,ctx,s,error){
+  if(row.object_type!=='invoice'||row.step_name!=='invoice_1'||
+    run.scenario!=='event-invoice-created'||run.status!=='completed'||
+    !exactMissing(error)||!rows.some(r=>r.step_name==='event_1'&&
+      r.object_type==='event'&&r.cleaned===false))return false;
+  const evidence=await verifyRecordedTriggerRun({runId:run.id},ctx,s);
+  return evidence?.providerVerified===true&&evidence.mode==='test'&&
+    evidence.type==='invoice.created'&&evidence.sourceType==='invoice'&&
+    evidence.sourceId===row.object_id&&evidence.sourceCleaned===false&&
+    evidence.immutableEventRetained===true&&
+    evidence.eventId===rows.find(r=>r.step_name==='event_1')?.object_id;
+}
 export async function executeCleanup(a,ctx,s,key){
   const {runs,account}=await prepareCleanup(a,ctx);
-  const before=new Map();
+  const before=new Map(),verifiedAbsent=new Set();
   // Globally preflight provenance before mutating even the FIRST record.
   for(const {run,rows} of runs)for(const row of rows.filter(r=>!r.cleaned)){
-    const object=await fetch(s,row);
+    let object;
+    try{object=await fetch(s,row);}
+    catch(error){
+      if(await verifiedMissingDraftInvoice(run,row,rows,ctx,s,error)){
+        verifiedAbsent.add(run.id+':'+row.step_name);
+        continue;
+      }
+      throw error;
+    }
     verifyCleanupIdentity(run,row,object,rows);
     before.set(run.id+':'+row.step_name,object);
   }
@@ -177,9 +216,9 @@ export async function executeCleanup(a,ctx,s,key){
     }
     let state='retained';
     try{
-      const worked=await safeOperation(s,row,
-        before.get(run.id+':'+row.step_name),
-        key+'_'+run.id+'_'+row.step_name,ctx,run);
+      const worked=verifiedAbsent.has(run.id+':'+row.step_name)||
+        await safeOperation(s,row,before.get(run.id+':'+row.step_name),
+          key+'_'+run.id+'_'+row.step_name,ctx,run);
       if(worked){
         state=await ctx.db.markDevRunObjectCleaned({account,id:run.id,
           stepName:row.step_name,objectType:row.object_type,objectId:row.object_id})?
@@ -187,7 +226,12 @@ export async function executeCleanup(a,ctx,s,key){
       }
     }catch{state='uncertain';}
     outcomes.push({runId:run.id,step:row.step_name,id:row.object_id,
-      status:state});
+      status:state,...(state==='cleaned'&&
+        verifiedAbsent.has(run.id+':'+row.step_name)?
+        {reconciledFrom:'verified_original_event_and_provider_absence'}:{}),
+      ...(state==='retained'?{
+        retention:immutableEvidence(row,before.get(run.id+':'+row.step_name),run)?
+          'immutable':'review_required'}:{})});
   }
   // Database read-back is independent of the cleanup write/mark requests.
   for(const {run} of runs){
@@ -197,6 +241,8 @@ export async function executeCleanup(a,ctx,s,key){
         o.status='uncertain';
     }
   }
-  return {outcomes,allCleaned:outcomes.every(o=>
-    ['cleaned','already_cleaned'].includes(o.status))};
+  const allCleaned=outcomes.every(o=>['cleaned','already_cleaned'].includes(o.status));
+  const allEligibleCleaned=outcomes.every(o=>['cleaned','already_cleaned'].includes(o.status)||
+    (o.status==='retained'&&o.retention==='immutable'));
+  return {outcomes,allCleaned,allEligibleCleaned};
 }

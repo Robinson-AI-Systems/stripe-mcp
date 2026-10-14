@@ -30,6 +30,8 @@ jobs:
         run: node scripts/validate-hosting-release.mjs
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      - name: Test daily checked promotion, one-day atomic marker and recovery schedules
+        run: node --test scripts/promote-live.test.mjs
 
   unit:
     runs-on: ubuntu-latest

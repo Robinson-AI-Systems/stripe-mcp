@@ -25,7 +25,9 @@ export function makeDevCleanupWrite(){
       last=await executeCleanup(a,ctx,await client(ctx),idempotencyKey);
     },
     readAfter:async()=>last,
-    verify:(_before,after)=>after?.allCleaned===true
+    // Immutable events/financial evidence deliberately remain. Complete the
+    // eligible cleanup only when every mutable row was verified and audited.
+    verify:(_before,after)=>after?.allEligibleCleaned===true
   });
   return {...op,async handler(a,ctx){
     if(ctx?.connection?.mode!=='test')return gone('Cleanup is TEST only');
@@ -36,8 +38,11 @@ export function makeDevCleanupWrite(){
       return {...response,content:[{type:'text',
         text:JSON.stringify({...original,cleanup:{
           outcomes:last.outcomes,allCleaned:last.allCleaned,
+          allEligibleCleaned:last.allEligibleCleaned,
           note:last.allCleaned?'All recorded IDs independently cleaned':
-            'Partial cleanup: retained and uncertain objects remain recorded.'}})}]};
+            last.allEligibleCleaned?
+              'Eligible cleanup confirmed; immutable Stripe evidence is intentionally retained in the ledger. No retry needed for those records.':
+              'Cleanup incomplete: review retained or uncertain records before any manual retry.'}})}]};
     }
     return response;
   }};

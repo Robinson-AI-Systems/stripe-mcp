@@ -267,6 +267,7 @@ describe('V-3a real TEST provider event generation',()=>{
     f.showEvents();
     const completed=parse(await op.handler({...args,confirm:true},f.ctx));
     expect(completed.done).toBe(true);
+    expect(completed.resourceId).toBe(run.id);
     expect(f.calls.filter(x=>x.action==='create')).toHaveLength(creations);
     expect(f.calls.filter(x=>x.action==='events.retrieve')).toHaveLength(1);
     expect(f.ledger.get(run.id).at(-1)).toMatchObject({
@@ -599,4 +600,41 @@ describe('V-3a real TEST provider event generation',()=>{
       object:{metadata:{rtc_run:'run_foreign'}}}})).toThrow();
     expect(f.runs.size).toBe(0);
   });
+  it('returns a scoped pending run receipt only after a guarded unfinished TEST write',async()=>{
+    const f=fixture(),args={...input('customer.created'),confirm:true};
+    const preview=parse(await handlers.dev_trigger_event({
+      ...input('customer.created'),dryRun:true},f.ctx));
+    expect(preview).not.toHaveProperty('pendingRunId');
+    const result=parse(await handlers.dev_trigger_event(args,f.ctx));
+    const run=[...f.runs.values()][0];
+    expect(result).toMatchObject({done:false,confirmed:false,
+      pendingRunId:run.id,pendingRunStatus:'running',recordedSteps:1,
+      recoveryTool:'dev_inspect_incomplete_run'});
+    expect(result).not.toHaveProperty('resourceId');
+    expect(result.recoveryNote).toContain('not a verified Stripe Event');
+    expect(f.ledger.get(run.id)[0]).toMatchObject({
+      object_type:'customer',cleaned:false});
+    f.showEvents();
+    const success=parse(await handlers.dev_trigger_event(args,f.ctx));
+    expect(success).toMatchObject({done:true,confirmed:true,resourceId:run.id});
+    expect(success).not.toHaveProperty('pendingRunId');
+  });
+  it('never returns a pending receipt from forged source ownership or zero recorded IDs',async()=>{
+    const f=fixture({foreign:true});
+    const result=parse(await handlers.dev_trigger_event({
+      ...input(),confirm:true},f.ctx));
+    expect(result.done).toBe(false);
+    expect(result).not.toHaveProperty('pendingRunId');
+    expect([...f.ledger.values()]).toHaveLength(0);
+  });
+  it('does not reveal pending IDs to a denied read_only or LIVE connection',async()=>{
+    for(const change of [{profile:'read_only'},{mode:'live'}]){
+      const f=fixture();Object.assign(f.ctx.connection,change);
+      const response=parse(await handlers.dev_trigger_event({
+        ...input(),confirm:true},f.ctx));
+      expect(response).not.toHaveProperty('pendingRunId');
+      expect(f.runs.size).toBe(0);
+    }
+  });
+
 });

@@ -2,6 +2,7 @@
   "version": 1,
   "repository": "Robinson-AI-Systems/stripe-mcp",
   "archive": "archive/housekeeping-2026-10-13",
+  "maintenanceBranch": "ai/codex/completion-recovery-20261014",
   "branches": [
     {
       "name": "ai/claude/anti-stall",
@@ -1904,6 +1905,96 @@
         210
       ],
       "reason": "Verified merged PR; preserve exact source history including squash-merged tips."
+    },
+    {
+      "name": "ai/codex/daily-release-recovery-2026-10-14",
+      "sha": "e39e0febce7d79d899ff8dc983a671f443fffc5c",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/codex/first-pass-validation-2026-10-14",
+      "sha": "4fe7ec30fb7c4cb213525358234e0731a5538b64",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/codex/session-efficiency-2026-10-14",
+      "sha": "eaaff9b260dc051749c3a0998d1e1161688f3481",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/bounded-native-event-run-acceptance-20261014",
+      "sha": "be001053cdfe414e80650dc5c7727f8e16ad1ad4",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/confirmed-draft-invoice-cleanup-20261013",
+      "sha": "299329a6fc4dfdf0f24c2e18426bd286a4aee3ae",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/customer-receipt-target-consistency-20261013",
+      "sha": "7c5dba7e574fa9921919325a834111655f208074",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/developer-read-presentation-contract-20261013",
+      "sha": "a5161d9ad8c21c26227cc3a977bd394902337fdb",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/developer-run-readback-and-confirmed-receipts-20261013",
+      "sha": "9a0c27c7ad7de21b19c40387226be0d9dc22f1f6",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/immutable-evidence-cleanup-receipts-20261013",
+      "sha": "0ef157b1316252ce805c87292286fbdc799f0bb2",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/native-test-failed-trigger-receipts-20261014",
+      "sha": "930acc30fbfd7de500035a1eb5374fb478da0c1f",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/native-test-incomplete-run-diagnostics-20261014",
+      "sha": "cf1496a3948a34a4ff24b9322d5fe23a2311f55a",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/provider-event-run-reverification-20261013",
+      "sha": "6e2ea3c54bc2d48b8bfff6f6df6b21aa1000715d",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/provider-verified-test-cleanup-inspection-20261014",
+      "sha": "ca0923bcaf8ee7578d1c622373b46a5a425a9d34",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/reconcile-proven-test-draft-invoice-20261013",
+      "sha": "0ab234fc1ecc9bce13ef5ae84abbad300a50e23c",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
+    },
+    {
+      "name": "ai/gpt6/recover-missed-daily-release-schedule-20261014",
+      "sha": "b77c359ecdd7793a2b14a34a1d5054a77f15ccac",
+      "disposition": "merged",
+      "reason": "Verified main includes this implementation; preserve exact source-tip history before pruning."
     }
   ]
 }

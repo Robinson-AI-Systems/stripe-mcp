@@ -11,7 +11,7 @@ Owner-directed checkpoint: October 12, 2026, America/Denver. This records settin
 
 ## Daily release and builds
 
-Only the existing scheduled, checked workflow automatically advances `main` to `live`, at most once per America/Denver calendar day. The new protection matches exact `main` only and does not obstruct the scheduled `live` writer. Vercel Production tracks `live`; automatic Preview branch tracking is Disabled. Retain the live-only Git deployment configuration.
+Only the existing scheduled, checked workflow automatically advances `main` to `live`, at most once per America/Denver calendar day. It attempts the intended 00:01 Denver release and makes recovery attempts at 00:17 and 00:43 only if the earlier GitHub cron trigger was missed or eligible checked promotion did not occur; the one-day atomic marker prohibits multiple releases. The new protection matches exact `main` only and does not obstruct the scheduled `live` writer. Vercel Production tracks `live`; automatic Preview branch tracking is Disabled. Retain the live-only Git deployment configuration.
 
 Do not merge development PRs into `live`, force-update it, delete promotion markers, manually trigger production builds, promote previews or release at a development-batch boundary. Record the scheduled promotion and actual source commit/READY separately after they happen; a passing main CI or historical main deployment is not proof of a live release. The first scheduled promotion and Basic-build performance remain future observations, not completed acceptance.
 

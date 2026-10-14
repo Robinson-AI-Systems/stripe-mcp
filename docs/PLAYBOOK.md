@@ -1,5 +1,7 @@
 # PLAYBOOK — how to deliver one PR card, step by step
 
+Session startup, cadence and release-dependent proof follow `docs/SESSION-START.md`. These recipes preserve all existing security, review and validation gates. Run focused checks at coherent seams and full required gates before publishing, rather than the whole suite after each small local edit.
+
 The rules are in `AGENTS.md`; the short start is `docs/SESSION-START.md`; the work is the card in `docs/pr-cards/`.
 Same procedure as Appliance Desk's PLAYBOOK, adapted to this repo (no Next.js, no browser tests; Stripe instead).
 
@@ -49,7 +51,7 @@ While implementing:
 ### Step 3a — PR size
 
 Target 500–650 production lines; below 450 only with a documented unavoidable reason (tests/docs not counted).
-About 15 production files, hard stop ~800 production lines, at most one
+About 15 production files, advisory size estimate production lines, at most one
 migration, one risk area (keys / money / guards / tools-of-one-area / doors). Measure before opening the PR:
 
 ```bash

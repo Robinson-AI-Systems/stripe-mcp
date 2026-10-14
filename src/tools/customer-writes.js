@@ -89,8 +89,10 @@ function build(def){
   let created=null;
   const operation=defineWrite({
     name:def.name,
-    // Expose only the ID independently retrieved and verified by defineWrite.
-    resultId:(_before,observed)=>observed?.id,
+    // Every customer write returns the customer ID for customer_get follow-up.
+    // Related payment method, balance transaction and tax IDs must never
+    // masquerade as customer IDs in the common receipt field.
+    resultId:(_before,observed,args)=>def.name==='customer_create'?observed?.id:args.customerId,
     read:async(a,ctx)=>{
       permittedArgs(def,a);
       if(def.name==='customer_create')return {id:null,metadata:{}};
@@ -159,16 +161,19 @@ function build(def){
       const n=def.name;
       if(n==='customer_create')return after.id===created?.id&&
         changed(after,a,['name','email','phone','description','metadata','address']);
-      if(n==='customer_update')return changed(after,a,['name','email','phone','description','metadata','address']);
-      if(n==='customer_delete'||n==='customer_delete_tax_id')return after.deleted===true;
-      if(n==='customer_remove_payment_method')return after.customer===null;
+      if(n==='customer_update')return after.id===a.customerId&&
+        changed(after,a,['name','email','phone','description','metadata','address']);
+      if(n==='customer_delete')return after.id===a.customerId&&after.deleted===true;
+      if(n==='customer_delete_tax_id')return after.id===a.taxId&&after.deleted===true;
+      if(n==='customer_remove_payment_method')return after.id===a.paymentMethodId&&after.customer===null;
       if(n==='customer_set_default_payment_method')
-        return after.invoice_settings?.default_payment_method===a.paymentMethodId;
+        return after.id===a.customerId&&
+          after.invoice_settings?.default_payment_method===a.paymentMethodId;
       if(n==='customer_add_balance_credit')
         return after.id===created?.id&&after.amount===(a.creditCents?-a.creditCents:a.debitCents);
       if(n==='customer_add_tax_id')return after.id===created?.id&&
         after.type===a.type&&after.value===a.value;
-      if(n==='customer_remove_discount')return after.discount==null;
+      if(n==='customer_remove_discount')return after.id===a.customerId&&after.discount==null;
       return false;
     }
   });

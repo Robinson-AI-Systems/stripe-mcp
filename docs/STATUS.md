@@ -1,3 +1,249 @@
+## October 14 release acceptance ancestry repair
+
+Repinned pending acceptance to independently verified merged implementation commits
+from the corresponding reviewed PRs after squash merges removed the original source
+pins from main ancestry. All existing procedures, gates, dependencies and PENDING
+states remain intact. This makes an applicable release eligible for verification;
+it is neither deployed proof nor a provider acceptance pass. Every updated pin is
+an ancestor of independently observed current main.
+
+### Workflow maintenance handoff — owner publication approved
+
+New offline session utility: eight behavioral tests passed, including actual Git ancestry, partial releases, unknown/failed deployments, rollback, dependency gating, invalid queues, PR alignment and bounded output. All repository queues validate. Existing source/status evidence is preserved; no provider acceptance or release was performed. Owner explicitly approved publication on October 14; publish the reviewed maintenance branch, require exact-head CI/reviews, and merge only when those gates pass. No extra production release is authorized by this approval. Full broad application suites on the shared runner were interrupted after resource/time-limit failures; do not claim them passed. Existing exact-head remote CI/review gates must pass before any main merge.
+
+### October 14 verified deployed TEST acceptance and unfinished-fixture handoff
+
+Independent READY Production at exact live 46a1675c42d847f42229d1dbe552bd55e1f71323 was checked before native acceptance. Through the **custom connected Stripe MCP**, eight historical immutable Event runs were independently reverified, all eight mutable cleanup reports independently passed after safely reconciling the original missing zero-value draft invoice (no second provider deletion), and the advertised developer run read projection succeeded. Three additional native TEST originals — customer.subscription.created, invoice.updated, invoice.finalized — were provider-verified and their eligible source cleanup confirmed. The total is **11 distinct accepted original Event types**, **not** signed delivery or complete V-3.
+
+Four additional native TEST trigger attempts remain `running` without independently verified original Events: customer.subscription.deleted, payment_intent.payment_failed, charge.dispute.created, invoice.payment_failed. Their exact recorded partial fixtures were processed with guarded preview+confirmation; the native cleanup reported all eligible mutable records resolved after safe same-target replay and retained historical invoice/item records intentionally. Without a provider reader for unfinished runs, independent *current* source-state closure is still pending. V-3 read-only `dev_inspect_incomplete_run` is merged on main at PR #224 but awaits the next checked live release. PR #225 adds an independently audited, explicit `pendingRunId` on an attempted but incomplete native TEST trigger response; no full receipt or provider acceptance is claimed before CI, merge and checked deployment. No LIVE, money-out, automatic provider retry, manual release or owner bypass. The single machine-readable acceptance queue below holds the next checks and owner gates; do not treat limited releases as a project-wide stop.
+
+## Release acceptance queue — workflow optimization 2026-10-14
+
+Owner-authorized guidance/tooling maintenance: consolidated session procedure, focused
+checks between meaningful edits, substantial capability grouping, and read-only queued
+acceptance/PR-boundary report. This records source/tooling work, not a live/provider pass.
+The queue below seeds existing outstanding obligations; reconcile exact scenarios and
+already-proven evidence from the unchanged cards/ledger before running. Keep all prior
+open obligations, original fixture ownership, approvals and deployment provenance.
+
+<!-- release-acceptance:start -->
+```json
+[
+  {
+    "id": "STRIPE-TEST",
+    "priority": 1,
+    "requiredRevision": "143040662933e3c9158dbc00b69cef1d4af518ad",
+    "task": "Finish remaining connected TEST/OAuth/webhook/owner/Hub acceptance boundaries; released subsets are recorded separately",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md",
+    "gates": "Original selected TEST account, exact deployment provenance and independent owner consent for money-out; LIVE disabled",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 genuine custom Stripe TEST: eight prior original events, eight provider cleanup states and historical invoice reconciliation verified; three additional native Events also verified. Signed webhook, hosted Checkout, owner Dashboard, Hub and OAuth remain separate."
+  },
+  {
+    "id": "STRIPE-V3-EVENT-8",
+    "priority": 2,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Confirm eight previously completed original TEST Event runs against immutable Stripe originals",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md #219",
+    "gates": "Selected TEST; exact stored run ownership and immutable original Event read; no signed webhook inference",
+    "dependsOn": [],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 authenticated custom service dev_verify_trigger_runs: requested 8, provider_verified 8, unverified 0; immutable Event retrieval rechecked independently."
+  },
+  {
+    "id": "STRIPE-V2-INVOICE-217",
+    "priority": 3,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Reconcile historical zero-value draft-invoice cleanup marker without another deletion",
+    "procedure": "docs/pr-cards/V-2.md #217",
+    "gates": "Verified original TEST invoice.created Event, exact 404, guarded preview/confirm and durable marker readback",
+    "dependsOn": [
+      "STRIPE-V3-EVENT-8"
+    ],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 custom guarded dev_cleanup returned reconciledFrom=verified_original_event_and_provider_absence for exact historic run; independent dev_get_run and dev_verify_cleanup_run confirm both invoice and customer marked/verified cleaned; original Event retained."
+  },
+  {
+    "id": "STRIPE-V3-CLEANUP-8",
+    "priority": 4,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Independently compare mutable Stripe TEST states and cleanup markers for eight historic Event runs",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md #220",
+    "gates": "Provider reads and exact selected-account ledger; immutable Events retained",
+    "dependsOn": [
+      "STRIPE-V3-EVENT-8",
+      "STRIPE-V2-INVOICE-217"
+    ],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 eight independent dev_verify_cleanup_run snapshots: eight allEligibleCleanedAndVerified=true after historical invoice reconciliation; no payment settlement or signed delivery inferred."
+  },
+  {
+    "id": "STRIPE-V3-PROJECTION-218",
+    "priority": 5,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Verify native dev_list_runs advertised detail/fields projection actually works",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md #218",
+    "gates": "Authenticated TEST native meta call and exact projection; read-only",
+    "dependsOn": [],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 deployed custom stripe_call dev_list_runs limit=2 detail=full fields=runs.id,runs.status,hasMore returned projected rows and correct hasMore; no strict handler rejection."
+  },
+  {
+    "id": "STRIPE-V3-ADDITIONAL-3",
+    "priority": 6,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Verify new genuine TEST customer.subscription.created, invoice.updated and invoice.finalized originals and eligible cleanup",
+    "procedure": "docs/pr-cards/V-3.md and docs/acceptance/STRIPE-TEST-MILESTONE.md",
+    "gates": "Original actual Stripe Event independent read; guarded TEST-only cleanup, immutable evidence retained",
+    "dependsOn": [],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 three fresh custom TEST run originals independently providerVerified=true; guarded cleanup confirmed all eligible resources for each. Trial-created zero-dollar paid invoice retained intentionally; no webhook delivery or money-out."
+  },
+  {
+    "id": "STRIPE-V3-RUN-INSPECTION",
+    "priority": 7,
+    "requiredRevision": "8848d0cb9aa53a336aa5e84c5f5ccbe7ace4e9d5",
+    "task": "Deployed custom read-only unfinished TEST trigger provenance/source-state inspection",
+    "procedure": "docs/pr-cards/V-3.md #224 and tests/unit/dev-incomplete-inspection.test.js",
+    "gates": "Exact-head CI/review, checked main-to-live, READY deployment, selected TEST; no source mutations",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source added on a pending PR to inspect unfinished run plan, recorded sources, sanitized Stripe states and missing stages; not yet checked CI, merged, deployed or externally tested."
+  },
+  {
+    "id": "STRIPE-V3-UNFINISHED-4",
+    "priority": 8,
+    "requiredRevision": "8848d0cb9aa53a336aa5e84c5f5ccbe7ace4e9d5",
+    "task": "Independently inspect four interrupted TEST event trigger fixtures and reconcile safe cleanup readbacks",
+    "procedure": "docs/pr-cards/V-3.md #224; dev_get_run, dev_inspect_incomplete_run",
+    "gates": "Exact selected-account running TEST ledger, safe read-only provider status and no inferred Event absence",
+    "dependsOn": [
+      "STRIPE-V3-RUN-INSPECTION"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 customer.subscription.deleted, payment_intent.payment_failed, charge.dispute.created and invoice.payment_failed attempted once each but remained RUNNING, no original Event claimed. Guarded exact-run cleanup reported all eligible mutable objects cleaned after safe retries, retaining immutable invoice/item evidence. Independent unfinished-run provider snapshots await new deployed read tool."
+  },
+  {
+    "id": "STRIPE-V3-REMAINING",
+    "priority": 9,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Complete real TEST acceptance of remaining supported trigger types, including disputed/failed/paid events and actual hosted Checkout",
+    "procedure": "docs/pr-cards/V-3.md and docs/PLAN.md Batch V",
+    "gates": "Provider-confirmed immutable events only, same-key retries, owned cleanup, hosted Checkout requires genuine browser participation; no LIVE or money-out",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 eleven distinct types provider verified total. Four additional trigger requests were rejected or inconclusive before verified originals, with their partial fixtures safely handled. Checkout browser and other types not accepted; investigate each precise gap."
+  },
+  {
+    "id": "STRIPE-SIGNED-WEBHOOK",
+    "priority": 10,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Deliver and verify genuine signed Stripe TEST webhook at protected hosted receiver with private receipt",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md Signed Stripe TEST webhook receipt",
+    "gates": "Owner-approved secret provisioning, protected ingress, replay denial; never expose signing secrets",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "Receiver/source and CI fixtures exist; actual remote Stripe-signed TEST delivery and durable receipt not demonstrated in this session."
+  },
+  {
+    "id": "STRIPE-OAUTH-EXTERNAL",
+    "priority": 11,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Prove genuine hosted custom OAuth PKCE, refresh, revocation and scoped denial",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md Connected custom-MCP OAuth",
+    "gates": "Owner browser sign-in/SSO and temporary connection revocation, exact READY origin",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "Source/CI only; original connected custom Stripe Cloud TEST tool activity is not evidence of independent PKCE/refresh/revocation flows."
+  },
+  {
+    "id": "STRIPE-HUB-ROUTES",
+    "priority": 12,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Prove distinct Hub D-4 direct/relay/Sandbox TEST read-only routes, isolation and revocation",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md Toolkit Hub D-4",
+    "gates": "Owner-issued short-lived read_only pass, working upstream Hub and authentic route evidence",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "No genuine direct/relay/Sandbox authenticated Hub route acceptance recorded in this session."
+  },
+  {
+    "id": "STRIPE-G6-OWNER",
+    "priority": 13,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Complete owner signed-in Dashboard review of G-6 status and sensitive settings",
+    "procedure": "docs/pr-cards/G-6.md and docs/OWNER-INPUTS.md",
+    "gates": "Owner-authenticated browser Dashboard observations, TEST identity and no setting inference",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "Connected TEST settings evidence is partial; a signed-in human Dashboard comparison remains unverified and H-1 remains gated."
+  },
+  {
+    "id": "STRIPE-V3-PENDING-RECEIPTS",
+    "priority": 7,
+    "requiredRevision": "7dedb7c89163eab1aefa5d8e0743321840d5647b",
+    "task": "Verify failed confirmed native TEST triggers expose only account-scoped audited unfinished-run IDs and no false success",
+    "procedure": "docs/pr-cards/V-3.md #225; tests/unit/dev-pending-receipt.test.js and tests/unit/dev-events.test.js",
+    "gates": "Exact-head CI/review and checked READY source revision; original selected TEST account; no LIVE, credentials or automatic mutations",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 PR #225 source: native failed-write adapter adds pendingRunId/pendingRunStatus/recordedSteps only after confirmed attempt, durable immutable run-plan and at least one exact recorded source. Previews, auth denials, no-run cases and completed Events remain unchanged. Deployed native rejection receipt proof awaits checked release."
+  }
+]
+```
+<!-- release-acceptance:end -->
+
+<!-- Current repair also records no-change daily receipts: backups cannot publish later same-day development after a successful no-op. -->
+## October 14 owner-requested daily release recovery repair — current
+
+Owner request on October 14: investigate and repair missed daily releases across the MCP repositories and Appliance Desk, including the quoted owner-run checked recovery. This supersedes the prior scheduled-only/no-new-trigger restriction for missed-event recovery only. Primary 00:01 Denver remains; retries are 00:17, 01:17 and 05:37 Denver plus 12:43 UTC. Explicit recovery defaults OFF and requires both the original actor and the triggering actor to be christcr2012, main, true recovery input and elapsed midnight. Every path retains successful exact-main CI, ancestry, atomic once-per-Denver-day receipt and independent readback. No production-provider activation, spending, force push or preview build is authorized.
+
+Local release safety tests pass. Merge requires exact-head application CI and review resolution. Source repair is separate from observed schedule execution and Vercel READY/alias proof; inspect actual daily run and receipt, do not equate main/live drift after a release with failure. These infrastructure PRs do not replace the existing substantive implementation batch.
+
+## October 14 checked release trigger investigation and resilience repair (source proposal)
+
+At approximately 05:00 America/Denver, independent GitHub REST inspection showed **zero** scheduled workflow runs, despite .github/workflows/promote-live.yml existing on the default `main` since October 13, with supported timezone-aware 00:01 Denver cron. `live` remained at `3cb4831d85a30950b9ee0e1e5f13488faa83eba5`; actual Vercel READY Production served that same older revision. Exact `main` CI was green. The failure occurred before any release job: this is **not** evidence of a rejected CI gate or a failed deployment. GitHub's documented scheduler may drop cron events under load; the precise GitHub workflow enabled/disabled state was not available via the current connector and remains unverified. This PR re-registers the scheduled release by modifying its cron schedule and adds two later **guarded** same-Denver-day recovery attempts (00:17 and 00:43), retaining the original 00:01 primary time, original sole scheduled workflow, six exact-main CI checks, no manual dispatch or push trigger, atomic once/day tag, fast-forward-only push, and live-only Vercel build tracking. Updated policy validation refuses any extra/changed cron, UTC shift, manual dispatch or weakened contents permission. This is **source and CI repair** until the NEXT genuine GitHub scheduled run plus `live` and READY deployment readbacks. The missed October 14 release was NOT triggered retroactively and no old one-time owner release authorization was reused.
+
+## #220 independent TEST Event cleanup provider inspection — 2026-10-14 (source proposal)
+
+A completed trigger's `dev_get_run` reports durable cleanup flags but does **not** recheck provider state; `dev_verify_trigger_run` proves its original immutable Event only, not the current mutable resource state. New read-only `dev_verify_cleanup_run({runId})` builds a full post-cleanup inspection: first independently verify exact completed TEST run plan, account, immutable original Event and source; then independently retrieve each recorded mutable/retained Stripe resource. Per-step results distinguish `verified_cleaned` (provider state AND exact ledger cleaned marker), `intentionally_retained` (immutable provider evidence), `pending_cleanup`, `ledger_pending`, `ledger_mismatch`, and `provider_unverified`. Exact missing original zero-value draft invoice can be identified via independently verified `invoice.created/updated` source + strict resource_missing; it does not mark ledger itself or claim deletion acknowledgment. The read fails closed if original Event provenance is bad, LIVE/foreign account selected, or ledger unavailable. No provider mutations, debt/refund/payment settlement inferences, automatic repair, or webhook delivery inference. Source CI then checked daily deploy and actual custom-service TEST inspection are independent acceptance gates.
+
+## #219 original TEST event batch acceptance — 2026-10-14 (source proposal)
+
+The approved V-3 trigger workflow had genuine original Stripe TEST events for eight types, but verification required one individual `dev_verify_trigger_run` call at a time and could not isolate the exact failed fixture in a single bounded acceptance run. New read-only `dev_verify_trigger_runs({runIds})` requires 1–10 distinct exact `run_` IDs, selected account TEST, authentic original immutable plan and event ledger for every run, and independently re-fetches each original Stripe Event with unchanged account, source/type and rtc_run provenance. Returns per-run provider_verified or unverified (no claim of non-occurrence); one corrupt/missing Event never grants success to another, and SDK errors/provider secrets never escape. Source cleanup flags remain ledger-only; signed webhook delivery, mutable source state and money settlement are not inferred. No provider writes, LIVE, new credentials or owner privileges. Source/CI only until checked daily release and genuine custom connected acceptance.
+
+## Native MCP read projection contract — #218 (checked source changes; deployment acceptance pending)
+
+Genuine deployed custom Stripe TEST `stripe_describe_tool(dev_list_runs)` advertised `detail:'full'` and generic `fields` for an account-scoped developer run listing, but invoking that documented option returned `Invalid bounded TEST run query`. Root cause: `publicToolInfo` extends all READ ONLY schemas with common presentation options, while `dispatchReadOnlyTool` forwarded them unchanged to strict native handlers that only accept business arguments. The proposed MCP gateway correction independently validates standard detail/field paths once, removes only those two **generic** options before the underlying READ ONLY handler, and applies them to sanitized results as already intended. Native detail/fields contracts, strict unknown business args, frozen connection, profile checks, guarded writes and safe result store remain unchanged. Original `dev_list_runs` is directly covered, along with malformed field/unknown argument denial. Only source and exact-head CI are possible before the normal checked daily release and genuine custom-service acceptance.
+
+## Historical TEST invoice cleanup reconciliation — #217 merged main (deployment acceptance pending)
+
+Actual custom restricted Stripe TEST `invoice.created` fixture `run_2f46ecc21b9581ec23a9ba95` had a real zero-amount draft invoice deleted during earlier cleanup but its ledger row marked uncertain because Stripe's independent retrieve returned `resource_missing`. #216 fixes future delete receipts in merged main, not the old missing invoice; production remains old `live`. Proposed #217 repairs this specific *run-owned* historical reconciliation without another Stripe mutation: only on a completed `invoice.created` TEST run whose full immutable approved plan, scoped ledger, exact original Stripe Event (including original draft/zero-amount source and rtc_run/account provenance) independently pass native `verifyRecordedTriggerRun`, and whose exact invoice GET independently returns 404/resource_missing. Then guarded dev_cleanup may write the exact account-scoped ledger marker, read it back, report `reconciledFrom`, and preserve immutable Event. All failures are denied before any mutable operation; never infer a deleted provider receipt or a signed webhook. This is SOURCE ONLY until full exact-head CI, normal checked release and real replay of original TEST fixture.
+
+## Genuine TEST events and draft-invoice cleanup — #216 merged main (deployment acceptance pending)
+
+Fourth newly verified type: `payment_intent.canceled` run `run_e5e47acda99cb5efbfe66dbf`, independently retrieved Event `evt_3UQKnX46Dan0UEUV1969xHee` with exact source `pi_3UQKnX46Dan0UEUV1dbc6Pbl`. Guarded cleanup independently cleaned its unconfirmed/canceled TEST PaymentIntent and synthetic customer and retained immutable Event. Eight distinct Event types are now genuine provider-observed; this does not certify signed webhook delivery or production #212–#216. These observations are from deployed #211, not newer merged source.
+
+
+Independent authenticated custom Stripe Cloud TEST has newly confirmed native events `product.updated` (run_8c43a77a7682c53babfe8537), `price.updated` (run_b4e3e5e752e04c85dcdc413b) and `invoice.created` (run_2f46ecc21b9581ec23a9ba95), with separate provider event_list/event_get identifying the exact Stripe Events/sources. Guarded cleanup archived each new product/price; immutable Events were retained. Invoice cleanup removed the TEST customer (independent deleted readback), but the draft invoice outcome remained uncertain; independent invoice_get returned exact Stripe resource_missing, consistent with an actual deletion. Repair the source-only future draft cleanup receipt to accept a strict independently checked deletion 404 ONLY after matching provider deleted:true acknowledgment, reusing the existing V-2b helper. Existing uncertain old-run ledger reconciliation and new-source production/provider acceptance remain OPEN. Final-main is #215, live/READY #211 until normal checked daily release; no LIVE, money-out, manual promotion or false cleanup success.
+
+## #215 native Stripe TEST event independent readback (2026-10-13, proposed)
+
+Authenticated deployed custom Stripe Cloud TEST accepted four real curated events (customer.created, customer.updated, product.created, price.created) and the recorded synthetic resources were safely deleted/archived while immutable Stripe Events were preserved. A separate event_get provider fetch reconfirmed the three creation Events' exact IDs, types and original source IDs after cleanup. #215 adds dev_verify_trigger_run(runId), a read-only selected-account TEST operation rebuilding the approved trigger plan from its complete immutable run ledger, re-fetching the exact original Event from Stripe and verifying its original source, account, event type and rtc_run provenance even after safe source cleanup. Does NOT infer webhook delivery or current mutable source state. V-3 remains IN_PROGRESS for broader actual acceptance. Production #215 acceptance awaits the next normally checked daily release; G-6 Dashboard review remains owner-only. No LIVE, spending, credentials or money permission changes.
+
+## #214 account-scoped developer TEST run readback and verified receipts (2026-10-13, proposed)
+
+The custom service's provider-confirmed V-3 event triggers returned only an idempotency key; operators had to preserve a preview or list runs and guess the matching ID to perform cleanup. `dev_seed` shared this handoff gap. #214 projects the validated `run_` ID as `resourceId` only after the original provider/ledger verification AND final durable audit, never on unconfirmed or rejected writes. The new `dev_get_run({runId})` is a bounded TEST-only read for all existing profiles: exact account-scoped durable run state, named resource IDs and cleaned/remaining counts support deterministic follow-up and reconciliation. It does not independently prove provider state, expose secrets, authorize more writes or change LIVE/money gates. Source CI/hosted #214 acceptance remain separate.
+
+## #213 developer TEST cleanup outcome (2026-10-13, proposed)
+
+Authenticated deployed #211 Stripe TEST acceptance generated a genuine `customer.created` Event through `dev_trigger_event` with its provider event readback. An independent run listing showed exactly one completed run with two objects; `dev_cleanup` independently deleted its customer but retained immutable Event evidence, then incorrectly reported generic readback failure. A separate `customer_get` confirmed `deleted:true`. #213 distinguishes policy-immutable retention from blocked/uncertain cleanup, reports `allEligibleCleaned` separately from `allCleaned`, and marks a confirmed cleanup complete only when every mutable record was independently verified. Retained events remain forever in the scoped ledger, with no auto refund or unsafe deletion; true dependency and audit uncertainty still fail closed. This proposed source fix has no deployed acceptance until normal checked promotion. No money or LIVE.
+
+## #212 customer receipt routing review correction (2026-10-13, proposed)
+
+Fix the actionable unresolved #210 review: `customer_get` accepts `cus_` IDs, but some mutation receipts exposed child `pm_`, `cbtxn_` or `txi_` IDs. Every confirmed and audited customer write now returns the affected `cus_` ID; verified creations still return their new `cus_` ID. Readback verification also binds update/delete, payment-method, tax-ID and discount results to the exact requested resource before claiming success. The nine-write fixture suite covers every receipt, including separately approved TEST balance adjustments, and rejects child-ID leakage. This corrects a source/automated workflow defect; provider behavior at the newly deployed revision remains to be independently tested after scheduled daily promotion. No LIVE, money-out bypass, new keys or manual deployment.
+
 ## #210 provider-verified customer write receipts (2026-10-13, proposed)
 
 A real authenticated standalone custom Stripe MCP TEST acceptance run confirmed the selected-account read, created a disposable synthetic customer, independently retrieved exact matching metadata, deleted it using the existing guarded preview/confirm flow, and read back `deleted:true`. No money or LIVE use. The successful write response omitted the verified customer ID, requiring an extra provider search before cleanup. #210 adds an optional, strictly validated ID-only receipt after the original write's independent verification and durable audit; customer writes opt in and unit regressions prove previews/uncertain outcomes never leak IDs. All other money, ownership, isolation and financial approvals remain unchanged. External proof happened against deployed #209 `b7cc291bb88bcd44a9b111281e3ef5f770046748`; #210's source CI and subsequent scheduled production release are separate. Provider identity/resource denial, OAuth revocation, genuine signed webhook, Hub federation and G-6 owner Dashboard remain unverified.

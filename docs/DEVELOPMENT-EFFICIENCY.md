@@ -15,7 +15,7 @@ sound. Do not reduce coverage, remove checks, or invent time savings.
    are not the queue.
 2. Group several related endpoints into one cohesive PR when API area, owner
    boundary, write contract and fixtures match. Prefer ~450–800 production lines
-   if natural; preserve PLAYBOOK's ~800-line hard stop, one migration and one
+   if natural; preserve PLAYBOOK's advisory size estimate, one migration and one
    risk area. Small finished risk-isolated PRs are valid; never pad or combine
    money-out, login, keys or destructive changes just for size.
 3. Reuse authentic helpers and test fixtures before introducing abstraction.

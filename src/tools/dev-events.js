@@ -1,7 +1,8 @@
 // V-3 native curated TEST event actions; no fictional synthetic event responses.
 import {defineWrite,gone} from './write.js';
 import {client,reply,writeProfiles,allProfiles} from './billing-shared.js';
-import {planTrigger,executeTrigger,triggerTypes} from '../dev/triggers.js';
+import {planTrigger,executeTrigger,triggerTypes,verifyRecordedTriggerRun} from '../dev/triggers.js';
+import {pendingTriggerReceipt} from '../dev/trigger-pending-receipt.js';
 import {verifyCheckoutSession,verifiedHostedCheckoutUrl}
   from '../dev/triggers-checkout.js';
 const types=triggerTypes.map(type=>({
@@ -10,6 +11,8 @@ const types=triggerTypes.map(type=>({
 }));
 const op=defineWrite({
   name:'dev_trigger_event',allowZeroPreview:true,
+  // Only an independently event-verified and audited completed run exposes its ID.
+  resultId:(_before,after)=>after?.id,
   read:async(a,ctx)=>{
     if(ctx?.connection?.mode!=='test')throw new TypeError('TEST event trigger only');
     if(!ctx.db||typeof ctx.db.ensureDevRun!=='function'||
@@ -57,6 +60,11 @@ const op=defineWrite({
       row.cleaned===false))
 });
 export const tools=[
+  {name:'dev_verify_trigger_run',area:'developer',writes:false,
+    profiles:allProfiles,annotations:{readOnlyHint:true},
+    description:'Independently retrieve an exact recorded TEST Stripe Event and verify original account, source and run provenance.',
+    inputSchema:{type:'object',properties:{runId:{type:'string',pattern:'^run_[a-f0-9]{24}$'}},
+      required:['runId'],additionalProperties:false}},
   {name:'dev_get_checkout_test_url',area:'developer',writes:false,
     profiles:writeProfiles,
     description:'Read exact Stripe-hosted TEST Checkout URL for a run-owned open Session; genuine hosted payment is required.',
@@ -77,6 +85,16 @@ export const tools=[
     },required:['type','requestKey'],additionalProperties:false}}
 ];
 export const handlers={
+  dev_verify_trigger_run:async(a,ctx)=>{
+    try{
+      if(ctx?.connection?.mode!=='test')
+        return gone('Provider event verification requires TEST mode');
+      return reply(await verifyRecordedTriggerRun(a,ctx,await client(ctx)));
+    }catch(error){
+      if(error instanceof TypeError)return gone(error.message);
+      throw error;
+    }
+  },
   dev_get_checkout_test_url:async(a,ctx)=>{
     const account=ctx?.connection?.stripeAccount;
     if(ctx?.connection?.mode!=='test'||
@@ -116,7 +134,8 @@ export const handlers={
     return reply({types,mode:'test',total:types.length,
       note:'Only real supported actions are listed. Other event triggers are planned separately.'});
   },
-  dev_trigger_event:(a,ctx)=>ctx?.connection?.mode!=='test'?
-    gone('TEST event triggering is unavailable in LIVE mode'):op.handler(a,ctx)
+  dev_trigger_event:async(a,ctx)=>ctx?.connection?.mode!=='test'?
+    gone('TEST event triggering is unavailable in LIVE mode'):
+    pendingTriggerReceipt(a,ctx,await op.handler(a,ctx))
 };
 export const makeDevTriggerEventWrite=()=>op;
