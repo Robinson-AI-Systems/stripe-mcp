@@ -12,6 +12,7 @@ const refs={customer:['customers','customer'],product:['products','product'],
   invoice:['invoices','invoice'],payment_intent:['paymentIntents','payment_intent'],
   charge:['charges','charge'],dispute:['disputes','dispute'],
   invoice_item:['invoiceItems','invoiceitem'],refund:['refunds','refund'],
+  payment_method:['paymentMethods','payment_method'],
   checkout_session:['checkout.sessions','checkout.session']};
 const immutable=new Set(['charge','dispute','refund','invoice_item']);
 const providerRead=(stripe,type,id)=>{
@@ -33,6 +34,14 @@ function inspectState(row,obj,runId,scenario){
     obj.metadata?.rtc_run!==runId)
     return 'unverified';
   switch(row.object_type){
+    case 'payment_method':{
+      if(obj.livemode!==false||obj.type!=='card')return 'unverified';
+      // A recorded detached card must still be owned by the exact original
+      // run, and the provider readback is separate from the SQL cleanup flag.
+      return obj.customer===null?'cleaned':
+        /^cus_[A-Za-z0-9]{2,100}$/.test(obj.customer)?'outstanding':
+        'unverified';
+    }
     case 'customer':return obj.deleted===true?'cleaned':'outstanding';
     case 'product':case 'price':
       return obj.active===false?'cleaned':obj.active===true?'outstanding':'unverified';
