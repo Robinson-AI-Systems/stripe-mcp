@@ -341,8 +341,8 @@ describe('V-2 historical TEST draft reconciliation via original Stripe Event',()
   it('reconciles missing original draft without new provider writes, preserving immutable event',async()=>{
     const f=deletedInvoiceFixture();
     const preview=parse(await makeDevCleanupWrite().handler(
-      {...f.args,dryRun:true},f.ctx));
-    expect(preview.needsConfirmation).toBe(true);
+      {runId:f.args.runId,dryRun:true},f.ctx));
+    expect(preview.preview).toContain('in_TESTINVOICE123');
     expect(f.calls).toMatchObject({invoice:0,event:0,delete:0,marks:0});
     const verified=parse(await makeDevCleanupWrite().handler(f.args,f.ctx));
     expect(verified).toMatchObject({done:true,confirmed:true,
