@@ -5,22 +5,23 @@ import {verifyRecordedTriggerRun} from './triggers.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
   connected_account:'acct',event:'evt',charge:'ch',dispute:'du',
-  invoice_item:'ii',checkout_session:'cs_test'};
+  invoice_item:'ii',payment_method:'pm',checkout_session:'cs_test'};
 const order={subscription:0,invoice:1,payment_intent:2,customer:3,price:4,
   product:5,refund:6,charge:7,dispute:8,event:9,invoice_item:1,
-  connected_account:10,test_clock:11,checkout_session:0};
+  connected_account:10,test_clock:11,checkout_session:0,payment_method:-1};
 const types={product:'product',price:'price',customer:'customer',
   subscription:'subscription',invoice:'invoice',payment_intent:'payment_intent',
   refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock',
   event:'event',charge:'charge',dispute:'dispute',invoice_item:'invoiceitem',
-  checkout_session:'checkout.session'};
+  checkout_session:'checkout.session',payment_method:'payment_method'};
 const valid=(value,prefix)=>typeof value==='string'&&
   new RegExp('^'+prefix+'_[A-Za-z0-9]{2,100}$').test(value);
 const fail=x=>{throw new TypeError(x);};
 const maps={product:'products',price:'prices',customer:'customers',
   subscription:'subscriptions',invoice:'invoices',payment_intent:'paymentIntents',
   refund:'refunds',connected_account:'accounts',event:'events',
-  charge:'charges',dispute:'disputes',invoice_item:'invoiceItems'};
+  charge:'charges',dispute:'disputes',invoice_item:'invoiceItems',
+  payment_method:'paymentMethods'};
 const fetch=async(s,row)=>row.object_type==='test_clock'?
   s.testHelpers.testClocks.retrieve(row.object_id):
   row.object_type==='checkout_session'?
@@ -118,6 +119,16 @@ function immutableEvidence(row,was,run){
 async function safeOperation(s,row,was,key,ctx,run){
   const opts={idempotencyKey:key},id=row.object_id;
   switch(row.object_type){
+    case 'payment_method':{
+      if(was.customer===null)return true;
+      const detached=await s.paymentMethods.detach(id,{},opts);
+      if(detached?.id!==id||detached.object!=='payment_method'||
+        detached.livemode!==false||detached.customer!==null)return false;
+      const actual=await s.paymentMethods.retrieve(id);
+      return actual?.id===id&&actual.object==='payment_method'&&
+        actual.livemode===false&&actual.customer===null&&
+        actual.metadata?.rtc_run===run.id;
+    }
     case 'checkout_session':{
       if(was.status==='expired')return true;
       if(was.status!=='open')return false; // completed purchase is immutable
