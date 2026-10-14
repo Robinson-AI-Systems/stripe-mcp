@@ -78,6 +78,26 @@ describe('provider-verified TEST cleanup inspection',()=>{
         stripeAccount:'acct_OTHER123'}})).isError).toBe(true);
     expect(original.calls).toHaveLength(0);
   });
+  it('independently detects archived and unexpectedly active run-owned products',async()=>{
+    const f=fixture(),key='inspected-product';
+    const plan=planTrigger({type:'product.created',requestKey:key},account);
+    Object.assign(f.run,{id:plan.runId,request_key:key,
+      scenario:plan.scenario,plan_digest:plan.planDigest});
+    f.rows.splice(0,2,{step_name:'product_1',object_type:'product',
+      object_id:'prod_VERIFY123',cleaned:true},f.rows[1]);
+    f.setEvent({...f.event,type:'product.created',data:{object:{
+      id:'prod_VERIFY123',object:'product',metadata:{rtc_run:f.run.id}}}});
+    const sdk=await f.ctx.services.stripeForConnection();
+    let active=false;
+    sdk.products={retrieve:async()=>({id:'prod_VERIFY123',object:'product',
+      active,livemode:false,metadata:{rtc_run:f.run.id}})};
+    let value=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
+    expect(value.allEligibleCleanedAndVerified).toBe(true);
+    active=true;
+    value=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
+    expect(value.allEligibleCleanedAndVerified).toBe(false);
+    expect(value.rows[0].verification).toBe('ledger_mismatch');
+  });
   it('registers a read-only selected-account verifier',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
