@@ -1886,6 +1886,24 @@
         19
       ],
       "reason": "Original PR merged; preserve exact source history, including squash-merged tips."
+    },
+    {
+      "name": "ai/codex/mobile-native-connection",
+      "sha": "203a20761a3c214e486ed69e9caaa0a591b49738",
+      "disposition": "merged",
+      "prs": [
+        209
+      ],
+      "reason": "Verified merged PR; preserve exact source history including squash-merged tips."
+    },
+    {
+      "name": "ai/gpt6/verified-customer-receipts-210",
+      "sha": "a6c8249c488883e9af975c400456abc9babddc4d",
+      "disposition": "merged",
+      "prs": [
+        210
+      ],
+      "reason": "Verified merged PR; preserve exact source history including squash-merged tips."
     }
   ]
 }
