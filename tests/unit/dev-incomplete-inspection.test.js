@@ -229,6 +229,79 @@ describe('unfinished native TEST trigger provider inspection',()=>{
     expect(result.observations[1]).toMatchObject({verification:'provider_unverified'});
     expect(result.observations[1]).not.toHaveProperty('indicators');
   });
+  it('independently retrieves the exact unfinished TEST original Event without completing SQL',async()=>{
+    const f=fixture('customer.created'), calls=[];
+    const event={id:'evt_VALID_SOURCE123',object:'event',type:'customer.created',
+      livemode:false,data:{object:{...f.customer}}};
+    f.sdk.events={list:async args=>{calls.push(['list',args.type]);
+      return {data:[event],has_more:false};},
+      retrieve:async id=>{calls.push(['retrieve',id]);return event;}};
+    const result=parse(await handlers.dev_inspect_incomplete_run({
+      runId:f.run.id,includeOriginalEvent:true},f.ctx));
+    expect(result.originalEvent).toMatchObject({
+      verification:'provider_verified',type:'customer.created',
+      eventId:'evt_VALID_SOURCE123',ledgerCompletionChanged:false
+    });
+    expect(result.runStatus).toBe('running');
+    expect(result.missingSteps).toEqual(['event_1']);
+    expect(result).not.toHaveProperty('done');
+    expect(calls).toEqual([['list','customer.created'],
+      ['retrieve','evt_VALID_SOURCE123']]);
+  });
+  it('does not infer missing Stripe Events from bounded negative provider search',async()=>{
+    const f=fixture(), calls=[];
+    f.sdk.events={list:async()=>{calls.push('list');
+      return {data:[],has_more:false};},retrieve:async()=>{throw Error('never');}};
+    const result=parse(await handlers.dev_inspect_incomplete_run({
+      runId:f.run.id,includeOriginalEvent:true},f.ctx));
+    expect(result.originalEvent).toMatchObject({
+      verification:'provider_unverified',reason:'original_event_not_verified',
+      ledgerCompletionChanged:false});
+    expect(result.missingSteps).toEqual(['event_1']);
+    expect(calls).toEqual(['list']);
+  });
+  it('refuses Event search if any original source step is absent from the ledger',async()=>{
+    const f=fixture('invoice.payment_failed');
+    f.sdk.events={list:async()=>{throw Error('search must not run');}};
+    const result=parse(await handlers.dev_inspect_incomplete_run({
+      runId:f.run.id,includeOriginalEvent:true},f.ctx));
+    expect(result.originalEvent).toMatchObject({
+      verification:'provider_unverified',reason:'missing_recorded_source'});
+    expect(result.missingSteps).toContain('invoice_1');
+  });
+  it('independently verifies a recorded Event by ID, refusing a changed original',async()=>{
+    const f=fixture('customer.created');
+    f.rows.push({step_name:'event_1',object_type:'event',
+      object_id:'evt_ORIGINAL123',cleaned:false});
+    let actual={id:'evt_ORIGINAL123',object:'event',type:'customer.created',
+      livemode:false,data:{object:{...f.customer}}};
+    let listed=false;
+    f.sdk.events={list:async()=>{listed=true;throw Error('unexpected list');},
+      retrieve:async()=>actual};
+    const ok=parse(await handlers.dev_inspect_incomplete_run({
+      runId:f.run.id,includeOriginalEvent:true},f.ctx));
+    expect(ok.originalEvent).toMatchObject({
+      verification:'provider_verified',eventId:'evt_ORIGINAL123',
+      ledgerCompletionChanged:false});
+    expect(listed).toBe(false);
+    actual={...actual,data:{object:{...f.customer,
+      metadata:{rtc_run:'run_'+ 'f'.repeat(24)}}}};
+    const bad=parse(await handlers.dev_inspect_incomplete_run({
+      runId:f.run.id,includeOriginalEvent:true},f.ctx));
+    expect(bad.originalEvent).toMatchObject({
+      verification:'provider_unverified',reason:'original_event_mismatch'});
+    expect(listed).toBe(false);
+  });
+  it('rejects malicious read selectors without Stripe or SQL access beyond setup',async()=>{
+    const f=fixture(),calls=[];
+    f.sdk.events={list:async()=>{calls.push('list');return {data:[],has_more:false};}};
+    for(const args of [
+      {runId:f.run.id,includeOriginalEvent:'true'},
+      {runId:f.run.id,includeOriginalEvent:true,forceRetry:true}
+    ])expect((await handlers.dev_inspect_incomplete_run(args,f.ctx)).isError)
+      .toBe(true);
+    expect(calls).toEqual([]);
+  });
   it('registers an accessible READ ONLY inspection without increasing guarded writes',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
