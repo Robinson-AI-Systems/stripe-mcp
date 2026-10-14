@@ -1,19 +1,27 @@
 name: Daily live promotion
 
 on:
-  # Primary owner schedule: 00:01 Denver (DST-aware).
-  # GitHub may silently drop scheduled events. These off-peak recovery windows
-  # retry the SAME once-per-Denver-day guarded promotion, not extra releases.
+  # Owner schedule: 00:01 Denver, including DST; GitHub may start late.
   schedule:
+    # Primary Denver midnight release, with bounded missed-event recovery.
+    # The UTC backup also avoids relying exclusively on timezone triggers.
     - cron: '1 0 * * *'
       timezone: America/Denver
     - cron: '17 0 * * *'
       timezone: America/Denver
-    - cron: '43 0 * * *'
+    - cron: '17 1 * * *'
       timezone: America/Denver
-
-# The dedicated scheduled job is the sole automated writer for live.
-# No manual dispatch, push trigger, force push, Stripe LIVE permission or keys.
+    - cron: '37 5 * * *'
+      timezone: America/Denver
+    - cron: '43 12 * * *'
+  workflow_dispatch:
+    inputs:
+      recover_missed_daily:
+        description: 'Owner-only checked recovery of a missed daily release'
+        type: boolean
+        required: true
+        default: false
+# All recovery paths share the same checked atomic daily promoter.
 permissions:
   contents: write
   checks: read
@@ -24,6 +32,10 @@ concurrency:
 
 jobs:
   promote:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' ||
+       (github.event_name == 'workflow_dispatch' && inputs.recover_missed_daily == true && github.actor == 'christcr2012'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -39,4 +51,5 @@ jobs:
       - name: Promote exactly one checked main snapshot per Denver day
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          RECOVER_MISSED_DAILY: ${{ inputs.recover_missed_daily }}
         run: node scripts/promote-live.mjs
