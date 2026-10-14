@@ -141,6 +141,19 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "lastEvidence": "2026-10-14 source-only enhancement adds finite provider-verified state indicators and five dedicated unit regressions for four incomplete native TEST event families. No CI, checked release or real original-provider invocation is claimed by this new PR."
   },
   {
+    "id": "STRIPE-V3-INCOMPLETE-ORIGINAL-EVENT",
+    "priority": 8,
+    "requiredRevision": "4f270886a5ccee151da351e7fd25a6636312e1a4",
+    "task": "Try exact original Stripe Event provider readback on unfinished native TEST triggers with complete source ledger, never equating observation to SQL completion",
+    "procedure": "docs/pr-cards/V-3.md #229; tests/unit/dev-incomplete-inspection.test.js",
+    "gates": "Exact original selected TEST immutable plan and full run-owned source ledger, provider Event independently retrieved and matched; normal release and READY; no LIVE/money/automatic replay or event absence inference",
+    "dependsOn": [
+      "STRIPE-V3-RUN-INSPECTION"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source-only opt-in inspector validates recorded sources then checks exact original Events with a bounded Stripe list and independent retrieve; tests cover valid, tampered, missing and unreachable cases. No deployed provider proof before checked release."
+  },
+  {
     "id": "STRIPE-V3-UNFINISHED-4",
     "priority": 8,
     "requiredRevision": "8848d0cb9aa53a336aa5e84c5f5ccbe7ace4e9d5",

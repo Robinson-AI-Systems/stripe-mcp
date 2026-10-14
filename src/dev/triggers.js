@@ -384,6 +384,57 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
   return db.getDevRun({account,requestKey:run.request_key});
 }
 
+// Original-Event recovery for a RUNNING/UNCERTAIN native TEST trigger.
+// Requires the complete immutable source row set. A provider verified Event
+// does not complete the SQL run, undo cleanup, or authorize replay/mutations.
+export async function inspectIncompleteOriginalEvent({plan,rows,account,stripe:s}){
+  const unknown=(reason)=>({verification:'provider_unverified',reason,
+    ledgerCompletionChanged:false});
+  if(!plan||!id(account,'acct')||!Array.isArray(rows)||
+    rows.length>plan.expectedSteps||!Array.isArray(plan.steps))
+    return unknown('incomplete_provenance');
+  const byStep=new Map(rows.map(row=>[row.step_name,row]));
+  if(byStep.size!==rows.length||!plan.steps.slice(0,-1).every(step=>{
+    const row=byStep.get(step.name);
+    return row&&row.object_type===step.type&&
+      id(row.object_id,prefix[step.type])&&typeof row.cleaned==='boolean';
+  }))return unknown('missing_recorded_source');
+  const eventRow=byStep.get('event_1');
+  if(eventRow&&(eventRow.object_type!=='event'||
+    !id(eventRow.object_id,'evt')||eventRow.cleaned!==false))
+    return unknown('invalid_recorded_event');
+  const targetStep=isCheckoutEvent(plan.type)?
+    plan.steps.find(x=>x.type==='checkout_session'):
+    isSubscriptionEvent(plan.type)?
+    plan.steps.find(x=>x.type==='subscription'):
+    isInvoiceFailureEvent(plan.type)?
+    plan.steps.find(x=>x.type==='invoice'):plan.steps.at(-2);
+  const target=byStep.get(targetStep?.name);
+  if(!target)return unknown('missing_recorded_source');
+  const source={id:target.object_id,type:targetStep.type,
+    customer:byStep.get('customer_1')?.object_id,
+    ...(isCheckoutEvent(plan.type)?{
+      paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
+    ...(isDisputeEvent(plan.type)?{
+      charge:byStep.get('charge_1')?.object_id,
+      paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
+    ...(isSubscriptionEvent(plan.type)?{
+      price:byStep.get('price_1')?.object_id}:{})};
+  try{
+    let eventId;
+    if(eventRow){
+      const event=await s.events.retrieve(eventRow.object_id);
+      if(!matchingEvent(event,plan,account,source))
+        return unknown('original_event_mismatch');
+      eventId=eventRow.object_id;
+    }else eventId=await findGeneratedEvent(s,plan,account,source);
+    if(!eventId)return unknown('original_event_not_verified');
+    return {verification:'provider_verified',type:plan.type,eventId,
+      sourceType:targetStep.type,ledgerCompletionChanged:false,
+      note:'Immutable original Event independently retrieved with exact TEST source. The unfinished run remains unfinished; no event receipt has been added to its ledger, no signed webhook or cleanup proven.'};
+  }catch{return unknown('provider_read_unverified');}
+}
+
 /** Read an actual immutable Stripe Event by the exact account-scoped run.
  * Source objects can already be deleted/archived; the Event snapshot must still
  * independently match the approved original run and source IDs.

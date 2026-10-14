@@ -1,6 +1,6 @@
 // V-3 incomplete TEST trigger recovery inspection. This reader never resumes,
 // cleans, or creates Stripe objects and does not infer that an Event was absent.
-import {planTrigger,triggerTypes} from '../dev/triggers.js';
+import {planTrigger,triggerTypes,inspectIncompleteOriginalEvent} from '../dev/triggers.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
 import {allProfiles,client,reply} from './billing-shared.js';
 import {gone} from './write.js';
@@ -109,7 +109,9 @@ export const tools=[{
   profiles:allProfiles,annotations:{readOnlyHint:true},
   description:'Independently inspect bounded run-owned Stripe TEST sources on an unfinished trigger, without writes or Event-completion claims.',
   inputSchema:{type:'object',properties:{
-    runId:{type:'string',pattern:'^run_[a-f0-9]{24}$'}
+    runId:{type:'string',pattern:'^run_[a-f0-9]{24}$'},
+    includeOriginalEvent:{type:'boolean',
+      description:'Recheck the exact native original TEST Event by recorded source without mutation.'}
   },required:['runId'],additionalProperties:false}
 }];
 export const handlers={
@@ -118,7 +120,9 @@ export const handlers={
     if(ctx?.connection?.mode!=='test'||!accountPattern.test(account??''))
       return gone('Select the original TEST account');
     if(!a||typeof a!=='object'||Array.isArray(a)||
-      Object.keys(a).length!==1||!runIdPattern.test(a.runId))
+      Object.keys(a).some(k=>!['runId','includeOriginalEvent'].includes(k))||
+      (a.includeOriginalEvent!==undefined&&typeof a.includeOriginalEvent!=='boolean')||
+      !runIdPattern.test(a.runId))
       return gone('Exact unfinished TEST run required');
     if(typeof ctx.db?.getDevRunById!=='function'||
       typeof ctx.db?.getDevRunObjects!=='function')
@@ -174,11 +178,14 @@ export const handlers={
       observations.push(result);
     }
     const verified=observations.filter(x=>x.verification==='provider_verified').length;
+    const originalEvent=a.includeOriginalEvent===true?
+      await inspectIncompleteOriginalEvent({plan,rows,account,stripe}):null;
     return reply({runId:run.id,mode:'test',scenario:run.scenario,
       runStatus:run.status,expectedSteps:plan.expectedSteps,
       recordedSteps:rows.length,verifiedCount:verified,
       unverifiedCount:rows.length-verified,
       missingSteps:plan.steps.filter(s=>!byStep.has(s.name)).map(s=>s.name),
-      observations,note:'Read-only snapshot for an unfinished TEST run. Missing ledger steps do not prove a Stripe Event did not occur. Reuse the original request key only through the guarded native trigger, or preview exact run-owned cleanup; never infer a provider mutation, signed webhook or safe retry from these observations.'});
+      observations,...(originalEvent?{originalEvent}:{}),
+      note:'Read-only snapshot for an unfinished TEST run. Missing ledger steps do not prove a Stripe Event did not occur. Reuse the original request key only through the guarded native trigger, or preview exact run-owned cleanup; never infer a provider mutation, signed webhook or safe retry from these observations.'});
   }
 };
