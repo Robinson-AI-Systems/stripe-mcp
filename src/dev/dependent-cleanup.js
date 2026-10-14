@@ -1,6 +1,6 @@
 // Conservative TEST-only deletion of Connect sellers and time-travel clocks.
 // No transfer, payout, refund, reversal or customer data search by name.
-const exactMissing=e=>e?.statusCode===404&&
+export const exactMissing=e=>e?.statusCode===404&&
   (e?.code==='resource_missing'||e?.raw?.code==='resource_missing');
 export async function gone(read,id){
   try{
