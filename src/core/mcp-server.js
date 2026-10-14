@@ -9,7 +9,8 @@ import { shapeToolResult } from '../tools/util.js';
 import { isToolAllowed, publicToolInfo, listingForConnection, isGuardedTestWrite } from './profiles.js';
 import { randomBytes } from 'node:crypto';
 import { safePreparsedObject } from './http.js';
-import { readDetail,splitResult,resultPage } from '../tools/result-rules.js';
+import {readDetail,splitResult,resultPage} from '../tools/result-rules.js';
+import {nativeReadArgs} from './read-presentation.js';
 
 function inertSnapshot(value){
   const result=safePreparsedObject(value);
@@ -49,7 +50,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
   try {
-    const raw=shapeToolResult(await handler(fixedArgs,{connection:fixedConnection,connectionId:fixedConnection.resultScope,db,services,registry,
+    const raw=shapeToolResult(await handler(nativeReadArgs(item,fixedArgs),{connection:fixedConnection,connectionId:fixedConnection.resultScope,db,services,registry,
       runRead:(toolName,toolArgs)=>dispatchReadOnlyTool({registry,
         name:toolName,args:toolArgs,connection:fixedConnection,db,services},depth+1,name)}),
       {mode:fixedConnection.mode});
