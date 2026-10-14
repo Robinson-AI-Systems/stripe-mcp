@@ -9,14 +9,14 @@ const metadata={rtc_run:'run_'+'a'.repeat(24)};
 const opts={idempotencyKey:'rmcp_dev_trigger_real_test_123'};
 describe('new V-3 TEST event provider request shapes',()=>{
   it('creates an unconfirmed TEST payment intent without money movement',async()=>{
-    const pi=await stripe().paymentIntents.create({
+    const pi=await sdk().paymentIntents.create({
       customer:'cus_FAKE123',amount:3600,currency:'usd',confirm:false,
       metadata:{rtc_run:'run_'+'a'.repeat(24)}
     },{idempotencyKey:'rmcp_test_pi_created'});
     expect(pi.object).toBe('payment_intent');
   });
   it('updates the run-owned trial subscription metadata description',async()=>{
-    const sub=await stripe().subscriptions.update('sub_FAKE123',{
+    const sub=await sdk().subscriptions.update('sub_FAKE123',{
       description:'RTC Event Updated Subscription'
     },{idempotencyKey:'rmcp_test_sub_updated'});
     expect(sub.object).toBe('subscription');
