@@ -30,7 +30,7 @@ describe('owner hosting cost / daily live policy',()=>{
       expect(releasePolicyViolations(x)).not.toEqual([]);
     }
   });
-  it('rejects a renamed, retargeted or manually triggered release',()=>{
+  it('rejects duplicate recovery triggers, retargeting and mutable actions',()=>{
     const x=inputs();x.promote+='\nworkflow_dispatch:\n';
     expect(releasePolicyViolations(x)).not.toEqual([]);
     const y=inputs();y.targets=y.targets.replace('= main','= live');
@@ -44,7 +44,7 @@ describe('owner hosting cost / daily live policy',()=>{
     const y=inputs();y.targets=y.targets.replace('reopened, edited','reopened');
     expect(releasePolicyViolations(y)).not.toEqual([]);
   });
-  it('requires one daily 00:01 Denver schedule rather than a fixed UTC offset',()=>{
+  it('requires the Denver primary and exactly approved recovery schedules',()=>{
     for(const change of [
       s=>s.replace('timezone: America/Denver','timezone: UTC'),
       s=>s.replace('      timezone: America/Denver\n',''),
@@ -55,14 +55,14 @@ describe('owner hosting cost / daily live policy',()=>{
       expect(releasePolicyViolations(x)).not.toEqual([]);
     }
   });
-  it('rejects a second cron even if its YAML entry puts timezone first',()=>{
+  it('rejects an extra cron even if its YAML entry puts timezone first',()=>{
     const x=inputs();
     x.promote=x.promote.replace('      timezone: America/Denver',
       "      timezone: America/Denver\n    - timezone: UTC\n      cron: '30 12 * * *'");
     expect(releasePolicyViolations(x)).toContain(
-      'Release workflow must remain scheduled-only and use checked promotion script');
+      'Release workflow must use approved recovery and checked promotion script');
   });
-  it('allows one valid schedule when timezone precedes cron',()=>{
+  it('allows valid Denver schedule key ordering',()=>{
     const x=inputs();
     x.promote=x.promote.replace(
       "    - cron: '1 0 * * *'\n      timezone: America/Denver",

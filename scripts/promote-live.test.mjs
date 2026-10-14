@@ -103,31 +103,86 @@ test('real atomic git promotion, read-back and second same-day update refusal', 
   }
 });
 
-test('owner primary 00:01 Denver release has two exact guarded recovery windows', () => {
+test('bounded schedule backups preserve midnight, daily marker and owner recovery', () => {
   const workflow = readFileSync(new URL('../.github/workflows/promote-live.yml', import.meta.url), 'utf8');
-  assert.deepEqual([...workflow.matchAll(/^\s*- cron: '(\d+ 0 \* \* \*)'/gm)]
-    .map(match=>match[1]),['1 0 * * *','17 0 * * *','43 0 * * *']);
-  assert.equal((workflow.match(/^\s+timezone: America\/Denver\s*$/gm)||[]).length,3);
-  assert.doesNotMatch(workflow,/workflow_dispatch:|workflow_call:|^  push:/m);
+  const crons = [...workflow.matchAll(/cron: '([^']+)'/g)].map(m => m[1]);
+  assert.deepEqual(crons, ['1 0 * * *', '17 0 * * *', '17 1 * * *', '37 5 * * *', '43 12 * * *']);
+  assert.equal((workflow.match(/timezone: America\/Denver/g) || []).length, 4);
+  assert.match(workflow, /recover_missed_daily:/);
+  assert.match(workflow, /default: false/);
+  assert.match(workflow, /github.actor == 'christcr2012'/);
+  assert.match(workflow, /RECOVER_MISSED_DAILY:/);
+  assert.match(workflow, /cancel-in-progress: false/);
 });
-test('unexpected release schedules and dispatch cannot pass hosting policy', async () => {
-  const {releasePolicyViolations}=await import('./validate-hosting-release.mjs');
-  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
-  const good={vercel:read('vercel.json'),ci:read('.github/workflows/ci.yml'),
-    targets:read('.github/workflows/pr-target.yml'),
-    promote:read('.github/workflows/promote-live.yml')};
-  assert.deepEqual(releasePolicyViolations(good),[]);
-  for(const promote of [
-    good.promote.replace("17 0 * * *","18 0 * * *"),
-    good.promote.replace("    - cron: '43 0 * * *'\n      timezone: America/Denver\n",''),
-    good.promote.replace("    - cron: '43 0 * * *'",
-      "    - cron: '37 0 * * *'\n      timezone: America/Denver\n    - cron: '43 0 * * *'"),
-    good.promote.replace("      timezone: America/Denver\n    - cron: '43",
-      "      timezone: UTC\n    - cron: '43"),
-    good.promote+'\n  workflow_dispatch:\n',
-    good.promote.replace("  contents: write","  contents: read")
-  ]){
-    assert.match(releasePolicyViolations({...good,promote}).join(' '),
-      /Release workflow must remain scheduled-only/);
+test('recovery requires explicit owner, expected repository, main and elapsed midnight', async () => {
+  const { authorizedReleaseInvocation } = await import('./promote-live.mjs');
+  const env = { GITHUB_REPOSITORY: 'example/repo', GITHUB_REF: 'refs/heads/main',
+    GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR: 'christcr2012', GITHUB_TRIGGERING_ACTOR: 'christcr2012',
+    RECOVER_MISSED_DAILY: 'true', GITHUB_TOKEN: 'fixture' };
+  const time = new Date('2026-10-14T11:00:00Z');
+  assert.equal(authorizedReleaseInvocation(env, 'example/repo', time), true);
+  for (const change of [{ GITHUB_TRIGGERING_ACTOR: 'other' }, { GITHUB_TRIGGERING_ACTOR: undefined }, { GITHUB_ACTOR: 'other' }, { RECOVER_MISSED_DAILY: 'false' },
+    { RECOVER_MISSED_DAILY: undefined }, { GITHUB_REF: 'refs/heads/live' },
+    { GITHUB_REPOSITORY: 'other/repo' }, { GITHUB_EVENT_NAME: 'push' },
+    { GITHUB_TOKEN: '' }])
+    assert.equal(authorizedReleaseInvocation({ ...env, ...change }, 'example/repo', time), false);
+  assert.equal(authorizedReleaseInvocation(env, 'example/repo', new Date('2026-10-14T06:00:00Z')), false);
+  assert.equal(authorizedReleaseInvocation(env, 'example/repo', new Date('2026-12-14T07:00:00Z')), false);
+  assert.equal(authorizedReleaseInvocation(env, 'example/repo', new Date('2026-12-14T07:01:00Z')), true);
+  assert.equal(authorizedReleaseInvocation({ ...env, GITHUB_EVENT_NAME: 'schedule' }, 'example/repo', time), true);
+});
+
+test('unexpected schedules and unguarded dispatch fail hosting policy', async () => {
+  const { releasePolicyViolations } = await import('./validate-hosting-release.mjs');
+  const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+  const good = { vercel: read('vercel.json'), ci: read('.github/workflows/ci.yml'),
+    targets: read('.github/workflows/pr-target.yml'), promote: read('.github/workflows/promote-live.yml') };
+  assert.deepEqual(releasePolicyViolations(good), []);
+  for (const promote of [
+    good.promote.replace('17 0 * * *', '18 0 * * *'),
+    good.promote.replace("    - cron: '43 12 * * *'\n", ''),
+    good.promote.replace("    - cron: '43 12 * * *'", "    - timezone: America/Denver\n      cron: '37 0 * * *'\n    - cron: '43 12 * * *'"),
+    good.promote.replace('timezone: America/Denver', 'timezone: UTC'),
+    good.promote.replace('default: false', 'default: true'),
+    good.promote.replace("github.actor == 'christcr2012'", "github.actor == 'other'"),
+    good.promote.replace('inputs.recover_missed_daily == true', 'true'),
+    good.promote.replace('  contents: write', '  contents: read'),
+    good.promote + '\n  workflow_dispatch:\n'
+  ]) assert.match(releasePolicyViolations({ ...good, promote }).join(' '), /Release workflow/);
+});
+
+test('successful no-change run records a receipt and suppresses later development', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'release-no-change-'));
+  const cwd = process.cwd(), fetchBefore = globalThis.fetch;
+  const tokenKey = 'GITHUB_TOKEN';
+  const keys = ['GITHUB_REPOSITORY', 'GITHUB_REF', 'GITHUB_EVENT_NAME', tokenKey];
+  const before = keys.map(k => process.env[k]);
+  const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: 'pipe' }).trim();
+  try {
+    git('init', '--bare', join(dir, 'remote.git'));
+    git('init', '-b', 'main');
+    git('config', 'user.email', 'test@example.invalid');
+    git('config', 'user.name', 'Release test');
+    git('remote', 'add', 'origin', join(dir, 'remote.git'));
+    writeFileSync(join(dir, 'fixture.txt'), 'initial');
+    git('add', 'fixture.txt'); git('commit', '-m', 'initial');
+    git('push', 'origin', 'main', 'main:live');
+    const original = git('rev-parse', 'HEAD');
+    Object.assign(process.env, { GITHUB_REPOSITORY: 'example/repo',
+      GITHUB_REF: 'refs/heads/main', GITHUB_EVENT_NAME: 'schedule', [tokenKey]: 'fixture' });
+    process.chdir(dir);
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ total_count: 1,
+      check_runs: [{ ...good, head_sha: original }] }) });
+    const policy = { repository: 'example/repo', requiredChecks: ['ci'] };
+    await run(policy, { attempts: 1 });
+    assert.equal(git('ls-remote', 'origin', 'refs/tags/live-promotion/' + denverDay()).split(/\s+/)[0], original);
+    writeFileSync(join(dir, 'fixture.txt'), 'later development');
+    git('commit', '-am', 'later'); git('push', 'origin', 'main');
+    await run(policy, { attempts: 1 });
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], original);
+  } finally {
+    process.chdir(cwd); globalThis.fetch = fetchBefore;
+    keys.forEach((key, i) => { if (before[i] === undefined) delete process.env[key]; else process.env[key] = before[i]; });
+    rmSync(dir, { recursive: true, force: true });
   }
 });
