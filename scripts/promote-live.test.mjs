@@ -117,11 +117,11 @@ test('bounded schedule backups preserve midnight, daily marker and owner recover
 test('recovery requires explicit owner, expected repository, main and elapsed midnight', async () => {
   const { authorizedReleaseInvocation } = await import('./promote-live.mjs');
   const env = { GITHUB_REPOSITORY: 'example/repo', GITHUB_REF: 'refs/heads/main',
-    GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR: 'christcr2012',
+    GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR: 'christcr2012', GITHUB_TRIGGERING_ACTOR: 'christcr2012',
     RECOVER_MISSED_DAILY: 'true', GITHUB_TOKEN: 'fixture' };
   const time = new Date('2026-10-14T11:00:00Z');
   assert.equal(authorizedReleaseInvocation(env, 'example/repo', time), true);
-  for (const change of [{ GITHUB_ACTOR: 'other' }, { RECOVER_MISSED_DAILY: 'false' },
+  for (const change of [{ GITHUB_TRIGGERING_ACTOR: 'other' }, { GITHUB_TRIGGERING_ACTOR: undefined }, { GITHUB_ACTOR: 'other' }, { RECOVER_MISSED_DAILY: 'false' },
     { RECOVER_MISSED_DAILY: undefined }, { GITHUB_REF: 'refs/heads/live' },
     { GITHUB_REPOSITORY: 'other/repo' }, { GITHUB_EVENT_NAME: 'push' },
     { GITHUB_TOKEN: '' }])
@@ -130,4 +130,23 @@ test('recovery requires explicit owner, expected repository, main and elapsed mi
   assert.equal(authorizedReleaseInvocation(env, 'example/repo', new Date('2026-12-14T07:00:00Z')), false);
   assert.equal(authorizedReleaseInvocation(env, 'example/repo', new Date('2026-12-14T07:01:00Z')), true);
   assert.equal(authorizedReleaseInvocation({ ...env, GITHUB_EVENT_NAME: 'schedule' }, 'example/repo', time), true);
+});
+
+test('unexpected schedules and unguarded dispatch fail hosting policy', async () => {
+  const { releasePolicyViolations } = await import('./validate-hosting-release.mjs');
+  const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+  const good = { vercel: read('vercel.json'), ci: read('.github/workflows/ci.yml'),
+    targets: read('.github/workflows/pr-target.yml'), promote: read('.github/workflows/promote-live.yml') };
+  assert.deepEqual(releasePolicyViolations(good), []);
+  for (const promote of [
+    good.promote.replace('17 0 * * *', '18 0 * * *'),
+    good.promote.replace("    - cron: '43 12 * * *'\n", ''),
+    good.promote.replace("    - cron: '43 12 * * *'", "    - timezone: America/Denver\n      cron: '37 0 * * *'\n    - cron: '43 12 * * *'"),
+    good.promote.replace('timezone: America/Denver', 'timezone: UTC'),
+    good.promote.replace('default: false', 'default: true'),
+    good.promote.replace("github.actor == 'christcr2012'", "github.actor == 'other'"),
+    good.promote.replace('inputs.recover_missed_daily == true', 'true'),
+    good.promote.replace('  contents: write', '  contents: read'),
+    good.promote + '\n  workflow_dispatch:\n'
+  ]) assert.match(releasePolicyViolations({ ...good, promote }).join(' '), /Release workflow/);
 });
