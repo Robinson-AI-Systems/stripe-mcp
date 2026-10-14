@@ -30,14 +30,18 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
   // so exactly two later off-peak retry windows recover a missed trigger.
   // The immutable daily tag and atomic guarded promotion still cap at ONE
   // release per Denver day; changing or adding any cron fails policy CI.
-  const expected=[
-    "- cron: '1 0 * * *'",'timezone: America/Denver',
-    "- cron: '17 0 * * *'",'timezone: America/Denver',
-    "- cron: '43 0 * * *'",'timezone: America/Denver'
-  ];
+  const approvedCrons=["cron: '1 0 * * *'",
+    "cron: '17 0 * * *'","cron: '43 0 * * *'"];
+  const requiredTimezone='timezone: America/Denver';
   const matches=(row,property)=>row===property||row===property.replace(/'/g,'"');
-  const onlyApprovedSchedules=rows.length===expected.length&&
-    rows.every((row,i)=>matches(row,expected[i]));
+  // Preserve both GitHub-valid key orders for each *exact* approved item.
+  // The three pairs must be the only schedule rows, in this order.
+  const onlyApprovedSchedules=rows.length===approvedCrons.length*2&&
+    approvedCrons.every((cron,i)=>{
+      const [first,second]=rows.slice(i*2,i*2+2);
+      return (matches(first,'- '+cron)&&second===requiredTimezone)||
+        (first==='- '+requiredTimezone&&matches(second,cron));
+    });
   if(scheduleHeadings.length!==1||!onlyApprovedSchedules||
      /workflow_dispatch\s*:|workflow_call\s*:|\bpush\s*:/.test(promote)||
      !/contents:\s*write/.test(promote)||
