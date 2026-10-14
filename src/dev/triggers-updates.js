@@ -5,7 +5,7 @@ const fail=x=>{throw new TypeError(x);};
 const ref=x=>typeof x==='string'?x:x?.id;
 export const mutationTypes=Object.freeze([
   'customer.updated','product.updated','price.updated',
-  'payment_intent.canceled','customer.subscription.updated'
+  'payment_intent.canceled'
 ]);
 const mutations=Object.freeze({
   'customer.updated':{type:'customer',field:'description',
