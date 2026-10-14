@@ -302,6 +302,76 @@ describe('unfinished native TEST trigger provider inspection',()=>{
       .toBe(true);
     expect(calls).toEqual([]);
   });
+  it('inspects four bounded TEST runs without writes and isolates unknown original run IDs',async()=>{
+    const f=fixture(),missing='run_'+ 'a'.repeat(24),calls=[];
+    const originalGet=f.ctx.db.getDevRunById;
+    f.ctx.db.getDevRunById=async selector=>{
+      calls.push(selector.id);return originalGet(selector);
+    };
+    const batch=parse(await handlers.dev_inspect_incomplete_runs({
+      runIds:[f.run.id,missing]},f.ctx));
+    expect(batch).toMatchObject({mode:'test',count:2,
+      inspectedCount:1,unavailableCount:1});
+    expect(batch.results[0]).toMatchObject({runId:f.run.id,state:'inspected',
+      snapshot:{runStatus:'running',recordedSteps:1,
+        missingSteps:['event_1']}});
+    expect(batch.results[1]).toEqual({runId:missing,state:'unavailable'});
+    expect(calls).toEqual([f.run.id,missing]);
+    expect(batch.note).toContain('No cleanup, retry, money movement');
+  });
+  it('rejects the entire malformed batch before any original ledger or provider read',async()=>{
+    const f=fixture(),valid=f.run.id;
+    let reads=0;
+    f.ctx.db.getDevRunById=async()=>{reads++;throw Error('must not read');};
+    for(const runIds of [
+      [],[valid,valid],['run_FAKE'],[valid,'run_FAKE'],
+      Array.from({length:5},(_,i)=>'run_'+String(i).repeat(24))
+    ]){
+      const reply=await handlers.dev_inspect_incomplete_runs({runIds},f.ctx);
+      expect(reply.isError,JSON.stringify(runIds)).toBe(true);
+    }
+    for(const args of [
+      {runIds:[valid],includeOriginalEvent:'true'},
+      {runIds:[valid],confirm:true},
+      {runIds:'all'}
+    ])expect((await handlers.dev_inspect_incomplete_runs(args,f.ctx)).isError)
+      .toBe(true);
+    expect(reads).toBe(0);
+  });
+  it('rejects a foreign or LIVE batch before any run lookup',async()=>{
+    const f=fixture();
+    let calls=0;
+    f.ctx.db.getDevRunById=async()=>{calls++;throw Error('not allowed');};
+    f.ctx.connection.mode='live';
+    expect((await handlers.dev_inspect_incomplete_runs({
+      runIds:[f.run.id]},f.ctx)).isError).toBe(true);
+    f.ctx.connection.mode='test';
+    f.ctx.connection.stripeAccount='invalid-account';
+    expect((await handlers.dev_inspect_incomplete_runs({
+      runIds:[f.run.id]},f.ctx)).isError).toBe(true);
+    expect(calls).toBe(0);
+  });
+  it('propagates only independently matched original TEST Event evidence in opt-in batch',async()=>{
+    const f=fixture();
+    const event={id:'evt_BATCHSOURCE123',object:'event',type:'customer.created',
+      livemode:false,data:{object:{...f.customer}}};
+    f.sdk.events={list:async()=>({data:[event],has_more:false}),
+      retrieve:async()=>event};
+    const batch=parse(await handlers.dev_inspect_incomplete_runs({
+      runIds:[f.run.id],includeOriginalEvent:true},f.ctx));
+    expect(batch.results[0].snapshot.originalEvent).toMatchObject({
+      verification:'provider_verified',eventId:'evt_BATCHSOURCE123',
+      ledgerCompletionChanged:false});
+    expect(batch.results[0].snapshot.runStatus).toBe('running');
+  });
+  it('advertises the four-run read-only batch without write or profile authority',()=>{
+    const tool=tools.find(t=>t.name==='dev_inspect_incomplete_runs');
+    expect(tool).toMatchObject({writes:false,profiles:['read_only','everyday','full']});
+    expect(tool.inputSchema.properties.runIds).toMatchObject({
+      minItems:1,maxItems:4,uniqueItems:true});
+    expect(registry.tools.filter(t=>t.name==='dev_inspect_incomplete_runs'))
+      .toHaveLength(1);
+  });
   it('registers an accessible READ ONLY inspection without increasing guarded writes',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
