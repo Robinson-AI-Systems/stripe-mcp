@@ -98,6 +98,27 @@ describe('provider-verified TEST cleanup inspection',()=>{
     expect(value.allEligibleCleanedAndVerified).toBe(false);
     expect(value.rows[0].verification).toBe('ledger_mismatch');
   });
+  it('distinguishes absent original TEST draft invoice from its still-pending ledger',async()=>{
+    const f=fixture(),key='inspected-invoice';
+    const plan=planTrigger({type:'invoice.created',requestKey:key},account);
+    Object.assign(f.run,{id:plan.runId,request_key:key,
+      scenario:plan.scenario,plan_digest:plan.planDigest});
+    f.rows.splice(1,0,{step_name:'invoice_1',object_type:'invoice',
+      object_id:'in_VERIFY123',cleaned:false});
+    f.setEvent({...f.event,type:'invoice.created',data:{object:{
+      id:'in_VERIFY123',object:'invoice',customer:'cus_VERIFY123',
+      currency:'usd',amount_due:0,amount_paid:0,status:'draft',
+      metadata:{rtc_run:f.run.id}}}});
+    const sdk=await f.ctx.services.stripeForConnection();
+    sdk.invoices={retrieve:async()=>{throw Object.assign(Error('absent'),{
+      statusCode:404,code:'resource_missing'});}};
+    let value=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
+    expect(value.allEligibleCleanedAndVerified).toBe(false);
+    expect(value.rows.find(x=>x.type==='invoice').verification).toBe('ledger_pending');
+    f.rows[1].cleaned=true;
+    value=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
+    expect(value.allEligibleCleanedAndVerified).toBe(true);
+  });
   it('registers a read-only selected-account verifier',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
