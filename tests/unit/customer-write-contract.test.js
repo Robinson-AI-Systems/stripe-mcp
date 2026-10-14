@@ -170,6 +170,11 @@ describe('customer receipts route to the same customer across all nine operation
       const request={...args,confirm:true,requestKey:'receipt-routing-'+name};
       const op=makeCustomerWrite(name);
       if(withMoney){
+        // Real money policy first records the request; only an independently
+        // simulated owner approval permits the second call to execute.
+        const denied=parse(await op.handler(request,f.ctx));
+        expect(denied.error).toMatch(/explicit approval/);
+        expect(f.provider.writes).toHaveLength(0);
         const approved=await f.db.approveMoneyRequest({account:f.ctx.connection.stripeAccount,
           idempotencyKey:idempotencyKey(f.ctx.connection,name,request)});
         expect(approved).toBe(true);
