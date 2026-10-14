@@ -56,7 +56,7 @@ const own=(o,row,run,byStep)=>{
 };
 function safeState(type,o){
   if(type==='customer')return o.deleted===true?'deleted':
-    o.deleted===false?'present':null;
+    o.deleted!==true?'present':null;
   if(['product','price'].includes(type))return o.active===true?'active':
     o.active===false?'archived':null;
   if(type==='subscription')
@@ -96,7 +96,8 @@ export const handlers={
     const run=await ctx.db.getDevRunById({account,id:a.runId});
     if(!run||run.id!==a.runId||run.stripe_account!==account||
       !['running','uncertain'].includes(run.status)||run.size!==1||
-      typeof run.request_key!=='string')
+      typeof run.request_key!=='string'||run.request_key.length<1||
+      run.request_key.length>128)
       return gone('No unfinished selected-account TEST trigger run');
     const type=triggerTypes.find(t=>'event-'+t.replaceAll('_','-')
       .replaceAll('.','-')===run.scenario);
