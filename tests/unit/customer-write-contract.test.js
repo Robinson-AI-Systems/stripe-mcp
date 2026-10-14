@@ -124,3 +124,38 @@ describe('D-1 all nine write doors',()=>{
       expect(f.provider.writes).toHaveLength(0);
     });
 });
+
+describe('verified customer resource receipts',()=>{
+  const parse=result=>JSON.parse(result.content[0].text);
+  it('returns a verified creation ID only after the confirmed TEST write',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000});
+    const op=makeCustomerWrite('customer_create');
+    const args={name:'Disposable TEST fixture',requestKey:'test-customer-receipt'};
+    expect(parse(await op.handler({...args,dryRun:true},f.ctx)).resourceId).toBeUndefined();
+    expect(f.provider.writes).toHaveLength(0);
+    const result=parse(await op.handler({...args,confirm:true},f.ctx));
+    expect(result).toMatchObject({done:true,confirmed:true,mode:'test',resourceId:'cus_CREATED123'});
+    expect(result).not.toHaveProperty('name');
+    expect(result).not.toHaveProperty('metadata');
+    expect(f.provider.writes).toHaveLength(1);
+  });
+  it('never emits an ID on unverified provider readback',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:false,limitCents:50000});
+    const result=parse(await makeCustomerWrite('customer_create').handler({
+      name:'Disposable TEST fixture',confirm:true,requestKey:'unverified-customer-receipt'
+    },f.ctx));
+    expect(result.done).toBe(false);
+    expect(result.confirmed).toBe(false);
+    expect(result.resourceId).toBeUndefined();
+    expect(result.warning).toMatch(/Read-back/);
+  });
+  it('returns only the independently confirmed deleted customer ID',async()=>{
+    const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000});
+    const result=parse(await makeCustomerWrite('customer_delete').handler({
+      customerId,confirm:true,requestKey:'verified-delete-receipt'
+    },f.ctx));
+    expect(result).toMatchObject({done:true,confirmed:true,resourceId:customerId});
+    expect(result).not.toHaveProperty('email');
+    expect(f.provider.writes).toHaveLength(1);
+  });
+});
