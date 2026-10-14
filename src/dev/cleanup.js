@@ -226,7 +226,10 @@ export async function executeCleanup(a,ctx,s,key){
       }
     }catch{state='uncertain';}
     outcomes.push({runId:run.id,step:row.step_name,id:row.object_id,
-      status:state,...(state==='retained'?{
+      status:state,...(state==='cleaned'&&
+        verifiedAbsent.has(run.id+':'+row.step_name)?
+        {reconciledFrom:'verified_original_event_and_provider_absence'}:{}),
+      ...(state==='retained'?{
         retention:immutableEvidence(row,before.get(run.id+':'+row.step_name),run)?
           'immutable':'review_required'}:{})});
   }
