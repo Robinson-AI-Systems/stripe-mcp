@@ -1,3 +1,17 @@
+### October 14 V-3 — original TEST SetupIntent event lifecycle (SOURCE ONLY)
+
+Three no-charge native TEST workflows now create an audited, run-tagged
+SetupIntent and verify the original `setup_intent.created`,
+`setup_intent.canceled`, or `setup_intent.succeeded` Event. Cancel/confirm
+occurs only after an exact, independently retrieved intent is durably tracked;
+completed transitions are not replayed. The original Event must independently
+match selected TEST account, exact run, source ID and expected state.
+Provider misses leave runs incomplete and recoverable, not falsely accepted.
+Incomplete inspection and guarded cleanup handle the new source. Source-only:
+mandatory exact-head CI/review, checked daily release and actual custom TEST
+provider Event readback remain open. LIVE, money-out, spending, app ownership,
+existing original run digests and owner consent are unchanged.
+
 ### October 14 V-3 — run-owned PaymentMethod Event lifecycle (SOURCE ONLY)
 
 Source implements three more genuine selected-account TEST event scenarios:
@@ -347,6 +361,17 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 source and automated test plan, no actual provider event acceptance."
+  },
+  {
+    "id": "STRIPE-V3-SETUP-INTENT-EVENTS",
+    "priority": 8,
+    "requiredRevision": "0b85632918e508543ad3f0800c9b312017d52f7b",
+    "task": "Independently verify original selected-account TEST setup_intent.created, setup_intent.canceled and setup_intent.succeeded from exact durable run-owned SetupIntents",
+    "procedure": "docs/pr-cards/V-3.md SetupIntent lifecycle; tests/unit/dev-setup-intent-events.test.js and tests/mock/dev-setup-intent-events.test.js",
+    "gates": "Exact-head required CI/review, approved checked main-to-live, authenticated native custom Stripe TEST account, original run preview/confirmation, exact Events.list and independent Events.retrieve; no money, LIVE, automatic cleanup or inferred acceptance.",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source commit 0b85632918e508543ad3f0800c9b312017d52f7b; no validated CI, deployed or provider proof yet."
   }
 ]
 ```

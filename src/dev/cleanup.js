@@ -80,6 +80,11 @@ export function verifyCleanupIdentity(run,row,obj,rows=[]){
     (obj.object!==types[type]&&!(type==='customer'&&obj.deleted===true))||
     Object.keys(obj.metadata??{}).some(k=>APP_METADATA_KEYS.includes(k)))
     fail('Provider ownership or type changed; all TEST cleanup aborted');
+  if(type==='setup_intent'&&
+    (obj.livemode!==false||obj.customer!==null||
+      obj.usage!=='off_session'||!Array.isArray(obj.payment_method_types)||
+      !obj.payment_method_types.includes('card')))
+    fail('TEST SetupIntent ownership or no-charge method permissions changed');
   if(type==='test_clock'){
     if(obj.name!=='RTC DEV RUN '+run.id+' '+row.step_name.split('_').at(-1))
       fail('Clock does not match immutable run provenance');

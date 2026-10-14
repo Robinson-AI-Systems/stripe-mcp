@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {planTrigger} from '../../src/dev/triggers.js';
+import {verifyCleanupIdentity} from '../../src/dev/cleanup.js';
 import {verifySetupIntent,matchesSetupIntentEvent,ensureSetupIntentEvent}
   from '../../src/dev/triggers-setup-intents.js';
 const acct='acct_TEST123',setup='seti_TEST123';
@@ -35,6 +36,17 @@ function fake(plan){
   return {sdk,calls,set:x=>{state=x},state:()=>state};
 }
 describe('Native run-owned TEST SetupIntent event workflows',()=>{
+  it('cleanup independently denies foreign SetupIntent ownership and methods',()=>{
+    const plan=make('setup_intent.created');
+    const run={id:plan.runId,stripe_account:acct,scenario:plan.scenario};
+    const row={object_id:setup,object_type:'setup_intent'};
+    expect(()=>verifyCleanupIdentity(run,row,object(plan))).not.toThrow();
+    for(const changed of [{customer:'cus_FOREIGN'},{
+      payment_method_types:['us_bank_account']},{livemode:true},
+      {metadata:{rtc_run:'run_FOREIGN'}},{usage:'on_session'}]){
+      expect(()=>verifyCleanupIdentity(run,row,object(plan,changed))).toThrow();
+    }
+  });
   it.each(['setup_intent.created','setup_intent.canceled',
     'setup_intent.succeeded'])('keeps exact immutable ledger plan and event state: %s',async type=>{
     const plan=make(type),f=fake(plan);
