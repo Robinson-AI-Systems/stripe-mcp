@@ -1,5 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
+import {publicToolInfo} from '../../src/core/profiles.js';
+import {tools as devTools,handlers as devHandlers} from '../../src/tools/dev-seed.js';
 import {overlayDispatch} from '../../scripts/k3-dispatch-overlay.mjs';
 import {readFileSync,existsSync} from 'node:fs';
 const conn={stripeAccount:'acct_TESTK3',mode:'test',profile:'full',
@@ -58,5 +60,67 @@ describe('original MCP source dispatch + portable adapter safety',()=>{
     expect(overlayDispatch(code)).toContain("robinson-mcp-core/mcp-dispatch");
     expect(overlayDispatch(code)).toContain('createMcpHandler');
     expect(()=>overlayDispatch('unrelated')).toThrow();
+  });
+});
+
+describe('public read presentation controls work through real strict native handlers',()=>{
+  const tool=devTools.find(x=>x.name==='dev_list_runs');
+  function fixture(){
+    const calls=[];
+    const db={listDevRuns:async args=>{
+      calls.push(args);
+      return [{id:'run_'+'b'.repeat(24),scenario:'event-product-updated',
+        size:1,status:'completed',object_count:2,
+        created_at:'2026-10-14T05:00:00Z',completed_at:'2026-10-14T05:01:00Z'}];
+    }};
+    const registry={tools:[tool],handlers:{dev_list_runs:devHandlers.dev_list_runs}};
+    return {calls,db,registry};
+  }
+  it('advertises and honors full and dotted selection without leaking options to dev_list_runs',async()=>{
+    const f=fixture();
+    expect(publicToolInfo(tool).inputSchema.properties)
+      .toHaveProperty('detail');
+    expect(publicToolInfo(tool).inputSchema.properties)
+      .toHaveProperty('fields');
+    const result=await dispatchReadOnlyTool({
+      registry:f.registry,name:'dev_list_runs',
+      args:{limit:3,offset:0,detail:'full',fields:'runs.id,hasMore'},
+      connection:conn,db:f.db});
+    expect(result.isError).not.toBe(true);
+    const value=JSON.parse(result.content[0].text);
+    expect(value).toMatchObject({runs:[{id:'run_'+'b'.repeat(24)}],
+      hasMore:false});
+    expect(value.runs[0].scenario).toBeUndefined();
+    expect(f.calls).toEqual([{account:conn.stripeAccount,limit:3,offset:0}]);
+  });
+  it('rejects malformed generic selectors and still denies unknown business arguments',async()=>{
+    for(const args of [
+      {limit:1,detail:'compact'},
+      {limit:1,fields:'__proto__.value'},
+      {limit:1,fields:'runs.id,runs.id'},
+      {limit:1,detail:'full',unknownBusinessArgument:true}
+    ]){
+      const f=fixture();
+      const result=await dispatchReadOnlyTool({
+        registry:f.registry,name:'dev_list_runs',args,connection:conn,db:f.db});
+      expect(result.isError,args).toBe(true);
+      expect(f.calls,args).toHaveLength(0);
+    }
+  });
+  it('preserves handlers with native fields arrays and native detail enums',async()=>{
+    let received=null;
+    const native={name:'native_read',writes:false,profiles:['full'],
+      inputSchema:{type:'object',properties:{
+        detail:{type:'string',enum:['full','compact']},
+        fields:{type:'array',items:{type:'string'}}
+      },additionalProperties:false}};
+    const registry={tools:[native],handlers:{native_read:async args=>{
+      received=args;
+      return {content:[{type:'text',text:JSON.stringify({id:'original'})}]};
+    }}};
+    const result=await dispatchReadOnlyTool({registry,name:'native_read',
+      args:{fields:['id'],detail:'full'},connection:conn,db:{}});
+    expect(result.isError).not.toBe(true);
+    expect(received).toEqual({fields:['id'],detail:'full'});
   });
 });
