@@ -103,8 +103,31 @@ test('real atomic git promotion, read-back and second same-day update refusal', 
   }
 });
 
-test('owner release schedule is 00:01 Denver with native DST handling', () => {
+test('owner primary 00:01 Denver release has two exact guarded recovery windows', () => {
   const workflow = readFileSync(new URL('../.github/workflows/promote-live.yml', import.meta.url), 'utf8');
-  assert.equal((workflow.match(/^\s*- cron:/gm) || []).length, 1);
-  assert.match(workflow, /- cron: '1 0 \* \* \*'[^\n]*\n\s+timezone: America\/Denver\s*\n/);
+  assert.deepEqual([...workflow.matchAll(/^\s*- cron: '(\d+ 0 \* \* \*)'/gm)]
+    .map(match=>match[1]),['1 0 * * *','17 0 * * *','43 0 * * *']);
+  assert.equal((workflow.match(/^\s+timezone: America\/Denver\s*$/gm)||[]).length,3);
+  assert.doesNotMatch(workflow,/workflow_dispatch:|workflow_call:|^  push:/m);
+});
+test('unexpected release schedules and dispatch cannot pass hosting policy', async () => {
+  const {releasePolicyViolations}=await import('./validate-hosting-release.mjs');
+  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+  const good={vercel:read('vercel.json'),ci:read('.github/workflows/ci.yml'),
+    targets:read('.github/workflows/pr-target.yml'),
+    promote:read('.github/workflows/promote-live.yml')};
+  assert.deepEqual(releasePolicyViolations(good),[]);
+  for(const promote of [
+    good.promote.replace("17 0 * * *","18 0 * * *"),
+    good.promote.replace("    - cron: '43 0 * * *'\n      timezone: America/Denver\n",''),
+    good.promote.replace("    - cron: '43 0 * * *'",
+      "    - cron: '37 0 * * *'\n      timezone: America/Denver\n    - cron: '43 0 * * *'"),
+    good.promote.replace("      timezone: America/Denver\n    - cron: '43",
+      "      timezone: UTC\n    - cron: '43"),
+    good.promote+'\n  workflow_dispatch:\n',
+    good.promote.replace("  contents: write","  contents: read")
+  ]){
+    assert.match(releasePolicyViolations({...good,promote}).join(' '),
+      /Release workflow must remain scheduled-only/);
+  }
 });
