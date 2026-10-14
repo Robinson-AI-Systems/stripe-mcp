@@ -1,7 +1,7 @@
 // V-3 native curated TEST event actions; no fictional synthetic event responses.
 import {defineWrite,gone} from './write.js';
 import {client,reply,writeProfiles,allProfiles} from './billing-shared.js';
-import {planTrigger,executeTrigger,triggerTypes,verifyRecordedTriggerRun} from '../dev/triggers.js';
+import {resolveTriggerPlan,executeTrigger,triggerTypes,verifyRecordedTriggerRun} from '../dev/triggers.js';
 import {pendingTriggerReceipt} from '../dev/trigger-pending-receipt.js';
 import {verifyCheckoutSession,verifiedHostedCheckoutUrl}
   from '../dev/triggers-checkout.js';
@@ -19,9 +19,9 @@ const op=defineWrite({
       typeof ctx.db.getDevRunObjects!=='function'||
       typeof ctx.db.recordDevRunObject!=='function')
       throw new TypeError('Durable TEST event run ledger unavailable');
-    const plan=planTrigger(a,ctx.connection.stripeAccount);
     const prior=await ctx.db.getDevRun({
       account:ctx.connection.stripeAccount,requestKey:a.requestKey});
+    const plan=resolveTriggerPlan(a,ctx.connection.stripeAccount,prior);
     if(prior&&(prior.id!==plan.runId||prior.scenario!==plan.scenario||
       prior.size!==plan.size||prior.plan_digest!==plan.planDigest))
       throw new TypeError('Immutable TEST event plan conflicts with prior run');
