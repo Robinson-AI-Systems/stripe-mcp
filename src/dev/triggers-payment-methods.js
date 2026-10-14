@@ -25,7 +25,9 @@ export function verifyMethodFixture(plan,method,rows,{final=false}={}){
     if((plan.type==='payment_method.detached'&&owner!==null)||
       (plan.type!=='payment_method.detached'&&owner!==customer)||
       (plan.type==='payment_method.updated'&&
-        method.billing_details?.name!==changeName))
+        method.billing_details?.name!==changeName)||
+      (plan.type==='payment_method.detached'&&
+        method.metadata?.rtc_pm_detach_ready!=='1'))
       fail('Native TEST PaymentMethod did not reach exact expected state');
   }
 }
@@ -35,7 +37,8 @@ export function matchesPaymentMethodEvent(plan,source,target){
   return source?.object==='payment_method'&&source.id===target.id&&
     source.livemode===false&&source.type==='card'&&
     source.metadata?.rtc_run===plan.runId&&
-    (plan.type==='payment_method.detached'?owner===null:
+    (plan.type==='payment_method.detached'?
+      owner===null&&source.metadata?.rtc_pm_detach_ready==='1':
       owner===target.customer)&&
     (plan.type!=='payment_method.updated'||
       source.billing_details?.name===changeName);
@@ -48,6 +51,14 @@ export async function ensurePaymentMethodEvent(s,plan,rows,key){
     fail('Exact recorded TEST card and owner required');
   let current=await s.paymentMethods.retrieve(pm);
   verifyMethodFixture(plan,current,rows);
+  // Detachment is terminal: the attached+tagged marker makes retries
+  // distinguish a completed detach from a newly created unattached card.
+  if(plan.type==='payment_method.detached'&&
+    (ref(current.customer)??null)===null&&
+    current.metadata?.rtc_pm_detach_ready==='1'){
+    verifyMethodFixture(plan,current,rows,{final:true});
+    return;
+  }
   if((ref(current.customer)??null)===null){
     const joined=await s.paymentMethods.attach(pm,{customer},{
       idempotencyKey:key+'_method_attach'});
@@ -65,6 +76,17 @@ export async function ensurePaymentMethodEvent(s,plan,rows,key){
       billing_details:{name:changeName}
     },{idempotencyKey:key+'_method_update'});
     verifyMethodFixture(plan,updated,rows);
+  }
+  if(plan.type==='payment_method.detached'&&
+    current.metadata?.rtc_pm_detach_ready!=='1'){
+    const receipt=await s.paymentMethods.update(pm,{
+      metadata:{rtc_run:plan.runId,rtc_pm_detach_ready:'1'}
+    },{idempotencyKey:key+'_method_detach_ready'});
+    verifyMethodFixture(plan,receipt,rows);
+    current=await s.paymentMethods.retrieve(pm);
+    verifyMethodFixture(plan,current,rows);
+    if(current.metadata.rtc_pm_detach_ready!=='1')
+      fail('Stripe did not confirm TEST card detach-ready provenance');
   }
   if(plan.type==='payment_method.detached'&&
     (ref(current.customer)??null)!==null){

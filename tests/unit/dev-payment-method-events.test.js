@@ -31,10 +31,11 @@ function fixture(plan){
       if(id!==pm||owner!==customer)throw Error('cross-customer attachment');
       current={...current,customer:owner};return {...current};
     },
-    update:async(id,{billing_details},o)=>{
+    update:async(id,{billing_details,metadata},o)=>{
       options(o);actions.push(['update',id]);
       if(current.customer!==customer)throw Error('not attached');
-      current={...current,billing_details};return {...current};
+      current={...current,...(billing_details?{billing_details}:{}),
+        ...(metadata?{metadata}: {})};return {...current};
     },
     detach:async(id,_,o)=>{
       options(o);actions.push(['detach',id]);
@@ -65,7 +66,7 @@ describe('V-3 original TEST PaymentMethod Event generation',()=>{
       const mutations=f.actions.filter(x=>x[0]!=='retrieve').map(x=>x[0]);
       expect(mutations).toEqual(type==='payment_method.attached'?
         ['attach']:type==='payment_method.updated'?
-          ['attach','update']:['attach','detach']);
+          ['attach','update']:['attach','update','detach']);
       const before=f.actions.filter(x=>x[0]!=='retrieve').length;
       await ensurePaymentMethodEvent(f.sdk,plan,ledger,'rmcp_test_owned');
       expect(f.actions.filter(x=>x[0]!=='retrieve')).toHaveLength(before);

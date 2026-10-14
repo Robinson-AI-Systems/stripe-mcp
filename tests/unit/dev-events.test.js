@@ -441,7 +441,8 @@ describe('V-3a real TEST provider event generation',()=>{
       expect(f.calls.filter(x=>x.action==='create')).toHaveLength(2);
       expect(f.calls.filter(x=>x.action==='mutate').map(x=>x.type))
         .toEqual(Array.from({
-          length:type==='payment_method.attached'?1:2
+          length:type==='payment_method.attached'?1:
+            type==='payment_method.updated'?2:3
         },()=> 'payment_method'));
       f.showEvents();
       expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
