@@ -1,4 +1,5 @@
 import {describe,it,expect} from 'vitest';
+import {planTrigger,resolveTriggerPlan,executeTrigger} from '../../src/dev/triggers.js';
 import {verifyFailedInvoiceSource,verifyFailedInvoiceItem,
   ensureFailedInvoicePayment,matchesInvoiceFailureEvent,
   verifyFailedInvoiceMethod}
@@ -28,6 +29,23 @@ const method=(extra={})=>({
 });
 const failed=()=>invoice({status:'open',attempted:true,attempt_count:1});
 describe('V-3c3c real declined TEST invoice evidence',()=>{
+  it('preserves original incomplete failed-invoice plan digest and refuses replay',async()=>{
+    const account='acct_FAKE123',args={type:plan.type,requestKey:'legacy-exact-run'};
+    const legacy=planTrigger(args,account,{legacyInvoiceFailure:true});
+    const fresh=planTrigger(args,account);
+    expect(legacy.expectedSteps).toBe(4);
+    expect(fresh.expectedSteps).toBe(5);
+    expect(fresh.steps.at(-2).type).toBe('payment_method');
+    expect(legacy.planDigest).not.toBe(fresh.planDigest);
+    const recorded={plan_digest:legacy.planDigest};
+    const restored=resolveTriggerPlan(args,account,recorded);
+    expect(restored).toMatchObject({legacyInvoiceFailure:true,
+      planDigest:legacy.planDigest,runId:legacy.runId});
+    await expect(executeTrigger({plan:restored,
+      run:{status:'running'},stripe:{},db:{},account,
+      rootKey:'rmcp_test'})).rejects.toThrow(/read-only/);
+    expect(resolveTriggerPlan(args,account).planDigest).toBe(fresh.planDigest);
+  });
   it('does not confuse an open unattempted invoice with payment failure',()=>{
     expect(()=>verifyFailedInvoiceSource(plan,invoice({status:'open'}),
       rows)).not.toThrow();
