@@ -27,7 +27,7 @@ describe('V-3c2 native TEST invoice event request shapes',()=>{
       {auto_advance:false},opts);
     expect(done.object).toBe('invoice');
   });
-  it.each(['invoice.created','invoice.updated','invoice.finalized'])(
+  it.each(['invoice.created','invoice.updated','invoice.finalized','invoice.paid'])(
     'lists and retrieves the actual %s provider Event',async type=>{
       const page=await sdk().events.list({type,limit:100});
       expect(page.object).toBe('list');
