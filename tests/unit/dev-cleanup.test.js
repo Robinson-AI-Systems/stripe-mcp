@@ -121,6 +121,47 @@ describe('V-2a guarded cleanup, exact provider read-back, and retained money',()
     expect(f.rows.filter(x=>!x.cleaned).map(x=>x.object_type))
       .toEqual(['refund','connected_account','test_clock']);
   });
+  it('confirms a draft invoice deletion from exact receipt plus independent 404',async()=>{
+    const f=fixture();
+    f.objects.set('in_FAKE123',{...f.get('in_FAKE123'),status:'draft'});
+    let removed=false;
+    f.sdk.invoices.del=async(id,_params,opts)=>{
+      expect(opts.idempotencyKey).toMatch(/^rmcp_/);
+      removed=true;
+      return {id,object:'invoice',deleted:true};
+    };
+    f.sdk.invoices.retrieve=async id=>{
+      if(removed)throw Object.assign(new Error('No such invoice'),{
+        statusCode:404,code:'resource_missing'});
+      return f.get(id);
+    };
+    const result=parse(await makeDevCleanupWrite().handler(p(),f.ctx));
+    expect(result.cleanup.outcomes.find(x=>x.step==='invoice_1'))
+      .toMatchObject({id:'in_FAKE123',status:'cleaned'});
+    expect(f.rows.find(x=>x.step_name==='invoice_1').cleaned).toBe(true);
+  });
+  it('refuses mismatched draft deletion receipts and unrelated provider errors',async()=>{
+    for(const variant of ['bad_receipt','wrong_404','server_error']){
+      const f=fixture();
+      f.objects.set('in_FAKE123',{...f.get('in_FAKE123'),status:'draft'});
+      let removed=false;
+      f.sdk.invoices.del=async id=>{
+        removed=true;
+        return {id:variant==='bad_receipt'?'in_OTHER':id,
+          object:'invoice',deleted:true};
+      };
+      f.sdk.invoices.retrieve=async id=>{
+        if(removed)throw Object.assign(new Error('provider denied'),
+          variant==='server_error'?{statusCode:503,code:'api_error'}:
+            {statusCode:404,code:'permission_denied'});
+        return f.get(id);
+      };
+      const result=parse(await makeDevCleanupWrite().handler(p(),f.ctx));
+      expect(result.cleanup.outcomes.find(x=>x.step==='invoice_1').status)
+        .not.toBe('cleaned');
+      expect(f.rows.find(x=>x.step_name==='invoice_1').cleaned).toBe(false);
+    }
+  });
   it('repeat confirmation cannot repeat earlier destructive Stripe mutations',async()=>{
     const f=fixture();
     await makeDevCleanupWrite().handler(p(),f.ctx);
