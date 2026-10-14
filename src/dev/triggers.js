@@ -159,6 +159,8 @@ function verifyFixture(plan,step,x,objects){
     if(isInvoiceFailureEvent(plan.type))
       verifyFailedInvoiceSource(plan,x,objects);
     else if(isInvoiceEvent(plan.type))verifyInvoiceFixture(plan,x,objects);
+    else if(isInvoiceTerminalEvent(plan.type))
+      verifyTerminalInvoice(plan,x,objects);
     else if(x.status!=='paid'||x.amount_paid!==0||x.currency!=='usd'||
       ref(x.customer)!==objects.get('customer_1')?.object_id)
       bad('Automatically created TEST trial invoice was not verified');
@@ -568,7 +570,7 @@ export async function verifyRecordedTriggerRun(a,ctx,s){
     plan.steps.find(x=>x.type==='checkout_session'):
     isSubscriptionEvent(plan.type)?
     plan.steps.find(x=>x.type==='subscription'):
-    isInvoiceFailureEvent(plan.type)?
+    (isInvoiceFailureEvent(plan.type)||isInvoiceTerminalEvent(plan.type))?
     plan.steps.find(x=>x.type==='invoice'):plan.steps.at(-2);
   const targetRow=byStep.get(targetStep.name);
   if(!targetRow||!id(targetRow.object_id,prefix[targetStep.type]))

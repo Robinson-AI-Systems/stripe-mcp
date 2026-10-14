@@ -65,7 +65,7 @@ describe('native audited no-charge TEST invoice terminal Event path',()=>{
       id:invoiceId,customer})).toBe(true);
     const actions=f.calls.filter(x=>!x.endsWith('_read')).length;
     await ensureTerminalInvoiceEvent(f.sdk,plan,rows,'rmcp_terminal_test');
-    expect(f.calls.filter(x=>!x.endsWith('_read')).toHaveLength(actions);
+    expect(f.calls.filter(x=>!x.endsWith('_read'))).toHaveLength(actions);
     expect(matchesTerminalInvoiceEvent(plan,{...f.seen(),livemode:true},{
       id:invoiceId,customer})).toBe(false);
   });
