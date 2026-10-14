@@ -24,6 +24,7 @@ import * as devConnect from './dev-connect.js';
 import * as devCleanup from './dev-cleanup.js';
 import * as devEvents from './dev-events.js';
 import * as devAcceptance from './dev-acceptance.js';
+import * as devCleanupInspection from './dev-cleanup-inspection.js';
 import * as devForwarders from './dev-forwarders.js';
 import * as devForwardEvents from './dev-forward-events.js';
 import * as devTestCards from './dev-test-cards.js';
