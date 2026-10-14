@@ -109,7 +109,10 @@ export const tools=[{
   profiles:allProfiles,annotations:{readOnlyHint:true},
   description:'Independently inspect bounded run-owned Stripe TEST sources on an unfinished trigger, without writes or Event-completion claims.',
   inputSchema:{type:'object',properties:{
-    runId:{type:'string',pattern:'^run_[a-f0-9]{24}
+    runId:{type:'string',pattern:'^run_[a-f0-9]{24}$'},
+    includeOriginalEvent:{type:'boolean',
+      description:'Recheck the exact native original TEST Event by recorded source without mutation.'}
+  },required:['runId'],additionalProperties:false}
 }];
 export const handlers={
   async dev_inspect_incomplete_run(a,ctx){
