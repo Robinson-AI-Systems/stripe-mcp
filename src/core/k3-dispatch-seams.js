@@ -3,6 +3,7 @@ import {isToolAllowed,isGuardedTestWrite} from './profiles.js';
 import {shapeToolResult} from '../tools/util.js';
 import {toStripeToolError} from '../tools/errors.js';
 import {readDetail,splitResult,resultPage} from '../tools/result-rules.js';
+import {nativeReadArgs} from './read-presentation.js';
 const value=(node,key)=>Object.getOwnPropertyDescriptor(node,key)?.value;
 export function createStripeCoreDispatcher({core,registry,sourceDispatch}){
   if(typeof core?.createGuardedMcpDispatcher!=='function'||
@@ -23,7 +24,8 @@ export function createStripeCoreDispatcher({core,registry,sourceDispatch}){
     tools.push(tool);
     const own=Object.getOwnPropertyDescriptor(registry.handlers,name);
     if(own&&Object.hasOwn(own,'value')&&typeof own.value==='function')
-      handlers[name]=own.value;
+      handlers[name]=writes===false?
+        (args,ctx)=>own.value(nativeReadArgs(entry,args),ctx):own.value;
   }
   const service=core.createGuardedMcpDispatcher({
     registry:{tools,handlers},
