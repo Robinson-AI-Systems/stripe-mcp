@@ -302,6 +302,40 @@ describe('unfinished native TEST trigger provider inspection',()=>{
       .toBe(true);
     expect(calls).toEqual([]);
   });
+  it('inspects a tracked attached TEST card without exposing payment details',async()=>{
+    const f=fixture('invoice.payment_failed');
+    f.rows.push(
+      {step_name:'invoice_1',object_type:'invoice',
+        object_id:'in_RECOVERY123',cleaned:false},
+      {step_name:'invoice_item_1',object_type:'invoice_item',
+        object_id:'ii_RECOVERY123',cleaned:false},
+      {step_name:'payment_method_1',object_type:'payment_method',
+        object_id:'pm_RECOVERY123',cleaned:false}
+    );
+    f.sdk.invoices={retrieve:async()=>({
+      id:'in_RECOVERY123',object:'invoice',livemode:false,
+      status:'open',attempted:false,attempt_count:0,
+      customer:'cus_RECOVERY123',metadata:{rtc_run:f.run.id}
+    })};
+    f.sdk.invoiceItems={retrieve:async()=>({
+      id:'ii_RECOVERY123',object:'invoiceitem',livemode:false,
+      customer:'cus_RECOVERY123',invoice:'in_RECOVERY123',
+      metadata:{rtc_run:f.run.id}
+    })};
+    f.sdk.paymentMethods={retrieve:async()=>({
+      id:'pm_RECOVERY123',object:'payment_method',type:'card',livemode:false,
+      customer:'cus_RECOVERY123',metadata:{rtc_run:f.run.id},
+      card:{last4:'0341',fingerprint:'PRIVATE_FINGERPRINT'}
+    })};
+    const result=parse(await inspect(f));
+    expect(result).toMatchObject({recordedSteps:4,
+      expectedSteps:5,missingSteps:['event_1']});
+    expect(result.observations.at(-1)).toMatchObject({
+      type:'payment_method',verification:'provider_verified',
+      observedState:'attached'});
+    expect(JSON.stringify(result)).not.toContain('PRIVATE_FINGERPRINT');
+    expect(JSON.stringify(result)).not.toContain('0341');
+  });
   it('inspects four bounded TEST runs without writes and isolates unknown original run IDs',async()=>{
     const f=fixture(),missing='run_'+ 'a'.repeat(24),calls=[];
     const originalGet=f.ctx.db.getDevRunById;
