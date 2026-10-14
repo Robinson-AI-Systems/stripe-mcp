@@ -310,6 +310,7 @@ function deletedInvoiceFixture(){
   const provider={invoiceError:{statusCode:404,code:'resource_missing'},event};
   const calls={event:0,invoice:0,delete:0,marks:0};
   const db={
+    recordChange:async()=>true,
     getDevRunById:async({account,id})=>account===acct&&id===run.id?run:null,
     getDevRunObjects:async({account,id})=>account===acct&&id===run.id?
       rows.map(x=>({...x})):[],
