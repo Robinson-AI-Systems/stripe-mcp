@@ -100,6 +100,7 @@ describe('V-1a dev_seed actual guarded handler: seven-case contract',()=>{
     const f=fixture(),op=makeDevSeedWrite();
     const result=parse(await op.handler({...req,confirm:true},f.ctx));
     expect(result.done).toBe(true);
+    expect(result.resourceId).toMatch(/^run_[a-f0-9]{24}$/);
     expect(f.provider.writes.map(x=>x.type)).toEqual(['product','price','customer']);
     expect(new Set(f.provider.writes.map(x=>x.idempotencyKey)).size).toBe(3);
     expect(f.provider.afterCalls).toBe(3);
@@ -114,6 +115,7 @@ describe('V-1a dev_seed actual guarded handler: seven-case contract',()=>{
     const f=fixture({readBackMatches:false});
     const result=parse(await makeDevSeedWrite().handler({...req,confirm:true},f.ctx));
     expect(result.done).toBe(false);
+    expect(result.resourceId).toBeUndefined();
     expect(f.provider.writes.length).toBeGreaterThan(0);
     expect((await f.db.listDevRuns({account}))[0].status).toBe('running');
     expect((await f.db.getDevRunObjects({account,id:[...f.runs.values()][0].id}))).toHaveLength(0);

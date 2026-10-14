@@ -10,6 +10,8 @@ const types=triggerTypes.map(type=>({
 }));
 const op=defineWrite({
   name:'dev_trigger_event',allowZeroPreview:true,
+  // Only an independently event-verified and audited completed run exposes its ID.
+  resultId:(_before,after)=>after?.id,
   read:async(a,ctx)=>{
     if(ctx?.connection?.mode!=='test')throw new TypeError('TEST event trigger only');
     if(!ctx.db||typeof ctx.db.ensureDevRun!=='function'||

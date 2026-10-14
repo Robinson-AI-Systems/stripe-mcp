@@ -41,7 +41,7 @@ describe('tool registry', () => {
       'invoice_void','invoice_mark_uncollectible',
       'creditnote_list','creditnote_get','creditnote_preview',
       'creditnote_create','creditnote_void',
-      'dev_seed','dev_list_runs','dev_seed_refund','dev_verify_outcomes',
+      'dev_seed','dev_get_run','dev_list_runs','dev_seed_refund','dev_verify_outcomes',
       'testclock_list','testclock_create','testclock_advance',
       'dev_confirm_seed_ach','dev_connect_readiness',
       'dev_cleanup','dev_reset_test_data',

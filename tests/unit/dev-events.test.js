@@ -267,6 +267,7 @@ describe('V-3a real TEST provider event generation',()=>{
     f.showEvents();
     const completed=parse(await op.handler({...args,confirm:true},f.ctx));
     expect(completed.done).toBe(true);
+    expect(completed.resourceId).toBe(run.id);
     expect(f.calls.filter(x=>x.action==='create')).toHaveLength(creations);
     expect(f.calls.filter(x=>x.action==='events.retrieve')).toHaveLength(1);
     expect(f.ledger.get(run.id).at(-1)).toMatchObject({
