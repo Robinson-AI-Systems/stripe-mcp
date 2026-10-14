@@ -1,3 +1,15 @@
+### October 14 V-3 — run-owned PaymentMethod Event lifecycle (SOURCE ONLY)
+
+Source implements three more genuine selected-account TEST event scenarios:
+`payment_method.attached`, `payment_method.updated` and
+`payment_method.detached`. Unlike an untracked direct attach, a synthetic
+TEST card is tagged and durably recorded before attachment, update or
+detachment. Original Event state, source ownership and independently retrieved
+provider snapshots are required. Existing original ledger and cleanup still
+apply. Exact-head CI, checked release and genuine custom TEST provider proof
+are separate; provider checks remain pending. No LIVE, money-out, spending,
+Hub or owner permissions changed.
+
 ### 2026-10-14 V-3 additional native TEST event workflows — SOURCE ONLY
 
 After #233 passed seven exact-head CI gates and merged at
@@ -323,7 +335,18 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Exact-head CI and approved checked live deployment, authenticated selected TEST account, guarded preview/confirm and source Event ID, metadata, and status. Mock, unconfirmed source and provider state are not Event proof.",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 source supports 3 new TEST events; no independent deployed provider acceptance yet."
+    "lastEvidence": "2026-10-14 PR #234 merged f6334800bc20568251eb52c9190aaf19658cb2e19 (prefix of actual merge SHA 6334800bc20568251eb52c9190aaf19658cb2e19), all 7 exact-head GitHub checks successful; genuine TEST provider acceptance pending."
+  },
+  {
+    "id": "STRIPE-V3-OWNED-PAYMENT-METHOD-EVENTS",
+    "priority": 8,
+    "requiredRevision": "d5df7589d270e4d9ee48302689efb0f64327c306",
+    "task": "Verify genuine selected-account TEST payment_method.attached, updated, detached original Stripe Events from tagged ledger-created and attached synthetic cards",
+    "procedure": "docs/pr-cards/V-3.md PaymentMethod lifecycle actions, tests/unit/dev-payment-method-events.test.js and stripe-mock shapes",
+    "gates": "Exact-head CI, checked deployed live, authenticated selected TEST account, guarded preview/confirm and independent Event retrieve. No TEST source or mock treated as actual Event acceptance.",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source and automated test plan, no actual provider event acceptance."
   }
 ]
 ```

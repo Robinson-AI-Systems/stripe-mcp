@@ -54,7 +54,7 @@ const own=(o,row,run,byStep)=>{
   if(row.object_type==='payment_method')
     return o.type==='card'&&
       (ref(o.customer)===byStep.get('customer_1')?.object_id||
-        o.customer===null&&row.cleaned===true);
+        o.customer===null);
   if(row.object_type==='subscription')
     return Array.isArray(o.items?.data)&&o.items.data.some(item=>
       ref(item.price)===byStep.get('price_1')?.object_id);

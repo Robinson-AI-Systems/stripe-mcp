@@ -17,6 +17,9 @@ import {disputeEventTypes,isDisputeEvent,verifiedDisputeCharge,
 import {invoiceFailureTypes,isInvoiceFailureEvent,verifyFailedInvoiceSource,
   verifyFailedInvoiceItem,ensureFailedInvoicePayment,matchesInvoiceFailureEvent}
   from './triggers-invoice-failure.js';
+import {paymentMethodEventTypes,isPaymentMethodEvent,
+  verifyMethodFixture,matchesPaymentMethodEvent,ensurePaymentMethodEvent}
+  from './triggers-payment-methods.js';
 import {checkoutEventTypes,isCheckoutEvent,verifyCheckoutSession,
   verifyCheckoutPayment,matchesCheckoutEvent} from './triggers-checkout.js';
 const hash=s=>createHash('sha256').update(s).digest('hex');
@@ -27,7 +30,7 @@ export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
   'payment_intent.created','payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
   ...invoiceEventTypes,...failedPaymentEventTypes,...disputeEventTypes,
-  ...invoiceFailureTypes,...checkoutEventTypes
+  ...invoiceFailureTypes,...checkoutEventTypes,...paymentMethodEventTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice',
@@ -59,7 +62,8 @@ export function planTrigger(a,account,{legacyInvoiceFailure=false}={}){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=isCheckoutEvent(a.type)?
+  const types=isPaymentMethodEvent(a.type)?['customer','payment_method']:
+    isCheckoutEvent(a.type)?
     ['product','price','customer','checkout_session','payment_intent']:
     isInvoiceFailureEvent(a.type)?
     (legacyInvoiceFailure?['customer','invoice','invoice_item']:
@@ -129,9 +133,13 @@ function verifyFixture(plan,step,x,objects){
     verifyCheckoutSession(plan,x,objects);
   if(isCheckoutEvent(plan.type)&&step.type==='payment_intent')
     verifyCheckoutPayment(plan,x,objects);
-  if(step.type==='payment_method'&&(
-    x.type!=='card'||ref(x.customer)!==objects.get('customer_1')?.object_id))
-    bad('Tracked TEST declining PaymentMethod is not linked to the exact customer');
+  if(step.type==='payment_method'){
+    if(isPaymentMethodEvent(plan.type))
+      verifyMethodFixture(plan,x,objects);
+    else if(x.type!=='card'||
+      ref(x.customer)!==objects.get('customer_1')?.object_id)
+      bad('Tracked TEST declining PaymentMethod is not linked to the exact customer');
+  }
   if(step.type==='subscription')verifySubscriptionObject(plan,x,objects);
   if(step.type==='invoice'){
     if(isInvoiceFailureEvent(plan.type))
@@ -157,6 +165,7 @@ function matchingEvent(e,plan,account,target){
     matchesInvoiceFailureEvent(plan,object,target)&&
     matchesCheckoutEvent(plan,object,target)&&
     matchesFailedPaymentEvent(plan,object,target)&&
+    matchesPaymentMethodEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
       object.status===(isFailedPaymentEvent(plan.type)?
         'requires_payment_method':plan.type==='payment_intent.created'?
@@ -287,6 +296,12 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
           break;
         }
         case 'payment_method':{
+          if(isPaymentMethodEvent(plan.type)){
+            made=await s.paymentMethods.create({
+              type:'card',card:{token:'tok_visa'},metadata
+            },opts);
+            break;
+          }
           const customer=byStep.get('customer_1')?.object_id;
           if(!id(customer,'cus'))bad('Recorded TEST invoice customer required for declining card');
           const attached=await s.paymentMethods.attach('pm_card_chargeCustomerFail',
@@ -346,6 +361,9 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         throw Error('Created TEST provider object could not be durably recorded');
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
+    }
+    if(isPaymentMethodEvent(plan.type)&&step.type==='payment_method'){
+      await ensurePaymentMethodEvent(s,plan,byStep,rootKey);
     }
     if(isInvoiceFailureEvent(plan.type)&&step.type==='payment_method'){
       await ensureFailedInvoicePayment(s,plan,byStep,rootKey);
