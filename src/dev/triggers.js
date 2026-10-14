@@ -35,7 +35,7 @@ const kind={customer:'customer',product:'product',price:'price',
   checkout_session:'checkout.session'};
 const prefix={customer:'cus',product:'prod',price:'price',
   payment_intent:'pi',subscription:'sub',invoice:'in',charge:'ch',dispute:'du',
-  invoice_item:'ii',checkout_session:'cs_test'};
+  invoice_item:'ii',checkout_session:'cs_test',event:'evt'};
 const read=async(s,type,providerId)=>{
   switch(type){
     case 'customer':return s.customers.retrieve(providerId);
@@ -382,4 +382,68 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
     expectedSteps:plan.expectedSteps})))
     throw Error('TEST event ledger not independently complete');
   return db.getDevRun({account,requestKey:run.request_key});
+}
+
+/** Read an actual immutable Stripe Event by the exact account-scoped run.
+ * Source objects can already be deleted/archived; the Event snapshot must still
+ * independently match the approved original run and source IDs.
+ */
+export async function verifyRecordedTriggerRun(a,ctx,s){
+  const account=ctx?.connection?.stripeAccount,db=ctx?.db;
+  if(ctx?.connection?.mode!=='test'||!id(account,'acct'))
+    bad('Select the original connected TEST Stripe account');
+  if(!a||typeof a!=='object'||Array.isArray(a)||
+    Object.keys(a).length!==1||!/^run_[a-f0-9]{24}$/.test(a.runId??''))
+    bad('Exact TEST trigger run ID required');
+  if(typeof db?.getDevRunById!=='function'||typeof db?.getDevRunObjects!=='function')
+    bad('Durable account-scoped TEST event ledger unavailable');
+  const run=await db.getDevRunById({account,id:a.runId});
+  if(!run||run.stripe_account!==account||run.id!==a.runId||
+    run.status!=='completed'||run.size!==1||
+    typeof run.request_key!=='string')
+    bad('No completed selected-account TEST trigger run');
+  const type=triggerTypes.find(x=>'event-'+x.replaceAll('_','-').replaceAll('.','-')===
+    run.scenario);
+  if(!type)bad('Recorded TEST run is not a supported native event trigger');
+  const plan=planTrigger({type,requestKey:run.request_key},account);
+  if(plan.runId!==run.id||plan.planDigest!==run.plan_digest||
+    plan.scenario!==run.scenario)
+    bad('TEST event run no longer matches its immutable approved plan');
+  const rows=await db.getDevRunObjects({account,id:run.id});
+  if(!Array.isArray(rows)||rows.length!==plan.expectedSteps)
+    bad('Incomplete TEST event ledger cannot prove a Stripe Event');
+  const byStep=new Map(rows.map(x=>[x.step_name,x]));
+  if(byStep.size!==rows.length||!plan.steps.every(step=>{
+    const row=byStep.get(step.name);
+    return row&&row.object_type===step.type&&
+      id(row.object_id,prefix[step.type])&&typeof row.cleaned==='boolean';
+  }))bad('Tracked TEST event identities differ from the approved plan');
+  const eventRow=byStep.get('event_1');
+  if(eventRow.cleaned!==false)bad('Immutable Stripe Event must remain recorded');
+  const targetStep=isCheckoutEvent(plan.type)?
+    plan.steps.find(x=>x.type==='checkout_session'):
+    isSubscriptionEvent(plan.type)?
+    plan.steps.find(x=>x.type==='subscription'):
+    isInvoiceFailureEvent(plan.type)?
+    plan.steps.find(x=>x.type==='invoice'):plan.steps.at(-2);
+  const targetRow=byStep.get(targetStep.name);
+  if(!targetRow||!id(targetRow.object_id,prefix[targetStep.type]))
+    bad('Recorded TEST trigger source is unavailable');
+  const signature={id:targetRow.object_id,type:targetStep.type,
+    customer:byStep.get('customer_1')?.object_id,
+    ...(isCheckoutEvent(plan.type)?{
+      paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
+    ...(isDisputeEvent(plan.type)?{
+      charge:byStep.get('charge_1')?.object_id,
+      paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
+    ...(isSubscriptionEvent(plan.type)?{
+      price:byStep.get('price_1')?.object_id}:{})};
+  const event=await s.events.retrieve(eventRow.object_id);
+  if(!matchingEvent(event,plan,account,signature))
+    bad('Independent Stripe Event retrieval did not match exact TEST provenance');
+  return {runId:run.id,mode:'test',type:plan.type,providerVerified:true,
+    eventId:eventRow.object_id,sourceType:targetStep.type,
+    sourceId:targetRow.object_id,sourceCleaned:targetRow.cleaned,
+    immutableEventRetained:true,webhookDeliveryVerified:false,
+    note:'Exact original TEST Stripe Event independently retrieved and matched against approved run and original source. No claim about signed webhook delivery, current mutable object state or Dashboard review.'};
 }
