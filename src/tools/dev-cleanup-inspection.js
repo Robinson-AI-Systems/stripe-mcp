@@ -65,7 +65,7 @@ function classify(row,state){
 export const tools=[{
   name:'dev_verify_cleanup_run',area:'developer',writes:false,profiles:allProfiles,
   annotations:{readOnlyHint:true},
-  description:'Independently inspect current Stripe TEST source states for one completed Event run after verifying its original immutable Event and account-scoped ledger; no cleanup writes.',
+  description:'Verify current Stripe TEST cleanup states against an original Event and durable run ledger; read-only, no cleanup writes.',
   inputSchema:{type:'object',properties:{
     runId:{type:'string',pattern:'^run_[a-f0-9]{24}$'}
   },required:['runId'],additionalProperties:false}
