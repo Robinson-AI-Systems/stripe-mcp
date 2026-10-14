@@ -1,12 +1,14 @@
 import {describe,it,expect} from 'vitest';
 import {verifyFailedInvoiceSource,verifyFailedInvoiceItem,
-  ensureFailedInvoicePayment,matchesInvoiceFailureEvent}
+  ensureFailedInvoicePayment,matchesInvoiceFailureEvent,
+  verifyFailedInvoiceMethod}
   from '../../src/dev/triggers-invoice-failure.js';
 const plan={type:'invoice.payment_failed',runId:'run_'+'a'.repeat(24)};
 const rows=new Map([
   ['customer_1',{object_id:'cus_FAKE123'}],
   ['invoice_1',{object_id:'in_FAKE123'}],
-  ['invoice_item_1',{object_id:'ii_FAKE123'}]
+  ['invoice_item_1',{object_id:'ii_FAKE123'}],
+  ['payment_method_1',{object_id:'pm_FAKE123'}]
 ]);
 const invoice=(extra={})=>({
   id:'in_FAKE123',object:'invoice',livemode:false,
@@ -19,6 +21,10 @@ const item=(extra={})=>({
   id:'ii_FAKE123',object:'invoiceitem',livemode:false,
   invoice:'in_FAKE123',customer:'cus_FAKE123',amount:3600,
   currency:'usd',metadata:{rtc_run:plan.runId},...extra
+});
+const method=(extra={})=>({
+  id:'pm_FAKE123',object:'payment_method',livemode:false,type:'card',
+  customer:'cus_FAKE123',metadata:{rtc_run:plan.runId},...extra
 });
 const failed=()=>invoice({status:'open',attempted:true,attempt_count:1});
 describe('V-3c3c real declined TEST invoice evidence',()=>{
@@ -38,9 +44,31 @@ describe('V-3c3c real declined TEST invoice evidence',()=>{
       {metadata:{rtc_run:'run_FOREIGN'}}
     ])expect(()=>verifyFailedInvoiceItem(plan,item(change),rows)).toThrow();
   });
+  it('refuses untracked, foreign, LIVE or unattached declining TEST methods',()=>{
+    expect(()=>verifyFailedInvoiceMethod(plan,method(),rows)).not.toThrow();
+    for(const change of [
+      {customer:'cus_FOREIGN123'}, {customer:null}, {livemode:true},
+      {livemode:undefined},{id:'pm_FOREIGN123'}, {type:'us_bank_account'},
+      {metadata:{rtc_run:'run_FOREIGN'}}
+    ])expect(()=>verifyFailedInvoiceMethod(plan,method(change),rows)).toThrow();
+  });
+  it('preflights recorded TEST card before touching invoice state',async()=>{
+    let mutations=0;
+    const sdk={
+      paymentMethods:{retrieve:async()=>method({customer:'cus_FOREIGN123'})},
+      invoiceItems:{retrieve:async()=>{mutations++;throw Error('must not read');}},
+      invoices:{retrieve:async()=>{mutations++;throw Error('must not read');}}
+    };
+    await expect(ensureFailedInvoicePayment(sdk,plan,rows,'rmcp_test'))
+      .rejects.toThrow(/not attached/);
+    expect(mutations).toBe(0);
+  });
   it('finalizes, declines and independently reads real provider state just once',async()=>{
     let current=invoice(),finalizes=0,pays=0,reads=0;
     const sdk={
+      paymentMethods:{retrieve:async id=>{
+        expect(id).toBe('pm_FAKE123');return method();
+      }},
       invoiceItems:{retrieve:async id=>{
         expect(id).toBe('ii_FAKE123');return item();
       }},
@@ -54,7 +82,7 @@ describe('V-3c3c real declined TEST invoice evidence',()=>{
         },
         pay:async(id,p,opts)=>{
           pays++;expect(id).toBe('in_FAKE123');
-          expect(p).toEqual({payment_method:'pm_card_chargeCustomerFail'});
+          expect(p).toEqual({payment_method:'pm_FAKE123'});
           expect(opts.idempotencyKey).toBe('rmcp_test_failure_invoice_pay');
           current=failed();
           throw Object.assign(new Error('declined'),{code:'card_declined'});
@@ -80,6 +108,7 @@ describe('V-3c3c real declined TEST invoice evidence',()=>{
   });
   it('never treats an unexpected provider error as a declined TEST invoice',async()=>{
     const sdk={
+      paymentMethods:{retrieve:async()=>method()},
       invoiceItems:{retrieve:async()=>item()},
       invoices:{
         retrieve:async()=>invoice({status:'open'}),
