@@ -1,3 +1,7 @@
+## Genuine custom Stripe TEST V-3 observation — 2026-10-13 Denver / 2026-10-14 UTC
+
+The existing authenticated **Robinson Stripe Cloud** connection returned selected account TEST/full/restricted identity. Vercel independently showed READY Production at exact `live` SHA `3cb4831d85a30950b9ee0e1e5f13488faa83eba5` (PR #211), not a preview. On that deployed custom service, `account_get` returned safely projected `chargesEnabled`, `payoutsEnabled`, and `detailsSubmitted` booleans; detailed `verification` remained `not_readable`. After guarded dry-run/confirmation, a true `dev_trigger_event(customer.created)` returned `done:true,confirmed:true`; that handler independently verified the original Stripe Event. Separate `dev_list_runs` returned one `completed` run with `objectCount:2`. Guarded `dev_cleanup` cleaned the single disposable TEST customer and intentionally retained immutable Event evidence; separate custom-service `customer_get` returned `deleted:true`. The generic cleanup failure banner despite proven deletion is an observed usability defect; #213 fixes source/CI behavior without claiming that revised behavior is deployed. One immutable event remains recorded, not a stray mutable customer. This supports a V-3 TEST customer-created positive path only, **not** other trigger types, full event delivery, OAuth refresh/revocation, webhook signing, Hub routes, LIVE or Dashboard acceptance. No money moved.
+
 # Stripe TEST milestone — evidence ledger (2026-10-12)
 
 This ledger is intentionally finite. PASS never means an equivalent adjacent
