@@ -20,6 +20,9 @@ import {invoiceFailureTypes,isInvoiceFailureEvent,verifyFailedInvoiceSource,
 import {paymentMethodEventTypes,isPaymentMethodEvent,
   verifyMethodFixture,matchesPaymentMethodEvent,ensurePaymentMethodEvent}
   from './triggers-payment-methods.js';
+import {setupIntentEventTypes,isSetupIntentEvent,verifySetupIntent,
+  matchesSetupIntentEvent,ensureSetupIntentEvent}
+  from './triggers-setup-intents.js';
 import {checkoutEventTypes,isCheckoutEvent,verifyCheckoutSession,
   verifyCheckoutPayment,matchesCheckoutEvent} from './triggers-checkout.js';
 const hash=s=>createHash('sha256').update(s).digest('hex');
@@ -30,15 +33,15 @@ export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
   'payment_intent.created','payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
   ...invoiceEventTypes,...failedPaymentEventTypes,...disputeEventTypes,
-  ...invoiceFailureTypes,...checkoutEventTypes,...paymentMethodEventTypes
+  ...invoiceFailureTypes,...checkoutEventTypes,...paymentMethodEventTypes,...setupIntentEventTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice',
   charge:'charge',dispute:'dispute',invoice_item:'invoiceitem',
-  payment_method:'payment_method',checkout_session:'checkout.session'};
+  payment_method:'payment_method',checkout_session:'checkout.session',setup_intent:'setup_intent'};
 const prefix={customer:'cus',product:'prod',price:'price',
   payment_intent:'pi',subscription:'sub',invoice:'in',charge:'ch',dispute:'du',
-  invoice_item:'ii',payment_method:'pm',checkout_session:'cs_test',event:'evt'};
+  invoice_item:'ii',payment_method:'pm',checkout_session:'cs_test',setup_intent:'seti',event:'evt'};
 const read=async(s,type,providerId)=>{
   switch(type){
     case 'customer':return s.customers.retrieve(providerId);
@@ -51,6 +54,7 @@ const read=async(s,type,providerId)=>{
     case 'dispute':return s.disputes.retrieve(providerId);
     case 'invoice_item':return s.invoiceItems.retrieve(providerId);
     case 'payment_method':return s.paymentMethods.retrieve(providerId);
+    case 'setup_intent':return s.setupIntents.retrieve(providerId);
     case 'checkout_session':return s.checkout.sessions.retrieve(providerId);
     default:bad('Unsupported TEST provider fixture');
   }
@@ -62,7 +66,8 @@ export function planTrigger(a,account,{legacyInvoiceFailure=false}={}){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=isPaymentMethodEvent(a.type)?['customer','payment_method']:
+  const types=isSetupIntentEvent(a.type)?['setup_intent']:
+    isPaymentMethodEvent(a.type)?['customer','payment_method']:
     isCheckoutEvent(a.type)?
     ['product','price','customer','checkout_session','payment_intent']:
     isInvoiceFailureEvent(a.type)?
@@ -140,6 +145,7 @@ function verifyFixture(plan,step,x,objects){
       ref(x.customer)!==objects.get('customer_1')?.object_id)
       bad('Tracked TEST declining PaymentMethod is not linked to the exact customer');
   }
+  if(step.type==='setup_intent')verifySetupIntent(plan,x);
   if(step.type==='subscription')verifySubscriptionObject(plan,x,objects);
   if(step.type==='invoice'){
     if(isInvoiceFailureEvent(plan.type))
@@ -166,6 +172,7 @@ function matchingEvent(e,plan,account,target){
     matchesCheckoutEvent(plan,object,target)&&
     matchesFailedPaymentEvent(plan,object,target)&&
     matchesPaymentMethodEvent(plan,object,target)&&
+    matchesSetupIntentEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
       object.status===(isFailedPaymentEvent(plan.type)?
         'requires_payment_method':plan.type==='payment_intent.created'?
@@ -295,6 +302,11 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
             metadata},opts);
           break;
         }
+        case 'setup_intent':{
+          made=await s.setupIntents.create({
+            payment_method_types:['card'],usage:'off_session',metadata
+          },opts);break;
+        }
         case 'payment_method':{
           if(isPaymentMethodEvent(plan.type)){
             made=await s.paymentMethods.create({
@@ -361,6 +373,11 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         throw Error('Created TEST provider object could not be durably recorded');
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
+    }
+    if(isSetupIntentEvent(plan.type)&&step.type==='setup_intent'){
+      const owned=await s.setupIntents.retrieve(resourceId);
+      verifySetupIntent(plan,owned);
+      await ensureSetupIntentEvent(s,plan,owned,rootKey);
     }
     if(isPaymentMethodEvent(plan.type)&&step.type==='payment_method'){
       await ensurePaymentMethodEvent(s,plan,byStep,rootKey);
