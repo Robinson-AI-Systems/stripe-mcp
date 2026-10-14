@@ -216,9 +216,9 @@ export async function executeCleanup(a,ctx,s,key){
     }
     let state='retained';
     try{
-      const worked=await safeOperation(s,row,
-        before.get(run.id+':'+row.step_name),
-        key+'_'+run.id+'_'+row.step_name,ctx,run);
+      const worked=verifiedAbsent.has(run.id+':'+row.step_name)||
+        await safeOperation(s,row,before.get(run.id+':'+row.step_name),
+          key+'_'+run.id+'_'+row.step_name,ctx,run);
       if(worked){
         state=await ctx.db.markDevRunObjectCleaned({account,id:run.id,
           stepName:row.step_name,objectType:row.object_type,objectId:row.object_id})?
