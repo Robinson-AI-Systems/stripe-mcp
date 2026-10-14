@@ -2,7 +2,7 @@
 // No transfer, payout, refund, reversal or customer data search by name.
 const exactMissing=e=>e?.statusCode===404&&
   (e?.code==='resource_missing'||e?.raw?.code==='resource_missing');
-async function gone(read,id){
+export async function gone(read,id){
   try{
     const after=await read();
     return after?.id===id&&after.deleted===true;
