@@ -104,6 +104,16 @@ export function verifyCleanupIdentity(run,row,obj,rows=[]){
     obj.metadata?.rtc_run!==run.id)
     fail('Provider rtc_run ownership differs from recorded TEST run');
 }
+// Immutable Stripe evidence is intentionally not deletable. This is distinct
+// from a blocked or uncertain cleanup that needs the owner's attention.
+function immutableEvidence(row,was,run){
+  if(['event','refund','charge','dispute','invoice_item'].includes(row.object_type))return true;
+  if(row.object_type==='invoice')return was.status==='paid'||
+    run.scenario==='event-invoice-payment-failed';
+  if(row.object_type==='checkout_session')return was.status==='complete';
+  if(row.object_type==='payment_intent')return was.status==='succeeded';
+  return false;
+}
 async function safeOperation(s,row,was,key,ctx,run){
   const opts={idempotencyKey:key},id=row.object_id;
   switch(row.object_type){
@@ -187,7 +197,9 @@ export async function executeCleanup(a,ctx,s,key){
       }
     }catch{state='uncertain';}
     outcomes.push({runId:run.id,step:row.step_name,id:row.object_id,
-      status:state});
+      status:state,...(state==='retained'?{
+        retention:immutableEvidence(row,before.get(run.id+':'+row.step_name),run)?
+          'immutable':'review_required'}:{})});
   }
   // Database read-back is independent of the cleanup write/mark requests.
   for(const {run} of runs){
@@ -197,6 +209,8 @@ export async function executeCleanup(a,ctx,s,key){
         o.status='uncertain';
     }
   }
-  return {outcomes,allCleaned:outcomes.every(o=>
-    ['cleaned','already_cleaned'].includes(o.status))};
+  const allCleaned=outcomes.every(o=>['cleaned','already_cleaned'].includes(o.status));
+  const allEligibleCleaned=outcomes.every(o=>['cleaned','already_cleaned'].includes(o.status)||
+    (o.status==='retained'&&o.retention==='immutable'));
+  return {outcomes,allCleaned,allEligibleCleaned};
 }

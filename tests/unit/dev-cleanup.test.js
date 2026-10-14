@@ -188,3 +188,63 @@ describe('V-2a guarded cleanup, exact provider read-back, and retained money',()
     expect((await handlers.dev_reset_test_data({},f.ctx)).isError).toBe(true);
   });
 });
+
+
+describe('actual TEST event cleanup receipt: retained evidence is not a failed deletion',()=>{
+  it('confirms the customer deletion and treats the owned immutable event as intended retention',async()=>{
+    const db=createFakeDb({accounts:[{id:account,label:'TEST'}]});
+    const rows=[
+      {step_name:'customer_1',object_type:'customer',object_id:'cus_EVENT123',cleaned:false},
+      {step_name:'event_1',object_type:'event',object_id:'evt_EVENT123',cleaned:false}
+    ];
+    const run={id:runId,stripe_account:account,status:'completed',scenario:'event-customer-created'};
+    db.getDevRunById=async()=>run;
+    db.getDevRunObjects=async()=>rows.map(row=>({...row}));
+    db.markDevRunObjectCleaned=async({stepName,objectId})=>{
+      const row=rows.find(r=>r.step_name===stepName&&r.object_id===objectId);
+      if(!row)return false;
+      row.cleaned=true;
+      return true;
+    };
+    let deleted=false,deleteCalls=0;
+    const stripe={
+      customers:{
+        retrieve:async()=>({id:'cus_EVENT123',object:'customer',livemode:false,
+          metadata:{rtc_run:runId},deleted}),
+        del:async()=>{deleted=true;deleteCalls++;return {id:'cus_EVENT123',deleted:true};}
+      },
+      events:{retrieve:async()=>({id:'evt_EVENT123',object:'event',livemode:false,
+        type:'customer.created',data:{object:{metadata:{rtc_run:runId}}}})}
+    };
+    const ctx={db,connectionId:'event-cleanup-fixture',
+      connection:{stripeAccount:account,mode:'test',profile:'full'},
+      services:{stripeForConnection:async()=>stripe}};
+    const op=makeDevCleanupWrite();
+    const request={runId,requestKey:'verify-event-retention',confirm:true};
+    const first=parse(await op.handler({...request,dryRun:true},ctx));
+    expect(first.done).toBe(false);
+    expect(deleted).toBe(false);
+    const result=parse(await op.handler(request,ctx));
+    expect(result).toMatchObject({done:true,confirmed:true,cleanup:{
+      allCleaned:false,allEligibleCleaned:true}});
+    expect(result.cleanup.outcomes).toEqual([
+      expect.objectContaining({step:'customer_1',status:'cleaned'}),
+      expect.objectContaining({step:'event_1',status:'retained',retention:'immutable'})
+    ]);
+    expect(result.cleanup.note).toMatch(/No retry needed/);
+    expect(deleted).toBe(true);
+    expect(deleteCalls).toBe(1);
+    const repeat=parse(await makeDevCleanupWrite().handler(request,ctx));
+    expect(repeat.done).toBe(true);
+    expect(deleteCalls).toBe(1);
+    expect(repeat.cleanup.outcomes[0].status).toBe('already_cleaned');
+  });
+  it('does not label a blocked dependent seller or uncertain audit as completed',async()=>{
+    const blocked=fixture({markFailure:true});
+    const result=parse(await makeDevCleanupWrite().handler(p(),blocked.ctx));
+    expect(result.done).toBe(false);
+    expect(result.cleanup.allEligibleCleaned).toBe(false);
+    expect(result.cleanup.note).toMatch(/incomplete/);
+    expect(result.cleanup.outcomes.some(o=>o.status==='uncertain')).toBe(true);
+  });
+});
