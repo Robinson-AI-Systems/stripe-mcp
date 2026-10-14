@@ -193,10 +193,18 @@ async function verifiedMissingDraftInvoice(run,row,rows,ctx,s,error){
 }
 export async function executeCleanup(a,ctx,s,key){
   const {runs,account}=await prepareCleanup(a,ctx);
-  const before=new Map();
+  const before=new Map(),verifiedAbsent=new Set();
   // Globally preflight provenance before mutating even the FIRST record.
   for(const {run,rows} of runs)for(const row of rows.filter(r=>!r.cleaned)){
-    const object=await fetch(s,row);
+    let object;
+    try{object=await fetch(s,row);}
+    catch(error){
+      if(await verifiedMissingDraftInvoice(run,row,rows,ctx,s,error)){
+        verifiedAbsent.add(run.id+':'+row.step_name);
+        continue;
+      }
+      throw error;
+    }
     verifyCleanupIdentity(run,row,object,rows);
     before.set(run.id+':'+row.step_name,object);
   }
