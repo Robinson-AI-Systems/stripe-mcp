@@ -49,6 +49,20 @@ function fixture({showEvent=false,foreign=false}={}){
     customers:{create:async(b,o)=>creates('customer','cus',b,o),
       retrieve:async id=>get(id),
       update:async(id,b,o)=>mutate('customer',id,b,o)},
+    setupIntents:{
+      create:async(b,o)=>creates('setup_intent','seti',{
+        ...b,customer:null,status:'requires_payment_method'
+      },o),
+      retrieve:async id=>get(id),
+      cancel:async(id,{cancellation_reason},o)=>{
+        if(cancellation_reason!=='abandoned')throw Error('Unexpected TEST cancel');
+        return mutate('setup_intent',id,{status:'canceled'},o);
+      },
+      confirm:async(id,{payment_method},o)=>{
+        if(payment_method!=='pm_card_visa')throw Error('Unexpected TEST card');
+        return mutate('setup_intent',id,{status:'succeeded',payment_method},o);
+      }
+    },
     paymentMethods:{
       create:async(b,o)=>creates('payment_method','pm',{
         ...b,customer:null,billing_details:{name:null}
@@ -150,6 +164,7 @@ function fixture({showEvent=false,foreign=false}={}){
           'subscription':type.startsWith('payment_intent')?'payment_intent':
           type.split('.')[0],prefix=sourceType==='subscription'?'sub':
           sourceType==='payment_method'?'pm':
+          sourceType==='setup_intent'?'seti':
           sourceType==='customer'?'cus':
           sourceType==='payment_intent'?'pi':
           sourceType==='product'?'prod':
@@ -169,7 +184,8 @@ function fixture({showEvent=false,foreign=false}={}){
           'sub':calledEvent.startsWith('payment_intent.')?'pi':
           calledEvent.startsWith('product.')?'prod':
           calledEvent.startsWith('price.')?'price':
-          calledEvent.startsWith('payment_method.')?'pm':'cus';
+          calledEvent.startsWith('payment_method.')?'pm':
+          calledEvent.startsWith('setup_intent.')?'seti':'cus';
         const source=get(sourceType+'_FAKE123');
         return {object:'event',id:'evt_FAKE123',livemode:false,
           type:calledEvent,account,data:{object:source}};
@@ -254,7 +270,8 @@ describe('V-3a real TEST provider event generation',()=>{
       'payment_intent.payment_failed','charge.dispute.created',
       'invoice.payment_failed','checkout.session.completed',
       'payment_method.attached','payment_method.updated',
-      'payment_method.detached']);
+      'payment_method.detached',
+      'setup_intent.created','setup_intent.canceled','setup_intent.succeeded']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -450,6 +467,29 @@ describe('V-3a real TEST provider event generation',()=>{
       expect(f.ledger.get(run.id).at(-1))
         .toMatchObject({object_type:'event',object_id:'evt_FAKE123'});
     });
+  it.each(['setup_intent.created','setup_intent.canceled',
+    'setup_intent.succeeded'])('requires independently observed %s with no charge',async type=>{
+    const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+    const run=[...f.runs.values()][0],si=f.objects.get('seti_FAKE123');
+    expect(f.ledger.get(run.id).map(x=>x.object_type))
+      .toEqual(['setup_intent']);
+    expect(si.metadata.rtc_run).toBe(run.id);
+    expect(si.status).toBe(type.split('.')[1]==='created'?
+      'requires_payment_method':type.split('.')[1]);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(1);
+    expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
+      type==='setup_intent.created'?0:1);
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(1);
+    expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
+      type==='setup_intent.created'?0:1);
+    expect(f.ledger.get(run.id).at(-1))
+      .toMatchObject({object_type:'event',object_id:'evt_FAKE123'});
+    f.ctx.connection.mode='live';
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+  });
   it('cannot claim a verified event when a zero-value draft invoice has a foreign run tag',async()=>{
     const f=fixture({foreign:true,showEvent:true});
     const a=input('invoice.created');

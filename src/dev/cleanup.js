@@ -5,15 +5,16 @@ import {verifyRecordedTriggerRun} from './triggers.js';
 const prefixes={product:'prod',price:'price',customer:'cus',subscription:'sub',
   invoice:'in',payment_intent:'pi',refund:'re',test_clock:'clock',
   connected_account:'acct',event:'evt',charge:'ch',dispute:'du',
-  invoice_item:'ii',payment_method:'pm',checkout_session:'cs_test'};
+  invoice_item:'ii',payment_method:'pm',checkout_session:'cs_test',setup_intent:'seti'};
 const order={subscription:0,invoice:1,payment_intent:2,customer:3,price:4,
   product:5,refund:6,charge:7,dispute:8,event:9,invoice_item:1,
-  connected_account:10,test_clock:11,checkout_session:0,payment_method:-1};
+  connected_account:10,test_clock:11,checkout_session:0,payment_method:-1,setup_intent:2};
 const types={product:'product',price:'price',customer:'customer',
   subscription:'subscription',invoice:'invoice',payment_intent:'payment_intent',
   refund:'refund',connected_account:'account',test_clock:'test_helpers.test_clock',
   event:'event',charge:'charge',dispute:'dispute',invoice_item:'invoiceitem',
-  checkout_session:'checkout.session',payment_method:'payment_method'};
+  checkout_session:'checkout.session',payment_method:'payment_method',
+  setup_intent:'setup_intent'};
 const valid=(value,prefix)=>typeof value==='string'&&
   new RegExp('^'+prefix+'_[A-Za-z0-9]{2,100}$').test(value);
 const fail=x=>{throw new TypeError(x);};
@@ -21,7 +22,7 @@ const maps={product:'products',price:'prices',customer:'customers',
   subscription:'subscriptions',invoice:'invoices',payment_intent:'paymentIntents',
   refund:'refunds',connected_account:'accounts',event:'events',
   charge:'charges',dispute:'disputes',invoice_item:'invoiceItems',
-  payment_method:'paymentMethods'};
+  payment_method:'paymentMethods',setup_intent:'setupIntents'};
 const fetch=async(s,row)=>row.object_type==='test_clock'?
   s.testHelpers.testClocks.retrieve(row.object_id):
   row.object_type==='checkout_session'?
@@ -79,6 +80,11 @@ export function verifyCleanupIdentity(run,row,obj,rows=[]){
     (obj.object!==types[type]&&!(type==='customer'&&obj.deleted===true))||
     Object.keys(obj.metadata??{}).some(k=>APP_METADATA_KEYS.includes(k)))
     fail('Provider ownership or type changed; all TEST cleanup aborted');
+  if(type==='setup_intent'&&
+    (obj.livemode!==false||obj.customer!==null||
+      obj.usage!=='off_session'||!Array.isArray(obj.payment_method_types)||
+      !obj.payment_method_types.includes('card')))
+    fail('TEST SetupIntent ownership or no-charge method permissions changed');
   if(type==='test_clock'){
     if(obj.name!=='RTC DEV RUN '+run.id+' '+row.step_name.split('_').at(-1))
       fail('Clock does not match immutable run provenance');
@@ -120,6 +126,7 @@ function immutableEvidence(row,was,run){
     run.scenario==='event-invoice-payment-failed';
   if(row.object_type==='checkout_session')return was.status==='complete';
   if(row.object_type==='payment_intent')return was.status==='succeeded';
+  if(row.object_type==='setup_intent')return was.status==='succeeded';
   return false;
 }
 async function safeOperation(s,row,was,key,ctx,run){
@@ -168,6 +175,12 @@ async function safeOperation(s,row,was,key,ctx,run){
         return gone(()=>s.invoices.retrieve(id),id);
       }
       return false;
+    case 'setup_intent':
+      if(was.status==='canceled')return true;
+      if(!['requires_payment_method','requires_confirmation','requires_action']
+        .includes(was.status))return false;
+      await s.setupIntents.cancel(id,{cancellation_reason:'abandoned'},opts);
+      return (await s.setupIntents.retrieve(id)).status==='canceled';
     case 'payment_intent':
       if(was.status==='canceled')return true;
       if(!['requires_confirmation','requires_payment_method','requires_action']

@@ -13,7 +13,7 @@ const identities={
   invoice:['in','invoice'],payment_intent:['pi','payment_intent'],
   invoice_item:['ii','invoiceitem'],checkout_session:['cs_test','checkout.session'],
   charge:['ch','charge'],dispute:['du','dispute'],
-  payment_method:['pm','payment_method'],event:['evt','event']
+  payment_method:['pm','payment_method'],setup_intent:['seti','setup_intent'],event:['evt','event']
 };
 const read={
   customer:(s,id)=>s.customers.retrieve(id),
@@ -26,7 +26,8 @@ const read={
   checkout_session:(s,id)=>s.checkout.sessions.retrieve(id),
   charge:(s,id)=>s.charges.retrieve(id),
   dispute:(s,id)=>s.disputes.retrieve(id),
-  payment_method:(s,id)=>s.paymentMethods.retrieve(id)
+  payment_method:(s,id)=>s.paymentMethods.retrieve(id),
+  setup_intent:(s,id)=>s.setupIntents.retrieve(id)
 };
 const ref=x=>typeof x==='string'?x:x?.id;
 const own=(o,row,run,byStep)=>{
@@ -51,6 +52,10 @@ const own=(o,row,run,byStep)=>{
     ref(o.customer)!==byStep.get('customer_1')?.object_id)return false;
   if(row.object_type==='invoice_item')
     return ref(o.invoice)===byStep.get('invoice_1')?.object_id;
+  if(row.object_type==='setup_intent')
+    return o.customer===null&&o.usage==='off_session'&&
+      Array.isArray(o.payment_method_types)&&
+      o.payment_method_types.includes('card');
   if(row.object_type==='payment_method')
     return o.type==='card'&&
       (ref(o.customer)===byStep.get('customer_1')?.object_id||
@@ -77,6 +82,8 @@ function safeState(type,o){
   if(type==='checkout_session')
     return ['open','expired','complete'].includes(o.status)?o.status:null;
   if(type==='payment_method')return o.customer===null?'detached':'attached';
+  if(type==='setup_intent')return ['requires_payment_method','requires_confirmation','requires_action',
+      'processing','canceled','succeeded'].includes(o.status)?o.status:null;
   if(['charge','dispute','invoice_item'].includes(type))
     return 'financial_evidence_retained';
   return null;
