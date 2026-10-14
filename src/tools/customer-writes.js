@@ -89,6 +89,8 @@ function build(def){
   let created=null;
   const operation=defineWrite({
     name:def.name,
+    // Expose only the ID independently retrieved and verified by defineWrite.
+    resultId:(_before,observed)=>observed?.id,
     read:async(a,ctx)=>{
       permittedArgs(def,a);
       if(def.name==='customer_create')return {id:null,metadata:{}};
