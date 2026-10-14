@@ -1,4 +1,34 @@
 # AGENTS.md — the rules. Read this first, every session.
+
+## Original Toolkit is reference-only — owner clarification 2026-10-14
+
+`Robinson-AI-Systems/robinsons-toolkit-mcp` is the historical capability reference,
+not an active implementation/deployment target. The standalone custom MCP servers
+and optional `robinsons-toolkit-hub` replace it. Do not maintain/rebuild the original,
+resume its recovery PRs, synchronize implementations back to it, or require a bridge.
+Preserve its code/history for coverage and behavioral research. When the owner chooses a new provider MCP, its implementing agent inventories the
+relevant legacy tool names, families, workflows and intended behavior, reconciles them
+with current provider contracts, and tracks coverage in THAT project's cards/index.
+The Hub stays provider-agnostic: discover/connect/authorize/route/read results for
+new contract-compatible MCP servers without provider-specific handlers or a fixed
+family list. Future services and legacy catalog parity are not Hub completion gates.
+Do not copy provider capabilities into the Hub or start speculative server projects.
+Mapped/planned is not implemented or accepted. Service autonomy and all existing
+provider/security/owner gates remain binding.
+
+
+## Efficient release-aware execution — owner instruction 2026-10-14
+
+[SESSION-START](docs/SESSION-START.md) is the consolidated session procedure;
+`npm run session:status` prints the read-only release acceptance queue and PR boundary.
+Its workflow/cadence/merge-versus-live-proof rules supersede older conflicting procedural
+wording below, but never override explicit safety or pre-merge owner/card gates.
+Use substantial cohesive outcomes; numeric production-line targets are advisory rather
+than artificial hard caps. Full mandatory checks run before publication, with focused
+checks during development. Product acceptance stays open until real evidence passes.
+The owner explicitly authorized this cross-repository guidance/tooling optimization;
+routine implementation sessions still prohibit filler/documentation-only PRs.
+
 ## Mobile and tool-unavailable connection recovery
 
 Before treating absent private-plugin tools as an acceptance blocker, follow
@@ -149,24 +179,6 @@ burned by overclaiming. A passing typecheck, a screenshot or a plan is not evide
   HTTPS API and passes — whether or not the hub ever exists (Chris, 2026-10-10).
 - Committing directly to `main`.
 
-## Automatic session PR alignment and same-conversation intervention (owner 2026-10-13)
-
-At **every** session start, count the highest assigned PR number (including external/concurrent PRs), target the next higher multiple of five, and automatically use the number of substantial eligible implementation PRs needed to reach it (immediately after #200, target #205). Recalculate when concurrent PR assignment moves that target. Never pad with trivial/documentation-only PRs, bypass acceptance, or treat numbering as proof of progress.
-
-If the expected batch cannot be completed, first fix actionable code/CI/review/configuration problems and continue independently eligible roadmap work. If a real owner-only prerequisite or execution limit remains, **pause in the same conversation** with the exact blocker, remedies attempted, secure owner UI/action or approval, remaining work and the immediate resumption step. Do not expose secrets or ask for them in chat. Do **not** produce a next-chat continuation prompt for an incomplete batch; resume here after the owner responds. Only after a genuinely completed aligned batch and final-main verification post the permanent PR handoff and a compact next-session prompt retaining both rules.
-
-## Permanent outcome-driven development and handoff (owner instruction, 2026-10-12)
-
-This is the standard for this and **every future session**, alongside all hard safety and release gates.
-
-1. **Choose an outcome, not a PR count.** First reconcile current main, active work (including other agents), reviews, CI, live deployment, owner decisions and the accepted work index. Pick the highest-priority eligible milestone and enumerate its finite, remaining acceptance criteria. Group coherent implementation PRs to complete or materially advance that user/developer capability; fix demonstrated security/correctness/CI/review defects first. When eligible substantive work exists, aim for the repository PR-number checkpoint to end on a **multiple of five** (e.g. #190, #195), including work already completed in the session. PR numbers are an organizational target, never permission to manufacture filler or bypass reviews/CI/approval. Five qualifying substantial PRs is a normal session boundary **only**. Never pad, fabricate hardening, weaken checks or skip a needed acceptance to hit five.
-2. **Make blockers executable.** In STATUS and the authoritative acceptance ledger, each pending external/owner/dependency gate must name its exact blocker, required evidence or owner decision, prerequisite, condition that makes work eligible and the next concrete action. Recheck on relevant merges, credential grants, owner authorizations and scheduled promotions. Reconcile authorizations already supplied; never ask again for an already approved exact action. If a step becomes eligible, resume it without waiting for another planning request.
-
-   **Isolate a blocker to the specific operation, never the whole project by default.** Before calling any item BLOCKED: trace its root cause; check code defects, configuration, dependencies, stale instructions, and previously approved owner decisions; try the authorized remedy; finish every runnable part and its meaningful tests. Record the precise unavailable external credential, permission, decision, or evidence source only after exhausting repairs. Then inspect the remaining approved roadmap/dependency queue and implement its highest-priority independent eligible item. Automatically restore deferred items on their explicit re-entry condition; do not stop or substitute a continuation prompt merely because the preferred milestone is blocked. An early stop requires evidence that **no** further safe substantive work is eligible or a concrete execution limitation, the remedies attempted, and the smallest genuinely required external action. Never bypass safeguards or invent acceptance results.
-3. **Separate four proof layers.** Implementation/source exists; meaningful automated verification; actual deployed HTTPS revision/behavior; genuine third-party connected integration/owner acceptance. Each has its own status and evidence. Fake providers, local PostgreSQL/HTTP, upstream reference conformance, GitHub green CI, configuration readback, protected SSO or Vercel READY for an older commit never prove adjacent layers. Use PASSED/FAILED/BLOCKED/UNVERIFIED and do not claim certification without actual-service conformance for the supported subset.
-4. **Protect financial and security invariants.** No placeholders, unauthorized money-out or LIVE, weakened ownership/profile isolation, missing idempotency/audit/recovery, secret disclosure, skipped reviews or forced deployment. Preserve scheduled checked live promotion, protected main, hosting cost caps and production/owner gates. A blocked external step does not block independent eligible approved roadmap work.
-5. **Persist a precise continuation.** Update existing STATUS, work index where applicable, owner-input/blocker record and existing finite acceptance ledger inside the next substantive implementation PR; no duplicate instruction files or docs-only PRs. The final PR's permanent handoff names the milestone, exact main/head/check/deployed revisions, what code/automated/hosted/external evidence passed, all actionable blockers, dependencies, newly eligible work and the next action. Every session ends with a **compact copy-paste continuation prompt** pointing to these authoritative files, a verified checkpoint and the same outcome-first/five-PR-boundary discipline. Do not repeat long history/rules in the prompt.
-
 ## Scope and owner decisions
 
 Build what the current card asks, completely. Other ideas go in `docs/ROADMAP.md` and your report — don't build them
@@ -186,7 +198,7 @@ page. Money is shown in dollars and cents; stored in integer cents.
   reviewed.
 - **Drift and reconciliation** (`docs/implementation-contracts/DRIFT-PROTOCOL.md`): checklist A before each PR, B inside
   each PR written as if it had already merged, C when a batch finishes.
-- **PR size:** about 500 production lines and 15 files, hard stop ~800 lines, at most one migration, one risk area
+- **PR size:** about 500 production lines and 15 files, advisory size estimate, at most one migration, one risk area
   (PLAYBOOK Step 3a).
 - **Model:** whichever model Chris selected does the work. Sol 5.6 is the routine implementer: light effort for an
   already-tested pattern (a new read tool), medium for the safety layer, guards, money, keys, passes, or anything
