@@ -123,6 +123,7 @@ export function verifyCleanupIdentity(run,row,obj,rows=[]){
 function immutableEvidence(row,was,run){
   if(['event','refund','charge','dispute','invoice_item'].includes(row.object_type))return true;
   if(row.object_type==='invoice')return was.status==='paid'||
+    was.status==='uncollectible'||
     run.scenario==='event-invoice-payment-failed';
   if(row.object_type==='checkout_session')return was.status==='complete';
   if(row.object_type==='payment_intent')return was.status==='succeeded';
