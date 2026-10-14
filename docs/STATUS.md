@@ -1,3 +1,13 @@
+### October 14 additional V-3 recovery workflow source checkpoint
+
+Following merged #228 and the still-checked #229 original Stripe Event reader,
+the approved V-3 recovery outcome adds a bounded operator batch (#230) to
+inspect the four genuine unfinished native TEST fixtures in one read-only
+selected-account call, without accidental writes or false Event completion.
+Its separate queue entry is source-only until exact-head CI/reviews, merge,
+normal checked live release and actual custom TEST provider readback.
+Do not call the release-dependent tasks passed on source or deployment alone.
+
 ### October 14 live release readback — next acceptance checkpoint
 
 Vercel deployment `dpl_ro9WeFt46Ub2seeMam6NQuHy5n7V` is independently READY
@@ -152,6 +162,20 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     ],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 source-only opt-in inspector validates recorded sources then checks exact original Events with a bounded Stripe list and independent retrieve; tests cover valid, tampered, missing and unreachable cases. No deployed provider proof before checked release."
+  },
+  {
+    "id": "STRIPE-V3-BATCH-RECOVERY",
+    "priority": 8,
+    "requiredRevision": "b39316837fc857dcf7b3bf7441bbb15defb6ab07",
+    "task": "Use one bounded TEST original provider call to inspect up to four exact unfinished native V-3 fixtures, with per-run unverified isolation and no mutations",
+    "procedure": "docs/pr-cards/V-3.md #230; tests/unit/dev-incomplete-inspection.test.js",
+    "gates": "Exact-head CI and review, checked READY source deployment, native selected TEST account and four original run IDs; independent Stripe reads, no provider write/cleanup, no inference of absent Events",
+    "dependsOn": [
+      "STRIPE-V3-RUN-INSPECTION",
+      "STRIPE-V3-INCOMPLETE-ORIGINAL-EVENT"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source-only read batch validates 1-4 distinct original TEST IDs before access, reuses provider-safe single-run inspector, isolates unavailable results and supports optional original Event readback. CI/release/provider evidence separate."
   },
   {
     "id": "STRIPE-V3-UNFINISHED-4",
