@@ -23,7 +23,7 @@ const providerRead=(stripe,type,id)=>{
     throw new TypeError('TEST provider reader unavailable');
   return sdk.retrieve(id);
 };
-function inspectState(row,obj,runId,scenario){
+function inspectState(row,obj,runId,scenario,rows){
   const known=refs[row.object_type];
   if(!known||obj?.id!==row.object_id||obj.object!==known[1]||
     obj.livemode===true||Object.keys(obj.metadata??{}).some(x=>
@@ -38,9 +38,11 @@ function inspectState(row,obj,runId,scenario){
       if(obj.livemode!==false||obj.type!=='card')return 'unverified';
       // A recorded detached card must still be owned by the exact original
       // run, and the provider readback is separate from the SQL cleanup flag.
+      const exactCustomer=rows.find(r=>r.step_name==='customer_1'&&
+        r.object_type==='customer')?.object_id;
+      if(!exactCustomer)return 'unverified';
       return obj.customer===null?'cleaned':
-        /^cus_[A-Za-z0-9]{2,100}$/.test(obj.customer)?'outstanding':
-        'unverified';
+        obj.customer===exactCustomer?'outstanding':'unverified';
     }
     case 'customer':return obj.deleted===true?'cleaned':'outstanding';
     case 'product':case 'price':
@@ -114,7 +116,7 @@ export const handlers={
       let state='unverified';
       try{
         const obj=await providerRead(stripe,row.object_type,row.object_id);
-        state=inspectState(row,obj,run.id,run.scenario);
+        state=inspectState(row,obj,run.id,run.scenario,rows);
       }catch(error){
         // Strict absent-invoice classification requires an independently
         // verified original draft Event source; never assume other 404s

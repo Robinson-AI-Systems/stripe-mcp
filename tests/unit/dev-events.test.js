@@ -475,7 +475,7 @@ describe('V-3a real TEST provider event generation',()=>{
     const run=[...f.runs.values()][0];
     expect(run.status).toBe('running');
     expect(f.ledger.get(run.id).map(x=>x.object_type))
-      .toEqual(['customer','invoice','invoice_item']);
+      .toEqual(['customer','invoice','invoice_item','payment_method']);
     expect(f.objects.get('ii_FAKE123')).toMatchObject({
       invoice:'in_FAKE123',customer:'cus_FAKE123',amount:3600,
       metadata:{rtc_run:run.id}});

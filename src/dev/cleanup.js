@@ -95,6 +95,12 @@ export function verifyCleanupIdentity(run,row,obj,rows=[]){
     }else if(obj.data?.object?.metadata?.rtc_run!==run.id||
       (obj.account&&obj.account!==run.stripe_account))
       fail('Recorded TEST event source no longer matches its selected run');
+  }else if(type==='payment_method'){
+    const customer=rows.find(r=>r.step_name==='customer_1'&&
+      r.object_type==='customer');
+    if(obj.livemode!==false||obj.type!=='card'||!customer||
+      (obj.customer!==customer.object_id&&obj.customer!==null))
+      fail('Tracked TEST PaymentMethod belongs to a different run customer');
   }else if(type==='charge'||type==='dispute'){
     const payment=rows.find(r=>r.object_type==='payment_intent');
     const charge=rows.find(r=>r.object_type==='charge');
