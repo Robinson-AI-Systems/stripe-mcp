@@ -5,6 +5,7 @@ import {makeCustomerWrite} from '../../src/tools/customer-writes.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {registry} from '../../src/tools/index.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
+import {idempotencyKey} from '../../src/stripe/client.js';
 
 const customerId='cus_FAKE123',paymentMethodId='pm_FAKE123',taxId='txi_FAKE123';
 const cases=[
@@ -158,4 +159,27 @@ describe('verified customer resource receipts',()=>{
     expect(result).not.toHaveProperty('email');
     expect(f.provider.writes).toHaveLength(1);
   });
+});
+
+
+describe('customer receipts route to the same customer across all nine operations',()=>{
+  const parse=result=>JSON.parse(result.content[0].text);
+  it.each(cases)('$name: verified receipt is a customer_get ID, never a child resource',
+    async({name,args,withMoney,createOnly})=>{
+      const f=fixture({appOwned:false,readBackMatches:true,limitCents:50000});
+      const request={...args,confirm:true,requestKey:'receipt-routing-'+name};
+      const op=makeCustomerWrite(name);
+      if(withMoney){
+        const approved=await f.db.approveMoneyRequest({account:f.ctx.connection.stripeAccount,
+          idempotencyKey:idempotencyKey(f.ctx.connection,name,request)});
+        expect(approved).toBe(true);
+      }
+      const result=parse(await op.handler(request,f.ctx));
+      expect(result).toMatchObject({done:true,confirmed:true,
+        resourceId:createOnly?'cus_CREATED123':customerId});
+      expect(result.resourceId).toMatch(/^cus_[A-Za-z0-9]+$/);
+      expect(result).not.toHaveProperty('customer');
+      expect(JSON.stringify(result)).not.toMatch(/pm_FAKE123|txi_CREATED123|cbtxn_CREATED123/);
+      expect(f.provider.writes).toHaveLength(1);
+    });
 });
