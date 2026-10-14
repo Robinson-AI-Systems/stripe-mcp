@@ -32,6 +32,25 @@ function fixture(){
 }
 
 describe('provider-verified TEST cleanup inspection',()=>{
+  it('verifies cleanup from an independent Stripe customer tombstone and original Event',async()=>{
+    const f=fixture();
+    const result=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
+    expect(result).toMatchObject({eventProviderVerified:true,
+      allEligibleCleanedAndVerified:true,eventId:'evt_VERIFY123'});
+    expect(result.rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({type:'customer',verification:'verified_cleaned'}),
+      expect.objectContaining({type:'event',verification:'intentionally_retained'})
+    ]));
+    expect(f.calls).toEqual([['event','evt_VERIFY123'],['customer','cus_VERIFY123']]);
+  });
+  it('detects ledger mismatch when the original provider customer is still present',async()=>{
+    const f=fixture();
+    f.setCustomer({id:'cus_VERIFY123',object:'customer',
+      livemode:false,deleted:false,metadata:{rtc_run:f.run.id}});
+    const result=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
+    expect(result.allEligibleCleanedAndVerified).toBe(false);
+    expect(result.rows[0].verification).toBe('ledger_mismatch');
+  });
   it('registers a read-only selected-account verifier',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
