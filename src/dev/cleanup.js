@@ -176,6 +176,21 @@ async function safeOperation(s,row,was,key,ctx,run){
     default:fail('Unrecognized cleanup type');
   }
 }
+// Reconcile ONLY a once-verified, zero-value TEST invoice.created draft that
+// is independently absent now. No past deletion acknowledgment is invented:
+// the complete immutable plan and original Stripe Event must still verify.
+async function verifiedMissingDraftInvoice(run,row,rows,ctx,s,error){
+  if(row.object_type!=='invoice'||row.step_name!=='invoice_1'||
+    run.scenario!=='event-invoice-created'||run.status!=='completed'||
+    !exactMissing(error)||!rows.some(r=>r.step_name==='event_1'&&
+      r.object_type==='event'&&r.cleaned===false))return false;
+  const evidence=await verifyRecordedTriggerRun({runId:run.id},ctx,s);
+  return evidence?.providerVerified===true&&evidence.mode==='test'&&
+    evidence.type==='invoice.created'&&evidence.sourceType==='invoice'&&
+    evidence.sourceId===row.object_id&&evidence.sourceCleaned===false&&
+    evidence.immutableEventRetained===true&&
+    evidence.eventId===rows.find(r=>r.step_name==='event_1')?.object_id;
+}
 export async function executeCleanup(a,ctx,s,key){
   const {runs,account}=await prepareCleanup(a,ctx);
   const before=new Map();
