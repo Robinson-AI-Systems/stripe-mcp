@@ -47,6 +47,7 @@ describe('tool registry', () => {
       'dev_cleanup','dev_reset_test_data',
       'dev_verify_trigger_run','dev_get_checkout_test_url','dev_list_triggers','dev_trigger_event',
       'dev_verify_trigger_runs','dev_verify_cleanup_run','dev_inspect_incomplete_run',
+      'dev_inspect_incomplete_runs',
       'dev_create_forwarder','dev_list_forwarders','dev_delete_forwarder',
       'dev_forward_events','dev_test_cards','dev_simulate_subscription',
       'money_get_balance','money_list_balance_transactions',

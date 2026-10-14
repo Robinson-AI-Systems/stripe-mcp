@@ -113,6 +113,15 @@ export const tools=[{
     includeOriginalEvent:{type:'boolean',
       description:'Recheck the exact native original TEST Event by recorded source without mutation.'}
   },required:['runId'],additionalProperties:false}
+}, {
+  name:'dev_inspect_incomplete_runs',area:'developer',writes:false,
+  profiles:allProfiles,annotations:{readOnlyHint:true},
+  description:'Inspect at most four exact selected-account incomplete TEST trigger runs in one prevalidated read-only call; failures stay isolated.',
+  inputSchema:{type:'object',properties:{
+    runIds:{type:'array',minItems:1,maxItems:4,uniqueItems:true,
+      items:{type:'string',pattern:'^run_[a-f0-9]{24}$'}},
+    includeOriginalEvent:{type:'boolean'}
+  },required:['runIds'],additionalProperties:false}
 }];
 export const handlers={
   async dev_inspect_incomplete_run(a,ctx){
@@ -187,5 +196,39 @@ export const handlers={
       missingSteps:plan.steps.filter(s=>!byStep.has(s.name)).map(s=>s.name),
       observations,...(originalEvent?{originalEvent}:{}),
       note:'Read-only snapshot for an unfinished TEST run. Missing ledger steps do not prove a Stripe Event did not occur. Reuse the original request key only through the guarded native trigger, or preview exact run-owned cleanup; never infer a provider mutation, signed webhook or safe retry from these observations.'});
+  },
+  async dev_inspect_incomplete_runs(a,ctx){
+    const account=ctx?.connection?.stripeAccount;
+    if(ctx?.connection?.mode!=='test'||!accountPattern.test(account??''))
+      return gone('Select the original TEST account');
+    if(!a||typeof a!=='object'||Array.isArray(a)||
+      Object.keys(a).some(k=>!['runIds','includeOriginalEvent'].includes(k))||
+      !Array.isArray(a.runIds)||a.runIds.length<1||a.runIds.length>4||
+      new Set(a.runIds).size!==a.runIds.length||
+      a.runIds.some(id=>!runIdPattern.test(id))||
+      (a.includeOriginalEvent!==undefined&&
+        typeof a.includeOriginalEvent!=='boolean'))
+      return gone('Provide one to four distinct exact incomplete TEST run IDs');
+    // All selectors are checked before any provider/ledger lookup, and each
+    // original read executes through the same guard as standalone inspection.
+    const results=[];
+    for(const runId of a.runIds){
+      try{
+        const response=await handlers.dev_inspect_incomplete_run({
+          runId,includeOriginalEvent:a.includeOriginalEvent===true},ctx);
+        if(response?.isError===true)throw new TypeError('not_accessible');
+        const snapshot=JSON.parse(response?.content?.[0]?.text??'null');
+        if(snapshot?.runId!==runId||snapshot?.mode!=='test'||
+          !Array.isArray(snapshot.observations))
+          throw new TypeError('invalid_snapshot');
+        results.push({runId,state:'inspected',snapshot});
+      }catch{
+        results.push({runId,state:'unavailable'});
+      }
+    }
+    const inspectedCount=results.filter(x=>x.state==='inspected').length;
+    return reply({mode:'test',count:results.length,inspectedCount,
+      unavailableCount:results.length-inspectedCount,results,
+      note:'Read-only selected-account snapshots. Unavailable never proves a run or event absent. Original Event verification is optional and does not complete the run. No cleanup, retry, money movement or signed webhook was performed.'});
   }
 };
