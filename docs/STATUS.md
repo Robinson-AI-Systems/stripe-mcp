@@ -2,6 +2,12 @@
 
 New offline session utility: eight behavioral tests passed, including actual Git ancestry, partial releases, unknown/failed deployments, rollback, dependency gating, invalid queues, PR alignment and bounded output. All repository queues validate. Existing source/status evidence is preserved; no provider acceptance or release was performed. Owner explicitly approved publication on October 14; publish the reviewed maintenance branch, require exact-head CI/reviews, and merge only when those gates pass. No extra production release is authorized by this approval. Full broad application suites on the shared runner were interrupted after resource/time-limit failures; do not claim them passed. Existing exact-head remote CI/review gates must pass before any main merge.
 
+### October 14 verified deployed TEST acceptance and unfinished-fixture handoff
+
+Independent READY Production at exact live 46a1675c42d847f42229d1dbe552bd55e1f71323 was checked before native acceptance. Through the **custom connected Stripe MCP**, eight historical immutable Event runs were independently reverified, all eight mutable cleanup reports independently passed after safely reconciling the original missing zero-value draft invoice (no second provider deletion), and the advertised developer run read projection succeeded. Three additional native TEST originals — customer.subscription.created, invoice.updated, invoice.finalized — were provider-verified and their eligible source cleanup confirmed. The total is **11 distinct accepted original Event types**, **not** signed delivery or complete V-3.
+
+Four additional native TEST trigger attempts remain `running` without independently verified original Events: customer.subscription.deleted, payment_intent.payment_failed, charge.dispute.created, invoice.payment_failed. Their exact recorded partial fixtures were processed with guarded preview+confirmation; the native cleanup reported all eligible mutable records resolved after safe same-target replay and retained historical invoice/item records intentionally. Without a provider reader for unfinished runs, independent *current* source-state closure is still pending. New V-3 read-only `dev_inspect_incomplete_run` is source-only until exact-head CI, merge and daily checked release. No LIVE, money-out, automatic provider retry, manual release or owner bypass. The single machine-readable acceptance queue below holds the next checks and owner gates; do not treat limited releases as a project-wide stop.
+
 ## Release acceptance queue — workflow optimization 2026-10-14
 
 Owner-authorized guidance/tooling maintenance: consolidated session procedure, focused
@@ -18,12 +24,151 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "id": "STRIPE-TEST",
     "priority": 1,
     "requiredRevision": "143040662933e3c9158dbc00b69cef1d4af518ad",
-    "task": "Catch up remaining deployed TEST milestone, trigger-run verification and cleanup inspection",
+    "task": "Finish remaining connected TEST/OAuth/webhook/owner/Hub acceptance boundaries; released subsets are recorded separately",
     "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md",
-    "gates": "Selected TEST account, durable run ownership, independent money-out consent; LIVE disabled",
+    "gates": "Original selected TEST account, exact deployment provenance and independent owner consent for money-out; LIVE disabled",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "Existing ledger/card remains authoritative; current live/provider acceptance must be reconciled at session start. Seed revision conservatively includes reviewed current main."
+    "lastEvidence": "2026-10-14 genuine custom Stripe TEST: eight prior original events, eight provider cleanup states and historical invoice reconciliation verified; three additional native Events also verified. Signed webhook, hosted Checkout, owner Dashboard, Hub and OAuth remain separate."
+  },
+  {
+    "id": "STRIPE-V3-EVENT-8",
+    "priority": 2,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Confirm eight previously completed original TEST Event runs against immutable Stripe originals",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md #219",
+    "gates": "Selected TEST; exact stored run ownership and immutable original Event read; no signed webhook inference",
+    "dependsOn": [],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 authenticated custom service dev_verify_trigger_runs: requested 8, provider_verified 8, unverified 0; immutable Event retrieval rechecked independently."
+  },
+  {
+    "id": "STRIPE-V2-INVOICE-217",
+    "priority": 3,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Reconcile historical zero-value draft-invoice cleanup marker without another deletion",
+    "procedure": "docs/pr-cards/V-2.md #217",
+    "gates": "Verified original TEST invoice.created Event, exact 404, guarded preview/confirm and durable marker readback",
+    "dependsOn": [
+      "STRIPE-V3-EVENT-8"
+    ],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 custom guarded dev_cleanup returned reconciledFrom=verified_original_event_and_provider_absence for exact historic run; independent dev_get_run and dev_verify_cleanup_run confirm both invoice and customer marked/verified cleaned; original Event retained."
+  },
+  {
+    "id": "STRIPE-V3-CLEANUP-8",
+    "priority": 4,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Independently compare mutable Stripe TEST states and cleanup markers for eight historic Event runs",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md #220",
+    "gates": "Provider reads and exact selected-account ledger; immutable Events retained",
+    "dependsOn": [
+      "STRIPE-V3-EVENT-8",
+      "STRIPE-V2-INVOICE-217"
+    ],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 eight independent dev_verify_cleanup_run snapshots: eight allEligibleCleanedAndVerified=true after historical invoice reconciliation; no payment settlement or signed delivery inferred."
+  },
+  {
+    "id": "STRIPE-V3-PROJECTION-218",
+    "priority": 5,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Verify native dev_list_runs advertised detail/fields projection actually works",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md #218",
+    "gates": "Authenticated TEST native meta call and exact projection; read-only",
+    "dependsOn": [],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 deployed custom stripe_call dev_list_runs limit=2 detail=full fields=runs.id,runs.status,hasMore returned projected rows and correct hasMore; no strict handler rejection."
+  },
+  {
+    "id": "STRIPE-V3-ADDITIONAL-3",
+    "priority": 6,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Verify new genuine TEST customer.subscription.created, invoice.updated and invoice.finalized originals and eligible cleanup",
+    "procedure": "docs/pr-cards/V-3.md and docs/acceptance/STRIPE-TEST-MILESTONE.md",
+    "gates": "Original actual Stripe Event independent read; guarded TEST-only cleanup, immutable evidence retained",
+    "dependsOn": [],
+    "status": "PASSED",
+    "lastEvidence": "2026-10-14 three fresh custom TEST run originals independently providerVerified=true; guarded cleanup confirmed all eligible resources for each. Trial-created zero-dollar paid invoice retained intentionally; no webhook delivery or money-out."
+  },
+  {
+    "id": "STRIPE-V3-RUN-INSPECTION",
+    "priority": 7,
+    "requiredRevision": "77fad8e1b5115866bfaa3f0ef844d5832efd389a",
+    "task": "Deployed custom read-only unfinished TEST trigger provenance/source-state inspection",
+    "procedure": "docs/pr-cards/V-3.md #224 and tests/unit/dev-incomplete-inspection.test.js",
+    "gates": "Exact-head CI/review, checked main-to-live, READY deployment, selected TEST; no source mutations",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source added on a pending PR to inspect unfinished run plan, recorded sources, sanitized Stripe states and missing stages; not yet checked CI, merged, deployed or externally tested."
+  },
+  {
+    "id": "STRIPE-V3-UNFINISHED-4",
+    "priority": 8,
+    "requiredRevision": "77fad8e1b5115866bfaa3f0ef844d5832efd389a",
+    "task": "Independently inspect four interrupted TEST event trigger fixtures and reconcile safe cleanup readbacks",
+    "procedure": "docs/pr-cards/V-3.md #224; dev_get_run, dev_inspect_incomplete_run",
+    "gates": "Exact selected-account running TEST ledger, safe read-only provider status and no inferred Event absence",
+    "dependsOn": [
+      "STRIPE-V3-RUN-INSPECTION"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 customer.subscription.deleted, payment_intent.payment_failed, charge.dispute.created and invoice.payment_failed attempted once each but remained RUNNING, no original Event claimed. Guarded exact-run cleanup reported all eligible mutable objects cleaned after safe retries, retaining immutable invoice/item evidence. Independent unfinished-run provider snapshots await new deployed read tool."
+  },
+  {
+    "id": "STRIPE-V3-REMAINING",
+    "priority": 9,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Complete real TEST acceptance of remaining supported trigger types, including disputed/failed/paid events and actual hosted Checkout",
+    "procedure": "docs/pr-cards/V-3.md and docs/PLAN.md Batch V",
+    "gates": "Provider-confirmed immutable events only, same-key retries, owned cleanup, hosted Checkout requires genuine browser participation; no LIVE or money-out",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 eleven distinct types provider verified total. Four additional trigger requests were rejected or inconclusive before verified originals, with their partial fixtures safely handled. Checkout browser and other types not accepted; investigate each precise gap."
+  },
+  {
+    "id": "STRIPE-SIGNED-WEBHOOK",
+    "priority": 10,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Deliver and verify genuine signed Stripe TEST webhook at protected hosted receiver with private receipt",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md Signed Stripe TEST webhook receipt",
+    "gates": "Owner-approved secret provisioning, protected ingress, replay denial; never expose signing secrets",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "Receiver/source and CI fixtures exist; actual remote Stripe-signed TEST delivery and durable receipt not demonstrated in this session."
+  },
+  {
+    "id": "STRIPE-OAUTH-EXTERNAL",
+    "priority": 11,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Prove genuine hosted custom OAuth PKCE, refresh, revocation and scoped denial",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md Connected custom-MCP OAuth",
+    "gates": "Owner browser sign-in/SSO and temporary connection revocation, exact READY origin",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "Source/CI only; original connected custom Stripe Cloud TEST tool activity is not evidence of independent PKCE/refresh/revocation flows."
+  },
+  {
+    "id": "STRIPE-HUB-ROUTES",
+    "priority": 12,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Prove distinct Hub D-4 direct/relay/Sandbox TEST read-only routes, isolation and revocation",
+    "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md Toolkit Hub D-4",
+    "gates": "Owner-issued short-lived read_only pass, working upstream Hub and authentic route evidence",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "No genuine direct/relay/Sandbox authenticated Hub route acceptance recorded in this session."
+  },
+  {
+    "id": "STRIPE-G6-OWNER",
+    "priority": 13,
+    "requiredRevision": "46a1675c42d847f42229d1dbe552bd55e1f71323",
+    "task": "Complete owner signed-in Dashboard review of G-6 status and sensitive settings",
+    "procedure": "docs/pr-cards/G-6.md and docs/OWNER-INPUTS.md",
+    "gates": "Owner-authenticated browser Dashboard observations, TEST identity and no setting inference",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "Connected TEST settings evidence is partial; a signed-in human Dashboard comparison remains unverified and H-1 remains gated."
   }
 ]
 ```
