@@ -141,8 +141,13 @@ async function safeOperation(s,row,was,key,ctx,run){
         return (await s.invoices.retrieve(id)).status==='void';
       }
       if(was.status==='draft'){
-        await s.invoices.del(id,{},opts);
-        return (await s.invoices.retrieve(id)).deleted===true;
+        // Stripe may respond with an exact 404 after deleting a draft.
+        // Require a matching deleted receipt before accepting either a
+        // deleted tombstone or an independent resource_missing readback.
+        const ack=await s.invoices.del(id,{},opts);
+        if(ack?.object!=='invoice'||ack.id!==id||ack.deleted!==true)
+          return false;
+        return gone(()=>s.invoices.retrieve(id),id);
       }
       return false;
     case 'payment_intent':
