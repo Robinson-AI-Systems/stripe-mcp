@@ -9,7 +9,7 @@ import { shapeToolResult } from '../tools/util.js';
 import { isToolAllowed, publicToolInfo, listingForConnection, isGuardedTestWrite } from './profiles.js';
 import { randomBytes } from 'node:crypto';
 import { safePreparsedObject } from './http.js';
-import { readDetail,splitResult,resultPage } from '../tools/result-rules.js';
+import {readDetail,projectFields,splitResult,resultPage} from '../tools/result-rules.js';
 
 function inertSnapshot(value){
   const result=safePreparsedObject(value);
@@ -21,6 +21,25 @@ function inertSnapshot(value){
     return node;
   }
   return freeze(result);
+}
+// Public read schemas add common result-presentation controls, but older native
+// handlers must receive only their own advertised business arguments. Validate
+// the generic controls before the handler; apply them to the safe result later.
+// Do not change any guarded write or native detail/fields contract.
+function nativeReadArgs(tool,args){
+  if(tool?.writes!==false)return args;
+  const properties=tool.inputSchema?.properties??{};
+  let native=args;
+  if(Object.hasOwn(args,'detail')&&!Object.hasOwn(properties,'detail')){
+    if(!['summary','full'].includes(args.detail))
+      throw new TypeError('Invalid read-only detail option');
+    native={...native};delete native.detail;
+  }
+  if(Object.hasOwn(args,'fields')&&!Object.hasOwn(properties,'fields')){
+    projectFields({},args.fields); // validates paths, duplicates and prototype keys
+    native={...native};delete native.fields;
+  }
+  return native===args?args:Object.freeze(native);
 }
 export async function dispatchReadOnlyTool({ registry, name, args, connection, db, services={} },depth=0,parent=null) {
   let fixedArgs,fixedConnection,item,handler;
@@ -49,7 +68,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     return {isError:true,content:[{type:'text',text:'Tool unavailable'}]};
   }
   try {
-    const raw=shapeToolResult(await handler(fixedArgs,{connection:fixedConnection,connectionId:fixedConnection.resultScope,db,services,registry,
+    const raw=shapeToolResult(await handler(nativeReadArgs(item,fixedArgs),{connection:fixedConnection,connectionId:fixedConnection.resultScope,db,services,registry,
       runRead:(toolName,toolArgs)=>dispatchReadOnlyTool({registry,
         name:toolName,args:toolArgs,connection:fixedConnection,db,services},depth+1,name)}),
       {mode:fixedConnection.mode});
