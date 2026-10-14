@@ -37,7 +37,7 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
       return (matches(first,'- '+cron)&&second===requiredTimezone)||
         (first==='- '+requiredTimezone&&matches(second,cron));
     })&&matches(rows[8],"- cron: '43 12 * * *'");
-  const dispatches=[...promote.matchAll(/^  workflow_dispatch:\s*$/gm)];
+  const dispatches=[...promote.matchAll(/^\s*workflow_dispatch:\s*$/gm)];
   const dispatch=promote.match(/^  workflow_dispatch:\s*\n([\s\S]*?)(?=^\S|^  [a-z_]+:)/m)?.[1];
   const expectedDispatch=[
     'inputs:', '      recover_missed_daily:',
