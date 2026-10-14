@@ -1,9 +1,15 @@
 name: Daily live promotion
 
 on:
-  # Owner schedule: 00:01 Denver, including DST; GitHub may start late.
+  # Primary owner schedule: 00:01 Denver (DST-aware).
+  # GitHub may silently drop scheduled events. These off-peak recovery windows
+  # retry the SAME once-per-Denver-day guarded promotion, not extra releases.
   schedule:
     - cron: '1 0 * * *'
+      timezone: America/Denver
+    - cron: '17 0 * * *'
+      timezone: America/Denver
+    - cron: '43 0 * * *'
       timezone: America/Denver
 
 # The dedicated scheduled job is the sole automated writer for live.
