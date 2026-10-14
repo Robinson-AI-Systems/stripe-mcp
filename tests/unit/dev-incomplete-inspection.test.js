@@ -120,6 +120,115 @@ describe('unfinished native TEST trigger provider inspection',()=>{
       .toMatchObject({verification:'provider_unverified'});
     expect(f.calls).toHaveLength(1);
   });
+  it('shows only verified TEST card-decline indicators, never the provider error body',async()=>{
+    const f=fixture('payment_intent.payment_failed');
+    f.rows.push({step_name:'payment_intent_1',object_type:'payment_intent',
+      object_id:'pi_RECOVERY123',cleaned:false});
+    f.sdk.paymentIntents={retrieve:async()=>({
+      id:'pi_RECOVERY123',object:'payment_intent',livemode:false,
+      customer:'cus_RECOVERY123',metadata:{rtc_run:f.run.id},
+      status:'requires_payment_method',amount_received:0,
+      last_payment_error:{code:'card_declined',
+        message:'SENSITIVE_DECLINE_PROVIDER_MESSAGE'}
+    })};
+    const result=parse(await inspect(f));
+    expect(result.missingSteps).toEqual(['event_1']);
+    expect(result.observations[1]).toMatchObject({
+      verification:'provider_verified',observedState:'requires_payment_method',
+      indicators:{zeroAmountReceived:'yes',declineObserved:'yes'}
+    });
+    expect(JSON.stringify(result)).not.toContain('SENSITIVE_DECLINE_PROVIDER_MESSAGE');
+    expect(JSON.stringify(result)).not.toContain('last_payment_error');
+  });
+  it('reads failed TEST invoice attempt counters without exposing amounts or customer details',async()=>{
+    const f=fixture('invoice.payment_failed');
+    f.rows.push({step_name:'invoice_1',object_type:'invoice',
+      object_id:'in_RECOVERY123',cleaned:false});
+    f.sdk.invoices={retrieve:async()=>({
+      id:'in_RECOVERY123',object:'invoice',livemode:false,
+      customer:'cus_RECOVERY123',metadata:{rtc_run:f.run.id},
+      status:'open',attempted:true,attempt_count:1,amount_paid:0,
+      amount_remaining:3600,collection_method:'charge_automatically',
+      customer_email:'PRIVATE_INVOICE_ADDRESS'
+    })};
+    const result=parse(await inspect(f));
+    expect(result.observations[1]).toMatchObject({
+      verification:'provider_verified',observedState:'open',
+      indicators:{paymentAttempted:'yes',attemptCount:1,zeroAmountPaid:'yes',
+        positiveAmountRemaining:'yes',automaticCollection:'yes'}
+    });
+    expect(JSON.stringify(result)).not.toContain('PRIVATE_INVOICE_ADDRESS');
+    expect(JSON.stringify(result)).not.toContain('3600');
+  });
+  it('exposes only a boolean dispute flag after validating exact linked TEST charge',async()=>{
+    const f=fixture('charge.dispute.created');
+    f.rows.push(
+      {step_name:'payment_intent_1',object_type:'payment_intent',
+        object_id:'pi_RECOVERY123',cleaned:false},
+      {step_name:'charge_1',object_type:'charge',
+        object_id:'ch_RECOVERY123',cleaned:false});
+    f.sdk.paymentIntents={retrieve:async()=>({
+      id:'pi_RECOVERY123',object:'payment_intent',livemode:false,
+      metadata:{rtc_run:f.run.id},status:'succeeded',
+      amount_received:3600,customer:'cus_RECOVERY123'
+    })};
+    f.sdk.charges={retrieve:async()=>({
+      id:'ch_RECOVERY123',object:'charge',livemode:false,
+      payment_intent:'pi_RECOVERY123',customer:'cus_RECOVERY123',
+      amount:3600,currency:'usd',disputed:true,
+      billing_details:{name:'PRIVATE_CHARGE_NAME'}
+    })};
+    const result=parse(await inspect(f));
+    expect(result.observations[2]).toMatchObject({
+      verification:'provider_verified',
+      observedState:'financial_evidence_retained',
+      indicators:{disputed:'yes'}
+    });
+    expect(JSON.stringify(result)).not.toContain('PRIVATE_CHARGE_NAME');
+    expect(result.missingSteps).toContain('event_1');
+  });
+  it('distinguishes an unrecorded trial invoice without revealing its Stripe ID',async()=>{
+    const f=fixture('customer.subscription.deleted');
+    f.rows.push({step_name:'subscription_1',object_type:'subscription',
+      object_id:'sub_RECOVERY123',cleaned:false});
+    f.sdk.subscriptions={retrieve:async()=>({
+      id:'sub_RECOVERY123',object:'subscription',livemode:false,
+      metadata:{rtc_run:f.run.id},customer:'cus_RECOVERY123',
+      status:'canceled',items:{data:[{price:'price_RECOVERY123'}]},
+      latest_invoice:'in_PRIVATE_INVOICE123'
+    })};
+    f.rows.push({step_name:'price_1',object_type:'price',
+      object_id:'price_RECOVERY123',cleaned:false});
+    f.sdk.prices={retrieve:async()=>({
+      id:'price_RECOVERY123',object:'price',livemode:false,
+      metadata:{rtc_run:f.run.id},product:'prod_RECOVERY123',active:false
+    })};
+    f.rows.push({step_name:'product_1',object_type:'product',
+      object_id:'prod_RECOVERY123',cleaned:false});
+    f.sdk.products={retrieve:async()=>({
+      id:'prod_RECOVERY123',object:'product',livemode:false,
+      metadata:{rtc_run:f.run.id},active:false
+    })};
+    const result=parse(await inspect(f));
+    expect(result.observations.find(x=>x.type==='subscription'))
+      .toMatchObject({verification:'provider_verified',
+        indicators:{initialInvoice:'not_recorded'}});
+    expect(JSON.stringify(result)).not.toContain('in_PRIVATE_INVOICE123');
+    expect(result.missingSteps).toContain('invoice_1');
+  });
+  it('never supplies diagnostic indicators for an unverified foreign source',async()=>{
+    const f=fixture('payment_intent.payment_failed');
+    f.rows.push({step_name:'payment_intent_1',object_type:'payment_intent',
+      object_id:'pi_RECOVERY123',cleaned:false});
+    f.sdk.paymentIntents={retrieve:async()=>({
+      id:'pi_RECOVERY123',object:'payment_intent',livemode:true,
+      metadata:{rtc_run:f.run.id},status:'requires_payment_method',
+      amount_received:0,last_payment_error:{code:'card_declined'}
+    })};
+    const result=parse(await inspect(f));
+    expect(result.observations[1]).toMatchObject({verification:'provider_unverified'});
+    expect(result.observations[1]).not.toHaveProperty('indicators');
+  });
   it('registers an accessible READ ONLY inspection without increasing guarded writes',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
