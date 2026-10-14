@@ -82,8 +82,7 @@ function safeState(type,o){
   if(type==='checkout_session')
     return ['open','expired','complete'].includes(o.status)?o.status:null;
   if(type==='payment_method')return o.customer===null?'detached':'attached';
-  if(type==='setup_intent')return
-    ['requires_payment_method','requires_confirmation','requires_action',
+  if(type==='setup_intent')return ['requires_payment_method','requires_confirmation','requires_action',
       'processing','canceled','succeeded'].includes(o.status)?o.status:null;
   if(['charge','dispute','invoice_item'].includes(type))
     return 'financial_evidence_retained';
