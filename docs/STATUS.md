@@ -1,3 +1,12 @@
+## October 14 release acceptance ancestry repair
+
+Repinned pending acceptance to independently verified merged implementation commits
+from the corresponding reviewed PRs after squash merges removed the original source
+pins from main ancestry. All existing procedures, gates, dependencies and PENDING
+states remain intact. This makes an applicable release eligible for verification;
+it is neither deployed proof nor a provider acceptance pass. Every updated pin is
+an ancestor of independently observed current main.
+
 ### Workflow maintenance handoff — owner publication approved
 
 New offline session utility: eight behavioral tests passed, including actual Git ancestry, partial releases, unknown/failed deployments, rollback, dependency gating, invalid queues, PR alignment and bounded output. All repository queues validate. Existing source/status evidence is preserved; no provider acceptance or release was performed. Owner explicitly approved publication on October 14; publish the reviewed maintenance branch, require exact-head CI/reviews, and merge only when those gates pass. No extra production release is authorized by this approval. Full broad application suites on the shared runner were interrupted after resource/time-limit failures; do not claim them passed. Existing exact-head remote CI/review gates must pass before any main merge.
@@ -94,7 +103,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
   {
     "id": "STRIPE-V3-RUN-INSPECTION",
     "priority": 7,
-    "requiredRevision": "77fad8e1b5115866bfaa3f0ef844d5832efd389a",
+    "requiredRevision": "8848d0cb9aa53a336aa5e84c5f5ccbe7ace4e9d5",
     "task": "Deployed custom read-only unfinished TEST trigger provenance/source-state inspection",
     "procedure": "docs/pr-cards/V-3.md #224 and tests/unit/dev-incomplete-inspection.test.js",
     "gates": "Exact-head CI/review, checked main-to-live, READY deployment, selected TEST; no source mutations",
@@ -105,7 +114,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
   {
     "id": "STRIPE-V3-UNFINISHED-4",
     "priority": 8,
-    "requiredRevision": "77fad8e1b5115866bfaa3f0ef844d5832efd389a",
+    "requiredRevision": "8848d0cb9aa53a336aa5e84c5f5ccbe7ace4e9d5",
     "task": "Independently inspect four interrupted TEST event trigger fixtures and reconcile safe cleanup readbacks",
     "procedure": "docs/pr-cards/V-3.md #224; dev_get_run, dev_inspect_incomplete_run",
     "gates": "Exact selected-account running TEST ledger, safe read-only provider status and no inferred Event absence",
@@ -173,7 +182,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
   {
     "id": "STRIPE-V3-PENDING-RECEIPTS",
     "priority": 7,
-    "requiredRevision": "e74a3d3e04ab8ff5811e8d59acd573978c2f10fe",
+    "requiredRevision": "7dedb7c89163eab1aefa5d8e0743321840d5647b",
     "task": "Verify failed confirmed native TEST triggers expose only account-scoped audited unfinished-run IDs and no false success",
     "procedure": "docs/pr-cards/V-3.md #225; tests/unit/dev-pending-receipt.test.js and tests/unit/dev-events.test.js",
     "gates": "Exact-head CI/review and checked READY source revision; original selected TEST account; no LIVE, credentials or automatic mutations",
