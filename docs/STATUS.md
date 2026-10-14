@@ -6,7 +6,7 @@ New offline session utility: eight behavioral tests passed, including actual Git
 
 Independent READY Production at exact live 46a1675c42d847f42229d1dbe552bd55e1f71323 was checked before native acceptance. Through the **custom connected Stripe MCP**, eight historical immutable Event runs were independently reverified, all eight mutable cleanup reports independently passed after safely reconciling the original missing zero-value draft invoice (no second provider deletion), and the advertised developer run read projection succeeded. Three additional native TEST originals — customer.subscription.created, invoice.updated, invoice.finalized — were provider-verified and their eligible source cleanup confirmed. The total is **11 distinct accepted original Event types**, **not** signed delivery or complete V-3.
 
-Four additional native TEST trigger attempts remain `running` without independently verified original Events: customer.subscription.deleted, payment_intent.payment_failed, charge.dispute.created, invoice.payment_failed. Their exact recorded partial fixtures were processed with guarded preview+confirmation; the native cleanup reported all eligible mutable records resolved after safe same-target replay and retained historical invoice/item records intentionally. Without a provider reader for unfinished runs, independent *current* source-state closure is still pending. New V-3 read-only `dev_inspect_incomplete_run` is source-only until exact-head CI, merge and daily checked release. No LIVE, money-out, automatic provider retry, manual release or owner bypass. The single machine-readable acceptance queue below holds the next checks and owner gates; do not treat limited releases as a project-wide stop.
+Four additional native TEST trigger attempts remain `running` without independently verified original Events: customer.subscription.deleted, payment_intent.payment_failed, charge.dispute.created, invoice.payment_failed. Their exact recorded partial fixtures were processed with guarded preview+confirmation; the native cleanup reported all eligible mutable records resolved after safe same-target replay and retained historical invoice/item records intentionally. Without a provider reader for unfinished runs, independent *current* source-state closure is still pending. V-3 read-only `dev_inspect_incomplete_run` is merged on main at PR #224 but awaits the next checked live release. PR #225 adds an independently audited, explicit `pendingRunId` on an attempted but incomplete native TEST trigger response; no full receipt or provider acceptance is claimed before CI, merge and checked deployment. No LIVE, money-out, automatic provider retry, manual release or owner bypass. The single machine-readable acceptance queue below holds the next checks and owner gates; do not treat limited releases as a project-wide stop.
 
 ## Release acceptance queue — workflow optimization 2026-10-14
 
@@ -169,6 +169,17 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "Connected TEST settings evidence is partial; a signed-in human Dashboard comparison remains unverified and H-1 remains gated."
+  },
+  {
+    "id": "STRIPE-V3-PENDING-RECEIPTS",
+    "priority": 7,
+    "requiredRevision": "e74a3d3e04ab8ff5811e8d59acd573978c2f10fe",
+    "task": "Verify failed confirmed native TEST triggers expose only account-scoped audited unfinished-run IDs and no false success",
+    "procedure": "docs/pr-cards/V-3.md #225; tests/unit/dev-pending-receipt.test.js and tests/unit/dev-events.test.js",
+    "gates": "Exact-head CI/review and checked READY source revision; original selected TEST account; no LIVE, credentials or automatic mutations",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 PR #225 source: native failed-write adapter adds pendingRunId/pendingRunStatus/recordedSteps only after confirmed attempt, durable immutable run-plan and at least one exact recorded source. Previews, auth denials, no-run cases and completed Events remain unchanged. Deployed native rejection receipt proof awaits checked release."
   }
 ]
 ```

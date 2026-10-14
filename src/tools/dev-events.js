@@ -2,6 +2,7 @@
 import {defineWrite,gone} from './write.js';
 import {client,reply,writeProfiles,allProfiles} from './billing-shared.js';
 import {planTrigger,executeTrigger,triggerTypes,verifyRecordedTriggerRun} from '../dev/triggers.js';
+import {pendingTriggerReceipt} from '../dev/trigger-pending-receipt.js';
 import {verifyCheckoutSession,verifiedHostedCheckoutUrl}
   from '../dev/triggers-checkout.js';
 const types=triggerTypes.map(type=>({
@@ -133,7 +134,8 @@ export const handlers={
     return reply({types,mode:'test',total:types.length,
       note:'Only real supported actions are listed. Other event triggers are planned separately.'});
   },
-  dev_trigger_event:(a,ctx)=>ctx?.connection?.mode!=='test'?
-    gone('TEST event triggering is unavailable in LIVE mode'):op.handler(a,ctx)
+  dev_trigger_event:async(a,ctx)=>ctx?.connection?.mode!=='test'?
+    gone('TEST event triggering is unavailable in LIVE mode'):
+    pendingTriggerReceipt(a,ctx,await op.handler(a,ctx))
 };
 export const makeDevTriggerEventWrite=()=>op;
