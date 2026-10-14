@@ -51,6 +51,33 @@ describe('provider-verified TEST cleanup inspection',()=>{
     expect(result.allEligibleCleanedAndVerified).toBe(false);
     expect(result.rows[0].verification).toBe('ledger_mismatch');
   });
+  it('does not call provider cleanup or pretend that provider deletion corrected the ledger',async()=>{
+    const f=fixture();
+    f.rows[0].cleaned=false;
+    const result=parse(await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx));
+    expect(result.allEligibleCleanedAndVerified).toBe(false);
+    expect(result.rows[0].verification).toBe('ledger_pending');
+    expect(f.calls.map(x=>x[0])).toEqual(['event','customer']);
+  });
+  it('rejects forged original Event, foreign account, LIVE and malformed requests',async()=>{
+    const f=fixture();
+    f.setEvent({...f.event,account:'acct_FOREIGN'});
+    expect((await handlers.dev_verify_cleanup_run({runId:f.run.id},f.ctx)).isError)
+      .toBe(true);
+    expect(f.calls).toEqual([['event','evt_VERIFY123']]);
+    const original=fixture();
+    for(const args of [{},{runId:'run_BAD'},{runId:original.run.id,confirm:true}]){
+      expect((await handlers.dev_verify_cleanup_run(args,original.ctx)).isError)
+        .toBe(true);
+    }
+    expect((await handlers.dev_verify_cleanup_run({runId:original.run.id},{
+      ...original.ctx,connection:{...original.ctx.connection,mode:'live'}})).isError)
+      .toBe(true);
+    expect((await handlers.dev_verify_cleanup_run({runId:original.run.id},{
+      ...original.ctx,connection:{...original.ctx.connection,
+        stripeAccount:'acct_OTHER123'}})).isError).toBe(true);
+    expect(original.calls).toHaveLength(0);
+  });
   it('registers a read-only selected-account verifier',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
