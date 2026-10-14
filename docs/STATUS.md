@@ -1,3 +1,19 @@
+### October 14 live release readback — next acceptance checkpoint
+
+Vercel deployment `dpl_ro9WeFt46Ub2seeMam6NQuHy5n7V` is independently READY
+at the exact current matching `main`/`live` commit
+`e505e06b2c59dabf50a3792cad67d4ab0ffdfe96`, with canonical
+Production aliases. Authenticated original Stripe Cloud TEST inspection was
+attempted, but the conversation's saved adapter refused refresh with an
+uncertain outcome. No native provider inspection or Event acceptance was
+claimed or repeated; this is a connection-runner checkpoint, not evidence
+that the underlying TEST key or owner OAuth grant is revoked. The Hub's
+connected public namespace remains metadata-only with no upstream route.
+Use the already authorized protected developer runner if accessible, preserve
+single-runner refresh state, and keep the original four fixtures pending.
+Read-only source work #228 adds finite, PII-free diagnostics for those exact
+failure classes; its release/provider acceptance is queued separately.
+
 ## October 14 release acceptance ancestry repair
 
 Repinned pending acceptance to independently verified merged implementation commits
@@ -109,7 +125,20 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Exact-head CI/review, checked main-to-live, READY deployment, selected TEST; no source mutations",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 source added on a pending PR to inspect unfinished run plan, recorded sources, sanitized Stripe states and missing stages; not yet checked CI, merged, deployed or externally tested."
+    "lastEvidence": "2026-10-14 independent Vercel production deployment dpl_ro9WeFt46Ub2seeMam6NQuHy5n7V READY at exact live/main e505e06b2c59dabf50a3792cad67d4ab0ffdfe96, so release prerequisite is cleared. Authenticated custom Stripe Cloud inspection was attempted, but the saved Chat adapter reported refresh_uncertain / renewal_outcome_unknown_reconnect_required; no original TEST provider read was performed or passed. Reuse independent protected developer grant without replaying an uncertain mutation."
+  },
+  {
+    "id": "STRIPE-V3-FAILURE-INDICATORS",
+    "priority": 8,
+    "requiredRevision": "f2af8dde37569eb590eb589db834ed829977838d",
+    "task": "Verify deployed read-only failed-event diagnostics for genuine unfinished TEST card, invoice, dispute and subscription fixtures",
+    "procedure": "docs/pr-cards/V-3.md #228 and tests/unit/dev-incomplete-inspection.test.js",
+    "gates": "Reviewed exact-head CI, normally checked READY source ancestry, selected original TEST account and matching immutable run ledger; no provider mutation, no raw provider error/PII, no original Event claim",
+    "dependsOn": [
+      "STRIPE-V3-RUN-INSPECTION"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source-only enhancement adds finite provider-verified state indicators and five dedicated unit regressions for four incomplete native TEST event families. No CI, checked release or real original-provider invocation is claimed by this new PR."
   },
   {
     "id": "STRIPE-V3-UNFINISHED-4",

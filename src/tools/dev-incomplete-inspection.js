@@ -74,6 +74,36 @@ function safeState(type,o){
     return 'financial_evidence_retained';
   return null;
 }
+// Strictly bounded, non-PII indicators for the four provider-real trigger
+// types that can remain unfinished after a declined attempt or async event.
+// These observations NEVER imply an Event, cleanup success, or retry authority.
+const flag=x=>typeof x==='boolean'?(x?'yes':'no'):'unknown';
+function safeIndicators(type,o,byStep){
+  if(type==='payment_intent')return {
+    zeroAmountReceived:Number.isSafeInteger(o.amount_received)?
+      flag(o.amount_received===0):'unknown',
+    declineObserved:o.status==='requires_payment_method'&&
+      o.last_payment_error?.code==='card_declined'?'yes':'no'
+  };
+  if(type==='invoice')return {
+    paymentAttempted:flag(o.attempted),
+    attemptCount:Number.isSafeInteger(o.attempt_count)&&
+      o.attempt_count>=0&&o.attempt_count<=10000?o.attempt_count:null,
+    zeroAmountPaid:Number.isSafeInteger(o.amount_paid)?
+      flag(o.amount_paid===0):'unknown',
+    positiveAmountRemaining:Number.isSafeInteger(o.amount_remaining)?
+      flag(o.amount_remaining>0):'unknown',
+    automaticCollection:flag(o.collection_method==='charge_automatically'?
+      true:o.collection_method==='send_invoice'?false:null)
+  };
+  if(type==='charge')return {disputed:flag(o.disputed)};
+  if(type==='subscription'){
+    const linked=ref(o.latest_invoice),tracked=byStep.get('invoice_1')?.object_id;
+    return {initialInvoice:typeof linked!=='string'?'not_readable':
+      !tracked?'not_recorded':linked===tracked?'linked':'mismatch'};
+  }
+  return null;
+}
 export const tools=[{
   name:'dev_inspect_incomplete_run',area:'developer',writes:false,
   profiles:allProfiles,annotations:{readOnlyHint:true},
@@ -130,8 +160,11 @@ export const handlers={
           const object=await read[row.object_type](stripe,row.object_id);
           if(own(object,row,run,byStep)){
             const state=safeState(row.object_type,object);
-            if(state)result={...result,verification:'provider_verified',
-              observedState:state};
+            if(state){
+              const indicators=safeIndicators(row.object_type,object,byStep);
+              result={...result,verification:'provider_verified',
+                observedState:state,...(indicators?{indicators}:{})};
+            }
           }
         }catch{
           // Unknown provider state (including 404) never proves deleted,
