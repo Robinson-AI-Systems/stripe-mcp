@@ -17,7 +17,7 @@ describe('C-2 progressive tool disclosure and wrapped execution',()=>{
     expect(listingForConnection(registry,{...connection,listing:'catalog'}).length)
       .toBe(registry.tools.filter(t=>t.writes===false&&
         t.profiles.includes('read_only')).length);
-    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(118);
+    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(121);
     expect(listingForConnection(registry,connection,'read_only')).toHaveLength(7);
   });
   it('searches, describes, delegates and batches through the same read-only gate',async()=>{
