@@ -97,6 +97,18 @@ describe('W-2 failed payment and customer overview guarded workflows',()=>{
     expect((await f.call('workflow_customer_overview',{})).isError).toBe(true);
     expect((await f.call('workflow_failed_payments',{customerId:'invalid'})).isError).toBe(true);
   });
+  it('counts more than one provider page without mistaking display cap for scan end',async()=>{
+    const rows=Array.from({length:102},(_,i)=>invoice('in_'+String(100+i)));
+    rows[0].currency='eur';
+    const f=fixture({invoices:rows});
+    const out=parse(await f.call('workflow_failed_payments',{}));
+    expect(out.complete).toBe(true);
+    expect(out.counts.unpaidAttemptedInvoices).toBe(102);
+    expect(out.displayTruncated).toBe(true);
+    expect(out.invoices[0].currency).toBe('eur');
+    expect(f.seen.filter(x=>x.kind==='invoices')).toHaveLength(2);
+    expect(out.invoices).toHaveLength(25);
+  });
   it('returns incomplete instead of false success when a native read is unavailable',async()=>{
     const f=fixture({invoices:[invoice('in_F1')]});
     f.ctx.services.stripeForConnection=async()=>({
