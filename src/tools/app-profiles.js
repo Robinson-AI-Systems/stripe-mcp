@@ -113,6 +113,9 @@ function scopeWrite(){
       await verified(ctx);
       const scope=await ctx.db.getAppGuardScope(ctx.connection.stripeAccount);
       if(scope!=='legacy')throw new TypeError('Account already uses scoped ownership');
+      const assigned=await ctx.db.listKnownAppsForAccount(ctx.connection.stripeAccount);
+      if(!Array.isArray(assigned)||assigned.length===0)
+        throw new TypeError('Bind at least one active app before scoped ownership can be enabled');
       return {id:ctx.connection.stripeAccount,metadata:{},scope};
     },
     summarize:(before)=>'TEST account '+before.id+
