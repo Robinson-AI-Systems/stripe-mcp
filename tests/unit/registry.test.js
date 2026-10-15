@@ -73,9 +73,10 @@ describe('tool registry', () => {
       'setup_set_card_safety','setup_set_dashboard_timezone',
       'brand_list_invoice_templates','brand_get_invoice_template',
       'brand_archive_invoice_template','brand_unarchive_invoice_template',
-      'brand_set_portal_look','setup_set_payout_schedule'
+      'brand_set_portal_look','setup_set_payout_schedule',
+      'project_bind_profile_account','project_enable_scoped_ownership'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(101);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(103);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
