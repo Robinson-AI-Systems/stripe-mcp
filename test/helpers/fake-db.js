@@ -20,6 +20,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const reservations = [];
   const approvals = [];
   const results = new Map();
+  const brandKits = new Map();
   const decisionIntents = [];
   const liveIntents = [];
   const revokeIntents = [];
@@ -27,6 +28,18 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const defaultIntents = [];
   const limitIntents = [];
   return {
+    async getBrandKit({account,mode}){
+      const record=brandKits.get(account+'|'+mode);
+      return record?structuredClone(record):null;
+    },
+    async saveBrandKit({account,mode,settings,expectedVersion}){
+      if(!accountRows.has(account)||mode!=='test')throw new TypeError('TEST brand account required');
+      const key=account+'|'+mode,current=brandKits.get(key);
+      if(JSON.stringify(current?.settings??null)===JSON.stringify(settings))return structuredClone(current);
+      if((current?.version??0)!==expectedVersion)throw new Error('Brand kit revision changed');
+      const record={settings:structuredClone(settings),version:expectedVersion+1,updatedAt:new Date(clock())};
+      brandKits.set(key,record);return structuredClone(record);
+    },
     async initSchema() { for (const table of SCHEMA_TABLES) createdTables.add(table); },
     async saveWebhookSigningSecret({account,endpoint,ciphertext}){
       webhookSigningSecrets.set(account+'|'+endpoint,ciphertext);return true;

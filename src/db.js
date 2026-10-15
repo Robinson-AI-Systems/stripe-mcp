@@ -3,6 +3,7 @@ import {createWebhookCreationStore,initWebhookCreationTables} from './webhooks/c
 import {createWebhookSignatureDb,initWebhookSignatureTables} from './webhooks/signature-store.js';
 import {createTestWebhookReceiptStore,initTestWebhookReceiptTables} from './webhooks/receipt-store.js';
 import { hashToken } from './core/oauth.js';
+import {createBrandKitStore,initBrandKitTables} from './brand/store.js';
 import {createDevRunStore,initDevRunTables} from './dev/run-store.js';
 import {createDevForwarderStore,initDevForwarderTables}
   from './dev/forwarder-store.js';
@@ -17,7 +18,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits'
 ]);
 
 let productionSql;
@@ -38,6 +39,7 @@ export function createDb(sql = getProductionSql()) {
     ...createWebhookSignatureDb(sql),
     ...createTestWebhookReceiptStore(sql),
     ...createDevRunStore(sql),
+    ...createBrandKitStore(sql),
     ...createDevForwarderStore(sql),
     ...createDevForwarderReplayStore(sql),
     ...createDevSimulationCycleStore(sql),
@@ -1084,6 +1086,7 @@ export function createDb(sql = getProductionSql()) {
       await initWebhookSignatureTables(sql);
       await initTestWebhookReceiptTables(sql);
        await initDevRunTables(sql);
+      await initBrandKitTables(sql);
       await initDevForwarderTables(sql);
       await initDevForwarderReplayTables(sql);
       await initDevSimulationCycleTables(sql);
