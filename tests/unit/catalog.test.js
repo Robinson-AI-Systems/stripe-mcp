@@ -141,7 +141,6 @@ describe('E-1 native TEST catalog profile and contract',()=>{
       priceId:'price_BASE123',nickname:'Annual plan'}));
     expect(done.done).toBe(true);
     expect(f.sdk.prices.update.mock.calls[0][1]).toEqual({nickname:'Annual plan'});
-    f.products.set('prod_OWNED123',f.mkPrice); // replaced with an explicitly owned product below
     f.products.set('prod_OWNED123',{
       id:'prod_OWNED123',name:'Owner app product',object:'product',
       livemode:false,active:true,description:null,
