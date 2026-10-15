@@ -1,3 +1,13 @@
+## W-1/W-2 native read-only owner workflows (October 15 source; provider acceptance pending)
+
+Three added registered READ ONLY `workflows` available in `read_only`, `everyday` and `full` profiles on authenticated TEST connections. All call existing wrapped registry readers, with the same account/guard/indirect-call/contract checks; no raw Stripe SDK calls, writes, LIVE access, approvals or credential sharing.
+
+- `workflow_money_snapshot({fromDate,toDate})`: inclusive Colorado calendar dates, signed balance transaction money-in/out, fee/net separate by currency; active licensed fixed subscription MRR by interval/count/quantity/discount, trialing separately, tiered/metered excluded, 50 s/10-page bounded scans and explicit incomplete/continuation. Currency in Stripe provider minor units; never combine currencies or treat incomplete inputs as completed totals.
+- `workflow_failed_payments({customerId?})`: confirmed attempted open unpaid invoices and failed payment intents with safe decline descriptions, Stripe-provided retry timestamp and hosted invoice URL only when observed; bounded/partial reports and no retry/payment action.
+- `workflow_customer_overview({customerId})`: read-only verified customer with invoice/payment/subscription summaries and original app-record link when already supplied by guarded customer projection; incomplete and displayed truncation distinct; no inferred app ownership.
+
+Source and mock tests never satisfy original live/custom Stripe provider acceptance. See the frozen W-1/W-2 execution plan in docs/pr-cards/W-1.md; normal promotion required before real connected handler checks.
+
 ## V-3 original TEST Event/cleanup operator batch (2026-10-14 source)
 
 `dev_verify_trigger_runs({runIds,includeCleanup?,includeIncomplete?})`
