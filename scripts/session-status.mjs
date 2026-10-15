@@ -116,7 +116,7 @@ export function run(root, args) {
   const flags = {};
   for (let i = 0; i < args.length; i += 2) {
     const flag = args[i];
-    if (!['--deployed', '--state', '--latest-pr', '--limit'].includes(flag) || flags[flag] !== undefined || !args[i + 1]) throw new Error('Usage: session-status.mjs [--deployed FULL_SHA --state READY] [--latest-pr NUMBER] [--limit NUMBER]');
+    if (!['--deployed', '--state', '--latest-pr', '--post-merge', '--limit'].includes(flag) || flags[flag] !== undefined || !args[i + 1]) throw new Error('Usage: session-status.mjs [--deployed FULL_SHA --state READY] [--latest-pr NUMBER] [--post-merge MERGED_PR_NUMBER] [--limit NUMBER]');
     flags[flag] = args[i + 1];
   }
   if (Boolean(flags['--deployed']) !== Boolean(flags['--state'])) throw new Error('Supply both deployed SHA and observed deployment state.');
@@ -150,6 +150,20 @@ export function run(root, args) {
     lines.push(`Latest observed PR: #${Number(flags['--latest-pr'])} (informational only; no session PR quota or numeric boundary).`);
   }
 
+  // Post-merge closure is finite and durable: no more indefinite status reads.
+  // This command never claims a merge, verified CI or provider evidence by itself.
+  if (flags['--post-merge']) {
+    if (!/^[1-9]\d{0,8}$/.test(flags['--post-merge']))
+      throw new Error('Post-merge PR must be a positive integer.');
+    const pr = Number(flags['--post-merge']);
+    lines.push('POST-MERGE CLOSEOUT for PR #' + pr + ' (candidate checklist; independently attest each item):');
+    lines.push('1. Confirm PR merged at exact head, required CI/target policy/reviews, final main SHA and clean open-PR/branch status.');
+    lines.push('2. Verify live SHA plus independent READY production revision, re-evaluate EVERY acceptance row against deployed ancestry, and execute every eligible authorized check.');
+    lines.push('3. Record actual acceptance passes only; blocked items need precise permission/deployment/fixture and next action. Preserve LIVE/spending/owner gates.');
+    lines.push('4. Confirm STATUS/card/index permanent as-if-merged evidence and add FINAL MERGED HANDOFF comment to the merged PR: head, gates, main/live/READY, deferred acceptance and next subsection.');
+    lines.push('5. Do not begin another branch or end the turn between merge and this finite closure. If GitHub is temporarily unavailable, attach a recoverable PR comment and report the exact limitation.');
+    lines.push('These are instructions, NOT automated attestations; missing observations must stay UNKNOWN.');
+  }
   lines.push('Roadmap (indexed batch subsections; NOT completion or live-acceptance proof): ' +
     roadmap.merged + '/' + roadmap.total + ' MERGED; ' + roadmap.complete + ' COMPLETE; ' + roadmap.planned + ' PLANNED separately; ' + roadmap.remainingApproved +
     ' remaining approved (' + roadmap.inProgress + ' IN_PROGRESS, ' + roadmap.approved +

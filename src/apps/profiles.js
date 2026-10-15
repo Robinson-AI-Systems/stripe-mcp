@@ -123,13 +123,79 @@ export async function initAppProfileTables(sql){
     scope TEXT NOT NULL DEFAULT 'legacy' CHECK (scope IN ('legacy','scoped')),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  await sql`CREATE TABLE IF NOT EXISTS project_setup_runs (
+    stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+    project_id TEXT NOT NULL,
+    digest TEXT NOT NULL CHECK (length(digest)=64),
+    steps JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (stripe_account,project_id)
+  )`;
   const seed=JSON.stringify(validateProfile(APP_SEED));
   await sql`INSERT INTO known_apps(id,name,status,profile,version)
     VALUES ('appliance-desk','Robinson Appliance Rentals','active',${seed}::jsonb,1)
     ON CONFLICT (id) DO NOTHING`;
 }
 export function createAppProfileStore(sql){
+  const setupStep=x=>['webhook','portal','methods','brand','product','price','draft'].includes(x);
+  const setupInput=({account,id,digest,step})=>{
+    if(!acct(account)||!appId(id)||typeof digest!=='string'||
+      !/^[a-f0-9]{64}$/.test(digest)||(step!==undefined&&!setupStep(step)))
+      throw new TypeError('Valid selected account, project, plan digest and step required');
+  };
   return {
+    async getProjectSetupRun({account,id}){
+      if(!acct(account)||!appId(id))throw new TypeError('Exact selected project run required');
+      const rows=await sql`SELECT digest,steps FROM project_setup_runs
+        WHERE stripe_account=${account} AND project_id=${id}`;
+      return rows[0]??null;
+    },
+    async reserveProjectSetupStep({account,id,digest,step}){
+      setupInput({account,id,digest,step});
+      const seed=JSON.stringify({[step]:{state:'pending'}});
+      const result=await sql`INSERT INTO project_setup_runs(stripe_account,project_id,digest,steps)
+        VALUES (${account},${id},${digest},${seed}::jsonb)
+        ON CONFLICT (stripe_account,project_id) DO UPDATE SET
+          steps=project_setup_runs.steps || ${seed}::jsonb,updated_at=now()
+        WHERE project_setup_runs.digest=${digest}
+          AND NOT (project_setup_runs.steps ? ${step})
+        RETURNING digest,steps`;
+      if(result.length===1)return {newlyReserved:true};
+      const existing=await this.getProjectSetupRun({account,id});
+      if(!existing||existing.digest!==digest)throw new TypeError(
+        'Project plan changed; reconcile original run before new provider writes');
+      return {newlyReserved:false,state:existing.steps?.[step]?.state??'unknown',
+        receipt:existing.steps?.[step]??null};
+    },
+    async completeProjectSetupStep({account,id,digest,step,resourceId=null,details={}}){
+      setupInput({account,id,digest,step});
+      if(resourceId!==null&&(typeof resourceId!=='string'||
+        !/^[a-z][a-z0-9]*_[A-Za-z0-9]{2,100}$/.test(resourceId)))
+        throw new TypeError('Invalid verified setup resource ID');
+      if(!details||typeof details!=='object'||Array.isArray(details)||
+        Object.keys(details).some(k=>!['kind','status','manualRequired'].includes(k)))
+        throw new TypeError('Only safe setup receipt fields may be stored');
+      const receipt={state:'done',resourceId,...details};
+      const value=JSON.stringify(receipt);
+      const result=await sql`UPDATE project_setup_runs
+        SET steps=jsonb_set(steps,ARRAY[${step}],${value}::jsonb),updated_at=now()
+        WHERE stripe_account=${account} AND project_id=${id} AND digest=${digest}
+          AND steps->${step}->>'state'='pending'
+        RETURNING steps`;
+      if(result.length!==1)throw new TypeError('Setup step not uniquely reserved');
+      return receipt;
+    },
+    async createProjectDraft(profile){
+      const valid=validateProfile(profile),value=JSON.stringify(valid);
+      await sql`INSERT INTO known_apps(id,name,status,profile,version)
+        VALUES (${valid.id},${valid.name},'draft',${value}::jsonb,1)
+        ON CONFLICT (id) DO NOTHING`;
+      const rows=await sql`SELECT id,status,version FROM known_apps
+        WHERE id=${valid.id} AND status='draft' AND profile=${value}::jsonb`;
+      if(rows.length!==1)
+        throw new TypeError('Project draft already exists with a different plan or is active');
+      return {id:rows[0].id,status:'draft',version:Number(rows[0].version)};
+    },
     async getKnownApp(id){
       if(!appId(id))throw new TypeError('Valid app ID required');
       const x=await sql`SELECT id,name,status,profile,version,updated_at

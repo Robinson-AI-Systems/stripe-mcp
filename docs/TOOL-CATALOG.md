@@ -422,18 +422,19 @@ Removed from `account_*` to avoid two tools doing one job:
 `account_update_profile` (now `brand_set_public_details` and
 `brand_set_statement_descriptor`).
 
-## Project profiles (`project_*`, readiness and setup) — 6
+## Project profiles (`project_*`, readiness and setup) — 10
 
 Optional, for any app you build whose own code runs Stripe billing. See `docs/designs/BATCH-P.md` and
 `docs/APP-NEEDS-APPLIANCE-DESK.md` (an example profile).
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `project_list` / `project_get` | Profiled projects on this server and what each needs from Stripe | — | N | R |
-| `project_update_profile` | Change a profile (events, ownership keys, portal rules) after the project's own code changes | C | N | F |
-| `project_draft_profile` | Draft a profile from what an agent found in a codebase (Stripe calls, events, metadata keys) | — | N | E |
+| `project_list_profiles` / `project_get_profile` / `project_record_link` | Public selected TEST account project directory and verified app route navigation | — | Built P-1/P-2 | R |
+| `project_bind_profile_account` / `project_enable_scoped_ownership` | Separate owner-confirmed TEST app/account binding and explicit legacy-to-scoped activation | C | Built P-1/P-2 | F |
+| `project_draft_profile` | Draft app contract and APP-NEEDS text from explicit safe observed findings; unknown events reported, no code fetched or cross-repo commit | — | Built P-4 | R |
 | `workflow_app_readiness` | Is Stripe set up for this project (test or live; a profile or an inline spec for a project being built)? Every need: done / fixed (with confirm) / needs you (link + clicks) / needs a decision; prints the exact permission list for the project's own restricted key | C* (only when applying a fix) | N | E |
-| `workflow_project_setup` | Start Stripe for a **new** project from a short plain description: webhook (secret via one-time page), portal, payment methods, brand kit, and products/prices only if the project won't create its own; returns a draft profile and the text for its `APP-NEEDS` file | C | N | F |
+| `workflow_project_setup` | Preview and individually confirm one durable TEST setup step at a time; wrapped webhook/Portal/payment/branding/catalog, then inactive draft + APP-NEEDS text, no guessed configuration or automatic pending replay | C | Built P-4 | F |
+| `project_portal_create` | New TEST Billing Portal configuration with four explicit owner policy flags, guarded confirmation and provider readback | C | Built P-4 | F |
 
 ## Workflows (`workflow_*`) — 13
 
