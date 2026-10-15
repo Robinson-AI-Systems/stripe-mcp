@@ -75,9 +75,11 @@ describe('tool registry', () => {
       'brand_archive_invoice_template','brand_unarchive_invoice_template',
       'brand_set_portal_look','setup_set_payout_schedule',
       'project_list_profiles','project_get_profile','project_record_link',
-      'project_bind_profile_account','project_enable_scoped_ownership'
+      'project_bind_profile_account','project_enable_scoped_ownership',
+      'portal_get_configuration','portal_update_configuration',
+      'workflow_app_readiness','workflow_app_readiness_fix'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(103);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(105);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
