@@ -76,9 +76,9 @@ describe('H-1 brand kit validation and scoped versioning',()=>{
     const duplicate=await f.db.saveBrandKit({account,mode:'test',settings:kit,
       expectedVersion:0});
     expect(duplicate.version).toBe(1);
-    const stale=await op.handler({kit:{buttonColor:'#000000'},
-      expectedVersion:0,confirm:true,requestKey:'brand-stale'},f.ctx);
-    expect(stale.isError).toBe(true);
+    await expect(op.handler({kit:{buttonColor:'#000000'},
+      expectedVersion:0,confirm:true,requestKey:'brand-stale'},f.ctx))
+      .rejects.toThrow(/Brand kit has changed/);
     expect((await f.db.getBrandKit({account,mode:'test'})).version).toBe(1);
     expect(f.writes).toHaveLength(0);
   });
@@ -150,7 +150,7 @@ describe('H-1 supported Checkout and validated public brand image',()=>{
     png.writeUInt32BE(128,20);
     const refused=await makeBrandImageUpload({download}).handler({...args,
       confirm:true,requestKey:'image-not-square'},f.ctx);
-    expect(refused.isError??false).toBe(true);
+    expect(parse(refused).done).toBe(false);
     expect(f.writes).toHaveLength(1);
   });
 });
