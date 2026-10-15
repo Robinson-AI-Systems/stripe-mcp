@@ -190,4 +190,33 @@ describe('E-1 native TEST catalog profile and contract',()=>{
       .rejects.toThrow(/parent product/i);
     expect(f.sdk.prices.update).not.toHaveBeenCalled();
   });
+  it('requires no inactive prices before product deletion',async()=>{
+    const f=fixture();
+    const inactive=f.mkPrice('price_INACTIVE123','prod_BASE123','retired_month',3600);
+    inactive.active=false;f.prices.set(inactive.id,inactive);
+    await expect(f.confirm('product_delete',{productId:'prod_BASE123'}))
+      .rejects.toThrow(/active or inactive prices/);
+    expect(f.sdk.products.del).not.toHaveBeenCalled();
+    expect(f.sdk.prices.list.mock.calls.map(x=>x[0].active)).toEqual([true]);
+  });
+  it('accepts a verified provider 404 after a matching DELETE receipt, never 404 alone',async()=>{
+    const missing=()=>Object.assign(new Error('provider missing'),{
+      statusCode:404,code:'resource_missing',type:'StripeInvalidRequestError'});
+    const f=fixture();
+    f.sdk.products.retrieve.mockImplementationOnce(async id=>f.products.get(id))
+      .mockRejectedValueOnce(missing());
+    const done=parse(await f.confirm('product_delete',{productId:'prod_BASE123'}));
+    expect(done).toMatchObject({done:true,confirmed:true});
+    expect(f.sdk.products.del).toHaveBeenCalledTimes(1);
+    expect(f.sdk.products.retrieve).toHaveBeenCalledTimes(2);
+
+    const g=fixture();
+    g.sdk.products.del.mockResolvedValueOnce({id:'prod_BASE123',deleted:false});
+    g.sdk.products.retrieve.mockImplementationOnce(async id=>g.products.get(id))
+      .mockRejectedValueOnce(missing());
+    const unknown=parse(await g.confirm('product_delete',{productId:'prod_BASE123'}));
+    expect(unknown).toMatchObject({done:false,confirmed:false});
+    expect(unknown.warning).toMatch(/uncertain/i);
+    expect(g.sdk.products.del).toHaveBeenCalledTimes(1);
+  });
 });
