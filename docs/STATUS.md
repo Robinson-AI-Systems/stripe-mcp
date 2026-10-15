@@ -1,3 +1,9 @@
+### October 15 — protected native TEST read-only acceptance after original connection reconnect
+
+Original custom Stripe Cloud (not standard Stripe connector) restored original selected `STRIPE MCP TEST` account in TEST/full mode, LIVE disabled and $0 used. Independent Vercel production deployment `dpl_31YvMYG522P5mvA4dys2M9Q3UNjK` was READY on exact live `157acab51f59ac9ce9ed0439b68e4f3f41489af2`. Four genuinely *new* existing V-3 capability acceptance rows now have provider and source/ledger observations and are PASSED: `STRIPE-V3-RUN-INSPECTION`, `STRIPE-V3-INCOMPLETE-ORIGINAL-EVENT`, `STRIPE-V3-BATCH-RECOVERY`, and `STRIPE-V3-COHESIVE-EVENT-CLEANUP-RECOVERY`. Each row's durable original source minimum was already in READY deployed ancestry. Original five PASSED unchanged; **queue now 9 PASSED / 23 PENDING / 32 total**.
+
+The original four interrupted V-3 runs remain RUNNING and **unreplayed**; original `customer.subscription.deleted` was independently provider-verified for one, while other three originals remain unverified. Genuine completed runs' three original Events plus three separate independently verified provider cleanup states demonstrate combined readback; historical accepted events are not counted as new Event-type coverage. Missing records, incomplete-source indicators, unsent webhooks and non-cleaned retained invoice evidence are not a PASS. This read-only evidence changes no Stripe data, service keys, owner roles, receipts, test fixtures or LIVE; no release, money movement or autonomous spending. `STRIPE-V3-FAILURE-INDICATORS`, `STRIPE-V3-UNFINISHED-4`, signed webhook, PKCE/refresh/revocation, Hub and owner Dashboard remain separately PENDING until their precise criteria are met. Seven E-1/P-4/W-1/W-2 checks still require reviewed code to be deployed live; never substitute a standard Stripe connector. Source/CI and genuine provider evidence remain separate. Acceptance only; zero new product bundles.
+
 ### October 15 — W-1/W-2 read-only workflows; one NEW engineering bundle, publication pending
 
 Inspected actual main 131ad52fd1c2852a60eade5ff90cf323277e8022 with no open PR and latest #253 FINAL MERGED HANDOFF. Verified live ref 157acab51f59ac9ce9ed0439b68e4f3f41489af2 is ancestor, behind main by 111 commits at baseline. This branch has one frozen first-commit W-1/W-2 whole-subsection plan at 756a93c23255d9b28f5cb35cddfbfa193f576fb0. W-1 money snapshot and W-2 failed payments/customer overview implemented with guarded TEST read-only native registry dispatch, original Denver DST dates, subscription interval/discount/currency rules, safe observed retry/hosted invoice data, owned-record projection and bounded 50 s/10-page partial continuation. Updated registry, relevant projections, published catalog and focused regressions; source diff metrics and exact-head CI/reviews must be recorded before a completed bundle claim. W-3 writes are a separate approved successor. Engineering as-if-merged index is contingent on approved exact-head review/CI and real merge, not real Stripe acceptance.
@@ -402,8 +408,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "procedure": "docs/pr-cards/V-3.md #224 and tests/unit/dev-incomplete-inspection.test.js",
     "gates": "Exact-head CI/review, checked main-to-live, READY deployment, selected TEST; no source mutations",
     "dependsOn": [],
-    "status": "PENDING",
-    "lastEvidence": "2026-10-14 independent Vercel production deployment dpl_ro9WeFt46Ub2seeMam6NQuHy5n7V READY at exact live/main e505e06b2c59dabf50a3792cad67d4ab0ffdfe96, so release prerequisite is cleared. Authenticated custom Stripe Cloud inspection was attempted, but the saved Chat adapter reported refresh_uncertain / renewal_outcome_unknown_reconnect_required; no original TEST provider read was performed or passed. Reuse independent protected developer grant without replaying an uncertain mutation."
+    "status": "PASSED",
+    "lastEvidence": "2026-10-15 original deployed custom Stripe Cloud TEST/full selected account, independently Vercel READY at live 157acab5. Native dev_list_runs located four authentic original RUNNING V-3 fixtures; dev_inspect_incomplete_runs(includeOriginalEvent:true) returned inspectedCount=4, unavailableCount=0, each exact selected TEST source record independently provider_verified (11 recorded source steps total), with missing event steps and untouched RUNNING statuses explicitly retained. No replay, cleanup or signed delivery."
   },
   {
     "id": "STRIPE-V3-FAILURE-INDICATORS",
@@ -428,8 +434,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [
       "STRIPE-V3-RUN-INSPECTION"
     ],
-    "status": "PENDING",
-    "lastEvidence": "2026-10-14 source-only opt-in inspector validates recorded sources then checks exact original Events with a bounded Stripe list and independent retrieve; tests cover valid, tampered, missing and unreachable cases. No deployed provider proof before checked release."
+    "status": "PASSED",
+    "lastEvidence": "2026-10-15 original custom TEST dev_inspect_incomplete_runs(includeOriginalEvent:true) independently retrieved exact original customer.subscription.deleted Stripe Event for one incomplete ledger run (sourceType subscription, original event ID and run provenance verified). Three other original sources correctly reported provider_unverified, including one missing recorded source. All four durable statuses still RUNNING; original_event readback does not claim ledger completion, Event absence or webhook delivery."
   },
   {
     "id": "STRIPE-V3-BATCH-RECOVERY",
@@ -442,8 +448,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
       "STRIPE-V3-RUN-INSPECTION",
       "STRIPE-V3-INCOMPLETE-ORIGINAL-EVENT"
     ],
-    "status": "PENDING",
-    "lastEvidence": "2026-10-14 source-only read batch validates 1-4 distinct original TEST IDs before access, reuses provider-safe single-run inspector, isolates unavailable results and supports optional original Event readback. CI/release/provider evidence separate."
+    "status": "PASSED",
+    "lastEvidence": "2026-10-15 original authenticated selected-account TEST native dev_inspect_incomplete_runs accepted exactly four distinct original V-3 run IDs and returned count=4, inspectedCount=4, unavailableCount=0, isolated per-run source snapshots, missing steps and one positive original-event verification without writes. Separate dev_verify_trigger_runs(includeIncomplete:true,includeCleanup:true) reported all four incompleteInspected, no false successful original Event and no automatic cleanup/retry. Owner and LIVE gates unchanged."
   },
   {
     "id": "STRIPE-V3-UNFINISHED-4",
@@ -611,8 +617,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "procedure": "docs/pr-cards/V-3.md combined V-3 batch; tests/unit/dev-batch-acceptance.test.js and standalone cleanup/incomplete tests",
     "gates": "Required exact-head CI/review, checked daily live deployment, actual original authenticated selected-account TEST provider Events and resource reads. No inferred cleanup, webhook or LIVE, no automatic retry, no money-out, no saved OAuth credential exposure.",
     "dependsOn": [],
-    "status": "PENDING",
-    "lastEvidence": "2026-10-14 source 8163575c0c8c254ba2bf242a1304558a8ffa5b23; no deployed real provider proof yet."
+    "status": "PASSED",
+    "lastEvidence": "2026-10-15 genuine custom TEST dev_verify_trigger_runs(includeCleanup:true) against three original completed Event runs independently re-fetched Stripe invoice.finalized, invoice.updated and customer.subscription.created original Events: verifiedCount=3/3, cleanupVerifiedCount=3/3, cleanupNeedsAttentionCount=0, allEligibleCleanedAndVerified=true, immutable Events intentionally retained. Independent second bounded four-run inspection isolated unfinished source/Event states (4/4 inspected, 0 unavailable; 1 verified original source Event, three unverified) with no replay/cleanup/write/webhook inference. Historical Event-type acceptance not recounted."
   },
   {
     "id": "STRIPE-E1-CATALOG-READS",
