@@ -81,7 +81,7 @@ describe('tool registry', () => {
       'product_create','product_update','product_archive','product_unarchive',
       'product_delete','price_create','price_update'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(104);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(111);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
