@@ -179,4 +179,15 @@ describe('E-1 native TEST catalog profile and contract',()=>{
       .rejects.toThrow(/TEST product/);
     expect(f.calls).toHaveLength(0);
   });
+  it('refuses an unmarked price when its parent product is app owned',async()=>{
+    const f=fixture();
+    f.products.set('prod_OWNED123',{id:'prod_OWNED123',object:'product',
+      livemode:false,active:true,name:'Owned product',
+      description:null,metadata:{agreementId:'agr_123'}});
+    f.prices.set('price_OWNED123',f.mkPrice('price_OWNED123','prod_OWNED123',
+      'app_month',3600));
+    await expect(f.confirm('price_update',{priceId:'price_OWNED123',active:false}))
+      .rejects.toThrow(/parent product/i);
+    expect(f.sdk.prices.update).not.toHaveBeenCalled();
+  });
 });
