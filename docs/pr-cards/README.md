@@ -5,7 +5,7 @@ immediate successor. Sol 5.6 at light/medium effort is the intended routine use.
 prerequisites are hypothetical; `work-index.json` preserves all later scope. A missing card is work, not a reason to stop.
 Designs govern behavior; cards cannot silently override them. A card is not an automatic PR or bundle boundary. Keep existing IDs and full acceptance; do not subdivide scope to inflate completion.
 
-Group related endpoints via [development efficiency](../DEVELOPMENT-EFFICIENCY.md) while preserving PLAYBOOK hard size/risk limits.
+Group related endpoints via [development efficiency](../DEVELOPMENT-EFFICIENCY.md) under AGENTS' bundle/card/PR rule while preserving actual independent safety/approval controls.
 
 ## Minimum card (usually 40–100 lines)
 
