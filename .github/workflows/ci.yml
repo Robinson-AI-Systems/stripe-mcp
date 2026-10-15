@@ -16,6 +16,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +36,7 @@ jobs:
 
   unit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,10 +44,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
-      - run: npm test
+      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- npm test
 
   db:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:17
@@ -66,9 +69,33 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
-      - run: npm run test:db
+      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- npm run test:db
         env:
           TEST_DATABASE_URL: postgresql://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
+
+  rtc-service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit
       # This is the pinned upstream runner executed against the ACTUAL Stripe
       # RTC HTTP service + disposable PostgreSQL, not just Hub's fake server.
       # Full/write probes remain out-of-subset and are never certified.
@@ -77,9 +104,33 @@ jobs:
           repository: Robinson-AI-Systems/robinsons-toolkit-hub
           ref: f8e61dbca058c29ded572a660082429d5a3e6641
           path: rtc-reference
-      - run: node scripts/rtc-service-subset.mjs
+      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- node scripts/rtc-service-subset.mjs
         env:
           TEST_DATABASE_URL: postgresql://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
+
+  core-adoption:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit
       # Hub K-3 private candidate: immutable Git source and separately pinned
       # actual archive SHA256, installed ONLY inside disposable CI checkout.
       # No runtime dependency, publication, release or Production build.
@@ -95,12 +146,13 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: k3-candidate
       - name: Prove original Stripe imports/SQL through checksum-verified private core
-        run: node scripts/k3-private-adoption-rehearsal.mjs
+        run: node scripts/ci-phase.mjs --budget-seconds 180 -- node scripts/k3-private-adoption-rehearsal.mjs
         env:
           TEST_DATABASE_URL: postgresql://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
 
   mock:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       stripe-mock:
         image: stripe/stripe-mock:v0.202.0
@@ -112,12 +164,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
-      - run: npm run test:mock
+      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- npm run test:mock
         env:
           STRIPE_MOCK_EXTERNAL: '1'
 
   rtc-reference:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -135,19 +188,24 @@ jobs:
         working-directory: rtc-reference
   ci:
     if: always()
-    needs: [check, unit, db, mock, rtc-reference]
+    needs: [check, unit, db, rtc-service, core-adoption, mock, rtc-reference]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require every verification job
         env:
           CHECK: ${{ needs.check.result }}
           UNIT: ${{ needs.unit.result }}
           DB: ${{ needs.db.result }}
+          SERVICE: ${{ needs.rtc-service.result }}
+          ADOPTION: ${{ needs.core-adoption.result }}
           MOCK: ${{ needs.mock.result }}
           RTC: ${{ needs.rtc-reference.result }}
         run: |
           test "$CHECK" = success
           test "$UNIT" = success
           test "$DB" = success
+          test "$SERVICE" = success
+          test "$ADOPTION" = success
           test "$MOCK" = success
           test "$RTC" = success
