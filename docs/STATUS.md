@@ -662,6 +662,39 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     ],
     "status": "PENDING",
     "lastEvidence": "October 15 P-4 native source, mock and isolated DB tests; no actual deployed Stripe TEST write, webhook signing proof, owner setup-path use, retry and cleanup verification. TEST service refresh uncertain."
+  },
+  {
+    "id": "STRIPE-W1-MONEY-SNAPSHOT",
+    "priority": 27,
+    "status": "PENDING",
+    "requiredRevision": "429ac89ec69a422b12c6d1805ca96d448fc84c28",
+    "dependsOn": [],
+    "task": "Prove original custom TEST workflow_money_snapshot exact Denver money flows, active/trialing discounted fixed MRR, multi-currency and honest partial pagination on real selected Stripe account",
+    "procedure": "docs/pr-cards/W-1.md; original custom MCP workflow_money_snapshot; compare native provider records and no write",
+    "gates": "Checked READY source ancestry, original selected TEST read grant, owner-safe fixture data, all pages observed; no LIVE, spending or raw Stripe secrets",
+    "lastEvidence": "2026-10-15 W-1 source and unit/mock protection at PR #254; no original deployed custom TEST workflow invocation, provider totals or cleanup claimed."
+  },
+  {
+    "id": "STRIPE-W2-FAILED-PAYMENTS",
+    "priority": 28,
+    "status": "PENDING",
+    "requiredRevision": "429ac89ec69a422b12c6d1805ca96d448fc84c28",
+    "dependsOn": [],
+    "task": "Prove original custom TEST workflow_failed_payments returns actual provider decline codes, next retry/hosted link only when set and honest complete/partial scopes",
+    "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_failed_payments plus independent native TEST invoice and PaymentIntent read",
+    "gates": "Checked READY source ancestry, original TEST read grant, approved original fixtures with no retry, payment action, customer PII disclosure or money-out",
+    "lastEvidence": "2026-10-15 W-2 source/fixture unit evidence PR #254; actual custom provider read/retry existence and delivery are not verified."
+  },
+  {
+    "id": "STRIPE-W2-CUSTOMER-OVERVIEW",
+    "priority": 29,
+    "status": "PENDING",
+    "requiredRevision": "429ac89ec69a422b12c6d1805ca96d448fc84c28",
+    "dependsOn": [],
+    "task": "Prove original custom TEST workflow_customer_overview exact customer ownership, app record links, verified invoices/payments/subscriptions and multi-page bounded completeness",
+    "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_customer_overview with exact owner-approved disposable TEST customer",
+    "gates": "Checked READY source ancestry, original selected TEST read grant, correct application ownership, no provider writes or synthetic records counted as acceptance",
+    "lastEvidence": "2026-10-15 W-2 original custom TEST not deployed; source/unit projections and safe owner link only, provider evidence deferred."
   }
 ]
 ```
