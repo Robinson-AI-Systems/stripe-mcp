@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-10-14",
+  "updated": "2026-10-15",
   "order": [
     "A",
     "B",
@@ -950,13 +950,13 @@
         "R-3"
       ],
       "card": "docs/pr-cards/E-1.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "E-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {

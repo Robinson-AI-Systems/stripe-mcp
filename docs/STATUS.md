@@ -1,3 +1,11 @@
+### October 15 — release-aware acceptance catch-up and current E-1 handoff (no new acceptance PASS)
+
+Independently verified main fcfb013f70f49caa980cd0d5d1d449c16380fe67, checked live 157acab51f59ac9ce9ed0439b68e4f3f41489af2 and READY Production deployment dpl_31YvMYG522P5mvA4dys2M9Q3UNjK for that exact live revision. The successful October 15 later scheduled workflow correctly reported "Already promoted today"; it was not a new production push. Later main commits do not invalidate earlier deployed-source acceptance eligibility. Examined all 25 acceptance tasks: five genuinely PASSED historical tasks remain PASSED, 20 PENDING. Every required source pin was compared to live. Ten unique pending pins were direct ancestors; five pre-merge commits needed reconciliation and are repinned to verified merged source PR #235–#239 (each independent ancestor of live). No provider/write/denial/cleanup/owner/Hub PASS is inferred from this ancestry.
+
+Actual original custom Stripe Cloud status: service origin reachable and issuer matches, but access is refresh_uncertain and an attempted read-only whoami/search returned connection_busy/renewal_outcome_unknown_reconnect_required. Do not blindly retry token renewal or a possible provider mutation. Hub native health separately reports foundation ready, federation not configured and zero callable providers, so it cannot claim direct/relay/Sandbox Stripe evidence. Native acceptance next uses only the existing authorized single-runner encrypted rtool developer checkpoint, with selected TEST identity, exact original Event and provider resource reads, denial and safe fixture cleanup. Owner-browser G-6, genuine OAuth refresh/revocation, webhook signed receipt and hosted Checkout stay independently PENDING. This is an investigated acceptance execution limitation, not a reason to postpone already eligible tests because main advanced. No LIVE, money out, spending, bypass or additional owner permissions approved.
+
+The next approved P-4 depends on native idempotent price/product primitives absent from actual main; E-1 is the existing approved upstream catalog subsection and the current implementation branch `ai/gpt6/e1-native-catalog-prerequisite-20261015`, see `docs/pr-cards/E-1.md`. Engineering not counted until complete exact-head CI, reviews and merge. No other partial work should be abandoned or counted. P-4 remains subsequent.
+
 ### October 15 — owner-requested bundle guidance consistency review
 
 Reviewed current main c1f9c43e838124df41ef7af85d7257154698070a. Aligned existing governing instructions, session
@@ -236,7 +244,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Original selected TEST account, exact deployment provenance and independent owner consent for money-out; LIVE disabled",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 genuine custom Stripe TEST: eight prior original events, eight provider cleanup states and historical invoice reconciliation verified; three additional native Events also verified. Signed webhook, hosted Checkout, owner Dashboard, Hub and OAuth remain separate."
+    "lastEvidence": "2026-10-14 genuine custom Stripe TEST: eight prior original events, eight provider cleanup states and historical invoice reconciliation verified; three additional native Events also verified. Signed webhook, hosted Checkout, owner Dashboard, Hub and OAuth remain separate. 2026-10-15 checked live and READY production both 157acab; new main fcfb013 is ahead. All queued minimum revisions independently compared, five pre-merge pins repinned to their corresponding merged PRs. Authentic Stripe Cloud read attempt returned connection_busy and refresh_uncertain/renewal_outcome_unknown_reconnect_required, so no repeat/replay or provider pass. Hub health reports federation not configured. Coordinate single protected native rtool runner for outstanding selected-account reads/denials and fixtures; do not equate a standard provider connector or a newer main with proof."
   },
   {
     "id": "STRIPE-V3-EVENT-8",
@@ -455,57 +463,57 @@ open obligations, original fixture ownership, approvals and deployment provenanc
   {
     "id": "STRIPE-V3-OWNED-PAYMENT-METHOD-EVENTS",
     "priority": 8,
-    "requiredRevision": "d5df7589d270e4d9ee48302689efb0f64327c306",
+    "requiredRevision": "0bd1be98910e7763a9f08927f9b61715e6340fa6",
     "task": "Verify genuine selected-account TEST payment_method.attached, updated, detached original Stripe Events from tagged ledger-created and attached synthetic cards",
     "procedure": "docs/pr-cards/V-3.md PaymentMethod lifecycle actions, tests/unit/dev-payment-method-events.test.js and stripe-mock shapes",
     "gates": "Exact-head CI, checked deployed live, authenticated selected TEST account, guarded preview/confirm and independent Event retrieve. No TEST source or mock treated as actual Event acceptance.",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 source and automated test plan, no actual provider event acceptance."
+    "lastEvidence": "2026-10-14 source and automated test plan, no actual provider event acceptance. 2026-10-15: pre-merge pin d5df7589d270 replaced by independently checked PR #235 merged source 0bd1be98910e7763a9f08927f9b61715e6340fa6 (GitHub compare verified ancestor of READY live 157acab); native provider acceptance still PENDING."
   },
   {
     "id": "STRIPE-V3-SETUP-INTENT-EVENTS",
     "priority": 8,
-    "requiredRevision": "0b85632918e508543ad3f0800c9b312017d52f7b",
+    "requiredRevision": "235e9af1b8f0d805e848d32ad859ef1267a01c9b",
     "task": "Independently verify original selected-account TEST setup_intent.created, setup_intent.canceled and setup_intent.succeeded from exact durable run-owned SetupIntents",
     "procedure": "docs/pr-cards/V-3.md SetupIntent lifecycle; tests/unit/dev-setup-intent-events.test.js and tests/mock/dev-setup-intent-events.test.js",
     "gates": "Exact-head required CI/review, approved checked main-to-live, authenticated native custom Stripe TEST account, original run preview/confirmation, exact Events.list and independent Events.retrieve; no money, LIVE, automatic cleanup or inferred acceptance.",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 source commit 0b85632918e508543ad3f0800c9b312017d52f7b; no validated CI, deployed or provider proof yet."
+    "lastEvidence": "2026-10-14 source commit 0b85632918e508543ad3f0800c9b312017d52f7b; no validated CI, deployed or provider proof yet. 2026-10-15: pre-merge pin 0b85632918e5 replaced by independently checked PR #236 merged source 235e9af1b8f0d805e848d32ad859ef1267a01c9b (GitHub compare verified ancestor of READY live 157acab); native provider acceptance still PENDING."
   },
   {
     "id": "STRIPE-V3-INVOICE-TERMINAL-EVENTS",
     "priority": 8,
-    "requiredRevision": "a6d73dd703473e4c342aca07b17e8aafa775a1d3",
+    "requiredRevision": "d3ed9fddc74950ec21e2c23bc3b8ac4469435f73",
     "task": "Confirm genuine original TEST invoice.voided and invoice.marked_uncollectible Events from only exact synthetic run-owned no-payment invoices",
     "procedure": "docs/pr-cards/V-3.md TEST invoice terminal source lifecycle and tests/unit/dev-invoice-terminal-events.test.js",
     "gates": "Reviewed source and exact-head CI, checked live release, original selected-account custom MCP native TEST provider Events.list and Events.retrieve; no collection, email, money-out, LIVE or app ownership.",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 implementation source a6d73dd703473e4c342aca07b17e8aafa775a1d3; not yet accepted by CI, deployed or genuine provider."
+    "lastEvidence": "2026-10-14 implementation source a6d73dd703473e4c342aca07b17e8aafa775a1d3; not yet accepted by CI, deployed or genuine provider. 2026-10-15: pre-merge pin a6d73dd70347 replaced by independently checked PR #237 merged source d3ed9fddc74950ec21e2c23bc3b8ac4469435f73 (GitHub compare verified ancestor of READY live 157acab); native provider acceptance still PENDING."
   },
   {
     "id": "STRIPE-V3-NATIVE-CHARGE-EVENTS",
     "priority": 8,
-    "requiredRevision": "26deb30d1e7c526a88f4691f2af4d5f170415f4f",
+    "requiredRevision": "7549f6537ec60b744197278789ec7b6d114aa53d",
     "task": "Verify original selected TEST charge.succeeded and charge.updated from independently linked real run-owned PaymentIntent and Charge sources",
     "procedure": "docs/pr-cards/V-3.md Charge original Event lifecycle; tests/unit/dev-charge-events.test.js; tests/mock/dev-charge-events.test.js",
     "gates": "Exact-head CI, normal checked live release and original custom selected-account TEST provider Event list+retrieve, independently verified Customer/PaymentIntent/Charge link and no refund, transfer, payout or LIVE",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 source 26deb30d1e7c526a88f4691f2af4d5f170415f4f, no exact-head CI, deployment or original provider proof yet"
+    "lastEvidence": "2026-10-14 source 26deb30d1e7c526a88f4691f2af4d5f170415f4f, no exact-head CI, deployment or original provider proof yet 2026-10-15: pre-merge pin 26deb30d1e7c replaced by independently checked PR #238 merged source 7549f6537ec60b744197278789ec7b6d114aa53d (GitHub compare verified ancestor of READY live 157acab); native provider acceptance still PENDING."
   },
   {
     "id": "STRIPE-V3-NEW-SOURCE-CLEANUP-READBACK",
     "priority": 8,
-    "requiredRevision": "1788dd89b823f3bb572dac03f0d18db6e43882bc",
+    "requiredRevision": "9e4d5a43c014e8cb96bd9d6b2e133641376ed8cc",
     "task": "Verify through standalone custom TEST connection that dev_get_run reveals exact safe recorded PaymentMethod and SetupIntent identities and dev_verify_cleanup_run independently classifies SetupIntent canceled, active, succeeded, never-paid uncollectible invoice and parent-linked native Charge following verified original Event",
     "procedure": "docs/pr-cards/V-3.md readback repair; tests/unit/dev-run-details.test.js; tests/unit/dev-cleanup-inspection.test.js",
     "gates": "Exact-head CI/review, normal checked production release, authenticated selected-account TEST original native Event and provider readbacks. No LIVE, money-out, provider cleanup automation or inferred success.",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-14 source revision 1788dd89b823f3bb572dac03f0d18db6e43882bc; real provider readback and release still pending."
+    "lastEvidence": "2026-10-14 source revision 1788dd89b823f3bb572dac03f0d18db6e43882bc; real provider readback and release still pending. 2026-10-15: pre-merge pin 1788dd89b823 replaced by independently checked PR #239 merged source 9e4d5a43c014e8cb96bd9d6b2e133641376ed8cc (GitHub compare verified ancestor of READY live 157acab); native provider acceptance still PENDING."
   },
   {
     "id": "STRIPE-V3-COHESIVE-EVENT-CLEANUP-RECOVERY",
@@ -517,6 +525,30 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 source 8163575c0c8c254ba2bf242a1304558a8ffa5b23; no deployed real provider proof yet."
+  },
+  {
+    "id": "STRIPE-E1-CATALOG-READS",
+    "priority": 7,
+    "requiredRevision": "cad4841c857c22ef6df5a114126af3541d07f4f8",
+    "task": "Read actual standalone TEST native product and price list/get/search with selected-account identity, correct paging and app ownership",
+    "procedure": "docs/pr-cards/E-1.md; custom native MCP product_list/product_get/product_search/price_list/price_get/price_search",
+    "gates": "Exact-head merged E-1, checked live READY source ancestry, protected service-owned TEST full/read_only OAuth and safe provider reads. No standard Stripe connector or mock substituted; no LIVE, spending, customer PII or app mutation.",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-15 E-1 source and pinned Stripe mock contracts; no checked live deployment of E-1 or authenticated original TEST provider read. Existing connection refresh_uncertain."
+  },
+  {
+    "id": "STRIPE-E1-CATALOG-WRITES",
+    "priority": 7,
+    "requiredRevision": "cad4841c857c22ef6df5a114126af3541d07f4f8",
+    "task": "Preview, confirm and independently reread disposable account-scoped TEST products and lookup-key prices; repeat exact lookup without duplicate; app-owned/foreign/invalid-denial and exact safe cleanup",
+    "procedure": "docs/pr-cards/E-1.md; original custom MCP product_create, price_create, product_update, product_archive/unarchive, price_update and safe deletion",
+    "gates": "Original TEST full grant, exact owned disposable fixtures, independent preview/confirm and stable retry keys, selected-account native readback, recorded same-target cleanup. Never modify an application-owned catalog, move money, use LIVE or automatically retry uncertain writes.",
+    "dependsOn": [
+      "STRIPE-E1-CATALOG-READS"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-15 only unit+stripe-mock source proof. Real provider writes/readback, denial, replay and cleanup not yet performed; release and protected native grant required."
   }
 ]
 ```
