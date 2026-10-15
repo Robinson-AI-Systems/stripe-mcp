@@ -148,7 +148,16 @@ describe('P-3 twenty-one independent readiness rows and evidence boundaries',()=
     const unavailable=fixture({cardAvailable:false});await bound(unavailable);
     const blocked=parse(await unavailable.call('workflow_app_readiness',unavailable.select));
     expect(blocked.rows.find(r=>r.id==='S9')).toMatchObject({status:'missing'});
-    expect(blocked.rows.find(r=>r.id==='S9')).not.toHaveProperty('repair');
+    // The unrelated ACH requirement can still be fixed, but card availability
+    // remains missing and must never be reported ready.
+    expect(blocked.rows.find(r=>r.id==='S9')).toMatchObject({
+      repair:{kind:'ach',args:{method:'us_bank_account'}}});
+    const partialFix=parse(await unavailable.call('workflow_app_readiness_fix',{
+      ...unavailable.select,target:'S9',confirm:true,requestKey:'available-ach-only'}));
+    expect(partialFix.done).toBe(true);
+    const afterPartial=parse(await unavailable.call('workflow_app_readiness',unavailable.select));
+    expect(afterPartial.rows.find(r=>r.id==='S9')).toMatchObject({status:'missing'});
+    expect(afterPartial.rows.find(r=>r.id==='S9')).not.toHaveProperty('repair');
     const f=fixture({cardOn:false});await bound(f);
     const initial=parse(await f.call('workflow_app_readiness',f.select));
     expect(initial.rows.find(r=>r.id==='S9').repair).toMatchObject({
