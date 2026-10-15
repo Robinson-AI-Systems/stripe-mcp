@@ -530,14 +530,15 @@ describe('all owner setup workflows — private UX, isolation and safe GET',()=>
     const {handler}=await fixture();
     const response=await page(handler);
     const html=response.body;
-    const actions=['list-test-accounts','run-test-smoke','provision-webhook-secret',
+    const actions=['list-app-profiles','bind-app-profile','enable-app-scope',
+      'list-test-accounts','run-test-smoke','provision-webhook-secret',
       'forget-webhook-secret','download-report','lookup-test-receipt','issue-rtc-pass',
       'add-key','request-revoke','request-disable-live','request-default-account',
       'request-money-limit','view-money-requests'];
     for(const action of actions){
       expect(html.split('name="action" value="'+action+'"')).toHaveLength(2);
     }
-    expect(html.match(/<details class="owner-group"/g)).toHaveLength(9);
+    expect(html.match(/<details class="owner-group"/g)).toHaveLength(10);
     expect(html.match(/<\/details>/g)).toHaveLength(9);
     expect(html).toContain('id="webhook-tools"');
     expect(html).toContain('id="rtc-pass-tools"');
