@@ -48,7 +48,12 @@ export function makeBrandKitSave(){
   return defineWrite({
     name:'brand_save_kit',
     read:async(a,ctx)=>{
-      validateFields(a,kitArgs,['kit','expectedVersion']);
+      if(!a||typeof a!=='object'||Array.isArray(a)||
+        Object.keys(a).some(k=>!['kit','expectedVersion','dryRun','confirm','requestKey'].includes(k))||
+        !Number.isSafeInteger(a.expectedVersion)||a.expectedVersion<0||
+        a.requestKey!==undefined&&(typeof a.requestKey!=='string'||
+          a.requestKey.length<1||a.requestKey.length>128))
+        throw new TypeError('Valid brand kit and revision required');
       next=validateBrandKit(a.kit);
       await verified(ctx);
       if(!ctx.db?.getBrandKit||!ctx.db?.saveBrandKit)
