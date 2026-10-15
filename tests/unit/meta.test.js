@@ -10,15 +10,15 @@ const call=(name,args={},r=registry,c=connection)=>dispatchReadOnlyTool({
   services:{}});
 const parse=r=>JSON.parse(r.content[0].text);
 describe('C-2 progressive tool disclosure and wrapped execution',()=>{
-  it('lists only six compact tools but retains all authorized catalog tools',()=>{
+  it('lists compact baseline plus authorized workflow readers but retains the catalog',()=>{
     const compact=listingForConnection(registry,connection).map(t=>t.name);
     expect(compact).toEqual(['stripe_whoami','stripe_get_result',
-      'stripe_search_tools','stripe_describe_tool','stripe_call','stripe_batch']);
+      'stripe_search_tools','stripe_describe_tool','stripe_call','stripe_batch','workflow_app_readiness']);
     expect(listingForConnection(registry,{...connection,listing:'catalog'}).length)
       .toBe(registry.tools.filter(t=>t.writes===false&&
         t.profiles.includes('read_only')).length);
-    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(110);
-    expect(listingForConnection(registry,connection,'read_only')).toHaveLength(6);
+    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(111);
+    expect(listingForConnection(registry,connection,'read_only')).toHaveLength(7);
   });
   it('searches, describes, delegates and batches through the same read-only gate',async()=>{
     const search=parse(await call('stripe_search_tools',{query:'accounts'}));
