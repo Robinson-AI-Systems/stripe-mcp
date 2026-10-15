@@ -2,18 +2,22 @@
 // server values; AI cannot choose redirect origins or receive a client_secret.
 import {defineWrite,gone} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
+import {checkoutBranding,validateBrandKit} from '../brand/store.js';
 const p=['everyday','full'],full=['full'];
 const id=prefix=>({type:'string',pattern:'^'+prefix+'_[A-Za-z0-9_]{3,190}$'});
 const txt=n=>({type:'string',minLength:1,maxLength:n});
 const money={type:'integer',minimum:1,maximum:100000000};
 const metadata={type:'object',additionalProperties:{type:'string'}};
 const common={outsideApp:{type:'boolean'}};
+const brandProp={type:'object',additionalProperties:false,properties:Object.fromEntries(
+  ['backgroundColor','buttonColor','borderStyle','fontFamily','displayName',
+    'logoFileId','iconFileId','submitMessage','termsMessage'].map(k=>[k,{type:'string'}]))};
 const defs=[
   {name:'checkout_create_payment_link_for_customer',desc:'Create a one-time hosted TEST payment page for an existing customer.',
-    props:{customerId:id('cus'),priceId:id('price'),amountCents:money,productName:txt(120),...common},
+    props:{customerId:id('cus'),priceId:id('price'),amountCents:money,productName:txt(120),branding:brandProp,...common},
     required:['customerId']},
   {name:'checkout_create_setup_link',desc:'Create a hosted TEST card and US bank setup page, never a client secret.',
-    props:{customerId:id('cus'),...common},required:['customerId']},
+    props:{customerId:id('cus'),branding:brandProp,...common},required:['customerId']},
   {name:'checkout_expire',desc:'Expire an open TEST Checkout session.',
     props:{sessionId:id('cs_test'),...common},required:['sessionId'],destructive:true},
   {name:'paylink_create',desc:'Create a reusable TEST payment link for a verified active price.',
@@ -53,6 +57,10 @@ function valid(def,a){
       value<(prop.minimum??1)||value>(prop.maximum??100000000)))
       throw new TypeError('Invalid amount or quantity');
     if(prop.type==='boolean'&&typeof value!=='boolean')throw new TypeError('Invalid '+key);
+    if(key==='branding'){
+      validateBrandKit(value);
+      continue;
+    }
     if(prop.type==='object'&&(!value||Array.isArray(value)||typeof value!=='object'||
       Object.keys(value).length>20||Object.entries(value).some(([name,v])=>
         !/^[A-Za-z0-9_-]{1,40}$/.test(name)||APP_METADATA_KEYS.includes(name)||
@@ -132,6 +140,23 @@ const featureMap={
   paymentMethodUpdate:'payment_method_update',invoiceHistory:'invoice_history',
   subscriptionCancel:'subscription_cancel',subscriptionUpdate:'subscription_update'
 };
+async function checkoutPresentation(a,ctx,s){
+  if(typeof ctx.db?.getBrandKit!=='function')
+    throw new TypeError('Brand kit storage unavailable; Checkout refused');
+  const saved=await ctx.db.getBrandKit({account:ctx.connection.stripeAccount,
+    mode:'test'});
+  const branding=checkoutBranding(saved?.settings??{},a.branding??{});
+  const selected=branding.logo??branding.icon;
+  if(selected){
+    const file=await s.files.retrieve(selected.file);
+    if(file?.id!==selected.file||file?.livemode===true||
+      file?.purpose!==(branding.logo?'business_logo':'business_icon'))
+      throw new TypeError('Checkout brand image no longer belongs to this TEST account');
+  }
+  const kit={...saved?.settings,...a.branding};
+  const customText=kit.submitMessage?{submit:{message:kit.submitMessage}}:undefined;
+  return {branding,customText};
+}
 function build(def){
   let created=null;
   const op=defineWrite({
@@ -142,7 +167,12 @@ function build(def){
       // failure. Fail closed before recording intent or contacting Stripe.
       if(def.name.startsWith('checkout_create_')||def.name==='portal_create_session')
         ownerUrls(ctx);
-      return beforeFor(def,a,await getStripe(ctx));
+      const s=await getStripe(ctx),before=await beforeFor(def,a,s);
+      if(def.name.startsWith('checkout_create_')){
+        const visual=await checkoutPresentation(a,ctx,s);
+        return {...before,_checkoutBrand:visual};
+      }
+      return before;
     },
     summarize:async(b,a)=>'TEST MODE. '+def.name+' for '+b.id+
       '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','outsideApp'].includes(k))
@@ -174,7 +204,11 @@ function build(def){
           ...(n==='checkout_create_setup_link'?{
             payment_method_types:['card','us_bank_account']
           }:{line_items,payment_method_types:['card']}),
-          success_url:urls.success,cancel_url:urls.cancel
+          success_url:urls.success,cancel_url:urls.cancel,
+          ...(Object.keys(before._checkoutBrand.branding).length?{
+            branding_settings:before._checkoutBrand.branding}:{}),
+          ...(before._checkoutBrand.customText?{
+            custom_text:before._checkoutBrand.customText}:{})
         },opts);
       }else if(n==='checkout_expire')await s.checkout.sessions.expire(a.sessionId,{},opts);
       else if(n==='paylink_create')created=await s.paymentLinks.create({
@@ -221,7 +255,11 @@ function build(def){
         case 'checkout_create_payment_link_for_customer':
         case 'checkout_create_setup_link':
           return after.id===created?.id&&after.customer===b.id&&
-            after.mode===(def.name==='checkout_create_setup_link'?'setup':'payment')&&hosted(after.url);
+            after.mode===(def.name==='checkout_create_setup_link'?'setup':'payment')&&
+            hosted(after.url)&&
+            (!Object.keys(b._checkoutBrand?.branding??{}).length||
+              Object.entries(b._checkoutBrand.branding).every(([k,v])=>
+                JSON.stringify(after.branding_settings?.[k])===JSON.stringify(v)));
         case 'checkout_expire':return after.status==='expired';
         case 'paylink_create':return after.id===created?.id&&hosted(after.url)&&after.active===true;
         case 'paylink_update':return a.metadata?
