@@ -52,6 +52,8 @@ export const paymentSafe=v=>({
   customer:strId(v.customer),paymentMethod:strId(v.payment_method),
   latestCharge:strId(v.latest_charge),description:v.description??null,
   receiptEmail:v.receipt_email??null,canceledAt:local(v.canceled_at),
+  failureCode:typeof v.last_payment_error?.code==='string'?v.last_payment_error.code:null,
+  declineCode:typeof v.last_payment_error?.decline_code==='string'?v.last_payment_error.decline_code:null,
   created_local:local(v.created),metadata:v.metadata??{}
 });
 export const chargeSafe=v=>({
