@@ -1,3 +1,9 @@
+### October 15 — postmerge stall repair + P-4 owner-approved implementation (source/CI pending)
+
+PR #247 E-1 completed at merge 010332d99fd649ef650b68d4fd833702948fdb4a (exact-head CI all six check/DB/unit/mock/RTC/aggregate jobs and target-main successful). Its merge was verified but the previous session interrupted during post-merge GitHub compare, before the final merged-PR handoff. Root cause: postmerge closure was prose-only and not bounded/checkpointed; GitHub broad changed-file analysis was allowed between merge and permanent closeout. Repair included in this P-4 implementation PR: AGENTS + SESSION-START atomic finite closeout, `session-status --post-merge` read-only checklist and negative tests. As part of recovery, PR #247 still needs its final postmerge handoff comment (not new PR).
+
+Actual main 010332d9; checked live 157acab5 and Vercel production READY at dpl_31YvMYG522P5mvA4dys2M9Q3UNjK still serve that earlier revision. Main being ahead is not acceptance deferral: check every pending row against deployed source. Existing 27 rows: five historically passed; 22 pending. Source-pinned V-3 tasks were already release-eligible, but direct original custom Stripe Cloud authorization reports `refresh_uncertain`, pending safe grant reauthorization; Hub health reports federation not configured, no provider calls. No newly verified provider acceptance, refund, payout, LIVE activation, direct/relay/Sandbox result or signed delivery. Two P-4-specific provider acceptance rows are added (29 total / 5 PASSED / 24 PENDING), pending actual future checked release and original service grant. P-4 project setup implementation uses one confirmed native step per durable account-scoped run, fail-closed uncertain replay and inactive draft with APP-NEEDS artifact; external TEST/owner acceptance is separate. No manual release or spending authorized.
+
 ### October 15 — release-aware acceptance catch-up and current E-1 handoff (no new acceptance PASS)
 
 Independently verified main fcfb013f70f49caa980cd0d5d1d449c16380fe67, checked live 157acab51f59ac9ce9ed0439b68e4f3f41489af2 and READY Production deployment dpl_31YvMYG522P5mvA4dys2M9Q3UNjK for that exact live revision. The successful October 15 later scheduled workflow correctly reported "Already promoted today"; it was not a new production push. Later main commits do not invalidate earlier deployed-source acceptance eligibility. Examined all 25 acceptance tasks: five genuinely PASSED historical tasks remain PASSED, 20 PENDING. Every required source pin was compared to live. Ten unique pending pins were direct ancestors; five pre-merge commits needed reconciliation and are repinned to verified merged source PR #235–#239 (each independent ancestor of live). No provider/write/denial/cleanup/owner/Hub PASS is inferred from this ancestry.
@@ -549,6 +555,31 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     ],
     "status": "PENDING",
     "lastEvidence": "2026-10-15 only unit+stripe-mock source proof. Real provider writes/readback, denial, replay and cleanup not yet performed; release and protected native grant required."
+  },
+  {
+    "id": "STRIPE-P4-DRAFT-PROFILE",
+    "priority": 7,
+    "requiredRevision": "e6d35a760077d5ff90a2da94ed3411ab6ab9066a",
+    "task": "Confirm actual native custom TEST P-4 draft-from-findings and inactive persisted project profile with exact APP-NEEDS text; no account binding or external repository change",
+    "procedure": "docs/pr-cards/P-4.md; project_draft_profile and workflow_project_setup",
+    "gates": "Reviewed merged P-4 source, checked READY deployment, authenticated selected TEST original service, owner-confirmed project facts and disposable unique project ID",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "October 15 P-4 source/unit/isolated-PostgreSQL fixtures assembled. No deployed original TEST handler call performed; owner-reviewed project facts and service grant required. No LIVE or money out."
+  },
+  {
+    "id": "STRIPE-P4-PROVIDER-SETUP",
+    "priority": 7,
+    "requiredRevision": "e6d35a760077d5ff90a2da94ed3411ab6ab9066a",
+    "task": "Execute genuine native TEST P-4 guarded webhook/Portal/catalog step previews, confirmation, idempotent rerun, original provider readback and safe disposable cleanup; preserve owner secret handoff",
+    "procedure": "docs/pr-cards/P-4.md; workflow_project_setup and project_portal_create; E-1 protected native reads",
+    "gates": "Actual deployed P-4, safe selected TEST account, restored custom OAuth, explicit owner facts/per-step confirmation and private webhook signing-secret receiver; no LIVE, money-out, inferred event or automatic retry",
+    "dependsOn": [
+      "STRIPE-P4-DRAFT-PROFILE",
+      "STRIPE-E1-CATALOG-READS"
+    ],
+    "status": "PENDING",
+    "lastEvidence": "October 15 P-4 native source, mock and isolated DB tests; no actual deployed Stripe TEST write, webhook signing proof, owner setup-path use, retry and cleanup verification. TEST service refresh uncertain."
   }
 ]
 ```
