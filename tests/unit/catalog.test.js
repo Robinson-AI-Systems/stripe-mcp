@@ -156,7 +156,7 @@ describe('E-1 native TEST catalog profile and contract',()=>{
     f.prices.set('price_BASE123',f.mkPrice('price_BASE123','prod_BASE123',
       'existing_month',3600));
     await expect(f.confirm('product_delete',{productId:'prod_BASE123'}))
-      .rejects.toThrow(/no prices/i);
+      .rejects.toThrow(/no active or inactive prices/i);
     await expect(f.confirm('product_create',{name:'No owned key',
       metadata:{agreementId:'secret_marker'}})).rejects.toThrow(/application-owned/i);
     expect(f.sdk.products.del).not.toHaveBeenCalled();
