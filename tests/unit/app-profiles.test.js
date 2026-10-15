@@ -162,10 +162,10 @@ describe('P-2 usable owner app links, not unverified authority',()=>{
     expect(noLink.isError).toBe(true);
     await expect(f.call('project_enable_scoped_ownership',{
       acknowledgeScope:false,confirm:true})).rejects.toThrow(/Explicitly acknowledge/);
-    await expect(registry.handlers.project_bind_profile_account({
+    expect(registry.handlers.project_bind_profile_account({
       app:'appliance-desk',expectedVersion:1,attach:true,confirm:true
     },{...f.ctx,connection:{...f.ctx.connection,mode:'live'}}))
-      .resolves.toMatchObject({isError:true});
+      .toMatchObject({isError:true});
     expect(await f.db.getAppGuardScope(account)).toBe('legacy');
   });
 });
