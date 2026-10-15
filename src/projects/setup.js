@@ -194,7 +194,9 @@ export function normalizedSetup(project){
     ...(hasCatalog?['product','price']:[]),
     'draft'
   ];
-  const digest=createHash('sha256').update(JSON.stringify(project)).digest('hex');
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?
+    Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const digest=createHash('sha256').update(JSON.stringify(canonical(project))).digest('hex');
   return {project,steps,digest,draft,appNeeds:appNeeds(draft),
     profile:draft.profile,needsReview:draft.missing,billing:b};
 }
