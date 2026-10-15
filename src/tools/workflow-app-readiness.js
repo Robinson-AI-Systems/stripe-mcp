@@ -6,7 +6,6 @@ import {readVerifiedTestAccount} from '../stripe/test-account.js';
 import {validateProfile} from '../apps/profiles.js';
 import {webhookSafe} from './webhooks-read.js';
 import {safeConfiguration} from './account-payment-settings.js';
-import {safePortal} from './portal-readiness.js';
 
 const ids=Array.from({length:21},(_,i)=>'S'+(i+1));
 const dashboard='https://dashboard.stripe.com/test/';
@@ -97,6 +96,26 @@ async function observed(fn){
   try{return {ok:true,value:await fn()};}
   catch{return {ok:false,value:null};} // No private provider error escapes.
 }
+export function safePortal(value){
+  if(value?.object!=='billing_portal.configuration'||
+    !portalOk(value.id)||value.livemode===true||
+    typeof value.active!=='boolean')
+    throw new TypeError('Verified TEST Portal configuration unavailable');
+  const fields=['payment_method_update','invoice_history',
+    'subscription_cancel','subscription_update'];
+  const features={};
+  for(const key of fields){
+    if(typeof value.features?.[key]?.enabled!=='boolean')
+      throw new TypeError('Portal features not fully readable');
+    features[key]=value.features[key].enabled;
+  }
+  return {id:value.id,active:value.active,features,
+    isDefault:value.is_default===true,
+    managedByConnect:Boolean(value.application),verified:true};
+}
+const portalFields={payment_method_update:'paymentMethodUpdate',
+  invoice_history:'invoiceHistory',subscription_cancel:'subscriptionCancel',
+  subscription_update:'subscriptionUpdate'};
 const mapping={allow_cancel:'subscription_cancel',allow_plan_switch:'subscription_update',
   allow_payment_method_update:'payment_method_update',
   allow_invoice_history:'invoice_history'};
@@ -120,7 +139,7 @@ async function readiness(a,ctx){
   const accountInfo=await observed(()=>readVerifiedTestAccount(sdk,account));
   if(!accountInfo.ok)throw new TypeError('Independent selected Stripe TEST identity unavailable');
   const info=accountInfo.value;
-  const billing=info.settings?.billing??{},profile=info.business_profile??{};
+  const profile=info.business_profile??{};
   const brand=info.settings?.branding??{};
   rows.push(row('S1',info.charges_enabled===true&&info.details_submitted===true?
     'done':'needs_you','TEST account read; verify owner identity and required business details in Dashboard',
@@ -193,7 +212,8 @@ async function readiness(a,ctx){
       {observed:{configuration:portal.id,features:portal.features},
         ...(Object.keys(mismatches).length&&!portal.managedByConnect&&portal.active?
           {repair:{kind:'portal',nativeTool:'portal_update_configuration',
-            args:{configuration:portal.id,features:mismatches}}}:{})}));
+            args:{configId:portal.id,...Object.fromEntries(
+              Object.entries(mismatches).map(([k,value])=>[portalFields[k],value]))}}}:{})}));
   const webhook=a.webhookEndpoint?
     await observed(()=>sdk.webhookEndpoints.retrieve(a.webhookEndpoint)):null;
   let hook=null,rawHook=null;

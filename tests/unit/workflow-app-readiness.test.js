@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {registry} from '../../src/tools/index.js';
 import {APP_SEED} from '../../src/apps/profiles.js';
-import {safePortal} from '../../src/tools/portal-readiness.js';
+import {safePortal} from '../../src/tools/workflow-app-readiness.js';
 const account='acct_READINESS1',webhookId='we_READY123',
   portalId='bpc_READY123',pmc='pmc_READY123';
 const parse=o=>JSON.parse(o.content[0].text);
