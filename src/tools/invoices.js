@@ -29,6 +29,9 @@ export function safeInvoice(v){
     throw new TypeError('Verified Stripe invoice required');
   return {id:v.id,object:'invoice',customer:ref(v.customer),
     status:v.status,number:v.number??null,currency:v.currency,
+    attemptCount:Number.isSafeInteger(v.attempt_count)?v.attempt_count:null,
+    nextPaymentAttemptUnix:Number.isSafeInteger(v.next_payment_attempt)?v.next_payment_attempt:null,
+    nextPaymentAttemptLocal:local(v.next_payment_attempt),
     amount_due:v.amount_due??null,amount_paid:v.amount_paid??null,
     amount_remaining:v.amount_remaining??null,total:v.total??null,
     subtotal:v.subtotal??null,collection_method:v.collection_method??null,
