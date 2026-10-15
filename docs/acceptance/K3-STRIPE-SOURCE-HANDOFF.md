@@ -117,8 +117,7 @@ Stripe LIVE off, $500 per-account Colorado day policy and independently
 authenticated exact owner financial approval/over-limit override unchanged.
 
 Session PR-number checkpoint target: #190, only after normal acceptance and
-reviews. Future sessions should align to the next multiple of five if real
-eligible work permits it, without filler or premature stop on one blocked gate.
+reviews. Future session PR count and scope come only from the current owner prompt.
 
 ### #190 explicit source-only guarded meta-route boundary
 Portable core denies all nested writes. Stripe's original source deliberately
