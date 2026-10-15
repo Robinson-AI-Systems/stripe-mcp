@@ -44,8 +44,17 @@ export function checkoutBranding(kit,overrides={}){
     logoFileId:'logo',iconFileId:'icon'};
   // Null explicitly clears an override; never forward it as an invalid Stripe
   // file object. The kit is a local default only, not an account-wide change.
-  const entries=Object.entries(fields).filter(([k])=>next[k]!==undefined&&next[k]!==null)
+  const entries=Object.entries(fields).filter(([k])=>
+    !['logoFileId','iconFileId'].includes(k)&&next[k]!==undefined&&next[k]!==null)
     .map(([k,stripeKey])=>[stripeKey,next[k]]);
+  // Stripe expressly disallows logo and icon together on one Checkout Session.
+  // Prefer an explicit selected override, otherwise favor the saved logo.
+  const explicitIcon=Object.hasOwn(overrides,'iconFileId')&&next.iconFileId;
+  const chosen=explicitIcon?'icon':next.logoFileId?'logo':next.iconFileId?'icon':null;
+  if(chosen){
+    const fileId=chosen==='logo'?next.logoFileId:next.iconFileId;
+    entries.push([chosen,{type:'file',file:fileId}]);
+  }
   return Object.fromEntries(entries);
 }
 export async function initBrandKitTables(sql){
