@@ -19,8 +19,36 @@ const project=(changes={})=>({...structuredClone(base),
 function fixture(){
   const db=createFakeDb({accounts:[{id:account,label:'P4 setup'}]});
   const product=new Map(),price=new Map(),portals=new Map(),writes=[];
+  const webhookLedger=new Map();let webhook=null;
+  db.getWebhookCreate=async({accountId,requestKey,digest})=>{
+    const v=webhookLedger.get(accountId+':'+requestKey);
+    if(v&&v.digest!==digest)throw new TypeError('Changed webhook parameters');
+    return v?{state:v.state,endpointId:v.endpointId}:null;
+  };
+  db.reserveWebhookCreate=async p=>{
+    const key=p.accountId+':'+p.requestKey;
+    if(webhookLedger.has(key))return {newlyReserved:false};
+    webhookLedger.set(key,{digest:p.digest,state:'reserved',endpointId:null});
+    return {newlyReserved:true};
+  };
+  db.completeWebhookCreate=async p=>{
+    const v=webhookLedger.get(p.accountId+':'+p.requestKey);
+    if(v?.digest!==p.digest||v.state!=='reserved')return false;
+    v.state='confirmed';v.endpointId=p.endpointId;return true;
+  };
   const sdk={
     accounts:{retrieve:vi.fn(async()=>({id:account,object:'account',livemode:false}))},
+    webhookEndpoints:{
+      create:vi.fn(async(a,o)=>{
+        writes.push({kind:'webhook',args:a,opts:o});
+        webhook={id:'we_PROJECT123',object:'webhook_endpoint',livemode:false,
+          enabled_events:a.enabled_events,url:a.url,description:a.description,
+          status:'enabled',application:null,connect:false,created:1690000000,
+          secret:'whsec_'+'A'.repeat(40)};
+        return webhook;
+      }),
+      retrieve:vi.fn(async()=>webhook)
+    },
     billingPortal:{configurations:{
       create:vi.fn(async(args,opts)=>{
         writes.push({kind:'portal',args,opts});
@@ -55,7 +83,9 @@ function fixture(){
     }
   };
   const ctx={db,connectionId:'p4-unit',connection:{stripeAccount:account,
-    mode:'test',profile:'full'},services:{stripeForConnection:async()=>sdk}};
+    mode:'test',profile:'full'},services:{stripeForConnection:async()=>sdk,
+      webhookDnsLookup:async()=>[{address:'8.8.8.8',family:4}],
+      webhookOneTimeStore:{issue:async()=>({setupPath:'/api/stripe/setup?show='+'a'.repeat(32)})}}};
   const call=(name,a={})=>registry.handlers[name](a,ctx);
   const setup=(p=project(),opts={})=>call('workflow_project_setup',{
     project:p,requestKey:'setup-once',confirm:true,...opts});
@@ -122,6 +152,19 @@ describe('P-4 durable guarded setup and exact native step receipts',()=>{
     expect(draft.profile.stripe_accounts).toEqual([]);
     expect(await f.db.listKnownAppsForAccount(account)).toEqual([]);
     expect(finished.appNeeds).toContain('Commit this text only in the project repository');
+  });
+  it('uses wrapped webhook with owner-only one-time handoff, then no duplicate',async()=>{
+    const f=fixture(),p=project({webhookUrl:'https://hooks.public-domain.org/stripe/events',
+      webhookEvents:['invoice.paid']});
+    const first=parse(await f.setup(p));
+    expect(first).toMatchObject({done:true,nextStep:'portal'});
+    expect(first.ownerSetupPath).toMatch(/^\/api\/stripe\/setup\?show=/);
+    expect(JSON.stringify(first)).not.toContain('whsec_');
+    for(let i=0;i<4;i++)expect(parse(await f.setup(p)).done).toBe(true);
+    const repeat=parse(await f.setup(p));
+    expect(repeat.status).toBe('draft_created');
+    expect(f.sdk.webhookEndpoints.create).toHaveBeenCalledTimes(1);
+    expect(f.writes.map(x=>x.kind)).toEqual(['webhook','portal','product','price']);
   });
   it('own-catalog project never creates products, prices or tax rates',async()=>{
     const f=fixture(),p=project({ownsCatalog:true,billing:{kind:'one_time'},
