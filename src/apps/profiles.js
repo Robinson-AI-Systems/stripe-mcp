@@ -187,14 +187,14 @@ export function createAppProfileStore(sql){
     },
     async createProjectDraft(profile){
       const valid=validateProfile(profile),value=JSON.stringify(valid);
-      const result=await sql`INSERT INTO known_apps(id,name,status,profile,version)
+      await sql`INSERT INTO known_apps(id,name,status,profile,version)
         VALUES (${valid.id},${valid.name},'draft',${value}::jsonb,1)
-        ON CONFLICT (id) DO NOTHING RETURNING id`;
-      const record=await this.getKnownApp(valid.id);
-      if((!result.length&&record?.status!=='draft')||
-        JSON.stringify(record?.profile)!==JSON.stringify(valid))
+        ON CONFLICT (id) DO NOTHING`;
+      const rows=await sql`SELECT id,status,version FROM known_apps
+        WHERE id=${valid.id} AND status='draft' AND profile=${value}::jsonb`;
+      if(rows.length!==1)
         throw new TypeError('Project draft already exists with a different plan or is active');
-      return {id:record.id,status:'draft',version:record.version};
+      return {id:rows[0].id,status:'draft',version:Number(rows[0].version)};
     },
     async getKnownApp(id){
       if(!appId(id))throw new TypeError('Valid app ID required');
