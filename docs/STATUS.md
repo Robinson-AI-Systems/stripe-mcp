@@ -11,6 +11,23 @@ CI/review, security, provider, spending and release gates remain unchanged.
 Focused reporting tests passed locally; exact-head full Actions gates are required
 before merge. No product subsection, deployment or provider acceptance claimed.
 
+### October 14 V-3 — one original-event/cleanup/recovery read-only batch (SOURCE ONLY)
+
+`dev_verify_trigger_runs` now optionally gives a cohesive original TEST
+Event + independently reread provider cleanup report, or a guarded
+incomplete-run snapshot when the original run cannot be marked verified.
+Both follow-up modes are prevalidated, max four distinct selected-account
+run IDs per call, and keep the old 1–10 exact original Event read-only
+behavior unchanged. Cleanup rows are restricted to finite typed statuses,
+with no provider object or raw source ID echoed. Original Event verification
+and current resource cleanup evidence stay independent: provider
+unavailable or partial/mismatched ledger is never a PASS. An inspected
+unfinished run remains unfinished and cannot silently trigger retries,
+cleanup, money-out or webhook acceptance. Tests cover positive, partial,
+foreign/LIVE/invalid selectors, original run refusal, provider outages,
+redaction and per-run isolation. CI/deployed native provider acceptance
+remain separate and PENDING.
+
 ### October 14 — V-3 original source readback integration (SOURCE ONLY)
 
 The completed native PaymentMethod and SetupIntent event runs could not be
@@ -459,6 +476,17 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 source revision 1788dd89b823f3bb572dac03f0d18db6e43882bc; real provider readback and release still pending."
+  },
+  {
+    "id": "STRIPE-V3-COHESIVE-EVENT-CLEANUP-RECOVERY",
+    "priority": 8,
+    "requiredRevision": "8163575c0c8c254ba2bf242a1304558a8ffa5b23",
+    "task": "From actual custom native selected TEST grant, verify one bounded batch of original Event IDs plus optional independent cleaned/retained/needs-attention provider observations, and separately inspect original unfinished run/Event without retry or mutation",
+    "procedure": "docs/pr-cards/V-3.md combined V-3 batch; tests/unit/dev-batch-acceptance.test.js and standalone cleanup/incomplete tests",
+    "gates": "Required exact-head CI/review, checked daily live deployment, actual original authenticated selected-account TEST provider Events and resource reads. No inferred cleanup, webhook or LIVE, no automatic retry, no money-out, no saved OAuth credential exposure.",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source 8163575c0c8c254ba2bf242a1304558a8ffa5b23; no deployed real provider proof yet."
   }
 ]
 ```

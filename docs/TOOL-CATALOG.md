@@ -1,3 +1,14 @@
+## V-3 original TEST Event/cleanup operator batch (2026-10-14 source)
+
+`dev_verify_trigger_runs({runIds,includeCleanup?,includeIncomplete?})`
+retains 1–10 exact original TEST Event independent verification, with
+optional four-run bounded cleanup/provider mismatch or unfinished-run
+readback. Both optional flags preserve account, original plan, event,
+cleanup and LIVE denial gates. Cleanup returns only sanitized finite
+statuses and counts; incomplete never means safe retry or event absence.
+The native selected TEST provider acceptance and release checks remain
+queued in STATUS.
+
 #230 one-call four-run TEST V-3 recovery: `dev_inspect_incomplete_runs({runIds,includeOriginalEvent})` accepts one to four distinct original run IDs, validates the entire set before provider/SQL access, delegates each to the exact existing selected-account TEST unfinished-run reader, and returns isolated sanitized inspected/unavailable results. Optional original Event readback is independently verified but never completes the ledger. READ ONLY all profiles with TEST/account gates; no LIVE, money, automatic creation, retry, cleanup, event-absence or webhook claims. CI, checked live release and genuine four-fixture provider invocation are separate acceptance layers.
 
 #229 opt-in unfinished-run original Event verification: `dev_inspect_incomplete_run({runId,includeOriginalEvent:true})` validates every run-owned source record and can independently retrieve an original Stripe TEST Event by exact recorded ID or by a bounded type-scoped source search and independent retrieval. A positive Event snapshot never changes RUNNING/UNCERTAIN ledger status, confirms signed delivery or authorizes automatic retry. Negative/stale provider results remain unverified. Source/CI versus deployed original custom TEST acceptance distinct.
