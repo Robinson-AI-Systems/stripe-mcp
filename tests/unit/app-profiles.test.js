@@ -53,12 +53,12 @@ describe('P-1 seeded profile and checked application contract',()=>{
   it('only claims apps explicitly bound on a switched account',async()=>{
     const f=fixture();
     expect(await f.db.listKnownAppsForAccount(account)).toEqual([]);
-    const unbound=await f.db.enableScopedAppGuard({account});
-    expect(unbound).toBe('scoped');
-    expect(await findAppOwnership({id:'sub_unknown',
-      metadata:{agreementId:'agr_456'}},f.ctx)).toBeNull();
+    await expect(f.db.enableScopedAppGuard({account}))
+      .rejects.toThrow(/no active application binding/);
     await f.db.bindKnownAppAccount({id:APP_SEED.id,account,
       expectedVersion:1,attach:true});
+    const activated=await f.db.enableScopedAppGuard({account});
+    expect(activated).toBe('scoped');
     const marker=await findAppOwnership({id:'sub_owned',
       metadata:{agreementId:'agr_456'}},f.ctx);
     expect(marker).toMatchObject({appId:APP_SEED.id,recordId:'sub_owned',
@@ -66,9 +66,10 @@ describe('P-1 seeded profile and checked application contract',()=>{
     const unrelated={...f.ctx,connection:{...f.ctx.connection,stripeAccount:other}};
     expect((await findAppOwnership({id:'sub_other',
       metadata:{agreementId:'agr_456'}},unrelated)).app).toBe(APP_SEED.name);
-    await f.db.enableScopedAppGuard({account:other});
-    expect(await findAppOwnership({id:'sub_other',
-      metadata:{agreementId:'agr_456'}},unrelated)).toBeNull();
+    await expect(f.db.enableScopedAppGuard({account:other}))
+      .rejects.toThrow(/no active application binding/);
+    expect((await findAppOwnership({id:'sub_other',
+      metadata:{agreementId:'agr_456'}},unrelated)).app).toBe(APP_SEED.name);
   });
   it('reports exact owning app for two profiles and refuses ambiguous markers',async()=>{
     const f=fixture();
