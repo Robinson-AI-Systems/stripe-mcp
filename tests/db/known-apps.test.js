@@ -54,8 +54,8 @@ describe('P-1/P-2 profile migration, account isolation and owner scope',()=>{
       .toBe('scoped');
     expect(await db.getAppGuardScope(account)).toBe('scoped');
     expect(await db.getAppGuardScope(other)).toBe('legacy');
-    const again=await db.enableScopedAppGuard({account,expectedScope:'legacy'});
-    expect(again).toBe('scoped');
+    await expect(db.enableScopedAppGuard({account,expectedScope:'legacy'}))
+      .rejects.toThrow(/scope change not verified/i);
     const row=await rawQuery('SELECT scope FROM app_profile_account_scope WHERE stripe_account=$1',
       [account]);
     expect(row).toEqual([{scope:'scoped'}]);
