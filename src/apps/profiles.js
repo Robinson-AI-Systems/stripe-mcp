@@ -182,6 +182,8 @@ export function createAppProfileStore(sql){
         throw new TypeError('Explicit legacy-to-scoped migration required');
       const x=await sql`INSERT INTO app_profile_account_scope(stripe_account,scope)
         SELECT id,'scoped' FROM stripe_accounts WHERE id=${account}
+          AND EXISTS(SELECT 1 FROM known_apps
+            WHERE status='active' AND profile->'stripe_accounts' ? ${account})
         ON CONFLICT (stripe_account) DO UPDATE SET
           scope='scoped',updated_at=now()
         WHERE app_profile_account_scope.scope=${expectedScope}
