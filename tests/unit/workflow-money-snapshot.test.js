@@ -120,6 +120,25 @@ describe('W-1 read-only provider orchestration',()=>{
       expect.objectContaining({section:'balance_transactions'})]));
     expect(called).toBe(1);
   });
+  it('distinguishes a genuinely empty TEST account from a truncated scan',async()=>{
+    const f=fixture();
+    const out=parse(await f.call({fromDate:'2026-03-08',toDate:'2026-03-08'}));
+    expect(out.complete).toBe(true);
+    expect(out.moneyFlowsByCurrency).toEqual({});
+    expect(out.recurring.mrrMinorByCurrency).toEqual({});
+    expect(out.continuation).toBeNull();
+  });
+  it('walks provider page 2 before claiming a complete transaction total',async()=>{
+    const tx=Array.from({length:102},(_,i)=>txn('txn_'+String(100+i),
+      100,'usd','2026-03-08T12:00:00Z',0));
+    const f=fixture({tx});
+    const out=parse(await f.call({fromDate:'2026-03-08',toDate:'2026-03-08'}));
+    expect(out.complete).toBe(true);
+    expect(out.balanceTransactionCount).toBe(102);
+    expect(out.moneyFlowsByCurrency.usd.moneyInMinor).toBe(10200);
+    expect(out.collectedPages.balance).toBe(2);
+    expect(f.seen.filter(x=>x.type==='transactions')).toHaveLength(2);
+  });
   it('rejects malformed or reversed Colorado dates without invoking Stripe',async()=>{
     const f=fixture();
     expect((await f.call({fromDate:'2026-04-10',toDate:'2026-04-09'})).isError).toBe(true);
