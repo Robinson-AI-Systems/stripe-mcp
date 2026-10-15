@@ -45,10 +45,12 @@ const providerList=(v,project,searchMode=false)=>{
 export const handlers={
   billing_list_subscriptions:(a,c)=>guarded(c,async s=>providerList(
     await s.subscriptions.list({...paging(a),
+      expand:['data.discounts','data.items.data.discounts'],
       ...(a?.customer?{customer:checkId(a.customer,'cus')}:{}),
       ...(a?.status?{status:a.status}:{})}),subscriptionSafe)),
   billing_get_subscription:(a,c)=>guarded(c,async s=>subscriptionSafe(
-    await s.subscriptions.retrieve(checkId(a?.subscriptionId,'sub')))),
+    await s.subscriptions.retrieve(checkId(a?.subscriptionId,'sub'),
+      {expand:['discounts','items.data.discounts']}))),
   billing_search_subscriptions:(a,c)=>guarded(c,async s=>providerList(
     await s.subscriptions.search(search(a)),subscriptionSafe,true)),
   billing_preview_change:(a,c)=>guarded(c,async s=>{
@@ -65,7 +67,8 @@ export const handlers={
       quantity:a.quantity??item.quantity}],a.effectiveAt,a.prorationBehavior);
   }),
   billing_list_items:(a,c)=>guarded(c,async s=>pageResult(
-    await s.subscriptionItems.list({subscription:checkId(a?.subscriptionId,'sub'),...paging(a)}),
+    await s.subscriptionItems.list({subscription:checkId(a?.subscriptionId,'sub'),...paging(a),
+      expand:['data.discounts']}),
     itemSafe)),
   billing_list_schedules:(a,c)=>guarded(c,async s=>providerList(
     await s.subscriptionSchedules.list({...paging(a),
