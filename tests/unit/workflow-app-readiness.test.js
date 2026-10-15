@@ -6,7 +6,7 @@ import {safePortal} from '../../src/tools/workflow-app-readiness.js';
 const account='acct_READINESS1',webhookId='we_READY123',
   portalId='bpc_READY123',pmc='pmc_READY123';
 const parse=o=>JSON.parse(o.content[0].text);
-function fixture({unreadable=false}={}){
+function fixture({unreadable=false,wrongWebhookUrl=false,achAvailable=true}={}){
   const db=createFakeDb({accounts:[{id:account,label:'App readiness'}]});
   let ach=false,events=['checkout.session.completed','invoice.paid',
     'invoice.payment_failed','charge.refunded','customer.subscription.deleted'],
@@ -14,7 +14,8 @@ function fixture({unreadable=false}={}){
       subscription_cancel:true,subscription_update:true};
   const calls=[];
   const webhook=()=>({id:webhookId,object:'webhook_endpoint',livemode:false,
-    created:1710000000,status:'enabled',url:APP_SEED.webhook_url,
+    created:1710000000,status:'enabled',url:wrongWebhookUrl?
+      'https://unrelated.example/webhook':APP_SEED.webhook_url,
     enabled_events:events,description:'Existing TEST app webhook',metadata:{},
     application:null,api_version:'2026-09-30.endive'});
   const portal=()=>({id:portalId,object:'billing_portal.configuration',
@@ -23,7 +24,7 @@ function fixture({unreadable=false}={}){
       .map(([k,v])=>[k,{enabled:v}]))});
   const config=()=>({id:pmc,object:'payment_method_configuration',active:true,
     application:null,parent:null,
-    us_bank_account:{available:true,display_preference:{
+    us_bank_account:{available:achAvailable,display_preference:{
       preference:ach?'on':'off',value:ach?'on':'off'}},
     card:{available:true,display_preference:{preference:'on',value:'on'}}});
   const stripe={
@@ -110,6 +111,20 @@ describe('P-3 twenty-one independent readiness rows and evidence boundaries',()=
     expect(live.liveProviderQueried).toBe(false);
     expect(live.rows).toHaveLength(21);
     expect(live.rows.find(x=>x.id==='S11').status).toBe('needs_you');
+    expect(f.calls).toHaveLength(0);
+  });
+  it('does not accept a foreign TEST webhook destination or unavailable ACH as a safe repair',async()=>{
+    const f=fixture({wrongWebhookUrl:true,achAvailable:false});await bound(f);
+    const report=parse(await f.call('workflow_app_readiness',f.select));
+    const hook=report.rows.find(r=>r.id==='S11');
+    expect(hook.status).toBe('needs_you');
+    expect(hook).not.toHaveProperty('repair');
+    const ach=report.rows.find(r=>r.id==='S9');
+    expect(ach.status).toBe('missing');
+    expect(ach).not.toHaveProperty('repair');
+    await expect(f.call('workflow_app_readiness_fix',{
+      ...f.select,target:'S11',requestKey:'foreign-webhook',confirm:true}))
+      .rejects.toThrow(/No verified eligible repair/);
     expect(f.calls).toHaveLength(0);
   });
   it('accepts an inline pre-project spec without guessing app ownership or executing repair',async()=>{

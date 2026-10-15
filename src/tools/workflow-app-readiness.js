@@ -43,13 +43,18 @@ const isEvent=e=>typeof e==='string'&&e.length<=100&&
   /^[a-z][a-z0-9_]{1,60}\.[a-z][a-z0-9_.]{1,75}$/.test(e);
 function inlineSpec(spec){
   if(!isPlain(spec)||Object.keys(spec).some(k=>![
-    'name','webhookEvents','paymentMethods','portalRules','ownsCatalog',
+    'name','webhookEvents','webhookUrl','paymentMethods','portalRules','ownsCatalog',
     'ownsTaxRates','keyPermissions','requiresSpanish','subscriptionBilling'].includes(k))||
     typeof spec.name!=='string'||spec.name.length<1||spec.name.length>100)
     throw new TypeError('Inline project spec must state a name and supported explicit requirements');
   const events=spec.webhookEvents??[];
   if(!Array.isArray(events)||events.length>100||new Set(events).size!==events.length||
     events.some(e=>!isEvent(e)))throw new TypeError('Unknown/duplicate Stripe webhook event');
+  if(spec.webhookUrl!==undefined){
+    let u;try{u=new URL(spec.webhookUrl);}catch{}
+    if(!u||u.protocol!=='https:'||u.username||u.password||u.hash||u.port||
+      !u.hostname.includes('.'))throw new TypeError('Safe HTTPS project webhook URL required');
+  }
   const methods=spec.paymentMethods??[];
   if(!Array.isArray(methods)||methods.some(m=>!['card','us_bank_account'].includes(m))||
     new Set(methods).size!==methods.length)throw new TypeError('Unsupported payment method requirement');
@@ -62,7 +67,8 @@ function inlineSpec(spec){
   for(const key of ['ownsCatalog','ownsTaxRates','requiresSpanish','subscriptionBilling'])
     if(spec[key]!==undefined&&typeof spec[key]!=='boolean')
       throw new TypeError('Unsupported inline project boolean');
-  return {name:spec.name,webhook_events:events,payment_methods:methods,
+  return {name:spec.name,webhook_events:events,webhook_url:spec.webhookUrl??null,
+    payment_methods:methods,
     portal_rules:spec.portalRules??null,owns_catalog:spec.ownsCatalog,
     owns_tax_rates:spec.ownsTaxRates,key_permissions:spec.keyPermissions??null,
     requires_spanish:spec.requiresSpanish,subscription_billing:spec.subscriptionBilling};
@@ -70,6 +76,7 @@ function inlineSpec(spec){
 function declared(profile){
   const p=validateProfile(profile);
   return {name:p.name,webhook_events:p.webhook_events,
+    webhook_url:p.webhook_url,
     payment_methods:p.payment_methods,
     portal_rules:p.portal_rules,owns_catalog:p.owns_catalog,
     owns_tax_rates:p.owns_tax_rates,key_permissions:p.key_permissions,
@@ -98,7 +105,7 @@ async function observed(fn){
 }
 export function safePortal(value){
   if(value?.object!=='billing_portal.configuration'||
-    !portalOk(value.id)||value.livemode===true||
+    !portalOk(value.id)||value.livemode!==false||
     typeof value.active!=='boolean')
     throw new TypeError('Verified TEST Portal configuration unavailable');
   const fields=['payment_method_update','invoice_history',
@@ -177,6 +184,7 @@ async function readiness(a,ctx){
   }
   const achRequired=spec.profile.payment_methods.includes('us_bank_account');
   const achGood=ach&&!ach.managedByConnect&&ach.active&&
+    ach.methods.us_bank_account?.available===true&&
     ach.methods.us_bank_account?.preference==='on'&&
     ach.methods.us_bank_account?.effective==='on';
   rows.push(!achRequired?row('S9','not_applicable','This project did not require ACH'):
@@ -188,7 +196,8 @@ async function readiness(a,ctx){
       achGood?'Selected configuration reports ACH enabled; Checkout availability still requires a test':
         'ACH preference is not verified ON for the selected direct TEST configuration',
       {observed:{configuration:ach.id,available:ach.methods.us_bank_account?.available??null},
-        ...(!achGood&&!ach.managedByConnect&&ach.active&&ach.methods.us_bank_account?
+        ...(!achGood&&!ach.managedByConnect&&ach.active&&
+          ach.methods.us_bank_account?.available===true?
           {repair:{kind:'ach',nativeTool:'account_update_payment_method_settings',
             args:{configuration:ach.id,method:'us_bank_account',preference:'on'}}}:{})}));
   const targetPortal=a.portalConfiguration?
@@ -227,11 +236,15 @@ async function readiness(a,ctx){
   }
   const required=spec.profile.webhook_events;
   const missing=hook?required.filter(x=>!rawHook.enabled_events.includes(x)):[];
+  const destinationMatches=Boolean(hook&&spec.profile.webhook_url&&
+    rawHook.url===spec.profile.webhook_url);
   rows.push(!required.length?row('S11','not_applicable','Project declared no webhook events'):
     !a.webhookEndpoint?dashboardStep('S11','needs_you',
       'Select the existing TEST webhook endpoint used by this application',
       'webhooks','Choose exact endpoint and verify destination privately'):
     !hook?row('S11','not_readable','Selected own TEST webhook endpoint unreadable'):
+    !destinationMatches?row('S11','needs_you',
+      'Selected endpoint destination has not been verified against the application webhook URL'):
     row('S11',missing.length?'missing':'done',
       missing.length?'Required TEST webhook subscriptions missing':
         'Required event set appears in selected TEST webhook endpoint',
