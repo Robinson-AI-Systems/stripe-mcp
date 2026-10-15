@@ -113,7 +113,8 @@ const readOnly={
   }),
   product_search:async(a,ctx)=>guarded(ctx,async s=>{
     const p=await s.products.search(searchQuery(a));
-    return pageResult(p,productSafe);
+    const page=pageResult(p,productSafe);
+    return {...page,next:p.has_more?p.next_page??null:null};
   }),
   price_list:async(a,ctx)=>guarded(ctx,async s=>{
     checkArgs(a,['limit','starting_after','productId','lookupKey','active']);
