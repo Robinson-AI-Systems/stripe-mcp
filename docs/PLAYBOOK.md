@@ -1,4 +1,4 @@
-# PLAYBOOK — how to deliver one PR card, step by step
+# PLAYBOOK — how to deliver a coherent implementation bundle
 
 Session startup, cadence and release-dependent proof follow `docs/SESSION-START.md`. These recipes preserve all existing security, review and validation gates. Run focused checks at coherent seams and full required gates before publishing, rather than the whole suite after each small local edit.
 
@@ -50,9 +50,19 @@ While implementing:
 
 ### Step 3a — PR size
 
-Target 500–650 production lines; below 450 only with a documented unavoidable reason (tests/docs not counted).
-About 15 production files, advisory size estimate production lines, at most one
-migration, one risk area (keys / money / guards / tools-of-one-area / doors). Measure before opening the PR:
+Normally average 2–5 complete predefined subsections and 400–800 meaningful
+production-code lines per coherent bundle; tests/docs/generated/formatting are
+excluded. These are planning averages, not hard ceilings, minima or filler quotas.
+Cards define approved scope, not mandatory separate PRs. Group connected domain,
+caller, persistence and recovery behavior; different modules/APIs and multiple
+related migrations or risk areas do not automatically require splits. Keep each
+risk/permission/confirmation and denial path independently enforced and tested.
+Related additive migrations require explicit order and upgrade/restore proof.
+Prefer one substantial PR per bundle. Split only for a concrete migration,
+dependency, safety or reviewability reason, document remaining integration and
+count the full outcome once after all parts are implemented, verified and merged.
+No unrelated scope, new permission or actual activation is authorized by grouping.
+Measure before publication:
 
 ```bash
 git diff --shortstat origin/<base>...HEAD -- api src packages scripts ':!**/*.test.*'

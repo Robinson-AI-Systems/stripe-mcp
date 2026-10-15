@@ -3,14 +3,14 @@
 Same system as Appliance Desk. The implementing agent writes a short card for the current unit and, when useful, its
 immediate successor. Sol 5.6 at light/medium effort is the intended routine use. Avoid writing distant cards whose
 prerequisites are hypothetical; `work-index.json` preserves all later scope. A missing card is work, not a reason to stop.
-Designs govern behavior; cards cannot silently override them.
+Designs govern behavior; cards cannot silently override them. A card is not an automatic PR or bundle boundary. Keep existing IDs and full acceptance; do not subdivide scope to inflate completion.
 
 Group related endpoints via [development efficiency](../DEVELOPMENT-EFFICIENCY.md) while preserving PLAYBOOK hard size/risk limits.
 
 ## Minimum card (usually 40–100 lines)
 
 - ID, title, design section, prerequisites, "Baseline inspected" SHA.
-- One risk area, migration ownership (if any), realistic budget (≤500 production lines).
+- Risk/permission boundaries, migration ownership/order (if any), honest workload estimate and bundle subsection IDs. No per-card line ceiling; group related whole cards using the governing bundle/card/PR rule while preserving every independent guard and proving test.
 - **Read only these:** a bounded list of design headings and files (with line ranges when long).
 - Drift check A table (or "first card: no prior code").
 - Build contract: files, exported signatures, which tools (by TOOL-CATALOG name) with their safety marks, money spec,
