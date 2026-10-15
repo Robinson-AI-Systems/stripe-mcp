@@ -46,7 +46,7 @@ function renderOwnerFeedback(result, smokeResult) {
     summary + '</section>';
 }
 
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null }) {
   const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent);
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
@@ -182,6 +182,30 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">List enrolled TEST account IDs</button></form></details>' +
 
+    '<details class="owner-group" id="app-profile-tools"><summary>Application profiles &amp; Stripe ownership</summary>' +
+    '<p>Keep application-owned records protected. Appliance Desk is seeded without an account ID. Assign only after verifying the exact enrolled TEST account. This action neither edits Stripe records nor enables LIVE.</p>' +
+    (appProfileSummary!==null ? '<pre>'+escapeHtml(appProfileSummary)+'</pre>' : '') +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="list-app-profiles">' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Read known app profiles and current binding revisions</button></form>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="bind-app-profile">' +
+    '<label>Project ID<input name="app" pattern="[a-z][a-z0-9-]{2,63}" required value="appliance-desk"></label>' +
+    '<label>Exact TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label>Current profile revision<input name="expectedVersion" type="number" min="1" required></label>' +
+    '<label>Action<select name="attach" required><option value="yes">Bind app to this account</option><option value="no">Unbind app from this account</option></select></label>' +
+    '<label><input name="ownerAppConsent" type="checkbox" value="yes" required> I reviewed the exact project, account and revision</label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Save verified TEST app binding</button></form>' +
+    '<p>Legacy app protection remains active after binding. Only when confirmed separately will an account use its own declared project profiles. Never enable scope before reviewing active app bindings.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="enable-app-scope">' +
+    '<label>Exact TEST account ID<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
+    '<label><input type="checkbox" name="ownerScopeConsent" value="yes" required> I explicitly approve replacing legacy global app ownership with this account’s bound active project profiles</label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Activate per-account TEST app ownership protection</button></form>' +
+    '</details>' +
     '<h2 id="readiness-tests">Automated TEST Setup &amp; Readiness Report (owner only)</h2>' +
     '<p>Select one group for genuine custom MCP TEST reads and a targeted readiness report. Unknown/unreadable settings are NOT presumed to be defaults. No automatic change is made; Stripe Dashboard, OAuth and signed webhook delivery are separate acceptance gates.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -357,6 +381,70 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
     if (login.status !== 'ok') {
       return send(res, 401, htmlPage({ csrf:cookie, result:'Incorrect administrator passphrase.' }),
         'text/html; charset=utf-8');
+    }
+    if(p.action==='list-app-profiles'){
+      if(typeof db?.listKnownApps!=='function'||typeof db?.getAppGuardScope!=='function')
+        return send(res,503,htmlPage({csrf:cookie,result:'Application profile database is unavailable.'}),
+          'text/html; charset=utf-8');
+      try{
+        const apps=await db.listKnownApps();
+        const rows=apps.map(x=>({
+          id:x.id,name:x.name,status:x.status,version:x.version,
+          attachedTestAccountIds:x.profile.stripe_accounts
+        }));
+        return send(res,200,htmlPage({csrf:cookie,result:'Known app profiles read. No changes made.',
+          appProfileSummary:JSON.stringify(rows,null,2)}),'text/html; charset=utf-8');
+      }catch{
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'Could not verify current profile revisions.'}),'text/html; charset=utf-8');
+      }
+    }
+    if(p.action==='bind-app-profile'){
+      if(p.ownerAppConsent!=='yes'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account||'')||
+        !/^[a-z][a-z0-9-]{2,63}$/.test(p.app||'')||
+        !/^[1-9][0-9]{0,8}$/.test(p.expectedVersion||'')||
+        !['yes','no'].includes(p.attach))
+        return send(res,400,htmlPage({csrf:cookie,
+          result:'Explicit project, TEST account, binding choice and current revision confirmation required.'}),
+          'text/html; charset=utf-8');
+      if(typeof db?.bindKnownAppAccount!=='function')
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'Application profile store unavailable.'}),'text/html; charset=utf-8');
+      try{
+        const value=await db.bindKnownAppAccount({id:p.app,account:p.account,
+          expectedVersion:Number(p.expectedVersion),attach:p.attach==='yes'});
+        return send(res,200,htmlPage({csrf:cookie,result:
+          'Verified TEST project '+value.id+' binding updated at revision '+
+          value.version+'. Legacy safety is unchanged until separate scope confirmation.'}),
+          'text/html; charset=utf-8');
+      }catch{
+        return send(res,409,htmlPage({csrf:cookie,
+          result:'No app binding changed. Account missing, profile changed or revision stale.'}),
+          'text/html; charset=utf-8');
+      }
+    }
+    if(p.action==='enable-app-scope'){
+      if(p.ownerScopeConsent!=='yes'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account||''))
+        return send(res,400,htmlPage({csrf:cookie,
+          result:'Account-specific owner consent required to change app guard mode.'}),
+          'text/html; charset=utf-8');
+      if(!db?.listKnownAppsForAccount||!db?.enableScopedAppGuard)
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'App ownership registry unavailable.'}),'text/html; charset=utf-8');
+      try{
+        const apps=await db.listKnownAppsForAccount(p.account);
+        if(apps.length===0)return send(res,409,htmlPage({csrf:cookie,
+          result:'No active app is bound to this TEST account. Legacy protection retained.'}),
+          'text/html; charset=utf-8');
+        const value=await db.enableScopedAppGuard({account:p.account,expectedScope:'legacy'});
+        return send(res,200,htmlPage({csrf:cookie,result:
+          'Per-account ownership '+value+' for selected TEST account. No Stripe write or LIVE activation.'}),
+          'text/html; charset=utf-8');
+      }catch{
+        return send(res,409,htmlPage({csrf:cookie,
+          result:'App guard mode unchanged; verify saved bindings and account status.'}),
+          'text/html; charset=utf-8');
+      }
     }
     if(p.action==='list-test-accounts'){
       if(typeof db?.listStripeAccounts!=='function')
