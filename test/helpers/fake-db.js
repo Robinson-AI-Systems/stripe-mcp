@@ -54,6 +54,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       knownApps.set(id,next);return structuredClone(next);
     },
     async enableScopedAppGuard({account,expectedScope='legacy'}){
+      if(!(await this.listKnownAppsForAccount(account)).length)
+        throw new Error('Owner scope change not verified: no active application binding');
       if(!accountRows.has(account)||appScopes.get(account)&&
         appScopes.get(account)!==expectedScope)
         throw new Error('Scope change unavailable');
