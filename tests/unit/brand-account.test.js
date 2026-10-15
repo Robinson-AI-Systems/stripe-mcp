@@ -135,11 +135,11 @@ describe('H-1 real TEST invoice rendering and portal appearance workflows',()=>{
   });
   it('updates only approved public HTTPS portal presentation, re-reads exact config',async()=>{
     const f=fixture();
-    const bad=await f.call('brand_set_portal_look',{
+    await expect(f.call('brand_set_portal_look',{
       configId:portalId,headline:'New look',
       privacyUrl:'http://insecure.example/privacy',
-      confirm:true,requestKey:'bad-portal'});
-    expect(bad.isError).toBe(true);
+      confirm:true,requestKey:'bad-portal'}))
+      .rejects.toThrow(/Only safe public HTTPS/);
     expect(f.writes).toHaveLength(0);
     const result=data(await f.call('brand_set_portal_look',{
       configId:portalId,headline:'New look',
