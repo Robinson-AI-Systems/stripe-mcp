@@ -35,7 +35,8 @@ async function candidateProfiles(ctx){
         await ctx.db.getAppGuardScope(account):'legacy';
       if(!['legacy','scoped'].includes(scope))throw new TypeError('Unknown account scope');
       // The explicit owner activation ends the temporary pre-P legacy behavior.
-      if(scope==='scoped')return {apps};
+      if(scope==='scoped')return apps.length?
+        {apps}:{unknown:true,reason:'Scoped app guard has no active account bindings'};
       const global={id:APP_SEED.id,name:APP_SEED.name,profile:APP_SEED};
       return {apps:[...apps,...(apps.some(a=>a.id===global.id)?[]:[global])]};
     }catch{return {unknown:true,reason:
