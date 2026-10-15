@@ -162,7 +162,9 @@ export function normalizedSetup(project){
     'portalRules','recordLinks','billing','portalConfiguration',
     'paymentMethodConfiguration','brandKit','applyBrandKit'].includes(k)))
     fail('Unknown project setup requirement');
-  const draft=draftFromFindings(project);
+  const draft=draftFromFindings(Object.fromEntries(Object.entries(project).filter(
+    ([k])=>!['billing','portalConfiguration','paymentMethodConfiguration',
+      'brandKit','applyBrandKit'].includes(k))));
   if(draft.unrecognizedEvents.length||draft.profile.webhook_events.length&&
     !project.webhookUrl)fail('Resolve unknown webhook events and endpoint URL before mutation');
   const hasCatalog=!project.ownsCatalog;
