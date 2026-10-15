@@ -1,3 +1,17 @@
+### October 14 V-3 — original native TEST Charge success/update Events (SOURCE ONLY)
+
+Two new selected-account TEST native Charge paths follow an exactly tagged
+synthetic $36 incoming PaymentIntent and independently record its real
+`latest_charge` ID before reading/mutating a Charge. The original
+`charge.succeeded` or `charge.updated` Stripe Event must match original
+Customer, paid Charge, linked PaymentIntent, amount, currency and selected
+account, with independently retrieved Event; the update uses one idempotent,
+read-back-verified synthetic description. Charge Events are not assumed to
+inherit the PaymentIntent's metadata: only strict original durable PI/Charge
+provenance is admissible. No refund, payout, transfer, LIVE, app-owned charge
+or actual money. Automated source tests and checked release/provider proof
+remain distinct and PENDING.
+
 ### October 14 V-3 — positive TEST invoice terminal Events (SOURCE ONLY)
 
 New real `invoice.voided` and `invoice.marked_uncollectible` paths use
@@ -397,6 +411,17 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 implementation source a6d73dd703473e4c342aca07b17e8aafa775a1d3; not yet accepted by CI, deployed or genuine provider."
+  },
+  {
+    "id": "STRIPE-V3-NATIVE-CHARGE-EVENTS",
+    "priority": 8,
+    "requiredRevision": "26deb30d1e7c526a88f4691f2af4d5f170415f4f",
+    "task": "Verify original selected TEST charge.succeeded and charge.updated from independently linked real run-owned PaymentIntent and Charge sources",
+    "procedure": "docs/pr-cards/V-3.md Charge original Event lifecycle; tests/unit/dev-charge-events.test.js; tests/mock/dev-charge-events.test.js",
+    "gates": "Exact-head CI, normal checked live release and original custom selected-account TEST provider Event list+retrieve, independently verified Customer/PaymentIntent/Charge link and no refund, transfer, payout or LIVE",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source 26deb30d1e7c526a88f4691f2af4d5f170415f4f, no exact-head CI, deployment or original provider proof yet"
   }
 ]
 ```
