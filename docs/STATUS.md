@@ -1,3 +1,7 @@
+### October 15 — W-3/W-4 next guarded customer-action ENGINEERING bundle (source/CI in progress)
+
+Actual base main `759dadcbffde333ae47c125753ee7925dd95d1c8` after PR #255; no open PRs at planning, READY production/live `157acab51f59ac9ce9ed0439b68e4f3f41489af2`, prior read-only acceptance 9 PASSED/23 PENDING. Frozen first-commit full-original-subsection plan `docs/pr-cards/W-3.md` at `ba4fa377a22227479c131fceb5dd15e72191c78f` bundles approved W-3+W-4 (W-1/W-2 not counted again). Implement guarded TEST refund by original customer exact charge or unique description and cancellation now/period end with optional independently approved refund/manual void. All selected exact native child writes run through registry `defineWrite-v1` safety, per-operation approval, idempotency, provider readback; root plan token never substitutes for money approval. Finite 50 s/10-page selection, refusal on incomplete, foreign, ambiguous or stale facts, and fail-stop non-atomic partial result. No provider writes, LIVE enablement, spending or manual release authorized. Exact-head code/CI/review needed before a completed bundle claim; separate original TEST acceptance rows `STRIPE-W3-REFUND-CUSTOMER` and `STRIPE-W4-CANCEL-CUSTOMER` were added PENDING against original source pin. **Queue currently 9 PASSED / 25 PENDING / 34 total**; 9 existing passes preserved; nine source-not-deployed rows and 16 deployed but still acceptance/owner-gated. After merge and checked release, original provider scenario execution remains independent.
+
 ### October 15 — protected native TEST read-only acceptance after original connection reconnect
 
 Original custom Stripe Cloud (not standard Stripe connector) restored original selected `STRIPE MCP TEST` account in TEST/full mode, LIVE disabled and $0 used. Independent Vercel production deployment `dpl_31YvMYG522P5mvA4dys2M9Q3UNjK` was READY on exact live `157acab51f59ac9ce9ed0439b68e4f3f41489af2`. Four genuinely *new* existing V-3 capability acceptance rows now have provider and source/ledger observations and are PASSED: `STRIPE-V3-RUN-INSPECTION`, `STRIPE-V3-INCOMPLETE-ORIGINAL-EVENT`, `STRIPE-V3-BATCH-RECOVERY`, and `STRIPE-V3-COHESIVE-EVENT-CLEANUP-RECOVERY`. Each row's durable original source minimum was already in READY deployed ancestry. Original five PASSED unchanged; **queue now 9 PASSED / 23 PENDING / 32 total**.
@@ -701,6 +705,28 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_customer_overview with exact owner-approved disposable TEST customer",
     "gates": "Checked READY source ancestry, original selected TEST read grant, correct application ownership, no provider writes or synthetic records counted as acceptance",
     "lastEvidence": "2026-10-15 W-2 original custom TEST not deployed; source/unit projections and safe owner link only, provider evidence deferred."
+  },
+  {
+    "id": "STRIPE-W3-REFUND-CUSTOMER",
+    "priority": 30,
+    "status": "PENDING",
+    "requiredRevision": "a06d303b6d0dbcfec4f27f5722e1e09d0c8f821b",
+    "dependsOn": [],
+    "task": "Prove original connected custom TEST workflow_refund_customer selects exactly one charge, refuses ambiguity/stale and app-scope errors, and issues only an independently owner-approved guarded money-out with original provider readback",
+    "procedure": "docs/pr-cards/W-3.md and original custom MCP workflow_refund_customer -> native payment_create_refund, selected disposable synthetic TEST charge, preview/confirm and independent refund get",
+    "gates": "Only after checked READY release, original TEST full grant, exact synthetic owned refundable charge and separate explicit independent owner money-out consent per account; NEVER auto-retry uncertain writes, spend, LIVE, bypass app guard or use standard provider connector",
+    "lastEvidence": "2026-10-15 source-only W-3 guarded preview + native child orchestration, unit fixtures authored. No checked release, original custom provider write, money-out approval, real refund or cleanup demonstrated."
+  },
+  {
+    "id": "STRIPE-W4-CANCEL-CUSTOMER",
+    "priority": 31,
+    "status": "PENDING",
+    "requiredRevision": "a06d303b6d0dbcfec4f27f5722e1e09d0c8f821b",
+    "dependsOn": [],
+    "task": "Verify original custom TEST workflow_cancel_customer previews exact eligible subscription, optional independently owner-approved refund and safe manual invoice voids, and accurately stops on uncertain guarded child outcomes",
+    "procedure": "docs/pr-cards/W-4.md; genuine custom MCP workflow_cancel_customer previewToken + native billing_cancel_subscription/payment_create_refund/invoice_void guarded readbacks",
+    "gates": "Reviewed merged source and checked READY main→live, selected original custom TEST full account and explicitly authorized disposable fixture; owner money-out consent independent for optional refund; app-owned scope, request keys and unchanged source controls; no LIVE/automatic cleanup/retry",
+    "lastEvidence": "2026-10-15 source-only W-4 composite workflow and unit fixtures authored; original native provider mutation, independent owner consent, post-write accounting, optional void and cleanup remain unverified."
   }
 ]
 ```
