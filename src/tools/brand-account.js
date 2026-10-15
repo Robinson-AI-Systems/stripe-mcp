@@ -207,6 +207,11 @@ function portalLook(){
       for(const k of ['privacyUrl','termsUrl','defaultReturnUrl'])
         if(a[k]!==undefined&&!publicUrl(a[k]))
           throw new TypeError('Only safe public HTTPS portal links are permitted');
+      if(a.defaultReturnUrl!==undefined){
+        const approved=ctx.services?.hostedReturnUrls?.portal;
+        if(typeof approved!=='string'||a.defaultReturnUrl!==approved)
+          throw new TypeError('Portal return destination must match owner-configured HTTPS redirect');
+      }
       const {s}=await testAccount(ctx),config=await s.billingPortal.configurations.retrieve(a.configId);
       if(config?.id!==a.configId||config?.active!==true)
         throw new TypeError('Active owned portal configuration required');
