@@ -7,7 +7,7 @@ AGENTS, PLAYBOOK, approved designs and acceptance remain authoritative.
 
 Keep the normal 40–100-line card; link a recipe instead of copying safety rules. Include this compact packet:
 
-1. Baseline SHA, merged predecessor, design heading, owner-input IDs, one risk area, migration owner and size estimate.
+1. Baseline SHA, merged predecessor, design heading, owner-input IDs, explicit independent risk/permission boundaries, migration ownership/order and honest bundle/PR workload estimates.
 2. **Existing** files + exact exports to reuse; **proposed** files + intended exports. Name callers and affected fixtures.
 3. Mapping table: argument → validated type/bounds → SDK method/body or SQL column → independent read-back predicate.
 4. Steps: failing behavioral fixture → implementation → registry/door ripple → focused mock/DB evidence → docs/gates.
@@ -103,7 +103,7 @@ wrong account/target/amount/tool, shared cap across connections, separate over-c
 uncertain outcome. `tests/db/money-owner-approval.test.js`, `money-reservation.test.js`, `money-inbox.test.js` verify
 real SQL; fake DB behavior alone is insufficient when changing validation or ledger logic.
 
-SQL additions: one migration owner per PR, additive init in `src/db.js`, update `SCHEMA_TABLES` and fake DB only when
+SQL additions: explicit ownership and order for every related migration, with upgrade/restore proof; additive init in `src/db.js`, update `SCHEMA_TABLES` and fake DB only when
 needed, update `tests/unit/schema.test.js`, `tests/db/schema.test.js`, ARCHITECTURE. Isolated Postgres only. Previews
 share the production DB; never run schema tests against Neon. No SQL is needed just to add a native provider tool.
 

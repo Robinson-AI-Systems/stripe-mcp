@@ -2,7 +2,7 @@
 
 Baseline #93; this is **guidance**, not a reordered queue or executable future cards. Reconcile against STATUS,
 `work-index.json`, PLAN acceptance and each design's §0 before starting. Existing paths below are code; all new module,
-table or test names are **proposed** until a JIT card inspects real predecessors. Split large units by PLAYBOOK size/risk.
+table or test names are **proposed** until a JIT card inspects real predecessors. Use AGENTS' bundle/card/PR rule; split only for a concrete migration, dependency, safety or reviewability reason, never a numeric size/risk count.
 Use RECIPES for shared validation; add the area's unit, stripe-mock and DB files when its card makes them real.
 
 ## G — finish account operations
