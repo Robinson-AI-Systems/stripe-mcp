@@ -93,10 +93,15 @@ export function createBrandKitStore(sql){
         RETURNING settings,version,updated_at`;
       if(rows.length)return {settings:validateBrandKit(rows[0].settings),
         version:Number(rows[0].version),updatedAt:rows[0].updated_at};
-      const after=await this.getBrandKit({account,mode});
-      if(after&&Object.keys(after.settings).length===Object.keys(canonical).length&&
-        Object.entries(canonical).every(([key,v])=>after.settings[key]===v))
-        return after;
+      // PostgreSQL JSONB equality is authoritative for duplicate replay.
+      // Never compare driver-specific serialized objects or rely on key order.
+      const duplicate=await sql`SELECT settings,version,updated_at FROM brand_kits
+        WHERE stripe_account=${account} AND mode=${mode}
+          AND settings=${value}::jsonb`;
+      if(duplicate.length===1)return {
+        settings:validateBrandKit(duplicate[0].settings),
+        version:Number(duplicate[0].version),updatedAt:duplicate[0].updated_at
+      };
       throw new Error('Brand kit revision changed; refresh before saving again');
     }
   };
