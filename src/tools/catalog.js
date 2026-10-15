@@ -230,7 +230,11 @@ function makeWrite(def){
         const existing=await exactLookup(s,a.lookupKey);
         if(existing&&!priceMatches(existing,a))
           err('Lookup key exists with different immutable product, amount or cadence');
-        if(existing)existingId=existing.id;
+        if(existing){
+          const recordOwner=await findAppOwnership(existing,ctx);
+          if(recordOwner)err('Existing lookup key belongs to an app-owned or uncertain price');
+          existingId=existing.id;
+        }
         return {...product,lookupPrice:existing};
       }
       const b=price?await s.prices.retrieve(a.priceId):
