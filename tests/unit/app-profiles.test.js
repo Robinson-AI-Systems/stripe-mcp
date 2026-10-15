@@ -11,7 +11,7 @@ const parse=r=>JSON.parse(r.content[0].text);
 function fixture(){
   const db=createFakeDb({accounts:[{id:account,label:'App fixture'},
     {id:other,label:'Other app fixture'}]});
-  const sdk={accounts:{async retrieve(id){return {id,object:'account',livemode:false}}}};
+  const sdk={accounts:{async retrieve(){return {id:account,object:'account',livemode:false}}}};
   const connection={stripeAccount:account,profile:'full',mode:'test'};
   const ctx={db,connection,connectionId:'app-profile-test',
     services:{stripeForConnection:async()=>sdk}};
@@ -159,9 +159,8 @@ describe('P-2 usable owner app links, not unverified authority',()=>{
     const noLink=await f.call('project_record_link',{
       app:'appliance-desk',metadataKey:'agreementId',value:'agr_21'});
     expect(noLink.isError).toBe(true);
-    const failScope=await f.call('project_enable_scoped_ownership',{
-      acknowledgeScope:false,confirm:true});
-    expect(failScope.isError).toBe(true);
+    await expect(f.call('project_enable_scoped_ownership',{
+      acknowledgeScope:false,confirm:true})).rejects.toThrow(/Explicitly acknowledge/);
     await expect(registry.handlers.project_bind_profile_account({
       app:'appliance-desk',expectedVersion:1,attach:true,confirm:true
     },{...f.ctx,connection:{...f.ctx.connection,mode:'live'}}))
