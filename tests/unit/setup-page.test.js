@@ -603,3 +603,52 @@ describe('all owner setup workflows — private UX, isolation and safe GET',()=>
     expect(revealed.headers['Cache-Control']).toBe('no-store');
   });
 });
+
+describe('P-1 owner TEST profile management never changes money or LIVE',()=>{
+  it('requires original CSRF, canonical Origin and administrator password before any app binding',async()=>{
+    const db=createFakeDb({accounts:[{id:'acct_APPOWNER',label:'App owner TEST'}]});
+    const handler=createSetupHandler({db,env});
+    const c=cookiePage(await page(handler));
+    const reqData={action:'bind-app-profile',app:'appliance-desk',
+      account:'acct_APPOWNER',expectedVersion:'1',attach:'yes',ownerAppConsent:'yes',
+      passphrase:env.ADMIN_PASSPHRASE};
+    expect((await submit(handler,{...c,csrf:'invalid'},reqData)).statusCode).toBe(403);
+    expect((await submit(handler,c,reqData,'https://evil.example.test')).statusCode).toBe(403);
+    expect((await submit(handler,c,{...reqData,passphrase:'wrong'})).statusCode).toBe(401);
+    expect((await db.getKnownApp('appliance-desk')).version).toBe(1);
+    expect(await db.getAppGuardScope('acct_APPOWNER')).toBe('legacy');
+    const missingConsent=await submit(handler,c,{...reqData,ownerAppConsent:'no'});
+    expect(missingConsent.statusCode).toBe(400);
+    const missingAccount=await submit(handler,c,{...reqData,account:'acct_UNENROLLED'});
+    expect(missingAccount.statusCode).toBe(409);
+    expect((await db.getKnownApp('appliance-desk')).version).toBe(1);
+  });
+  it('shows versioned profiles privately, binds exactly once and requires separate guard consent',async()=>{
+    const db=createFakeDb({accounts:[{id:'acct_APPOWNER',label:'App owner TEST'}]});
+    const handler=createSetupHandler({db,env});
+    const c=cookiePage(await page(handler));
+    const list={action:'list-app-profiles',passphrase:env.ADMIN_PASSPHRASE};
+    expect((await submit(handler,c,{...list,passphrase:'wrong'})).statusCode).toBe(401);
+    const shown=await submit(handler,c,list);
+    expect(shown.statusCode).toBe(200);
+    expect(shown.body).toContain('appliance-desk');
+    expect(shown.body).toContain('&quot;version&quot;: 1');
+    const migration={action:'enable-app-scope',account:'acct_APPOWNER',
+      ownerScopeConsent:'yes',passphrase:env.ADMIN_PASSPHRASE};
+    expect((await submit(handler,c,migration)).statusCode).toBe(409);
+    const binding={action:'bind-app-profile',app:'appliance-desk',
+      account:'acct_APPOWNER',expectedVersion:'1',attach:'yes',
+      ownerAppConsent:'yes',passphrase:env.ADMIN_PASSPHRASE};
+    const good=await submit(handler,c,binding);
+    expect(good.statusCode).toBe(200);
+    expect((await db.getKnownApp('appliance-desk')).profile.stripe_accounts)
+      .toEqual(['acct_APPOWNER']);
+    expect(await db.getAppGuardScope('acct_APPOWNER')).toBe('legacy');
+    expect((await submit(handler,c,binding)).statusCode).toBe(409);
+    const withoutApproval=await submit(handler,c,{...migration,ownerScopeConsent:'no'});
+    expect(withoutApproval.statusCode).toBe(400);
+    expect(await db.getAppGuardScope('acct_APPOWNER')).toBe('legacy');
+    expect((await submit(handler,c,migration)).statusCode).toBe(200);
+    expect(await db.getAppGuardScope('acct_APPOWNER')).toBe('scoped');
+  });
+});
