@@ -247,7 +247,11 @@ function fixture({showEvent=false,foreign=false}={}){
     showEvents:()=>{
       visible=true;
       const charge=objects.get('ch_FAKE123');
-      if(charge&&!objects.has('du_FAKE123')){
+      // Only the actual dispute trigger may synthesize Stripe's asynchronous
+      // dispute fixture. A charge.succeeded/updated Event cannot imply one.
+      const disputeRun=[...runs.values()].some(x=>
+        x.scenario==='event-charge-dispute-created');
+      if(disputeRun&&charge&&!objects.has('du_FAKE123')){
         objects.set(charge.id,{...charge,disputed:true});
         creates('dispute','du',{charge:charge.id,
           payment_intent:'pi_FAKE123',amount:3600,currency:'usd',metadata:{}},
@@ -551,6 +555,7 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
       type==='charge.updated'?1:0);
     f.showEvents();
+    expect(f.objects.has('du_FAKE123')).toBe(false);
     expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
     expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
     expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
