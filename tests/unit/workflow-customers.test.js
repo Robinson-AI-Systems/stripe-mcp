@@ -114,7 +114,7 @@ describe('W-2 failed payment and customer overview guarded workflows',()=>{
     const original=f.ctx.services.stripeForConnection;
     f.ctx.services.stripeForConnection=async()=>{
       const sdk=await original();
-      sdk.invoices.list=async p=>{
+      sdk.invoices.list=async _p=>{
         const result={data:[invoice('in_G1')],has_more:false};
         vi.setSystemTime(new Date('2026-10-15T16:02:00Z'));
         return result;
