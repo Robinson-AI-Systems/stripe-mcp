@@ -83,14 +83,20 @@ export function createBrandKitStore(sql){
         !Number.isSafeInteger(expectedVersion)||expectedVersion<0)
         throw new TypeError('Only selected TEST account with a known kit revision may be changed');
       const canonical=validateBrandKit(settings),value=JSON.stringify(canonical);
-      const rows=await sql`INSERT INTO brand_kits(stripe_account,mode,settings,version)
-        SELECT id,${mode},${value}::jsonb,1 FROM stripe_accounts
-          WHERE id=${account} AND ${expectedVersion}=0
-        ON CONFLICT (stripe_account,mode) DO UPDATE SET
-          settings=EXCLUDED.settings,version=brand_kits.version+1,updated_at=now()
-        WHERE brand_kits.version=${expectedVersion}
-          AND brand_kits.settings IS DISTINCT FROM EXCLUDED.settings
-        RETURNING settings,version,updated_at`;
+      // INSERT and UPDATE must be separate: a 0-version SELECT prevents any
+      // ON CONFLICT UPDATE for version>0. Explicit branches preserve both
+      // the no-stale-creation and lost-update guarantees.
+      const rows=expectedVersion===0?
+        await sql`INSERT INTO brand_kits(stripe_account,mode,settings,version)
+          SELECT id,${mode},${value}::jsonb,1 FROM stripe_accounts WHERE id=${account}
+          ON CONFLICT (stripe_account,mode) DO NOTHING
+          RETURNING settings,version,updated_at`:
+        await sql`UPDATE brand_kits SET settings=${value}::jsonb,
+          version=version+1,updated_at=now()
+          WHERE stripe_account=${account} AND mode=${mode}
+            AND version=${expectedVersion}
+            AND settings IS DISTINCT FROM ${value}::jsonb
+          RETURNING settings,version,updated_at`;
       if(rows.length)return {settings:validateBrandKit(rows[0].settings),
         version:Number(rows[0].version),updatedAt:rows[0].updated_at};
       // PostgreSQL JSONB equality is authoritative for duplicate replay.
