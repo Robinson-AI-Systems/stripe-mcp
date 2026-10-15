@@ -165,6 +165,108 @@ describe('provider-verified TEST cleanup inspection',()=>{
     expect(report.rows.find(x=>x.type==='invoice').verification)
       .toBe('intentionally_retained');
   });
+  it.each([
+    ['setup_intent.created','requires_payment_method',false,'pending_cleanup'],
+    ['setup_intent.canceled','canceled',true,'verified_cleaned'],
+    ['setup_intent.succeeded','succeeded',false,'intentionally_retained']
+  ])('independently verifies new %s TEST setup cleanup state',
+    async(type,status,cleaned,expected)=>{
+    const f=fixture(),plan=planTrigger({type,requestKey:'inspection'},account);
+    Object.assign(f.run,{id:plan.runId,scenario:plan.scenario,
+      plan_digest:plan.planDigest});
+    f.rows.splice(0,2,
+      {step_name:'setup_intent_1',object_type:'setup_intent',
+        object_id:'seti_VERIFY123',cleaned},
+      {step_name:'event_1',object_type:'event',
+        object_id:'evt_VERIFY123',cleaned:false});
+    const intent={id:'seti_VERIFY123',object:'setup_intent',livemode:false,
+      customer:null,usage:'off_session',payment_method_types:['card'],
+      metadata:{rtc_run:plan.runId},status};
+    f.setEvent({...f.event,type,data:{object:intent}});
+    const sdk=await f.ctx.services.stripeForConnection();
+    let provider={...intent};
+    sdk.setupIntents={retrieve:async()=>provider};
+    const check=()=>handlers.dev_verify_cleanup_run({runId:plan.runId},f.ctx);
+    let result=parse(await check());
+    expect(result.eventProviderVerified).toBe(true);
+    expect(result.rows[0].verification).toBe(expected);
+    provider={...provider,customer:'cus_FOREIGN'};
+    result=parse(await check());
+    expect(result.rows[0].verification).toBe('provider_unverified');
+    provider={...intent,livemode:true};
+    result=parse(await check());
+    expect(result.rows[0].verification).toBe('provider_unverified');
+  });
+  it('independently retains a positive TEST uncollectible invoice as evidence',async()=>{
+    const f=fixture(),type='invoice.marked_uncollectible';
+    const plan=planTrigger({type,requestKey:'inspection'},account);
+    Object.assign(f.run,{id:plan.runId,scenario:plan.scenario,
+      plan_digest:plan.planDigest});
+    const customer={id:'cus_VERIFY123',object:'customer',livemode:false,
+      deleted:true,metadata:{rtc_run:plan.runId}};
+    const invoice={id:'in_VERIFY123',object:'invoice',livemode:false,
+      customer:'cus_VERIFY123',metadata:{rtc_run:plan.runId},
+      amount_due:3600,amount_paid:0,amount_remaining:3600,
+      collection_method:'send_invoice',currency:'usd',
+      status:'uncollectible'};
+    const item={id:'ii_VERIFY123',object:'invoiceitem',livemode:false,
+      customer:'cus_VERIFY123',invoice:'in_VERIFY123',amount:3600,
+      currency:'usd',metadata:{rtc_run:plan.runId}};
+    f.rows.splice(0,2,
+      {step_name:'customer_1',object_type:'customer',
+        object_id:'cus_VERIFY123',cleaned:true},
+      {step_name:'invoice_1',object_type:'invoice',
+        object_id:'in_VERIFY123',cleaned:false},
+      {step_name:'invoice_item_1',object_type:'invoice_item',
+        object_id:'ii_VERIFY123',cleaned:false},
+      {step_name:'event_1',object_type:'event',
+        object_id:'evt_VERIFY123',cleaned:false});
+    f.setEvent({...f.event,type,data:{object:invoice}});
+    const sdk=await f.ctx.services.stripeForConnection();
+    sdk.invoices={retrieve:async()=>invoice};
+    sdk.invoiceItems={retrieve:async()=>item};
+    f.setCustomer(customer);
+    const result=parse(await handlers.dev_verify_cleanup_run({runId:plan.runId},f.ctx));
+    expect(result.eventProviderVerified).toBe(true);
+    expect(result.rows.find(r=>r.type==='invoice').verification)
+      .toBe('intentionally_retained');
+  });
+  it('checks original Charge link before retaining financial evidence',async()=>{
+    const f=fixture(),type='charge.succeeded';
+    const plan=planTrigger({type,requestKey:'inspection'},account);
+    Object.assign(f.run,{id:plan.runId,scenario:plan.scenario,
+      plan_digest:plan.planDigest});
+    f.rows.splice(0,2,
+      {step_name:'customer_1',object_type:'customer',
+        object_id:'cus_VERIFY123',cleaned:true},
+      {step_name:'payment_intent_1',object_type:'payment_intent',
+        object_id:'pi_VERIFY123',cleaned:false},
+      {step_name:'charge_1',object_type:'charge',
+        object_id:'ch_VERIFY123',cleaned:false},
+      {step_name:'event_1',object_type:'event',
+        object_id:'evt_VERIFY123',cleaned:false});
+    const charge={id:'ch_VERIFY123',object:'charge',livemode:false,
+      payment_intent:'pi_VERIFY123',customer:'cus_VERIFY123',amount:3600,
+      currency:'usd',paid:true,status:'succeeded'};
+    const pi={id:'pi_VERIFY123',object:'payment_intent',livemode:false,
+      latest_charge:'ch_VERIFY123',customer:'cus_VERIFY123',
+      status:'succeeded',amount:3600,amount_received:3600,currency:'usd',
+      metadata:{rtc_run:plan.runId}};
+    f.setEvent({...f.event,type,data:{object:charge}});
+    const sdk=await f.ctx.services.stripeForConnection();
+    sdk.paymentIntents={retrieve:async()=>pi};
+    sdk.charges={retrieve:async()=>charge};
+    f.setCustomer({id:'cus_VERIFY123',object:'customer',deleted:true});
+    const check=()=>handlers.dev_verify_cleanup_run({runId:plan.runId},f.ctx);
+    let result=parse(await check());
+    expect(result.eventProviderVerified).toBe(true);
+    expect(result.rows.find(r=>r.type==='charge').verification)
+      .toBe('intentionally_retained');
+    sdk.charges.retrieve=async()=>({...charge,customer:'cus_FOREIGN'});
+    result=parse(await check());
+    expect(result.rows.find(r=>r.type==='charge').verification)
+      .toBe('provider_unverified');
+  });
   it('registers a read-only selected-account verifier',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});

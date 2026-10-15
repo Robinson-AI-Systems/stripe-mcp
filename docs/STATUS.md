@@ -1,3 +1,16 @@
+### October 14 — V-3 original source readback integration (SOURCE ONLY)
+
+The completed native PaymentMethod and SetupIntent event runs could not be
+read through the general developer ledger handoff because its validation
+did not recognize `payment_method` and `setup_intent`. The independent
+cleanup verifier could not retrieve SetupIntents, incorrectly reported
+never-paid uncollectible invoices as eligible for deletion, and retained
+Charges without checking the original linked PI/Customer. These genuine
+end-to-end gaps are now addressed with read-only tests and fail-closed
+provider/ledger status. No LIVE, refund, money movement, app-owned writes,
+new authority or automatic cleanups. CI and checked release still separate
+from custom provider acceptance; queue pinned to the source revision.
+
 ### October 14 V-3 — original native TEST Charge success/update Events (SOURCE ONLY)
 
 Two new selected-account TEST native Charge paths follow an exactly tagged
@@ -422,6 +435,17 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 source 26deb30d1e7c526a88f4691f2af4d5f170415f4f, no exact-head CI, deployment or original provider proof yet"
+  },
+  {
+    "id": "STRIPE-V3-NEW-SOURCE-CLEANUP-READBACK",
+    "priority": 8,
+    "requiredRevision": "1788dd89b823f3bb572dac03f0d18db6e43882bc",
+    "task": "Verify through standalone custom TEST connection that dev_get_run reveals exact safe recorded PaymentMethod and SetupIntent identities and dev_verify_cleanup_run independently classifies SetupIntent canceled, active, succeeded, never-paid uncollectible invoice and parent-linked native Charge following verified original Event",
+    "procedure": "docs/pr-cards/V-3.md readback repair; tests/unit/dev-run-details.test.js; tests/unit/dev-cleanup-inspection.test.js",
+    "gates": "Exact-head CI/review, normal checked production release, authenticated selected-account TEST original native Event and provider readbacks. No LIVE, money-out, provider cleanup automation or inferred success.",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 source revision 1788dd89b823f3bb572dac03f0d18db6e43882bc; real provider readback and release still pending."
   }
 ]
 ```

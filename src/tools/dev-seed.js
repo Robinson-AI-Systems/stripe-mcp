@@ -103,7 +103,8 @@ export const handlers={
     const prefixes={product:'prod_',price:'price_',customer:'cus_',
       subscription:'sub_',invoice:'in_',payment_intent:'pi_',refund:'re_',
       test_clock:'clock_',connected_account:'acct_',event:'evt_',
-      charge:'ch_',dispute:'du_',invoice_item:'ii_',checkout_session:'cs_test_'};
+      charge:'ch_',dispute:'du_',invoice_item:'ii_',checkout_session:'cs_test_',
+      payment_method:'pm_',setup_intent:'seti_'};
     if(!Array.isArray(rows)||rows.length>50||rows.some(row=>
       typeof row.step_name!=='string'||!/^[a-z_]+_[1-9][0-9]?$/.test(row.step_name)||
       typeof row.object_type!=='string'||!Object.hasOwn(prefixes,row.object_type)||
