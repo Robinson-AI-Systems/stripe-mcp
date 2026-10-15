@@ -2,7 +2,7 @@
 // One whole-job preview; every provider write still traverses its own defineWrite.
 // A workflow preview NEVER stands in for independent owner money-out approval.
 import {createHash} from 'node:crypto';
-import {allProfiles,reply,fail} from './billing-shared.js';
+import {reply,fail} from './billing-shared.js';
 import {collect,nativeRead,verifyContext,validCustomer,deadline,expired,
   integer,str} from './workflow-read-common.js';
 
@@ -44,7 +44,7 @@ export const tools=[
     cancelFields,['customerId','timing'],true)
 ];
 
-const regex={cus:/^cus_[A-Za-z0-9]{2,100}$/,ch:/^ch_[A-Za-z0-9]{2,100}$/,
+const regex={ch:/^ch_[A-Za-z0-9]{2,100}$/,
   sub:/^sub_[A-Za-z0-9]{2,100}$/};
 const writable=ctx=>{
   verifyContext(ctx);
@@ -164,8 +164,9 @@ async function planCancel(a,ctx,end){
     {customer:a.customerId,status:'all',limit:100},ctx,{end});
   if(!subs.complete)throw new TypeError('Subscription discovery incomplete: '+subs.reason);
   const allowed=new Set(['active','trialing','past_due','unpaid']);
-  const candidates=subs.data.filter(s=>s.customer===a.customerId&&
-    allowed.has(s.status));
+  if(subs.data.some(s=>s.customer!==a.customerId))
+    throw new TypeError('Native subscription list returned a foreign customer');
+  const candidates=subs.data.filter(s=>allowed.has(s.status));
   const chosen=a.subscriptionId?
     candidates.find(s=>s.id===a.subscriptionId):
     candidates.length===1?candidates[0]:null;
@@ -180,6 +181,8 @@ async function planCancel(a,ctx,end){
     throw new TypeError('Immediate cancellation needs explicit invoiceNow and prorate');
   if(a.timing==='period_end'&&(a.invoiceNow!==undefined||a.prorate!==undefined))
     throw new TypeError('Period-end cancellation cannot set immediate invoice options');
+  if(a.timing==='now'&&a.invoiceNow===true&&a.voidOpenInvoices===true)
+    throw new TypeError('A newly issued final invoice cannot be previewed for voiding in this plan');
   if((a.refundAmountCents!==undefined||a.refundReason!==undefined)&&
     !a.refundChargeId)
     throw new TypeError('Optional refund requires exact refundChargeId');
@@ -206,9 +209,10 @@ async function planCancel(a,ctx,end){
       {customerId:a.customerId,status:'open',limit:100},ctx,{end});
     if(!invoices.complete)
       throw new TypeError('Open invoice discovery incomplete: '+invoices.reason);
-    const open=invoices.data.filter(i=>i.status==='open'&&
-      i.customer===a.customerId&&integer(i.amount_remaining)&&
-      i.amount_remaining>0);
+    if(invoices.data.some(i=>i.customer!==a.customerId||i.status!=='open'||
+      !integer(i.amount_remaining)))
+      throw new TypeError('Native open-invoice state or customer is not verified');
+    const open=invoices.data.filter(i=>i.amount_remaining>0);
     if(open.length>5)
       throw new TypeError('More than five open invoices: review and cancel in smaller stages');
     for(const invoice of open){
