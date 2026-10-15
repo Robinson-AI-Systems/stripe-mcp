@@ -1,5 +1,17 @@
 ### October 15 — postmerge stall repair + P-4 owner-approved implementation (source/CI pending)
 
+## Acceptance-first session tooling — October 15, 2026
+
+Owner-authorized cross-repository workflow repair: session status now presents
+per-deployment acceptance actions before roadmap work, separately lists waiting
+checks, and validates complete/stale-free temporary acceptance accounting.
+SESSION-START is authoritative for sequencing and final closeout; push checkpoints
+continue into required obligations. This maintenance completes no product bundle,
+closes no provider/deployed acceptance, changes no release/approval gate, and
+preserves concurrent roadmap work and existing evidence. Focused native script
+regressions and required exact-head CI/review must pass before merge.
+
+
 PR #247 E-1 completed at merge 010332d99fd649ef650b68d4fd833702948fdb4a (exact-head CI all six check/DB/unit/mock/RTC/aggregate jobs and target-main successful). Its merge was verified but the previous session interrupted during post-merge GitHub compare, before the final merged-PR handoff. Root cause: postmerge closure was prose-only and not bounded/checkpointed; GitHub broad changed-file analysis was allowed between merge and permanent closeout. Repair included in this P-4 implementation PR: AGENTS + SESSION-START atomic finite closeout, `session-status --post-merge` read-only checklist and negative tests. As part of recovery, PR #247 still needs its final postmerge handoff comment (not new PR).
 
 Actual main 010332d9; checked live 157acab5 and Vercel production READY at dpl_31YvMYG522P5mvA4dys2M9Q3UNjK still serve that earlier revision. Main being ahead is not acceptance deferral: check every pending row against deployed source. Existing 27 rows: five historically passed; 22 pending. Source-pinned V-3 tasks were already release-eligible, but direct original custom Stripe Cloud authorization reports `refresh_uncertain`, pending safe grant reauthorization; Hub health reports federation not configured, no provider calls. No newly verified provider acceptance, refund, payout, LIVE activation, direct/relay/Sandbox result or signed delivery. Two P-4-specific provider acceptance rows are added (29 total / 5 PASSED / 24 PENDING), pending actual future checked release and original service grant. P-4 project setup implementation uses one confirmed native step per durable account-scoped run, fail-closed uncertain replay and inactive draft with APP-NEEDS artifact; external TEST/owner acceptance is separate. No manual release or spending authorized.

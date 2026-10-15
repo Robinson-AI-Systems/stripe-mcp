@@ -1,5 +1,15 @@
 # AGENTS.md — the rules. Read this first, every session.
 
+## Session entry and authority
+
+“Do N bundles” starts the complete procedure in [docs/SESSION-START.md](docs/SESSION-START.md).
+N sets new implementation workload only; acceptance, reconciliation, required checks,
+reviews, merges, cleanup and permanent handoff remain session obligations. Project
+instructions need only identify this repository and point here; keep workflow rules
+in the repository. A push or met bundle count is not permission to omit closeout.
+This owner-requested workflow-tooling repair is maintenance, not a product bundle.
+
+
 ## Merged-PR closeout is an atomic session obligation — owner correction 2026-10-15
 
 A confirmed merge is an irreversible workflow transition, **not** permission to stop
@@ -295,8 +305,7 @@ For exact existing helpers, mapping/fixture recipes and JIT execution packets, u
     when eligible local corrections, independent tests or immediate-successor work remain.
 14. **Problems are not blockers.** Red CI, lint, failing tests, wrong parameters, conflicts and unclear code are yours to
     fix; stop only for a hard limit or an owner decision the current step needs (SESSION-START §6). Validate in focused
-    tasks at meaningful seams within the predefined batch subsection and end every turn right after a push whose resume note names
-    the exact next action.
+    tasks at meaningful seams within the predefined batch subsection and checkpoint the exact next action after a push, then continue required CI/review/merge and session obligations.
 
 ## What this is
 
