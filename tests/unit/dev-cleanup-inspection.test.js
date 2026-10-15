@@ -231,6 +231,42 @@ describe('provider-verified TEST cleanup inspection',()=>{
     expect(result.rows.find(r=>r.type==='invoice').verification)
       .toBe('intentionally_retained');
   });
+  it('checks original Charge link before retaining financial evidence',async()=>{
+    const f=fixture(),type='charge.succeeded';
+    const plan=planTrigger({type,requestKey:'inspection'},account);
+    Object.assign(f.run,{id:plan.runId,scenario:plan.scenario,
+      plan_digest:plan.planDigest});
+    f.rows.splice(0,2,
+      {step_name:'customer_1',object_type:'customer',
+        object_id:'cus_VERIFY123',cleaned:true},
+      {step_name:'payment_intent_1',object_type:'payment_intent',
+        object_id:'pi_VERIFY123',cleaned:false},
+      {step_name:'charge_1',object_type:'charge',
+        object_id:'ch_VERIFY123',cleaned:false},
+      {step_name:'event_1',object_type:'event',
+        object_id:'evt_VERIFY123',cleaned:false});
+    const charge={id:'ch_VERIFY123',object:'charge',livemode:false,
+      payment_intent:'pi_VERIFY123',customer:'cus_VERIFY123',amount:3600,
+      currency:'usd',paid:true,status:'succeeded'};
+    const pi={id:'pi_VERIFY123',object:'payment_intent',livemode:false,
+      latest_charge:'ch_VERIFY123',customer:'cus_VERIFY123',
+      status:'succeeded',amount:3600,amount_received:3600,currency:'usd',
+      metadata:{rtc_run:plan.runId}};
+    f.setEvent({...f.event,type,data:{object:charge}});
+    const sdk=await f.ctx.services.stripeForConnection();
+    sdk.paymentIntents={retrieve:async()=>pi};
+    sdk.charges={retrieve:async()=>charge};
+    f.setCustomer({id:'cus_VERIFY123',object:'customer',deleted:true});
+    const check=()=>handlers.dev_verify_cleanup_run({runId:plan.runId},f.ctx);
+    let result=parse(await check());
+    expect(result.eventProviderVerified).toBe(true);
+    expect(result.rows.find(r=>r.type==='charge').verification)
+      .toBe('intentionally_retained');
+    sdk.charges.retrieve=async()=>({...charge,customer:'cus_FOREIGN'});
+    result=parse(await check());
+    expect(result.rows.find(r=>r.type==='charge').verification)
+      .toBe('provider_unverified');
+  });
   it('registers a read-only selected-account verifier',()=>{
     expect(tools[0]).toMatchObject({writes:false,
       profiles:['read_only','everyday','full']});
