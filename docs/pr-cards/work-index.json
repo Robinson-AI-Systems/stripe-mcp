@@ -734,13 +734,13 @@
         "W-2"
       ],
       "card": "docs/pr-cards/W-3.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 300,
       "units": [
         "W-3"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -752,13 +752,13 @@
         "W-3"
       ],
       "card": "docs/pr-cards/W-4.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "W-4"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
