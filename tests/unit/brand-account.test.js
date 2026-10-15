@@ -1,6 +1,5 @@
 import {describe,it,expect} from 'vitest';
 import {registry} from '../../src/tools/index.js';
-import {handlers} from '../../src/tools/brand-account.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 const acct='acct_OWNER123',templateId='inr_FAKE1234',portalId='bpc_FAKE1234';
