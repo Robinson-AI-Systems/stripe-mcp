@@ -1,5 +1,18 @@
 # AGENTS.md — the rules. Read this first, every session.
 
+## Do not stall on terminal CI — owner correction 2026-10-15
+
+Before new work, resume an unfinished red PR from its exact head. Read terminal
+failing jobs once, extract compact failure assertions without dumping full
+logs/HTML, fix the complete related failure batch and re-run exact-head gates.
+Never repeatedly poll an unchanged run, treat a red check as an external
+acceptance wait, or abandon a recoverable branch. A failed test must lead to
+a specific engineering correction or an evidenced blocker with a concrete next
+action; preserve safety assertions. On low context, record an exact recoverable
+checkpoint rather than silently stopping. See
+[SESSION-START's red CI anti-stall loop](docs/SESSION-START.md#red-ci--long-running-tool-anti-stall-loop-owner-correction-2026-10-15).
+
+
 ## Owner-requested implementation detail — October 14, 2026
 
 Read only the applicable subsection in [REMAINING.md](docs/implementation-guides/REMAINING.md)
