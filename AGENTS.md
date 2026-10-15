@@ -1,5 +1,35 @@
 # AGENTS.md — the rules. Read this first, every session.
 
+## Merged-PR closeout is an atomic session obligation — owner correction 2026-10-15
+
+A confirmed merge is an irreversible workflow transition, **not** permission to stop
+during post-merge reconciliation. Incident: PR #247 merged successfully at
+`010332d9`, but the agent stopped after beginning a broad GitHub compare/changed-files
+call and before the terminal permanent handoff. CI anti-stall guidance covers
+failures and waits, but lacked an explicit bounded closeout gate after success.
+
+**Mandatory finite post-merge transaction:** immediately after merge confirmation,
+use **only bounded identity evidence** (PR merge SHA, main SHA, live SHA, READY
+production deployment/revision, open PR count, exact-head gates and review state).
+Never expand thousands of changed-file lines or reacquire completed CI logs during
+closeout. Evaluate acceptance against the **actual deployed commit**, even when
+main is ahead; preserve PASSED, investigate and test currently eligible PENDING,
+defer only unreleased or specifically unavailable external prerequisites.
+Reconcile owner approvals, release windows, cleanup and open/closed work. Ensure
+STATUS/card/index permanent as-if-merged record is correct, then post a concise
+`FINAL MERGED HANDOFF` comment to the merged PR with bundle IDs, verified
+gates, merged/head/live/READY SHAs, full acceptance dispositions/prerequisites
+and one exact successor. That comment is the **last required write** after merge,
+not a reason to create a documentation-only PR or touch main directly.
+Use `npm run session:status -- --post-merge <PR_NUMBER> --deployed <SHA> --state READY`
+for a finite read-only reminder when a local shell is available; its output
+is a checklist, never a deployment attestation. On disconnected tooling, leave
+a recoverable PR comment and report concrete missing evidence instead of silently
+abandoning the closeout. No new PR until this gate is handled. Preserve
+all release, owner, money-out and LIVE restrictions.
+
+
+
 ## Do not stall on terminal CI — owner correction 2026-10-15
 
 Before new work, resume an unfinished red PR from its exact head. Read terminal
