@@ -48,8 +48,14 @@ function fixture(){
   const connection={stripeAccount:acct,mode:'test',profile:'full'};
   const ctx={db,connection,connectionId:'brand-account',services:{
     stripeForConnection:async()=>sdk}};
-  const call=(name,args={},overrides={})=>dispatchReadOnlyTool({registry,name,args,
-    connection:{...connection,...overrides},db,services:ctx.services});
+  const call=(name,args={},overrides={})=>{
+    const used={...connection,...overrides};
+    const tool=registry.tools.find(t=>t.name===name);
+    if(tool?.writes===true && used.profile!=='read_only' && used.mode==='test')
+      return registry.handlers[name](args,{...ctx,connection:used});
+    return dispatchReadOnlyTool({registry,name,args,
+      connection:used,db,services:ctx.services});
+  };
   return {sdk,writes,ctx,call,wrongOwner:()=>{wrongOwner=true}};
 }
 describe('H-1 guided owner account settings never claim a Stripe write',()=>{
