@@ -1,0 +1,46 @@
+{
+  "subsections": [
+    {
+      "id": "W-1",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "One read-only workflow_money_snapshot obtains complete currency-separated balance transaction totals for a Colorado calendar window.",
+          "evidence": "Original selected TEST account is enforced by workflow-read-common.verifyContext and delegated wrapped money_list_balance_transactions. dateWindow uses Colorado civil boundaries and balance flows per currency; W-1 unit test tests signed fee/net and DST."
+        },
+        {
+          "criterion": "MRR correctly normalizes active licensed fixed-price subscription items by interval and interval_count and quantity, applies only active recurring discount duration, and keeps trialing and usage/tiered items separate.",
+          "evidence": "calculateRecurring uses native expanded discount/coupon projections, quantity and intervalCount; separate USD/EUR and trialing; tiered/metered excluded, unknown durations incomplete; W-1 source and focused regression written."
+        },
+        {
+          "criterion": "Normal, empty-account, multi-page, two-currency, Denver DST boundary, and elapsed 50-second-budget outcomes include explicit incomplete/continuation evidence.",
+          "evidence": "tests/unit/workflow-money-snapshot.test.js covers empty, second provider page, two currencies, quarterly discount, annual EUR, DST, elapsed budget, LIVE denial, invalid bounds. Native provider acceptance remains open."
+        }
+      ]
+    },
+    {
+      "id": "W-2",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "Read-only workflow_failed_payments reports actual failed TEST payment and invoice states, human-readable verified decline reasons, next retry only when provider supplies it, and actual hosted invoice URL when present.",
+          "evidence": "workflow_failed_payments reads original invoice_list and payment_list handlers. Returns open attempted invoices, provider nextPaymentAttempt time and hosted link only when observed; PaymentIntent last_payment_error code translated without private secret; dedicated W-2 regressions."
+        },
+        {
+          "criterion": "Read-only workflow_customer_overview assembles verified customer, invoice, payment and subscription observations, retaining app-owned record links and never inferentially resolving app ownership.",
+          "evidence": "workflow_customer_overview verifies selected customer_get and uses original native safe customer app annotation, then native invoice, subscription and payment pages; no fabricated metadata-to-link reconstruction; dedicated overview tests."
+        },
+        {
+          "criterion": "Normal, empty-account, multi-page, two-currency and time-budget-exceeded cases return bounded results, partial evidence where applicable and no unsafe provider operations.",
+          "evidence": "tests/unit/workflow-customers.test.js covers open failed invoice, real retry, absent retry, empty, 102 provider invoices, mixed EUR/USD, missing customer, LIVE denial, read failure and elapsed budget; no invocation of write handlers."
+        }
+      ]
+    }
+  ],
+  "productionAdded": 496,
+  "productionRemoved": 3,
+  "planComparison": "Estimated 720 changed production lines and two original subsections; delivered measured 496 additions and 3 deletions (499 changed) across guarded read-only workflows and native safe projections. All original W-1/W-2 engineering scope is represented; no size padding or count of old E-1/P-4 source.",
+  "newEngineering": "Three NEW registered TEST read-only workflow handlers and native 50-second/page safeguards, Denver dates, discount/MRR projections and failed-payment/customer reporting, plus distinct regression fixtures; no existing completed subsection recounted.",
+  "relatedWorkDecision": "Delivered the two related original W-1 and W-2 sections together; W-3 would introduce money/write confirmation risk and remains approved independent work. Native original TEST provider acceptance remains separate pending release/renewed custom connection.",
+  "decision": "SUBSTANTIAL"
+}

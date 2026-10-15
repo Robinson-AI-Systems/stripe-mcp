@@ -80,7 +80,8 @@ describe('tool registry', () => {
       'product_list','product_get','product_search','price_list','price_get','price_search',
       'product_create','product_update','product_archive','product_unarchive',
       'product_delete','price_create','price_update',
-      'project_draft_profile','project_portal_create','workflow_project_setup'
+      'project_draft_profile','project_portal_create','workflow_project_setup',
+      'workflow_money_snapshot','workflow_failed_payments','workflow_customer_overview'
     ]);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(113);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);

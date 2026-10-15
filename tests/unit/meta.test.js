@@ -13,12 +13,13 @@ describe('C-2 progressive tool disclosure and wrapped execution',()=>{
   it('lists compact baseline plus authorized workflow readers but retains the catalog',()=>{
     const compact=listingForConnection(registry,connection).map(t=>t.name);
     expect(compact).toEqual(['stripe_whoami','stripe_get_result',
-      'stripe_search_tools','stripe_describe_tool','stripe_call','stripe_batch','workflow_app_readiness']);
+      'stripe_search_tools','stripe_describe_tool','stripe_call','stripe_batch','workflow_app_readiness',
+      'workflow_money_snapshot','workflow_failed_payments','workflow_customer_overview']);
     expect(listingForConnection(registry,{...connection,listing:'catalog'}).length)
       .toBe(registry.tools.filter(t=>t.writes===false&&
         t.profiles.includes('read_only')).length);
-    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(118);
-    expect(listingForConnection(registry,connection,'read_only')).toHaveLength(7);
+    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(121);
+    expect(listingForConnection(registry,connection,'read_only')).toHaveLength(10);
   });
   it('searches, describes, delegates and batches through the same read-only gate',async()=>{
     const search=parse(await call('stripe_search_tools',{query:'accounts'}));

@@ -1,3 +1,9 @@
+### October 15 — W-1/W-2 read-only workflows; one NEW engineering bundle, publication pending
+
+Inspected actual main 131ad52fd1c2852a60eade5ff90cf323277e8022 with no open PR and latest #253 FINAL MERGED HANDOFF. Verified live ref 157acab51f59ac9ce9ed0439b68e4f3f41489af2 is ancestor, behind main by 111 commits at baseline. This branch has one frozen first-commit W-1/W-2 whole-subsection plan at 756a93c23255d9b28f5cb35cddfbfa193f576fb0. W-1 money snapshot and W-2 failed payments/customer overview implemented with guarded TEST read-only native registry dispatch, original Denver DST dates, subscription interval/discount/currency rules, safe observed retry/hosted invoice data, owned-record projection and bounded 50 s/10-page partial continuation. Updated registry, relevant projections, published catalog and focused regressions; source diff metrics and exact-head CI/reviews must be recorded before a completed bundle claim. W-3 writes are a separate approved successor. Engineering as-if-merged index is contingent on approved exact-head review/CI and real merge, not real Stripe acceptance.
+
+Acceptance-first checkpoint: 29 release queue rows at baseline: five previously recorded PASSED, 24 not passed. Earlier source ancestry includes selected V-3 checks but original native Stripe cloud status was refresh_uncertain; actual custom stripe_whoami rejected with renewal_outcome_unknown_reconnect_required and automaticReplay=false. Upstream original service origin was reachable/issuer matched. No uncertain renewal replay, provider writes, owner credentials or connected acceptance fabricated; reconnect at the previously registered custom service connection before native provider smoke. Hub route federation, owner signed-in Dashboard, genuine OAuth/hosted Checkout and signed webhook remain independently pending/gated. Remaining new catalog/P-4 and W-1/W-2 source is not in live until a future checked deployment. No manual release approval, LIVE activation or autonomous spending. After merge, recheck all acceptance candidates against actual serving READY deployed source and record exact final state.
+
 ### Release-needed owner escalation — October 15
 
 Owner permits manual-release requests only after every independently eligible
@@ -656,6 +662,39 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     ],
     "status": "PENDING",
     "lastEvidence": "October 15 P-4 native source, mock and isolated DB tests; no actual deployed Stripe TEST write, webhook signing proof, owner setup-path use, retry and cleanup verification. TEST service refresh uncertain."
+  },
+  {
+    "id": "STRIPE-W1-MONEY-SNAPSHOT",
+    "priority": 27,
+    "status": "PENDING",
+    "requiredRevision": "429ac89ec69a422b12c6d1805ca96d448fc84c28",
+    "dependsOn": [],
+    "task": "Prove original custom TEST workflow_money_snapshot exact Denver money flows, active/trialing discounted fixed MRR, multi-currency and honest partial pagination on real selected Stripe account",
+    "procedure": "docs/pr-cards/W-1.md; original custom MCP workflow_money_snapshot; compare native provider records and no write",
+    "gates": "Checked READY source ancestry, original selected TEST read grant, owner-safe fixture data, all pages observed; no LIVE, spending or raw Stripe secrets",
+    "lastEvidence": "2026-10-15 W-1 source and unit/mock protection at PR #254; no original deployed custom TEST workflow invocation, provider totals or cleanup claimed."
+  },
+  {
+    "id": "STRIPE-W2-FAILED-PAYMENTS",
+    "priority": 28,
+    "status": "PENDING",
+    "requiredRevision": "429ac89ec69a422b12c6d1805ca96d448fc84c28",
+    "dependsOn": [],
+    "task": "Prove original custom TEST workflow_failed_payments returns actual provider decline codes, next retry/hosted link only when set and honest complete/partial scopes",
+    "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_failed_payments plus independent native TEST invoice and PaymentIntent read",
+    "gates": "Checked READY source ancestry, original TEST read grant, approved original fixtures with no retry, payment action, customer PII disclosure or money-out",
+    "lastEvidence": "2026-10-15 W-2 source/fixture unit evidence PR #254; actual custom provider read/retry existence and delivery are not verified."
+  },
+  {
+    "id": "STRIPE-W2-CUSTOMER-OVERVIEW",
+    "priority": 29,
+    "status": "PENDING",
+    "requiredRevision": "429ac89ec69a422b12c6d1805ca96d448fc84c28",
+    "dependsOn": [],
+    "task": "Prove original custom TEST workflow_customer_overview exact customer ownership, app record links, verified invoices/payments/subscriptions and multi-page bounded completeness",
+    "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_customer_overview with exact owner-approved disposable TEST customer",
+    "gates": "Checked READY source ancestry, original selected TEST read grant, correct application ownership, no provider writes or synthetic records counted as acceptance",
+    "lastEvidence": "2026-10-15 W-2 original custom TEST not deployed; source/unit projections and safe owner link only, provider evidence deferred."
   }
 ]
 ```
