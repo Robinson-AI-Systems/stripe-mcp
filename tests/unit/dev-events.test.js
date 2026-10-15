@@ -79,10 +79,11 @@ function fixture({showEvent=false,foreign=false}={}){
     },
     paymentIntents:{create:async(b,o)=>{
       const pi=creates('payment_intent','pi',b,o);
-      if(b.payment_method==='pm_card_createDispute'&&!pi.latest_charge){
+      if((b.payment_method==='pm_card_createDispute'||
+        b.metadata?.rtc_charge_event==='1')&&!pi.latest_charge){
         const ch=creates('charge','ch',{payment_intent:pi.id,
           customer:b.customer,amount:b.amount,currency:'usd',
-          paid:true,status:'succeeded',disputed:false},
+          paid:true,status:'succeeded',disputed:false,refunded:false},
           {idempotencyKey:o.idempotencyKey+'_provider_charge'});
         const linked={...pi,latest_charge:ch.id};
         objects.set(pi.id,linked);return linked;
@@ -107,7 +108,8 @@ function fixture({showEvent=false,foreign=false}={}){
       expire:async(id,_p,o)=>mutate('checkout.session',id,
         {status:'expired',url:null},o)
     }},
-    charges:{retrieve:async id=>get(id)},
+    charges:{retrieve:async id=>get(id),
+      update:async(id,b,o)=>mutate('charge',id,b,o)},
     disputes:{retrieve:async id=>get(id),
       list:async({charge,limit})=>{
         calls.push({action:'disputes.list',charge,limit});
@@ -166,6 +168,7 @@ function fixture({showEvent=false,foreign=false}={}){
           type.startsWith('customer.subscription.')?
           'subscription':type.startsWith('payment_intent')?'payment_intent':
           type.split('.')[0],prefix=sourceType==='subscription'?'sub':
+          sourceType==='charge'?'ch':
           sourceType==='payment_method'?'pm':
           sourceType==='setup_intent'?'seti':
           sourceType==='customer'?'cus':
@@ -182,6 +185,7 @@ function fixture({showEvent=false,foreign=false}={}){
         calls.push({action:'events.retrieve',id});
         const sourceType=calledEvent.startsWith('checkout.session.')?
           'cs_test':calledEvent.startsWith('charge.dispute.')?'du':
+          calledEvent.startsWith('charge.')?'ch':
           calledEvent.startsWith('invoice.')?'in':
           calledEvent.startsWith('customer.subscription.')?
           'sub':calledEvent.startsWith('payment_intent.')?'pi':
@@ -275,7 +279,8 @@ describe('V-3a real TEST provider event generation',()=>{
       'payment_method.attached','payment_method.updated',
       'payment_method.detached',
       'setup_intent.created','setup_intent.canceled','setup_intent.succeeded',
-      'invoice.voided','invoice.marked_uncollectible']);
+      'invoice.voided','invoice.marked_uncollectible',
+      'charge.succeeded','charge.updated']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -514,6 +519,36 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
     expect(f.calls.filter(x=>x.action==='mutate'&&x.type==='invoice'))
       .toHaveLength(2);
+    expect(f.ledger.get(run.id).at(-1))
+      .toMatchObject({object_type:'event',object_id:'evt_FAKE123'});
+  });
+  it.each(['charge.succeeded','charge.updated'])(
+    'records parent-owned TEST charge and original %s without replay',async type=>{
+    const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+    const run=[...f.runs.values()][0];
+    expect(f.ledger.get(run.id).map(x=>x.object_type)).toEqual([
+      'customer','payment_intent','charge'
+    ]);
+    const pi=f.objects.get('pi_FAKE123'),charge=f.objects.get('ch_FAKE123');
+    expect(pi.metadata).toMatchObject({
+      rtc_run:run.id,rtc_charge_event:'1'
+    });
+    expect(pi.latest_charge).toBe(charge.id);
+    expect(charge).toMatchObject({
+      object:'charge',payment_intent:pi.id,customer:'cus_FAKE123',
+      paid:true,status:'succeeded',amount:3600,currency:'usd'
+    });
+    if(type==='charge.updated')
+      expect(charge.description).toBe('RTC Synthetic TEST Updated Charge');
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
+    expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
+      type==='charge.updated'?1:0);
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
+    expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
+      type==='charge.updated'?1:0);
     expect(f.ledger.get(run.id).at(-1))
       .toMatchObject({object_type:'event',object_id:'evt_FAKE123'});
   });
