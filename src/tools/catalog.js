@@ -130,7 +130,9 @@ const readOnly={
     return priceSafe(await s.prices.retrieve(a.priceId));
   }),
   price_search:async(a,ctx)=>guarded(ctx,async s=>{
-    return pageResult(await s.prices.search(searchQuery(a)),priceSafe);
+    const p=await s.prices.search(searchQuery(a));
+    const page=pageResult(p,priceSafe);
+    return {...page,next:p.has_more?p.next_page??null:null};
   })
 };
 const specs=[
