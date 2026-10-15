@@ -74,6 +74,7 @@ describe('tool registry', () => {
       'brand_list_invoice_templates','brand_get_invoice_template',
       'brand_archive_invoice_template','brand_unarchive_invoice_template',
       'brand_set_portal_look','setup_set_payout_schedule',
+      'project_list_profiles','project_get_profile','project_record_link',
       'project_bind_profile_account','project_enable_scoped_ownership'
     ]);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(103);
