@@ -20,6 +20,9 @@ import {invoiceFailureTypes,isInvoiceFailureEvent,verifyFailedInvoiceSource,
 import {paymentMethodEventTypes,isPaymentMethodEvent,
   verifyMethodFixture,matchesPaymentMethodEvent,ensurePaymentMethodEvent}
   from './triggers-payment-methods.js';
+import {nativeChargeEventTypes,isNativeChargeEvent,verifyNativeCharge,
+  matchesNativeChargeEvent,ensureNativeChargeEvent}
+  from './triggers-charge-events.js';
 import {invoiceTerminalEventTypes,isInvoiceTerminalEvent,
   verifyTerminalInvoice,verifyTerminalItem,matchesTerminalInvoiceEvent,
   ensureTerminalInvoiceEvent} from './triggers-invoice-terminal.js';
@@ -36,7 +39,7 @@ export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
   'payment_intent.created','payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
   ...invoiceEventTypes,...failedPaymentEventTypes,...disputeEventTypes,
-  ...invoiceFailureTypes,...checkoutEventTypes,...paymentMethodEventTypes,...setupIntentEventTypes,...invoiceTerminalEventTypes
+  ...invoiceFailureTypes,...checkoutEventTypes,...paymentMethodEventTypes,...setupIntentEventTypes,...invoiceTerminalEventTypes,...nativeChargeEventTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice',
@@ -69,7 +72,8 @@ export function planTrigger(a,account,{legacyInvoiceFailure=false}={}){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=isInvoiceTerminalEvent(a.type)?['customer','invoice','invoice_item']:
+  const types=isNativeChargeEvent(a.type)?['customer','payment_intent','charge']:
+    isInvoiceTerminalEvent(a.type)?['customer','invoice','invoice_item']:
     isSetupIntentEvent(a.type)?['setup_intent']:
     isPaymentMethodEvent(a.type)?['customer','payment_method']:
     isCheckoutEvent(a.type)?
@@ -91,7 +95,8 @@ export function planTrigger(a,account,{legacyInvoiceFailure=false}={}){
     scenario:'event-'+a.type.replaceAll('_','-').replaceAll('.','-'),
     type:a.type,steps,size:1,expectedSteps:steps.length,
     planDigest:hash(JSON.stringify([a.type,steps])),amountCents:
-      a.type==='payment_intent.succeeded'||isDisputeEvent(a.type)?3600:0};
+      a.type==='payment_intent.succeeded'||isDisputeEvent(a.type)||
+      isNativeChargeEvent(a.type)?3600:0};
 }
 // Preserve the old immutable failed-invoice plan for recorded unfinished runs.
 // New runs record their declining card as a distinct owned cleanup step.
@@ -106,8 +111,9 @@ export function resolveTriggerPlan(a,account,recorded=null){
 }
 function verifyFixture(plan,step,x,objects){
   if(x?.object!==kind[step.type]||!id(x.id,prefix[step.type])||
-    x.livemode!==false||(!isDisputeEvent(plan.type)||
-      !['charge','dispute'].includes(step.type))&&
+    x.livemode!==false||
+    !((isDisputeEvent(plan.type)&&['charge','dispute'].includes(step.type))||
+      (isNativeChargeEvent(plan.type)&&step.type==='charge'))&&
       x.metadata?.rtc_run!==plan.runId)
     bad('Independent Stripe TEST event fixture provenance differs');
   if(step.type==='price'&&(
@@ -134,6 +140,8 @@ function verifyFixture(plan,step,x,objects){
     verifyFailedPayment(plan,x,objects.get('customer_1')?.object_id);
   if(isDisputeEvent(plan.type)&&step.type==='charge')
     verifiedDisputeCharge(plan,x,objects);
+  if(isNativeChargeEvent(plan.type)&&step.type==='charge')
+    verifyNativeCharge(plan,x,objects);
   if(isDisputeEvent(plan.type)&&step.type==='dispute')
     verifiedDisputeObject(plan,x,objects);
   if(isInvoiceFailureEvent(plan.type)&&step.type==='invoice_item')
@@ -170,6 +178,8 @@ function verifyFixture(plan,step,x,objects){
 function matchingEvent(e,plan,account,target){
   if(isDisputeEvent(plan.type))
     return matchesDisputeEvent(e,plan,account,target);
+  if(isNativeChargeEvent(plan.type))
+    return matchesNativeChargeEvent(e,plan,account,target);
   const object=e?.data?.object;
   return e?.object==='event'&&id(e.id,'evt')&&e.type===plan.type&&
     e.livemode===false&&(!e.account||e.account===account)&&
@@ -222,7 +232,8 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
   const existing=await db.getDevRunObjects({account,id:plan.runId});
   if(!Array.isArray(existing))bad('TEST event ledger unavailable');
   const byStep=new Map(existing.map(x=>[x.step_name,x]));
-  const metadata={rtc_run:plan.runId};
+  const metadata={rtc_run:plan.runId,
+    ...(isNativeChargeEvent(plan.type)?{rtc_charge_event:'1'}:{})};
   for(const step of plan.steps.filter(x=>x.type!=='event')){
     const recorded=byStep.get(step.name);
     let resourceId=recorded?.object_id;
@@ -395,6 +406,9 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
     }
+    if(isNativeChargeEvent(plan.type)&&step.type==='charge'){
+      await ensureNativeChargeEvent(s,plan,byStep,rootKey);
+    }
     if(isInvoiceTerminalEvent(plan.type)&&step.type==='invoice_item'){
       await ensureTerminalInvoiceEvent(s,plan,byStep,rootKey);
     }
@@ -447,7 +461,7 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
   const signature={id:targetId,type:target.type,customer,
     ...(isCheckoutEvent(plan.type)?{
       paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
-    ...(isDisputeEvent(plan.type)?{
+    ...(isDisputeEvent(plan.type)||isNativeChargeEvent(plan.type)?{
       charge:byStep.get('charge_1')?.object_id,
       paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
     ...(isSubscriptionEvent(plan.type)?{
@@ -510,7 +524,7 @@ export async function inspectIncompleteOriginalEvent({plan,rows,account,stripe:s
     customer:byStep.get('customer_1')?.object_id,
     ...(isCheckoutEvent(plan.type)?{
       paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
-    ...(isDisputeEvent(plan.type)?{
+    ...(isDisputeEvent(plan.type)||isNativeChargeEvent(plan.type)?{
       charge:byStep.get('charge_1')?.object_id,
       paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
     ...(isSubscriptionEvent(plan.type)?{
@@ -579,7 +593,7 @@ export async function verifyRecordedTriggerRun(a,ctx,s){
     customer:byStep.get('customer_1')?.object_id,
     ...(isCheckoutEvent(plan.type)?{
       paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
-    ...(isDisputeEvent(plan.type)?{
+    ...(isDisputeEvent(plan.type)||isNativeChargeEvent(plan.type)?{
       charge:byStep.get('charge_1')?.object_id,
       paymentIntent:byStep.get('payment_intent_1')?.object_id}:{}),
     ...(isSubscriptionEvent(plan.type)?{
