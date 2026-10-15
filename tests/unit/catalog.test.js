@@ -38,7 +38,8 @@ function fixture(){
     prices:{
       list:vi.fn(async args=>({data:[...prices.values()].filter(p=>
         (!args.product||p.product===args.product)&&
-        (!args.lookup_keys||args.lookup_keys.includes(p.lookup_key))),has_more:false})),
+        (!args.lookup_keys||args.lookup_keys.includes(p.lookup_key))&&
+        (args.active===undefined||p.active===args.active)),has_more:false})),
       search:vi.fn(async()=>({data:[...prices.values()],has_more:false,next_page:null})),
       retrieve:vi.fn(async id=>prices.get(id)),
       create:vi.fn(async(args,opts)=>{
@@ -197,7 +198,7 @@ describe('E-1 native TEST catalog profile and contract',()=>{
     await expect(f.confirm('product_delete',{productId:'prod_BASE123'}))
       .rejects.toThrow(/active or inactive prices/);
     expect(f.sdk.products.del).not.toHaveBeenCalled();
-    expect(f.sdk.prices.list.mock.calls.map(x=>x[0].active)).toEqual([true]);
+    expect(f.sdk.prices.list.mock.calls.map(x=>x[0].active)).toEqual([true,false]);
   });
   it('accepts a verified provider 404 after a matching DELETE receipt, never 404 alone',async()=>{
     const missing=()=>Object.assign(new Error('provider missing'),{
