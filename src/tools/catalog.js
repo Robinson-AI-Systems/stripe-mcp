@@ -204,13 +204,13 @@ function priceMatches(p,a){
       x.recurring?.usageType==='licensed');
 }
 function makeWrite(def){
-  let createdId=null,existingId=null,scope=null;
+  let createdId=null,existingId=null,deletedReceipt=null,scope=null;
   const n=def.name,price=n.startsWith('price_'),creation=n.endsWith('_create');
   const op=defineWrite({
     name:n,
     resultId:(_before,after)=>after?.deleted?null:after?.id,
     read:async(a,ctx)=>{
-      createdId=null;existingId=null;
+      createdId=null;existingId=null;deletedReceipt=null;
       checkArgs(a,[...Object.keys(def.props),'dryRun','confirm','requestKey'],def.required);
       if(!creation&&!['product_archive','product_unarchive','product_delete'].includes(n)&&
         Object.keys(a).every(k=>['productId','priceId','dryRun','confirm','requestKey',
@@ -249,9 +249,11 @@ function makeWrite(def){
         if(parentOwner)err('Price parent product is app-owned or ownership is uncertain');
       }
       if(n==='product_delete'){
-        const prices=await s.prices.list({product:b.id,limit:1});
-        if(!Array.isArray(prices?.data)||prices.has_more===true||prices.data.length)
-          err('Only products with no prices may be deleted');
+        for(const active of [true,false]){
+          const prices=await s.prices.list({product:b.id,active,limit:1});
+          if(!Array.isArray(prices?.data)||prices.has_more===true||prices.data.length)
+            err('Only products with no active or inactive prices may be deleted');
+        }
       }
       return b;
     },
@@ -282,7 +284,11 @@ function makeWrite(def){
           .map(k=>[k,a[k]])),opts);
       if(n==='product_archive'||n==='product_unarchive')
         await s.products.update(a.productId,{active:n==='product_unarchive'},opts);
-      if(n==='product_delete')await s.products.del(a.productId,undefined,opts);
+      if(n==='product_delete'){
+        const deleted=await s.products.del(a.productId,undefined,opts);
+        if(deleted?.id===a.productId&&deleted.deleted===true)
+          deletedReceipt={id:a.productId,deleted:true};
+      }
       if(n==='price_create'&&!existingId){
         const p=await s.prices.create({product:a.productId,lookup_key:a.lookupKey,
           currency:a.currency,unit_amount:a.unitAmountCents,
@@ -300,7 +306,17 @@ function makeWrite(def){
     },
     readAfter:async(a,ctx)=>{
       const s=await client(ctx);
-      if(n==='product_delete')return s.products.retrieve(a.productId);
+      if(n==='product_delete'){
+        try{return await s.products.retrieve(a.productId);}
+        catch(e){
+          // A deletion tombstone or an independently observed provider 404,
+          // but only after the same successful DELETE receipt, proves removal.
+          if(deletedReceipt?.id===a.productId&&e?.statusCode===404&&
+            e?.code==='resource_missing'&&e?.type==='StripeInvalidRequestError')
+            return {...deletedReceipt,providerNotFound:true};
+          throw e;
+        }
+      }
       if(n==='product_create'||n==='product_update'||
         n==='product_archive'||n==='product_unarchive')
         return s.products.retrieve(n==='product_create'?createdId:a.productId);
