@@ -3,15 +3,9 @@ import {defineWrite,gone} from './write.js';
 import {client,allProfiles,writeProfiles,reply,fail,validateFields} from './billing-shared.js';
 import {validateBrandKit,checkoutBranding} from '../brand/store.js';
 import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {makeCheckoutWrite} from './checkout-writes.js';
 import {downloadEvidence,parseEvidenceUrl} from '../stripe/evidence-source.js';
 
-const kitFields={
-  backgroundColor:{type:'string'},buttonColor:{type:'string'},
-  borderStyle:{type:'string'},fontFamily:{type:'string'},
-  displayName:{type:'string'},logoFileId:{type:'string'},
-  iconFileId:{type:'string'},submitMessage:{type:'string'},
-  termsMessage:{type:'string'}
-};
 const kitArgs={kit:{type:'object'},expectedVersion:{type:'integer',minimum:0}};
 const uploadArgs={sourceUrl:{type:'string',minLength:12,maxLength:2048},
   filename:{type:'string',maxLength:110},kind:{type:'string',enum:['logo','icon']}};
@@ -138,7 +132,100 @@ export function makeBrandImageUpload({download=downloadEvidence}={}){
     })}]};
   }};
 }
+const preview=makeCheckoutWrite('checkout_create_payment_link_for_customer');
 export const tools=[
+  {...preview.tool,name:'brand_preview_checkout',area:'branding',profiles:writeProfiles,
+    description:'Create an audited TEST hosted Checkout preview through the guarded native Checkout tool.',
+    inputSchema:{...preview.tool.inputSchema,properties:{
+      customerId:{type:'string',pattern:'^cus_[A-Za-z0-9_]{3,190},area:'branding',writes:false,profiles:allProfiles,
+    description:'Read the selected TEST account brand kit revision and provider-visible branding.',
+    annotations:{readOnlyHint:true},
+    inputSchema:{type:'object',properties:{},additionalProperties:false}},
+  {...makeBrandImageUpload().tool,area:'branding',profiles:writeProfiles,
+    description:'Import bounded, verified public TEST business logo or square icon.',
+    inputSchema:{type:'object',properties:{...uploadArgs,dryRun:{type:'boolean'},
+      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      required:['sourceUrl','filename','kind'],additionalProperties:false}},
+  {...makeBrandKitSave().tool,area:'branding',profiles:writeProfiles,
+    description:'Save a versioned selected-account TEST brand kit for future MCP-created Checkout.',
+    inputSchema:{type:'object',properties:{...kitArgs,dryRun:{type:'boolean'},
+      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      required:['kit','expectedVersion'],additionalProperties:false}}
+];
+export const handlers={
+  brand_preview_checkout:(a,ctx)=>goodAccount(ctx)&&typeof a?.priceId==='string'?
+    makeCheckoutWrite('checkout_create_payment_link_for_customer').handler(a,ctx):
+    gone('Verified TEST customer and existing price are required'),
+  async brand_get(a,ctx){
+    try{
+      if(a&&Object.keys(a).length)throw new TypeError('Brand read takes no arguments');
+      const s=await verified(ctx);
+      const account=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
+      const kit=await ctx.db.getBrandKit({account:ctx.connection.stripeAccount,mode:'test'});
+      const branding=account.settings?.branding??{};
+      const safe={primaryColor:branding.primary_color??null,
+        secondaryColor:branding.secondary_color??null,
+        logoPresent:!!branding.logo,iconPresent:!!branding.icon};
+      return reply({account:ctx.connection.stripeAccount,mode:'test',
+        kit:kit?.settings??null,version:kit?.version??0,
+        checkoutDefaults:checkoutBranding(kit?.settings??{}),
+        accountBranding:safe,
+        accountBrandingReadOnly:true,
+        paymentLinkBranding:'Account-wide Dashboard branding; Payment Link create has no per-link branding_settings parameter',
+        appCreatedPagesAffected:false});
+    }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
+  },
+  brand_upload_image:(a,ctx)=>goodAccount(ctx)?makeBrandImageUpload().handler(a,ctx):
+    gone('TEST account required for brand upload'),
+  brand_save_kit:(a,ctx)=>goodAccount(ctx)?makeBrandKitSave().handler(a,ctx):
+    gone('TEST account required for brand kit saving')
+};
+},
+      priceId:{type:'string',pattern:'^price_[A-Za-z0-9_]{3,190},area:'branding',writes:false,profiles:allProfiles,
+    description:'Read the selected TEST account brand kit revision and provider-visible branding.',
+    annotations:{readOnlyHint:true},
+    inputSchema:{type:'object',properties:{},additionalProperties:false}},
+  {...makeBrandImageUpload().tool,area:'branding',profiles:writeProfiles,
+    description:'Import bounded, verified public TEST business logo or square icon.',
+    inputSchema:{type:'object',properties:{...uploadArgs,dryRun:{type:'boolean'},
+      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      required:['sourceUrl','filename','kind'],additionalProperties:false}},
+  {...makeBrandKitSave().tool,area:'branding',profiles:writeProfiles,
+    description:'Save a versioned selected-account TEST brand kit for future MCP-created Checkout.',
+    inputSchema:{type:'object',properties:{...kitArgs,dryRun:{type:'boolean'},
+      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      required:['kit','expectedVersion'],additionalProperties:false}}
+];
+export const handlers={
+  async brand_get(a,ctx){
+    try{
+      if(a&&Object.keys(a).length)throw new TypeError('Brand read takes no arguments');
+      const s=await verified(ctx);
+      const account=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
+      const kit=await ctx.db.getBrandKit({account:ctx.connection.stripeAccount,mode:'test'});
+      const branding=account.settings?.branding??{};
+      const safe={primaryColor:branding.primary_color??null,
+        secondaryColor:branding.secondary_color??null,
+        logoPresent:!!branding.logo,iconPresent:!!branding.icon};
+      return reply({account:ctx.connection.stripeAccount,mode:'test',
+        kit:kit?.settings??null,version:kit?.version??0,
+        checkoutDefaults:checkoutBranding(kit?.settings??{}),
+        accountBranding:safe,
+        accountBrandingReadOnly:true,
+        paymentLinkBranding:'Account-wide Dashboard branding; Payment Link create has no per-link branding_settings parameter',
+        appCreatedPagesAffected:false});
+    }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
+  },
+  brand_upload_image:(a,ctx)=>goodAccount(ctx)?makeBrandImageUpload().handler(a,ctx):
+    gone('TEST account required for brand upload'),
+  brand_save_kit:(a,ctx)=>goodAccount(ctx)?makeBrandKitSave().handler(a,ctx):
+    gone('TEST account required for brand kit saving')
+};
+},
+      branding:{type:'object',additionalProperties:false},
+      outsideApp:{type:'boolean'},dryRun:{type:'boolean'},confirm:{type:'boolean'},
+      requestKey:{type:'string',minLength:1,maxLength:128}},
+      required:['customerId','priceId'],additionalProperties:false}},
   {name:'brand_get',area:'branding',writes:false,profiles:allProfiles,
     description:'Read the selected TEST account brand kit revision and provider-visible branding.',
     annotations:{readOnlyHint:true},
