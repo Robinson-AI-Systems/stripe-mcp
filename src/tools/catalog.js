@@ -238,6 +238,12 @@ function makeWrite(def){
       (price?priceSafe:productSafe)(b);
       const owner=await findAppOwnership(b,ctx);
       if(owner?.unknown||owner)err('Application-owned or uncertain catalog record cannot be mutated');
+      if(price){
+        const parent=await s.products.retrieve(typeof b.product==='string'?b.product:b.product?.id);
+        productSafe(parent);
+        const parentOwner=await findAppOwnership(parent,ctx);
+        if(parentOwner)err('Price parent product is app-owned or ownership is uncertain');
+      }
       if(n==='product_delete'){
         const prices=await s.prices.list({product:b.id,limit:1});
         if(!Array.isArray(prices?.data)||prices.has_more===true||prices.data.length)
