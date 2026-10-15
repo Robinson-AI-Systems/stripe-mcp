@@ -311,7 +311,10 @@ describe('V-3a real TEST provider event generation',()=>{
     expect(f.ledger.get(run.id).map(x=>x.step_name))
       .toEqual(steps.slice(0,-1).map(x=>x.name));
     const creations=f.calls.filter(x=>x.action==='create').length;
-    expect(creations).toBe(steps.length-1);
+    // The fake models Stripe's linked Charge created as a PI side effect,
+    // not as a second independently requested payment or ledger step.
+    expect(creations).toBe(steps.length-1+
+      (['charge.succeeded','charge.updated'].includes(type)?1:0));
     f.showEvents();
     const completed=parse(await op.handler({...args,confirm:true},f.ctx));
     expect(completed.done).toBe(true);
@@ -541,12 +544,12 @@ describe('V-3a real TEST provider event generation',()=>{
     });
     if(type==='charge.updated')
       expect(charge.description).toBe('RTC Synthetic TEST Updated Charge');
-    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(4);
     expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
       type==='charge.updated'?1:0);
     f.showEvents();
     expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
-    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(4);
     expect(f.calls.filter(x=>x.action==='mutate')).toHaveLength(
       type==='charge.updated'?1:0);
     expect(f.ledger.get(run.id).at(-1))
