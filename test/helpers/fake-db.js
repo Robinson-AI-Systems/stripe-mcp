@@ -25,6 +25,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const knownApps=new Map([['appliance-desk',{id:'appliance-desk',
     name:APP_SEED.name,status:'active',profile:structuredClone(APP_SEED),version:1}]]);
   const appScopes=new Map();
+  const projectRuns=new Map();
   const decisionIntents = [];
   const liveIntents = [];
   const revokeIntents = [];
@@ -32,6 +33,42 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const defaultIntents = [];
   const limitIntents = [];
   return {
+    async getProjectSetupRun({account,id}){
+      const row=projectRuns.get(account+'|'+id);
+      return row?structuredClone(row):null;
+    },
+    async reserveProjectSetupStep({account,id,digest,step}){
+      const key=account+'|'+id;
+      if(!accountRows.has(account))throw new TypeError('Unknown selected account');
+      const row=projectRuns.get(key);
+      if(row&&row.digest!==digest)throw new TypeError('Project plan changed');
+      if(row?.steps?.[step])return {
+        newlyReserved:false,state:row.steps[step].state,
+        receipt:structuredClone(row.steps[step])};
+      const next=row??{digest,steps:{}};
+      next.steps[step]={state:'pending'};
+      projectRuns.set(key,next);
+      return {newlyReserved:true};
+    },
+    async completeProjectSetupStep({account,id,digest,step,resourceId=null,details={}}){
+      const row=projectRuns.get(account+'|'+id);
+      if(row?.digest!==digest||row.steps[step]?.state!=='pending')
+        throw new TypeError('Setup step not uniquely reserved');
+      const receipt={state:'done',resourceId,...details};
+      row.steps[step]=receipt;
+      return structuredClone(receipt);
+    },
+    async createProjectDraft(profile){
+      const p=validateProfile(profile),old=knownApps.get(p.id);
+      if(old){
+        if(old.status!=='draft'||JSON.stringify(old.profile)!==JSON.stringify(p))
+          throw new TypeError('Project draft already exists');
+        return {id:p.id,status:'draft',version:old.version};
+      }
+      knownApps.set(p.id,{id:p.id,name:p.name,profile:structuredClone(p),
+        status:'draft',version:1});
+      return {id:p.id,status:'draft',version:1};
+    },
     async getKnownApp(id){
       const row=knownApps.get(id);return row?structuredClone(row):null;
     },
