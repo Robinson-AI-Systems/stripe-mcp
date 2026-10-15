@@ -84,7 +84,11 @@ export const tools=[{
   description:'Verify 1–10 original TEST Events; optionally inspect cleanup and unfinished runs in bounded four-run read-only batches.' ,
   inputSchema:{type:'object',properties:{
     runIds:{type:'array',minItems:1,maxItems:10,uniqueItems:true,
-      items:{type:'string',pattern:'^run_[a-f0-9]{24}
+      items:{type:'string',pattern:'^run_[a-f0-9]{24}$'}},
+    includeCleanup:{type:'boolean',
+      description:'Independently read provider cleanup after original Event verification; maximum four runs.'},
+    includeIncomplete:{type:'boolean',
+      description:'On unverified original Event, safely inspect unfinished run sources and original Event; maximum four runs.'}
   },required:['runIds'],additionalProperties:false}
 }];
 export const handlers={
@@ -166,54 +170,5 @@ export const handlers={
           incompleteInspectedCount}:{}),
       results,
       note:'Original provider_verified requires separately fetched exact original TEST Event. Optional cleanup verifies current provider source states against ledger; incomplete inspection never completes a run or authorizes retry. No signed webhook, settlement, account money movement, automatic cleanup or live-mode acceptance is inferred.'});
-  }
-};
-}},
-    includeCleanup:{type:'boolean',
-      description:'Independently read provider cleanup after original Event verification; maximum four runs.'},
-    includeIncomplete:{type:'boolean',
-      description:'On unverified original Event, safely inspect unfinished run sources and original Event; maximum four runs.'}
-  },required:['runIds'],additionalProperties:false}
-}];
-export const handlers={
-  async dev_verify_trigger_runs(a,ctx){
-    const account=ctx?.connection?.stripeAccount;
-    if(ctx?.connection?.mode!=='test'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account??''))
-      return gone('Selected TEST Stripe account required');
-    if(!a||typeof a!=='object'||Array.isArray(a)||
-      Object.keys(a).length!==1||!Array.isArray(a.runIds)||
-      a.runIds.length<1||a.runIds.length>10||
-      a.runIds.some(x=>!id(x))||new Set(a.runIds).size!==a.runIds.length)
-      return gone('Choose 1–10 distinct exact TEST run IDs');
-    if(typeof ctx.db?.getDevRunById!=='function'||
-      typeof ctx.db?.getDevRunObjects!=='function')
-      return gone('Account-scoped TEST run ledger unavailable');
-    // One configured, selected-account TEST client. Every provider read inside
-    // verifyRecordedTriggerRun checks its original immutable plan and Event.
-    const stripe=await client(ctx),results=[];
-    for(const runId of a.runIds){
-      try{
-        const verified=await verifyRecordedTriggerRun({runId},ctx,stripe);
-        if(verified.providerVerified!==true||
-          verified.runId!==runId||verified.mode!=='test'||
-          verified.immutableEventRetained!==true)
-          throw new TypeError('TEST provider verification not established');
-        results.push({runId,verification:'provider_verified',
-          type:verified.type,eventId:verified.eventId,
-          sourceType:verified.sourceType,sourceId:verified.sourceId,
-          sourceCleanedInLedger:verified.sourceCleaned,
-          immutableEventRetained:true,webhookDeliveryVerified:false});
-      }catch{
-        // Never expose SDK errors, foreign run existence, tokens or raw events.
-        // An unverified event may have occurred; no negative inference.
-        results.push({runId,verification:'unverified',providerVerified:false,
-          reason:'Independent TEST Event verification unavailable or inconclusive'});
-      }
-    }
-    const verifiedCount=results.filter(x=>x.verification==='provider_verified').length;
-    return reply({mode:'test',requested:results.length,verifiedCount,
-      unverifiedCount:results.length-verifiedCount,
-      allProviderVerified:verifiedCount===results.length,results,
-      note:'Only provider_verified rows independently re-fetched matching original Stripe Events. Source cleanup flags come from the TEST ledger; no webhook delivery, current mutable source state or payment settlement is inferred. No provider writes occurred.'});
   }
 };
