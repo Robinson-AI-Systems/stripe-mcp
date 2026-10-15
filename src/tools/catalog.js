@@ -3,7 +3,7 @@
 import {defineWrite,gone} from './write.js';
 import {client,guarded,allProfiles,writeProfiles,fullProfiles,
   paging,pageResult} from './billing-shared.js';
-import {APP_METADATA_KEYS,findAppOwnership} from './app-guard.js';
+import {APP_METADATA_KEYS,findAppOwnership,annotateAppRead} from './app-guard.js';
 
 const string=(max=160)=>({type:'string',minLength:1,maxLength:max});
 const productId={type:'string',pattern:'^prod_[A-Za-z0-9]{2,100}$'};
@@ -109,7 +109,7 @@ const readOnly={
   }),
   product_get:async(a,ctx)=>guarded(ctx,async s=>{
     checkArgs(a,['productId'],['productId']);
-    return productSafe(await s.products.retrieve(a.productId));
+    return annotateAppRead(productSafe(await s.products.retrieve(a.productId)),ctx);
   }),
   product_search:async(a,ctx)=>guarded(ctx,async s=>{
     const p=await s.products.search(searchQuery(a));
@@ -127,7 +127,7 @@ const readOnly={
   }),
   price_get:async(a,ctx)=>guarded(ctx,async s=>{
     checkArgs(a,['priceId'],['priceId']);
-    return priceSafe(await s.prices.retrieve(a.priceId));
+    return annotateAppRead(priceSafe(await s.prices.retrieve(a.priceId)),ctx);
   }),
   price_search:async(a,ctx)=>guarded(ctx,async s=>{
     const p=await s.prices.search(searchQuery(a));
