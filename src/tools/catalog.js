@@ -2,7 +2,7 @@
 // All writes use the original guarded/audited Stripe write lifecycle.
 import {defineWrite,gone} from './write.js';
 import {client,guarded,allProfiles,writeProfiles,fullProfiles,
-  paging,pageResult,reply,fail} from './billing-shared.js';
+  paging,pageResult} from './billing-shared.js';
 import {APP_METADATA_KEYS,findAppOwnership} from './app-guard.js';
 
 const string=(max=160)=>({type:'string',minLength:1,maxLength:max});
