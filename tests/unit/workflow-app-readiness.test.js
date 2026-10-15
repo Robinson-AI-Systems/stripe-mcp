@@ -6,9 +6,10 @@ import {safePortal} from '../../src/tools/workflow-app-readiness.js';
 const account='acct_READINESS1',webhookId='we_READY123',
   portalId='bpc_READY123',pmc='pmc_READY123';
 const parse=o=>JSON.parse(o.content[0].text);
-function fixture({unreadable=false,wrongWebhookUrl=false,achAvailable=true}={}){
+function fixture({unreadable=false,wrongWebhookUrl=false,achAvailable=true,
+  cardAvailable=true,cardOn=true,fullyBranded=false}={}){
   const db=createFakeDb({accounts:[{id:account,label:'App readiness'}]});
-  let ach=false,events=['checkout.session.completed','invoice.paid',
+  let ach=false,card=cardOn,events=['checkout.session.completed','invoice.paid',
     'invoice.payment_failed','charge.refunded','customer.subscription.deleted'],
     portalControls={payment_method_update:false,invoice_history:true,
       subscription_cancel:true,subscription_update:true};
@@ -26,17 +27,22 @@ function fixture({unreadable=false,wrongWebhookUrl=false,achAvailable=true}={}){
     application:null,parent:null,
     us_bank_account:{available:achAvailable,display_preference:{
       preference:ach?'on':'off',value:ach?'on':'off'}},
-    card:{available:true,display_preference:{preference:'on',value:'on'}}});
+    card:{available:cardAvailable,display_preference:{
+      preference:card?'on':'off',value:card?'on':'off'}}});
   const stripe={
     accounts:{retrieve:async()=>({id:account,object:'account',livemode:false,
-      charges_enabled:false,details_submitted:false,business_profile:{},
-      settings:{branding:{},payments:{}}})},
+      charges_enabled:false,details_submitted:false,
+      business_profile:fullyBranded?{name:'A Business'}:{},
+      settings:{branding:fullyBranded?{
+        primary_color:'#123456',logo:'file_LOGO123',icon:'file_ICON123'}:{},payments:{}}})},
     paymentMethodConfigurations:{
       retrieve:async()=>{if(unreadable)throw Error('restricted TEST permission');
         return config();},
       update:async(id,values,opts)=>{
-        calls.push({kind:'ach',id,values,opts});
-        ach=values?.us_bank_account?.display_preference?.preference==='on';
+        const method=Object.hasOwn(values,'card')?'card':'us_bank_account';
+        calls.push({kind:method==='card'?'card':'ach',id,values,opts});
+        if(method==='card')card=values.card.display_preference.preference==='on';
+        else ach=values.us_bank_account.display_preference.preference==='on';
         return config();
       }
     },
@@ -83,6 +89,9 @@ describe('P-3 twenty-one independent readiness rows and evidence boundaries',()=
     expect(result).toMatchObject({account,app:APP_SEED.name,source:'bound_profile',
       mode:'test',ready:false,liveProviderQueried:false,providerObserved:true});
     expect(result.rows.map(x=>x.id)).toEqual(Array.from({length:21},(_,i)=>'S'+(i+1)));
+    expect(result.rows.find(x=>x.id==='S13')).toMatchObject({
+      status:'needs_you',permissionVerification:'not_verified',
+      requiredPermissions:APP_SEED.key_permissions});
     expect(result.rows.find(x=>x.id==='S6')).toMatchObject({
       status:'needs_decision'});
     expect(result.rows.find(x=>x.id==='S7').note).toContain('past-due');
@@ -127,6 +136,47 @@ describe('P-3 twenty-one independent readiness rows and evidence boundaries',()=
       .rejects.toThrow(/No verified eligible repair/);
     expect(f.calls).toHaveLength(0);
   });
+  it('never marks account branding complete without actual hosted-page evidence',async()=>{
+    const f=fixture({fullyBranded:true});await bound(f);
+    const report=parse(await f.call('workflow_app_readiness',f.select));
+    expect(report.rows.find(r=>r.id==='S2')).toMatchObject({
+      status:'needs_you',hostedPageVerified:false,
+      observed:{businessNamePresent:true,logoPresent:true,iconPresent:true,
+        primaryColorPresent:true}});
+  });
+  it('refuses unavailable card and fixes disabled card through one guarded action',async()=>{
+    const unavailable=fixture({cardAvailable:false});await bound(unavailable);
+    const blocked=parse(await unavailable.call('workflow_app_readiness',unavailable.select));
+    expect(blocked.rows.find(r=>r.id==='S9')).toMatchObject({status:'missing'});
+    expect(blocked.rows.find(r=>r.id==='S9')).not.toHaveProperty('repair');
+    const f=fixture({cardOn:false});await bound(f);
+    const initial=parse(await f.call('workflow_app_readiness',f.select));
+    expect(initial.rows.find(r=>r.id==='S9').repair).toMatchObject({
+      kind:'card',args:{method:'card'}});
+    const step=parse(await f.call('workflow_app_readiness_fix',{
+      ...f.select,target:'S9',confirm:true,requestKey:'fix-card-first'}));
+    expect(step.done).toBe(true);
+    expect(f.calls.map(c=>c.kind)).toEqual(['card']);
+    const partial=parse(await f.call('workflow_app_readiness',f.select));
+    expect(partial.rows.find(r=>r.id==='S9')).toMatchObject({status:'missing',
+      repair:{kind:'ach'}});
+    const second=parse(await f.call('workflow_app_readiness_fix',{
+      ...f.select,target:'S9',confirm:true,requestKey:'fix-ach-second'}));
+    expect(second.done).toBe(true);
+    expect(f.calls.map(c=>c.kind)).toEqual(['card','ach']);
+    expect(parse(await f.call('workflow_app_readiness',f.select))
+      .rows.find(r=>r.id==='S9').status).toBe('done');
+  });
+  it('rejects undeclared or malformed restricted-key permission specs',async()=>{
+    const f=fixture();
+    const spec={name:'Custom',webhookEvents:[],paymentMethods:['card'],
+      keyPermissions:{read:['valid_read','valid_read'],write:[]}};
+    expect((await f.call('workflow_app_readiness',{spec})).isError).toBe(true);
+    spec.keyPermissions={read:['refunds'],write:['customers']};
+    const result=parse(await f.call('workflow_app_readiness',{spec}));
+    expect(result.rows.find(r=>r.id==='S13').requiredPermissions)
+      .toEqual({read:['refunds'],write:['customers']});
+  });
   it('accepts an inline pre-project spec without guessing app ownership or executing repair',async()=>{
     const f=fixture();
     const spec={name:'New Service',webhookEvents:['invoice.paid'],
@@ -135,7 +185,11 @@ describe('P-3 twenty-one independent readiness rows and evidence boundaries',()=
     const report=parse(await f.call('workflow_app_readiness',{spec}));
     expect(report.source).toBe('inline_spec');
     expect(report.rows).toHaveLength(21);
-    expect(report.rows.find(x=>x.id==='S9').status).toBe('not_applicable');
+    expect(report.rows.find(x=>x.id==='S9').status).toBe('needs_you');
+    const withConfig=parse(await f.call('workflow_app_readiness',{
+      spec,paymentMethodConfiguration:pmc}));
+    expect(withConfig.rows.find(x=>x.id==='S9')).toMatchObject({
+      status:'done',observed:{methods:{card:{ready:true}}}});
     expect(report.rows.find(x=>x.id==='S10').status).toBe('needs_you');
     expect(f.calls).toHaveLength(0);
     const bad=await f.call('workflow_app_readiness',{

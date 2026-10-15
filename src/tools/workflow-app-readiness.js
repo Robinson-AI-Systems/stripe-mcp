@@ -41,6 +41,21 @@ function input(a){
 }
 const isEvent=e=>typeof e==='string'&&e.length<=100&&
   /^[a-z][a-z0-9_]{1,60}\.[a-z][a-z0-9_.]{1,75}$/.test(e);
+function permissionList(value){
+  if(value===null||value===undefined)return null;
+  if(!isPlain(value)||Object.keys(value).some(k=>!['read','write'].includes(k)))
+    throw new TypeError('Explicit restricted-key read/write permission lists required');
+  const result={};
+  for(const type of ['read','write']){
+    const list=value[type]??[];
+    if(!Array.isArray(list)||list.length>60||new Set(list).size!==list.length||
+      list.some(p=>typeof p!=='string'||p.length>60||
+        !/^[a-z][a-z0-9_]{1,59}$/.test(p)))
+      throw new TypeError('Invalid restricted-key permission names or duplicates');
+    result[type]=[...list];
+  }
+  return result;
+}
 function inlineSpec(spec){
   if(!isPlain(spec)||Object.keys(spec).some(k=>![
     'name','webhookEvents','webhookUrl','paymentMethods','portalRules','ownsCatalog',
@@ -70,7 +85,7 @@ function inlineSpec(spec){
   return {name:spec.name,webhook_events:events,webhook_url:spec.webhookUrl??null,
     payment_methods:methods,
     portal_rules:spec.portalRules??null,owns_catalog:spec.ownsCatalog,
-    owns_tax_rates:spec.ownsTaxRates,key_permissions:spec.keyPermissions??null,
+    owns_tax_rates:spec.ownsTaxRates,key_permissions:permissionList(spec.keyPermissions),
     requires_spanish:spec.requiresSpanish,subscription_billing:spec.subscriptionBilling};
 }
 function declared(profile){
@@ -79,7 +94,7 @@ function declared(profile){
     webhook_url:p.webhook_url,
     payment_methods:p.payment_methods,
     portal_rules:p.portal_rules,owns_catalog:p.owns_catalog,
-    owns_tax_rates:p.owns_tax_rates,key_permissions:p.key_permissions,
+    owns_tax_rates:p.owns_tax_rates,key_permissions:permissionList(p.key_permissions),
     requires_spanish:null,subscription_billing:true};
 }
 async function source(a,ctx){
@@ -151,10 +166,14 @@ async function readiness(a,ctx){
   rows.push(row('S1',info.charges_enabled===true&&info.details_submitted===true?
     'done':'needs_you','TEST account read; verify owner identity and required business details in Dashboard',
     {settingsUrl:dashboard+'account'}));
-  rows.push(dashboardStep('S2',
-    brand.primary_color&&brand.logo?'done':'needs_you',
-    'TEST account brand color and logo must be verified on actual hosted pages',
-    'settings/branding','Set brand assets manually or use supported Checkout kit for new MCP pages'));
+  rows.push(row('S2','needs_you',
+    'Account name, logo, icon, brand color and actual hosted TEST Checkout presentation all require owner verification',
+    {settingsUrl:dashboard+'settings/branding',
+      ownerAction:'Verify all required assets and inspect an actual TEST hosted Checkout page',
+      observed:{businessNamePresent:Boolean(info.business_profile?.name),
+        logoPresent:Boolean(brand.logo),iconPresent:Boolean(brand.icon),
+        primaryColorPresent:Boolean(brand.primary_color)},
+      hostedPageVerified:false}));
   rows.push(dashboardStep('S3',
     profile.support_email&&profile.support_phone?'done':'needs_you',
     'Public customer support email and phone are required','settings/public-details',
@@ -175,31 +194,36 @@ async function readiness(a,ctx){
     'settings/billing/automatic','Approve retry schedule and compare observed Dashboard settings'));
   // Three native provider operations are independently probed; unsupported
   // restricted-key reads always stay not_readable rather than treated as OFF.
-  const conf=a.paymentMethodConfiguration&&
-    spec.profile.payment_methods.includes('us_bank_account')?
+  const methods=spec.profile.payment_methods??[];
+  const conf=a.paymentMethodConfiguration&&methods.length?
     await observed(()=>sdk.paymentMethodConfigurations.retrieve(a.paymentMethodConfiguration)):null;
-  let ach=null;
+  let paymentConfig=null;
   if(conf?.ok){
-    try{ach=safeConfiguration(conf.value);}catch{ach=null;}
+    try{paymentConfig=safeConfiguration(conf.value);}catch{paymentConfig=null;}
   }
-  const achRequired=spec.profile.payment_methods.includes('us_bank_account');
-  const achGood=ach&&!ach.managedByConnect&&ach.active&&
-    ach.methods.us_bank_account?.available===true&&
-    ach.methods.us_bank_account?.preference==='on'&&
-    ach.methods.us_bank_account?.effective==='on';
-  rows.push(!achRequired?row('S9','not_applicable','This project did not require ACH'):
+  const observedMethods=paymentConfig?Object.fromEntries(methods.map(method=>{
+    const item=paymentConfig.methods[method];
+    return [method,{available:item?.available??false,
+      preference:item?.preference??null,effective:item?.effective??null,
+      ready:paymentConfig.active&&!paymentConfig.managedByConnect&&
+        item?.available===true&&item?.preference==='on'&&item?.effective==='on'}];
+  })):{};
+  const unresolved=methods.filter(method=>!observedMethods[method]?.ready);
+  const repairable=paymentConfig?.active&&!paymentConfig?.managedByConnect?
+    unresolved.find(method=>observedMethods[method]?.available===true&&
+      observedMethods[method]?.preference!=='on'):null;
+  rows.push(!methods.length?row('S9','not_applicable','Project declares no supported card or ACH requirement'):
     !a.paymentMethodConfiguration?dashboardStep('S9','needs_you',
-      'Choose exact active own TEST payment configuration','settings/payment_methods',
-      'Identify direct payment-method configuration'):
-    !ach?row('S9','not_readable','Direct Stripe payment configuration unavailable'):
-    row('S9',achGood?'done':'missing',
-      achGood?'Selected configuration reports ACH enabled; Checkout availability still requires a test':
-        'ACH preference is not verified ON for the selected direct TEST configuration',
-      {observed:{configuration:ach.id,available:ach.methods.us_bank_account?.available??null},
-        ...(!achGood&&!ach.managedByConnect&&ach.active&&
-          ach.methods.us_bank_account?.available===true?
-          {repair:{kind:'ach',nativeTool:'account_update_payment_method_settings',
-            args:{configuration:ach.id,method:'us_bank_account',preference:'on'}}}:{})}));
+      'Choose exact active own TEST payment configuration for all declared methods',
+      'settings/payment_methods','Identify direct payment-method configuration'):
+    !paymentConfig?row('S9','not_readable','Direct Stripe payment configuration unavailable'):
+    row('S9',unresolved.length?'missing':'done',
+      unresolved.length?'One or more required card/ACH methods are not verified available and ON':
+        'Every required card/ACH method is available, preferred ON and effective ON; verify Checkout separately',
+      {observed:{configuration:paymentConfig.id,methods:observedMethods},
+        ...(repairable?{repair:{kind:repairable==='us_bank_account'?'ach':'card',
+          nativeTool:'account_update_payment_method_settings',
+          args:{configuration:paymentConfig.id,method:repairable,preference:'on'}}}:{})}));
   const targetPortal=a.portalConfiguration?
     await observed(()=>sdk.billingPortal.configurations.retrieve(a.portalConfiguration)):null;
   let portal=null;
@@ -256,9 +280,12 @@ async function readiness(a,ctx){
   rows.push(dashboardStep('S12','needs_you',
     'Separate LIVE webhook/secret delivery cannot be inferred from TEST','webhooks',
     'After LIVE approval, configure exact seven events and store signing secret privately'));
-  rows.push(dashboardStep('S13','needs_you',
-    'Owner must verify restricted-key permissions for app-owned resources',
-    'apikeys','Tick only required read/write permissions; no key bytes through chat'));
+  rows.push(row('S13','needs_you',
+    'Owner must verify the exact declared read/write restricted-key permissions in Stripe Dashboard',
+    {settingsUrl:dashboard+'apikeys',
+      ownerAction:'Create or inspect app key using exactly these permissions; never share secret bytes in chat',
+      requiredPermissions:permissionList(spec.profile.key_permissions),
+      permissionVerification:'not_verified'}));
   rows.push(dashboardStep('S14','needs_you','Phone card-not-present acceptance may need Stripe support',
     'account','Confirm phone payment support and separate fraud procedures'));
   rows.push(dashboardStep('S15','needs_you','Payout destination and schedule require private owner verification',
@@ -333,7 +360,9 @@ function fixWrite(){
         paymentMethodConfiguration:a.paymentMethodConfiguration},ctx);
       return report.rows.find(r=>r.id===a.target);
     },
-    verify:(_before,after,a)=>after?.id===a.target&&after.status==='done'
+    verify:(_before,after,a)=>after?.id===a.target&&
+      (after.status==='done'||(a.target==='S9'&&
+        after.observed?.methods?.[target?.args?.method]?.ready===true))
   });
 }
 const write=fixWrite();
