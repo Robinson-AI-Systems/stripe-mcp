@@ -9,7 +9,6 @@ const bad=x=>{throw new TypeError(x);};
 const bo={type:'boolean'},reqKey={type:'string',minLength:1,maxLength:128};
 const schema=(p,r=[])=>({type:'object',properties:p,required:r,additionalProperties:false});
 const acct=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
-const projectId=x=>typeof x==='string'&&/^[a-z][a-z0-9-]{2,63}$/.test(x);
 const json=r=>{
   try{return JSON.parse(r?.content?.[0]?.text);}catch{return null;}
 };
@@ -59,7 +58,7 @@ function portalWrite(){
       await verified(ctx);
       return {id:ctx.connection.stripeAccount,metadata:{}};
     },
-    summarize:(b,a)=>'TEST '+b.id+
+    summarize:(b)=>'TEST '+b.id+
       ': create one independent native Billing Portal configuration with explicit four-choice policy.'+
       ' Guarded confirmation, stable request key and provider readback; no LIVE or app policy activation.',
     apply:async(a,ctx,{idempotencyKey})=>{
@@ -131,6 +130,8 @@ function setupWrite(){
       if(existing?.status==='active'||existing?.status==='disabled')
         bad('Existing activated or disabled application cannot be replaced by project setup');
       const run=await ctx.db.getProjectSetupRun({account,id:plan.profile.id});
+      if(existing?.status==='draft'&&!run)
+        bad('Existing unrelated draft must be reconciled before starting provider setup');
       if(run&&run.digest!==plan.digest)bad('Project requirements changed; reconcile original setup run');
       step=summarizePlan(plan,run).nextStep;
       if(!step)bad('This project setup is already complete; inspect its draft instead');
@@ -140,7 +141,7 @@ function setupWrite(){
         bad('Independent product readback missing; price cannot be created');
       return {id:account,metadata:{},step};
     },
-    summarize:(_before,a)=>{
+    summarize:()=>{
       return 'TEST project '+plan.profile.id+': confirm ONLY '+step+
         ' of '+plan.steps.join(' → ')+'. Other steps need separate confirmation.'+
         ' Pending provider outcomes cannot be automatically replayed; draft never activates ownership.';
