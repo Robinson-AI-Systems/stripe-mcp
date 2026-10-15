@@ -172,7 +172,8 @@ describe('W-4 guarded customer cancellation workflow',()=>{
     f.invoices[0].customer='cus_OTHER123';
     const p=parse(await f.call('workflow_cancel_customer',{
       customerId:C,timing:'period_end',voidOpenInvoices:true}));
-    expect(p.steps).toHaveLength(1);
+    expect(p).toMatch(/foreign customer/);
+    f.invoices[0].customer=C;
     f.subs[0].status='canceled';
     expect((await f.call('workflow_cancel_customer',{
       customerId:C,timing:'period_end'})).isError).toBe(true);
