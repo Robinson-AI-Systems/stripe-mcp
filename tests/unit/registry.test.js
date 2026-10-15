@@ -66,9 +66,16 @@ describe('tool registry', () => {
       'event_list','event_get','event_list_undelivered',
       'webhook_list','webhook_get','webhook_add_events','webhook_remove_events','webhook_create','webhook_update','webhook_delete','webhook_check_signature','account_get','account_list_capabilities','account_list_payment_method_settings','account_update_payment_method_settings','account_list_apple_pay_domains','account_add_apple_pay_domain','admin_list_guided_settings','admin_check_setting',
       'admin_list_requirements','stripe_admin_overview','admin_review_security',
-      'admin_fees_and_billing'
+      'admin_fees_and_billing',
+      'brand_preview_checkout','brand_get','brand_upload_image','brand_save_kit',
+      'brand_set_account_branding','brand_set_statement_descriptor',
+      'brand_set_public_details','brand_set_invoice_defaults',
+      'setup_set_card_safety','setup_set_dashboard_timezone',
+      'brand_list_invoice_templates','brand_get_invoice_template',
+      'brand_archive_invoice_template','brand_unarchive_invoice_template',
+      'brand_set_portal_look','setup_set_payout_schedule'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(94);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(101);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
