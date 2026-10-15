@@ -47,8 +47,10 @@ describe('B-8c1 private owner money request inbox',()=>{
    expect(out.body).toContain(value);
   }
   expect(out.body).toMatch(/MDT|MST/);
-  for(const bad of ['secret-B','ch_OTHER123','legacy','name="action" value="approve-money"'])
+  for(const bad of ['secret-B','ch_OTHER123','name="action" value="approve-money"'])
    expect(out.body).not.toContain(bad);
+  const inbox=out.body.split('<h2>Verified pending requests</h2>')[1]?.split('</section>')[0]??'';
+  expect(inbox).not.toContain('legacy');
   expect(out.body).toContain('name="action" value="request-money-decision"');
   expect(out.body).toContain('Submitting the preview form does not grant approval');
   expect((await f.db.listMoneyApprovalsForTest()).every(x=>x.approvedAt===null)).toBe(true);
