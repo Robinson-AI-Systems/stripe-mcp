@@ -42,6 +42,23 @@ describe('V-3 developer run handoff and truthful ledger observability',()=>{
     expect(f.seen).toEqual([['run',{account,id}],['objects',{account,id}]]);
     expect(JSON.stringify(reply)).not.toMatch(/private|token|secret/i);
   });
+  it.each([
+    ['payment_method','pm_RECORD123'],
+    ['setup_intent','seti_RECORD123']
+  ])('exposes only exact safe run-owned %s readback ID',async(type,sourceId)=>{
+    const f=fixture();
+    f.rows.splice(0,1,{step_name:type+'_1',object_type:type,
+      object_id:sourceId,cleaned:false});
+    const result=await handlers.dev_get_run({runId:id},f.ctx);
+    expect(result.isError).toBeUndefined();
+    expect(parse(result).trackedObjects[0]).toEqual({
+      step:type+'_1',type,resourceId:sourceId,cleaned:false
+    });
+    f.rows[0].object_id='sk_test_FAKE_LEAK';
+    const denied=await handlers.dev_get_run({runId:id},f.ctx);
+    expect(denied.isError).toBe(true);
+    expect(JSON.stringify(denied)).not.toContain('sk_test_FAKE_LEAK');
+  });
   it('uses the real dispatcher on read_only but refuses foreign accounts and LIVE',async()=>{
     const f=fixture();
     const permitted=await dispatchReadOnlyTool({registry,name:'dev_get_run',

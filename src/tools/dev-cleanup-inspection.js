@@ -13,6 +13,7 @@ const refs={customer:['customers','customer'],product:['products','product'],
   charge:['charges','charge'],dispute:['disputes','dispute'],
   invoice_item:['invoiceItems','invoiceitem'],refund:['refunds','refund'],
   payment_method:['paymentMethods','payment_method'],
+  setup_intent:['setupIntents','setup_intent'],
   checkout_session:['checkout.sessions','checkout.session']};
 const immutable=new Set(['charge','dispute','refund','invoice_item']);
 const providerRead=(stripe,type,id)=>{
@@ -34,6 +35,18 @@ function inspectState(row,obj,runId,scenario,rows){
     obj.metadata?.rtc_run!==runId)
     return 'unverified';
   switch(row.object_type){
+    case 'setup_intent':{
+      // Verified run-owned card setup: cancellation cleans the TEST source;
+      // success is retained immutable setup evidence, never a payment charge.
+      if(obj.livemode!==false||obj.customer!==null||
+        obj.usage!=='off_session'||!Array.isArray(obj.payment_method_types)||
+        !obj.payment_method_types.includes('card'))return 'unverified';
+      if(obj.status==='canceled')return 'cleaned';
+      if(obj.status==='succeeded')return 'retained';
+      if(['requires_payment_method','requires_confirmation','requires_action']
+        .includes(obj.status))return 'outstanding';
+      return 'unverified'; // processing/unknown cannot be cleaned or retained
+    }
     case 'payment_method':{
       if(obj.livemode!==false||obj.type!=='card')return 'unverified';
       // A recorded detached card must still be owned by the exact original
@@ -51,14 +64,38 @@ function inspectState(row,obj,runId,scenario,rows){
       return obj.status==='canceled'?'cleaned':
         typeof obj.status==='string'?'outstanding':'unverified';
     case 'invoice':
-      if(obj.status==='paid'||scenario==='event-invoice-payment-failed')
-        return 'retained';
+      // An uncollectible invoice is accounting evidence, including native
+      // invoice.marked_uncollectible; never label it pending deletion.
+      if(obj.status==='paid'||obj.status==='uncollectible'||
+        scenario==='event-invoice-payment-failed')return 'retained';
       return obj.status==='void'||obj.deleted===true?'cleaned':
-        ['draft','open','uncollectible'].includes(obj.status)?'outstanding':'unverified';
+        ['draft','open'].includes(obj.status)?'outstanding':'unverified';
     case 'payment_intent':
       return obj.status==='canceled'?'cleaned':
         obj.status==='succeeded'?'retained':
         typeof obj.status==='string'?'outstanding':'unverified';
+    case 'charge':{
+      // A Charge may carry no rtc_run metadata: verify the original durable
+      // TEST PaymentIntent and Customer linkage instead, never just its ID.
+      const pi=rows.find(r=>r.step_name==='payment_intent_1'&&
+        r.object_type==='payment_intent')?.object_id;
+      const customer=rows.find(r=>r.step_name==='customer_1'&&
+        r.object_type==='customer')?.object_id;
+      const ref=x=>typeof x==='string'?x:x?.id;
+      if(obj.livemode!==false||!pi||!customer||
+        ref(obj.payment_intent)!==pi||ref(obj.customer)!==customer||
+        obj.amount!==3600||obj.currency!=='usd'||
+        obj.paid!==true||obj.status!=='succeeded')return 'unverified';
+      return 'retained'; // financial evidence is never deleted
+    }
+    case 'dispute':{
+      const charge=rows.find(r=>r.step_name==='charge_1'&&
+        r.object_type==='charge')?.object_id;
+      const ref=x=>typeof x==='string'?x:x?.id;
+      if(obj.livemode!==false||!charge||ref(obj.charge)!==charge||
+        obj.amount!==3600||obj.currency!=='usd')return 'unverified';
+      return 'retained';
+    }
     case 'checkout_session':
       return obj.status==='expired'?'cleaned':
         obj.status==='complete'?'retained':
