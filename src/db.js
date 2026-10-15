@@ -19,7 +19,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs'
 ]);
 
 let productionSql;
