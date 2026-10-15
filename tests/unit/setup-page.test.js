@@ -539,7 +539,7 @@ describe('all owner setup workflows — private UX, isolation and safe GET',()=>
       expect(html.split('name="action" value="'+action+'"')).toHaveLength(2);
     }
     expect(html.match(/<details class="owner-group"/g)).toHaveLength(10);
-    expect(html.match(/<\/details>/g)).toHaveLength(9);
+    expect(html.match(/<\/details>/g)).toHaveLength(10);
     expect(html).toContain('id="webhook-tools"');
     expect(html).toContain('id="rtc-pass-tools"');
     expect(html).toContain('id="live-disable-tools"');
