@@ -20,6 +20,9 @@ import {invoiceFailureTypes,isInvoiceFailureEvent,verifyFailedInvoiceSource,
 import {paymentMethodEventTypes,isPaymentMethodEvent,
   verifyMethodFixture,matchesPaymentMethodEvent,ensurePaymentMethodEvent}
   from './triggers-payment-methods.js';
+import {invoiceTerminalEventTypes,isInvoiceTerminalEvent,
+  verifyTerminalInvoice,verifyTerminalItem,matchesTerminalInvoiceEvent,
+  ensureTerminalInvoiceEvent} from './triggers-invoice-terminal.js';
 import {setupIntentEventTypes,isSetupIntentEvent,verifySetupIntent,
   matchesSetupIntentEvent,ensureSetupIntentEvent}
   from './triggers-setup-intents.js';
@@ -33,7 +36,7 @@ export const triggerTypes=Object.freeze([
   'customer.created','product.created','price.created',
   'payment_intent.created','payment_intent.succeeded',...mutationTypes,...subscriptionEventTypes,
   ...invoiceEventTypes,...failedPaymentEventTypes,...disputeEventTypes,
-  ...invoiceFailureTypes,...checkoutEventTypes,...paymentMethodEventTypes,...setupIntentEventTypes
+  ...invoiceFailureTypes,...checkoutEventTypes,...paymentMethodEventTypes,...setupIntentEventTypes,...invoiceTerminalEventTypes
 ]);
 const kind={customer:'customer',product:'product',price:'price',
   payment_intent:'payment_intent',subscription:'subscription',invoice:'invoice',
@@ -66,7 +69,8 @@ export function planTrigger(a,account,{legacyInvoiceFailure=false}={}){
     typeof a.requestKey!=='string'||a.requestKey.length<1||
     a.requestKey.length>128)bad('Unsupported TEST event or retry key; use dev_list_triggers');
   const runId='run_'+hash(JSON.stringify([account,a.requestKey])).slice(0,24);
-  const types=isSetupIntentEvent(a.type)?['setup_intent']:
+  const types=isInvoiceTerminalEvent(a.type)?['customer','invoice','invoice_item']:
+    isSetupIntentEvent(a.type)?['setup_intent']:
     isPaymentMethodEvent(a.type)?['customer','payment_method']:
     isCheckoutEvent(a.type)?
     ['product','price','customer','checkout_session','payment_intent']:
@@ -134,6 +138,10 @@ function verifyFixture(plan,step,x,objects){
     verifiedDisputeObject(plan,x,objects);
   if(isInvoiceFailureEvent(plan.type)&&step.type==='invoice_item')
     verifyFailedInvoiceItem(plan,x,objects);
+  if(isInvoiceTerminalEvent(plan.type)&&step.type==='invoice_item')
+    verifyTerminalItem(plan,x,objects);
+  if(isInvoiceTerminalEvent(plan.type)&&step.type==='invoice')
+    verifyTerminalInvoice(plan,x,objects);
   if(isCheckoutEvent(plan.type)&&step.type==='checkout_session')
     verifyCheckoutSession(plan,x,objects);
   if(isCheckoutEvent(plan.type)&&step.type==='payment_intent')
@@ -151,6 +159,8 @@ function verifyFixture(plan,step,x,objects){
     if(isInvoiceFailureEvent(plan.type))
       verifyFailedInvoiceSource(plan,x,objects);
     else if(isInvoiceEvent(plan.type))verifyInvoiceFixture(plan,x,objects);
+    else if(isInvoiceTerminalEvent(plan.type))
+      verifyTerminalInvoice(plan,x,objects);
     else if(x.status!=='paid'||x.amount_paid!==0||x.currency!=='usd'||
       ref(x.customer)!==objects.get('customer_1')?.object_id)
       bad('Automatically created TEST trial invoice was not verified');
@@ -173,6 +183,7 @@ function matchingEvent(e,plan,account,target){
     matchesFailedPaymentEvent(plan,object,target)&&
     matchesPaymentMethodEvent(plan,object,target)&&
     matchesSetupIntentEvent(plan,object,target)&&
+    matchesTerminalInvoiceEvent(plan,object,target)&&
     (target.type!=='payment_intent'||(
       object.status===(isFailedPaymentEvent(plan.type)?
         'requires_payment_method':plan.type==='payment_intent.created'?
@@ -293,6 +304,15 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
           break;
         }
         case 'invoice_item':{
+          if(isInvoiceTerminalEvent(plan.type)){
+            const customer=byStep.get('customer_1')?.object_id;
+            const invoice=byStep.get('invoice_1')?.object_id;
+            if(!id(customer,'cus')||!id(invoice,'in'))
+              bad('Exact tracked TEST customer and draft invoice required');
+            made=await s.invoiceItems.create({customer,invoice,amount:3600,
+              currency:'usd',description:'Synthetic uncharged terminal TEST invoice',
+              metadata},opts);break;
+          }
           const customer=byStep.get('customer_1')?.object_id;
           const invoice=byStep.get('invoice_1')?.object_id;
           if(!id(customer,'cus')||!id(invoice,'in'))
@@ -337,7 +357,8 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
             metadata},opts);break;
         }
         case 'invoice':{
-          if(isInvoiceEvent(plan.type)||isInvoiceFailureEvent(plan.type)){
+          if(isInvoiceEvent(plan.type)||isInvoiceFailureEvent(plan.type)||
+            isInvoiceTerminalEvent(plan.type)){
             const customer=byStep.get('customer_1')?.object_id;
             if(!id(customer,'cus'))
               bad('TEST event invoice requires verified synthetic customer');
@@ -373,6 +394,9 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
         throw Error('Created TEST provider object could not be durably recorded');
       byStep.set(step.name,{step_name:step.name,object_type:step.type,
         object_id:resourceId,cleaned:false});
+    }
+    if(isInvoiceTerminalEvent(plan.type)&&step.type==='invoice_item'){
+      await ensureTerminalInvoiceEvent(s,plan,byStep,rootKey);
     }
     if(isSetupIntentEvent(plan.type)&&step.type==='setup_intent'){
       const owned=await s.setupIntents.retrieve(resourceId);
@@ -415,7 +439,7 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
     plan.steps.find(step=>step.type==='checkout_session'):
     isSubscriptionEvent(plan.type)?
     plan.steps.find(step=>step.type==='subscription'):
-    isInvoiceFailureEvent(plan.type)?
+    (isInvoiceFailureEvent(plan.type)||isInvoiceTerminalEvent(plan.type))?
     plan.steps.find(step=>step.type==='invoice'):plan.steps.at(-2);
   const targetId=byStep.get(target.name)?.object_id;
   const customer=byStep.get('customer_1')?.object_id;
@@ -478,7 +502,7 @@ export async function inspectIncompleteOriginalEvent({plan,rows,account,stripe:s
     plan.steps.find(x=>x.type==='checkout_session'):
     isSubscriptionEvent(plan.type)?
     plan.steps.find(x=>x.type==='subscription'):
-    isInvoiceFailureEvent(plan.type)?
+    (isInvoiceFailureEvent(plan.type)||isInvoiceTerminalEvent(plan.type))?
     plan.steps.find(x=>x.type==='invoice'):plan.steps.at(-2);
   const target=byStep.get(targetStep?.name);
   if(!target)return unknown('missing_recorded_source');
@@ -546,7 +570,7 @@ export async function verifyRecordedTriggerRun(a,ctx,s){
     plan.steps.find(x=>x.type==='checkout_session'):
     isSubscriptionEvent(plan.type)?
     plan.steps.find(x=>x.type==='subscription'):
-    isInvoiceFailureEvent(plan.type)?
+    (isInvoiceFailureEvent(plan.type)||isInvoiceTerminalEvent(plan.type))?
     plan.steps.find(x=>x.type==='invoice'):plan.steps.at(-2);
   const targetRow=byStep.get(targetStep.name);
   if(!targetRow||!id(targetRow.object_id,prefix[targetStep.type]))

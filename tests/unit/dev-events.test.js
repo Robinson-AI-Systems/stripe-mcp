@@ -143,6 +143,9 @@ function fixture({showEvent=false,foreign=false}={}){
       update:async(id,b,o)=>mutate('invoice',id,b,o),
       finalizeInvoice:async(id,_params,o)=>mutate('invoice',id,
         {status:get(id).amount_due===3600?'open':'paid',auto_advance:false},o),
+      voidInvoice:async(id,_params,o)=>mutate('invoice',id,{status:'void'},o),
+      markUncollectible:async(id,_params,o)=>mutate('invoice',id,{
+        status:'uncollectible'},o),
       pay:async(id,p,o)=>{
         const card=get(p.payment_method);
         if(card.object!=='payment_method'||card.customer!==get(id).customer||
@@ -271,7 +274,8 @@ describe('V-3a real TEST provider event generation',()=>{
       'invoice.payment_failed','checkout.session.completed',
       'payment_method.attached','payment_method.updated',
       'payment_method.detached',
-      'setup_intent.created','setup_intent.canceled','setup_intent.succeeded']);
+      'setup_intent.created','setup_intent.canceled','setup_intent.succeeded',
+      'invoice.voided','invoice.marked_uncollectible']);
     f.ctx.connection.mode='live';
     expect(handlers.dev_list_triggers({},f.ctx).isError).toBe(true);
     expect(handlers.dev_list_triggers({foo:true},f.ctx).isError).toBe(true);
@@ -489,6 +493,29 @@ describe('V-3a real TEST provider event generation',()=>{
       .toMatchObject({object_type:'event',object_id:'evt_FAKE123'});
     f.ctx.connection.mode='live';
     expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+  });
+  it.each(['invoice.voided','invoice.marked_uncollectible'])(
+    'requires original linked positive TEST invoice and native %s event',async type=>{
+    const f=fixture(),a=input(type),op=makeDevTriggerEventWrite();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(false);
+    const run=[...f.runs.values()][0],rows=f.ledger.get(run.id);
+    expect(rows.map(x=>x.object_type))
+      .toEqual(['customer','invoice','invoice_item']);
+    const bill=f.objects.get('in_FAKE123');
+    expect(bill.status).toBe(type==='invoice.voided'?'void':'uncollectible');
+    expect(bill.amount_due).toBe(3600);
+    expect(bill.amount_paid).toBe(0);
+    expect(bill.metadata.rtc_run).toBe(run.id);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
+    expect(f.calls.filter(x=>x.action==='mutate'&&x.type==='invoice'))
+      .toHaveLength(2);
+    f.showEvents();
+    expect(parse(await op.handler({...a,confirm:true},f.ctx)).done).toBe(true);
+    expect(f.calls.filter(x=>x.action==='create')).toHaveLength(3);
+    expect(f.calls.filter(x=>x.action==='mutate'&&x.type==='invoice'))
+      .toHaveLength(2);
+    expect(f.ledger.get(run.id).at(-1))
+      .toMatchObject({object_type:'event',object_id:'evt_FAKE123'});
   });
   it('cannot claim a verified event when a zero-value draft invoice has a foreign run tag',async()=>{
     const f=fixture({foreign:true,showEvent:true});

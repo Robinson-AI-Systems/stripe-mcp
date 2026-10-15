@@ -1,3 +1,17 @@
+### October 14 V-3 — positive TEST invoice terminal Events (SOURCE ONLY)
+
+New real `invoice.voided` and `invoice.marked_uncollectible` paths use
+separate, recorded synthetic TEST Customer, never-paid 3600-cent
+send-invoice draft and exact run-owned item. They independently verify the
+item and unpaid draft before provider finalization with auto-advance OFF,
+then perform exactly one idempotent native void or mark-uncollectible call.
+A real original Event is only accepted by bounded account/run/source/status
+Event list and retrieve. No attempt to collect funds, email the TEST customer,
+or mutate a real or app-owned invoice. The uncollectible invoice is retained
+as historical accounting evidence. Automated CI/review, checked live release
+and actual custom selected TEST provider acceptance are separate; source
+only until proven.
+
 ### October 14 V-3 — original TEST SetupIntent event lifecycle (SOURCE ONLY)
 
 Three no-charge native TEST workflows now create an audited, run-tagged
@@ -372,6 +386,17 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [],
     "status": "PENDING",
     "lastEvidence": "2026-10-14 source commit 0b85632918e508543ad3f0800c9b312017d52f7b; no validated CI, deployed or provider proof yet."
+  },
+  {
+    "id": "STRIPE-V3-INVOICE-TERMINAL-EVENTS",
+    "priority": 8,
+    "requiredRevision": "a6d73dd703473e4c342aca07b17e8aafa775a1d3",
+    "task": "Confirm genuine original TEST invoice.voided and invoice.marked_uncollectible Events from only exact synthetic run-owned no-payment invoices",
+    "procedure": "docs/pr-cards/V-3.md TEST invoice terminal source lifecycle and tests/unit/dev-invoice-terminal-events.test.js",
+    "gates": "Reviewed source and exact-head CI, checked live release, original selected-account custom MCP native TEST provider Events.list and Events.retrieve; no collection, email, money-out, LIVE or app ownership.",
+    "dependsOn": [],
+    "status": "PENDING",
+    "lastEvidence": "2026-10-14 implementation source a6d73dd703473e4c342aca07b17e8aafa775a1d3; not yet accepted by CI, deployed or genuine provider."
   }
 ]
 ```
