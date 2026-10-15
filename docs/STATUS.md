@@ -529,7 +529,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
   {
     "id": "STRIPE-E1-CATALOG-READS",
     "priority": 7,
-    "requiredRevision": "120ada23c14593680250d80f74403ad7de9db99d",
+    "requiredRevision": "cad4841c857c22ef6df5a114126af3541d07f4f8",
     "task": "Read actual standalone TEST native product and price list/get/search with selected-account identity, correct paging and app ownership",
     "procedure": "docs/pr-cards/E-1.md; custom native MCP product_list/product_get/product_search/price_list/price_get/price_search",
     "gates": "Exact-head merged E-1, checked live READY source ancestry, protected service-owned TEST full/read_only OAuth and safe provider reads. No standard Stripe connector or mock substituted; no LIVE, spending, customer PII or app mutation.",
@@ -540,7 +540,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
   {
     "id": "STRIPE-E1-CATALOG-WRITES",
     "priority": 7,
-    "requiredRevision": "120ada23c14593680250d80f74403ad7de9db99d",
+    "requiredRevision": "cad4841c857c22ef6df5a114126af3541d07f4f8",
     "task": "Preview, confirm and independently reread disposable account-scoped TEST products and lookup-key prices; repeat exact lookup without duplicate; app-owned/foreign/invalid-denial and exact safe cleanup",
     "procedure": "docs/pr-cards/E-1.md; original custom MCP product_create, price_create, product_update, product_archive/unarchive, price_update and safe deletion",
     "gates": "Original TEST full grant, exact owned disposable fixtures, independent preview/confirm and stable retry keys, selected-account native readback, recorded same-target cleanup. Never modify an application-owned catalog, move money, use LIVE or automatically retry uncertain writes.",
