@@ -87,6 +87,53 @@ While CI waits, advance the approved immediate successor; at most two unmerged P
 Follow existing REST/Sandbox fallbacks if local execution is unavailable; report actual
 Actions evidence honestly. Merge only exact-head green checks plus required reviews.
 
+### Red CI / long-running tool anti-stall loop (owner correction 2026-10-15)
+
+A red PR is immediately actionable engineering, not a reason to leave the turn,
+poll indefinitely, or switch to an unrelated bundle. The stalled P-1/P-2 PR #244
+illustrates the failure mode: CI had finished red (unit + PostgreSQL), but the
+agent repeatedly inspected enormous log/HTML output and did not convert the
+six unit failures and one database failure into a correction checkpoint.
+
+**Deterministic repair loop:**
+
+1. On session entry, query open PRs, exact head and latest *terminal* workflow
+   result before planning any new subsection. A red inherited PR takes priority.
+   Preserve main and work on the same branch; do not discard it.
+2. Fetch failing jobs **once per head** after their terminal state. Extract only
+   failing test identifiers, short assertion diff, actionable stack frame and
+   environment clue (e.g., failed `tests/db/*.test.js`). Never stream or paste
+   full HTML responses, huge JSON objects, secret values, entire CI logs, or
+   unchanged runner setup. Cap tool output to the evidence actually needed.
+3. Create a bounded failure table in the current PR/checkpoint: failing test,
+   cause, correction, proof. Distinguish a real safety/data bug from a stale
+   assertion. Fix the full related set of failures in one *logical* correction
+   batch. Preserve the original test's meaningful safety assertion (scope a
+   broad text search to the intended UI section, rather than deleting it).
+4. Avoid repeated status requests when no result could have changed. Inspect
+   in-flight CI only at a meaningful transition or after another useful coding
+   action; after terminal red, repair immediately. At most one polling pass
+   without a code or evidence change. During platform queuing, continue scoped
+   code review, affected tests, and eligible next work without inventing
+   completion or merging an unproven PR.
+5. Use focused checks locally/where an authorized shell exists, then run the
+   required exact-head full CI once after the *assembled* repair. If using
+   GitHub contents API, writes to individual files are recovery commits, **not**
+   signals to start a new release or check CI for each file. Keep the final
+   recorded head SHA, tests and unresolved review state.
+6. If the runner is inaccessible or the fix remains genuinely uncertain after
+   evidence-based attempts, record the blocker with the exact evidence and next
+   action; continue only independent roadmap work. Never call unfinished
+   engineering an external acceptance blocker or stop solely because one
+   optional provider connection is unavailable.
+7. Before work context becomes tight, leave a permanent actionable handoff in
+   the existing card/PR: main and branch SHAs, remaining failure IDs, precise
+   next code edit, tests, and separate deployed/provider/owner acceptance.
+   Do not end on an unexplained failed check or a status-only message.
+
+This loop supplements existing safety, CI and review gates; it authorizes no
+early merge, reduced test coverage, LIVE mode, provider spending or money out.
+
 ### First-pass validation and review
 
 Before the first publication of a coherent change, use the existing card/packet to
