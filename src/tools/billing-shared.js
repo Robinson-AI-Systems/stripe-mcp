@@ -40,10 +40,29 @@ export async function guarded(ctx,fn){
   try{return reply(await fn(await client(ctx)));}
   catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
 }
+// Only expanded native discount/coupon facts enter recurring-revenue math.
+// An unresolved Stripe ID becomes a verified:false sentinel, not a zero discount.
+export function discountSafe(v){
+  const coupon=v?.coupon;
+  if(v?.object!=='discount'||coupon?.object!=='coupon'||v.livemode===true||
+    coupon.livemode===true)return {verified:false};
+  return {verified:true,endUnix:v.end??null,duration:coupon.duration??null,
+    percentOff:coupon.percent_off??null,
+    amountOffMinor:coupon.amount_off??null,currency:coupon.currency??null};
+}
+export function discountList(v){
+  if(v===null||v===undefined)return [];
+  if(!Array.isArray(v))return [{verified:false}];
+  return v.map(discountSafe);
+}
+
 export function itemSafe(item){
   return {id:item.id,subscription:ref(item.subscription),
     price:ref(item.price),quantity:item.quantity??null,
     unitAmountCents:item.price?.unit_amount??null,currency:item.price?.currency??null,
+    billingScheme:item.price?.billing_scheme??null,
+    usageType:item.price?.recurring?.usage_type??null,
+    discounts:discountList(item.discounts),
     recurring:item.price?.recurring?{interval:item.price.recurring.interval,
       intervalCount:item.price.recurring.interval_count??1}:null,
     currentPeriodStart:local(item.current_period_start),
@@ -60,6 +79,7 @@ export function subscriptionSafe(sub){
     canceledAt:local(sub.canceled_at),endedAt:local(sub.ended_at),
     pauseCollection:sub.pause_collection?.behavior??null,
     items:(sub.items?.data??[]).map(itemSafe),
+    discounts:discountList(sub.discounts??(sub.discount?[sub.discount]:[])),
     moreItems:sub.items?.has_more===true,
     metadata:sub.metadata??{},description:sub.description??null};
 }
