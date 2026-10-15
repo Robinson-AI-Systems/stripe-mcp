@@ -35,7 +35,7 @@ describe('B-3 default-deny app ownership guard',()=>{
     const answer=unpack(await x.op.handler({confirm:true},x.ctx));
     expect(answer.done).toBe(false);
     expect(answer.reason).toContain('agr_123');
-    expect(answer.reason).toContain('/desk/rentals');
+    expect(answer.reason).toContain('/desk/agreements');
     expect(x.calls.written).toBe(0);
     expect(await x.db.listAuditForTest()).toHaveLength(0);
   });

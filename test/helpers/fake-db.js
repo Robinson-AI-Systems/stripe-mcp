@@ -1,3 +1,4 @@
+import {APP_SEED,validateProfile} from '../../src/apps/profiles.js';
 // Test-only fake that mirrors the A-2 schema and A-3 OAuth store behavior.
 import { SCHEMA_TABLES, connectionSettings } from '../../src/db.js';
 import { hashToken } from '../../src/core/oauth.js';
@@ -21,6 +22,9 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const approvals = [];
   const results = new Map();
   const brandKits = new Map();
+  const knownApps=new Map([['appliance-desk',{id:'appliance-desk',
+    name:APP_SEED.name,status:'active',profile:structuredClone(APP_SEED),version:1}]]);
+  const appScopes=new Map();
   const decisionIntents = [];
   const liveIntents = [];
   const revokeIntents = [];
@@ -28,6 +32,40 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const defaultIntents = [];
   const limitIntents = [];
   return {
+    async getKnownApp(id){
+      const row=knownApps.get(id);return row?structuredClone(row):null;
+    },
+    async listKnownApps(){return [...knownApps.values()].map(x=>structuredClone(x));},
+    async listKnownAppsForAccount(account){
+      if(!accountRows.has(account))return [];
+      return [...knownApps.values()].filter(x=>x.status==='active'&&
+        x.profile.stripe_accounts.includes(account)).map(x=>structuredClone(x));
+    },
+    async getAppGuardScope(account){return appScopes.get(account)??'legacy';},
+    async bindKnownAppAccount({id,account,expectedVersion,attach=true}){
+      const record=knownApps.get(id);
+      if(!accountRows.has(account)||!record||record.status!=='active'||
+        record.version!==expectedVersion)
+        throw new Error('App binding revision changed or account missing');
+      const accounts=record.profile.stripe_accounts;
+      const updated=validateProfile({...record.profile,stripe_accounts:attach?
+        [...new Set([...accounts,account])]:accounts.filter(v=>v!==account)});
+      const next={...record,version:record.version+1,profile:structuredClone(updated)};
+      knownApps.set(id,next);return structuredClone(next);
+    },
+    async enableScopedAppGuard({account,expectedScope='legacy'}){
+      if(!(await this.listKnownAppsForAccount(account)).length)
+        throw new Error('Owner scope change not verified: no active application binding');
+      if(!accountRows.has(account)||appScopes.get(account)&&
+        appScopes.get(account)!==expectedScope)
+        throw new Error('Scope change unavailable');
+      appScopes.set(account,'scoped');return 'scoped';
+    },
+    async seedTestAppProfile(profile){
+      const validated=validateProfile(profile);
+      knownApps.set(validated.id,{id:validated.id,name:validated.name,
+        status:'active',profile:structuredClone(validated),version:1});
+    },
     async getBrandKit({account,mode}){
       const record=brandKits.get(account+'|'+mode);
       return record?structuredClone(record):null;
