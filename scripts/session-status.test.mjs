@@ -77,6 +77,13 @@ test('real git refs and ancestry drive the offline CLI without network/mutations
     assert.match(output, /remaining approved/);
     assert.match(output, /PR planning averages: 400–800 changed production lines and 2–5/);
     assert.match(output, /FIRST DEPLOYED_CANDIDATE_CHECK_GATES/); assert.match(output, /SECOND WAIT_RELEASE_OR_FETCH_HISTORY/); assert.match(output, /Latest observed PR: #104 \(informational only/); assert.doesNotMatch(output, /Next session boundary/);
+    const closeout=run(root,['--post-merge','247','--deployed',first,'--state','READY']);
+    assert.match(closeout,/POST-MERGE CLOSEOUT for PR #247/);
+    assert.match(closeout,/FINAL MERGED HANDOFF/);
+    assert.match(closeout,/re-evaluate EVERY acceptance row against deployed ancestry/);
+    assert.match(closeout,/not automated attestations/i);
+    assert.throws(()=>run(root,['--post-merge','not-a-pr']));
+    assert.throws(()=>run(root,['--post-merge','0']));
     assert.equal(git('status', '--porcelain'), before);
     assert.match(run(root, []), /VERIFY_DEPLOYMENT/);
     assert.throws(() => run(root, ['--deployed', first])); assert.throws(() => run(root, ['--deployed', first, '--state', 'FAKE'])); assert.throws(() => run(root, ['--latest-pr', '1.5']));
