@@ -1,0 +1,47 @@
+{
+  "subsections": [
+    {
+      "id": "W-3",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "workflow_refund_customer resolves one exact, refundable TEST USD charge from a customer and plain description or exact charge ID; ambiguity, partial reads, ownership mismatch, unsettled and overrefunded charges fail closed.",
+          "evidence": "Native guarded customer_get and charge_get/charge_list scans select only a unique paid, succeeded, uncontested USD charge; remaining cents based strictly on original amount_refunded. W-3 unit tests exercise exact ID, natural-language single match, wrong customer/currency, ambiguous, missing and capped 10-page reads."
+        },
+        {
+          "criterion": "One provider-derived preview shows real refundable remainder, requested amount and refund reason; a confirmed call delegates only to the native guarded refund, which independently enforces explicit owner money-out approval, daily cap, app refund exception, original idempotency and readback.",
+          "evidence": "Plan token hashes exact account, customer and charge financial facts; native guarded payment_create_refund dryRun before preview and full confirm only with matching token and stable requestKey. Existing payment_create_refund enforces independent owner money-out approval, daily account cap, app-owned refund exemption, original audit/readback. W-3 unit no-owner-grant case proves no refund provider operation."
+        },
+        {
+          "criterion": "No consent, stale preview, mixed currencies, duplicate/ambiguous description, profile/LIVE refusal, uncertain outcome and payment secrets are explicitly tested; no direct Stripe refund SDK in workflow.",
+          "evidence": "W-3 adversarial cases added for profile/LIVE/audit refusal, no confirmation, stale changed refund remaining, over-limit, foreign/currency refusal and 1001-result partial scan. Customer/action workflow code contains no direct Stripe SDK calls, and missing native guarded write refuses."
+        }
+      ]
+    },
+    {
+      "id": "W-4",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "workflow_cancel_customer resolves exact eligible TEST subscription for verified customer (unique or exact ID), supports period-end or now, with explicit immediate invoiceNow/prorate, and optionally plans verified refund and void of all bounded open unpaid invoices.",
+          "evidence": "Native guarded customer_get + bounded billing_list_subscriptions selects one eligible linked customer subscription; supports now/period-end with explicit choices and optional exact customer refund and at most 5 original open manual USD invoice voids. W-4 test confirms full plan before changes."
+        },
+        {
+          "criterion": "One immutable preview fingerprints the complete actual customer/subscription/refund/open-invoice action list and obtains each native guarded child preview before any execution; all subwrites recheck their own provider guards and explicit owner approvals and use distinct request keys.",
+          "evidence": "One SHA-256 token of selected original provider facts, sequential native dryRun for payment_create_refund, billing_cancel_subscription, invoice_void, with fresh provider re-read at confirmation. Child handlers carry per-action own confirm, stable suffix request key, money-out/credit approval, scope and owner gates. No direct SDK call in workflow."
+        },
+        {
+          "criterion": "Confirmed execution stops on first denied, unconfirmed or uncertain child and reports exact completed and remaining steps for manual reconciliation; app guard and no money-out bypass, no automatic retries, no LIVE, no false atomicity or source/provider success claims.",
+          "evidence": "On denied or unconfirmed child, returns done:false with completedSteps, failedStep, remainingSteps and no retries. W-4 test covers native no-owner-grant stopping before cancel, multiple subs/selection, subscription status and foreign invoices, invoice eligibility and immediate invoice choices. No LIVE mode; source/CI proof distinct from real provider acceptance."
+        }
+      ]
+    }
+  ],
+  "productionAdded": 284,
+  "productionRemoved": 1,
+  "newEngineering": "Two newly registered guarded native-composite TEST workflows for original approved W-3 refund and W-4 cancel, strict finance/customer identity and complete planning, native child preflight/approval/delegation, stale-plan SHA-256 and no uncertain replay, plus focused adversarial unit tests, registry, catalog and original-source acceptance rows.",
+  "planComparison": "Frozen plan estimated 650 meaningful production additions; actual measured first complete source diff is 284 additions and 1 deletion (285 changed) using the existing production native guarded and money-reservation write handlers rather than duplicating them. Two full original approved original subsections W-3 and W-4 assembled into one coherent safety-critical outcome, with native TEST acceptance separately queued for release. No padding or recounting W-1/W-2.",
+  "relatedWorkDecision": "Adjacent W-3/W-4 done together as one protected customer-action capability. Reuse W-1/W-2 reads without recounting. W-5 new billing plan change is a distinct approved next subsection, not part of this delivery.",
+  "decision": "SUBSTANTIAL_EXCEPTION",
+  "exceptionEvidence": "Two whole predefined medium-sized W subsections, not technical micro-slices: one customer-specific financial refund and one multi-action cancellation/optional refund/invoice void, including account/customer scope, real provider-verified discovery, native guarded preview, per-child original money-out owner approval, stable plan token, idempotency, partial/outcome-denial and adversarial tests. Only 285 changed production lines because existing source-defined money/audit/app/Stripe write-contract safety is deliberately reused rather than reimplemented; no filler."
+}
