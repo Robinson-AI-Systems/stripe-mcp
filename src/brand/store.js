@@ -15,7 +15,7 @@ export function validateBrandKit(input){
     Object.keys(input).some(k=>!allowedKeys.includes(k)))
     throw new TypeError('Brand kit must contain only supported presentation fields');
   const s={};
-  for(const [k,v] of Object.entries(input)){
+  for(const [k,v] of Object.entries(input).sort(([a],[b])=>a.localeCompare(b))){
     if(v===null){s[k]=null;continue;}
     if((k==='backgroundColor'||k==='buttonColor')&&!hex(v))
       throw new TypeError('Brand colors must be six-digit hex values');
@@ -94,7 +94,9 @@ export function createBrandKitStore(sql){
       if(rows.length)return {settings:validateBrandKit(rows[0].settings),
         version:Number(rows[0].version),updatedAt:rows[0].updated_at};
       const after=await this.getBrandKit({account,mode});
-      if(after&&JSON.stringify(after.settings)===value)return after;
+      if(after&&Object.keys(after.settings).length===Object.keys(canonical).length&&
+        Object.entries(canonical).every(([key,v])=>after.settings[key]===v))
+        return after;
       throw new Error('Brand kit revision changed; refresh before saving again');
     }
   };
