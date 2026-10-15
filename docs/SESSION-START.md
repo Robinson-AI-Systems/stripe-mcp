@@ -221,6 +221,31 @@ changes reopen affected proof. NEVER copy credentials/private fixture IDs into t
 
 ## 5. Checkpoint and finish
 
+### Required post-merge closure (anti-stall; October 15)
+
+After an exact-head gated merge, immediately complete the **finite closeout**:
+(1) record merge SHA, branch/main head, exact-head CI/target-main/review outcome;
+(2) reread actual main/live plus READY deployed revision and investigate any
+unexpected release/drift without violating daily checked promotion;
+(3) re-evaluate every outstanding acceptance item's own minimum revision
+against live and run every authorized eligible native/owner/Hub check, recording
+specific external prerequisites for the rest;
+(4) verify STATUS/card/index as-if-merged evidence, open PR/branch cleanup,
+and permanent owner decisions;
+(5) add `FINAL MERGED HANDOFF` on the already merged PR with next subsection,
+remaining acceptance and its next action. **No new PR or end of session between
+merge and that final handoff.** Do not download enormous comparisons or
+repeatedly poll terminal workflows. `npm run session:status -- --post-merge 247`
+prints the bounded non-attesting checklist; use independent GitHub/Vercel
+observations for actual proof. If a tool fails, isolate and investigate it,
+leave a precise recoverable checkpoint, and continue independent obligations.
+
+This corrects the observed PR #247 stall after successful merge; it is
+*not* an authorization to create a documentation-only PR, promote live out
+of schedule, activate LIVE, or claim a custom TEST acceptance pass from CI.
+
+
+
 **Remaining-work visibility.** Run `npm run session:status` for current
 roadmap counts and unfinished IDs in approved order alongside the separate
 release acceptance queue. Counts describe the existing index/ledger's coarse
