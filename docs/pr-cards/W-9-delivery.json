@@ -1,0 +1,54 @@
+{
+  "subsections": [
+    {
+      "id": "W-9",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "workflow_month_end_close accepts exact Colorado month, verifies date boundaries and paged native TEST balance transactions and multi-currency totals, preserves incomplete errors and reports only real provider-generated async report statuses.",
+          "evidence": "Original registered workflow_month_end_close composes original native workflow_money_snapshot using exact inclusive Colorado YYYY-MM month and explicit start/end UTC seconds, reports TEST balance moneyFlowsByCurrency, gross/fees/net, complete/moneyFlowsComplete and original gaps with no currency mixing; separately reads original report_get_run plus report_get_result_file only if exact run interval matches. tests/unit/workflow-finalization.test.js uses real September USD/EUR minor units and checks no new report request."
+        },
+        {
+          "criterion": "Month-end provider report creation uses original guarded TEST report_run, explicit original report_type and interval availability, distinct preview/confirm/idempotent request; succeeded results expose only private owner-browser handoff and verified resultFileId, never a public CSV/content URL.",
+          "evidence": "Original workflow_month_end_report requires complete native report_list_types and provider available range, gets native original report_run dry-run, signs full selected type/period/preview, individually confirms original defineWrite through stable key, fetches run status/readback; workflow_month_end_close inspects only original fileId after success. Finance_report_run original private owner-only browser delivery is named, downloadUrl/public URL null; pending remains pending. Positive TEST fake provider native report.create/readback and pending tests, 0 unapproved money/CSV."
+        },
+        {
+          "criterion": "workflow_set_up_catalog safely plans and confirms new TEST product/lookup-key price through original native guarded product_create and price_create, verifies existing exact lookup for no duplicate and retains app-owned/catalog policy, partial/uncertain receipts and repeat-run reuse.",
+          "evidence": "Original workflow_set_up_catalog uses unique bounded original product_search or exact product_get, native price_list lookupKey compare and original native product_create then separate independently reviewed native price_create (not automatically chaining financial terms after new product), exact provider source readback, stable original native idempotency/requestKey, app profile owner guard and no retry after uncertain result. Positive fake Stripe full product.create/price.create and repeat exact lookup produces no writes; LIVE denial test. Extra confirmation is deliberate native provider safety."
+        },
+        {
+          "criterion": "workflow_find supports bounded selected native TEST customer, invoice, payment, charge, product, price queries with complete cursor handling, multi-page/empty/invalid query/permission/timeout cases without private payloads or hidden cross-account reads.",
+          "evidence": "Original workflow_find chooses exact six authorized original registry searches with bounded Stripe provider query, typed validated limit and maxPages, correct search page cursors with nonadvancing/duplicate/time/restricted-key gaps, safe original provider projections only. Tests simulate two original provider pages, denial and unsupported query; no direct Stripe requests."
+        }
+      ]
+    },
+    {
+      "id": "W-10",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "workflow_brand_business reads verified TEST account kit, public settings, uploaded logo/icon, exact profile ownership and consistent desired brand choices, plans every logo/icon/color/descriptor/details/invoice-default/portal action with done or needs_you and safe Dashboard verification steps.",
+          "evidence": "Original workflow_brand_business selected TEST full-only account calls native brand_get verified revision/checkoutDefaults/accountBranding, safe owner-setting guide readers for account branding (logo/icon/colors), statement descriptor, public details and invoice defaults, plus original portal_get_configuration safe appearance read and exact profile ownership through native write target guards. Every guide returns done/needs_you with Dashboard steps, no fabricated own-account setting mutation; brandKit values validated by original validateBrandKit. Documented public asset import remains original brand_upload_image, never binary in workflow."
+        },
+        {
+          "criterion": "Only eligible native TEST brand kit/portal/brand_preview_checkout guarded writes can execute after fresh whole-plan token and stable user confirmation; original independent native owner/app guards and readback/idempotency preserved, no app-created pages touched, no raw image/secret bytes or LIVE credential access.",
+          "evidence": "Original W-10 source composes only native brand_save_kit and brand_set_portal_look followed by native brand_preview_checkout. Each separately previewed native defineWrite-v1, whole tested source/kit/portal state SHA token and confirm/requestKey, returns verified partial-step result and forces independent new preview for following stage; brand_get revision same means no redundant kit save. Existing TEST full-owner original custom workflow discovery whitelist and hard LIVE/read_only/everyday denial tested; app-created pages untouched. Generic guarded receipts only accept exact cs_test checked Stripe family when original native readback has confirmed it."
+        },
+        {
+          "criterion": "The workflow ends with verified TEST hosted Checkout link for exact owned TEST customer/price only when the guarded original native result actually returned it; repeat execution with unchanged kit/config does no redundant provider writes, incomplete owner Dashboard steps remain unmet instead of inventing completion.",
+          "evidence": "Original TEST customer_get, price_get and checkout_create_payment_link_for_customer native guard accept only original full-owner non-app selected USD active one-time price and owner-configured hosted return URLs, original Checkout Session create/readback returns verified safe resource ID and URL; prior exact sessionId is optionally verified against customer/price via native checkout_get and complete checkout_list_line_items for a no-write repeat. Owner Dashboard-only settings remain needs_you rather than fake done. tests/unit/workflow-finalization.test.js positive live-shaped TEST fake Checkout create and safe replay."
+        },
+        {
+          "criterion": "Positive synthetic provider-shaped accepted brand kit and hosted TEST Checkout success, repeated run zero redundant changes, stale version/foreign app/partial native failures, unsupported Dashboard-only settings and missing TEST inputs are exercised.",
+          "evidence": "Provider-shaped original registry TEST fixtures cover versioned brand_save_kit write/readback and no redundant repeat, guided owner-only setting remains needs_you, guarded checkout create+readback and explicit session reuse with no extra writes, plus LIVE refusal. Tests/unit/profiles.test.js proves whitelist names exposed ONLY to TEST full owner and not generic unknown, read_only, everyday or LIVE. Full head check/unit/mock/db/RTC/core/target-main required prior merge; real protected selected-account acceptance remains separately source-pinned PENDING."
+        }
+      ]
+    }
+  ],
+  "productionAdded": 560,
+  "productionRemoved": 4,
+  "newEngineering": "Original approved W-9/W-10: native owner-safe month-end close + report lifecycle and private browser handoff, guarded two-stage complete catalog product/immutable lookup price, six-type bounded original provider search, TEST account branding plan/owner guidance and stagewise native guarded kit/Portal/Checkout, hosted cs_test receipt and strict replay verification. Original shared TEST full-owner workflow dispatch boundary and actual accurate public tool schemas enable all W3-W10 guarded workflow callers with unchanged account, audit, money and LIVE gates.",
+  "planComparison": "Frozen pre-code W-9/W-10 full original outcome estimated 850 production changes; independently measured exact source 560 added/4 removed (564 meaningful source changes), TWO predefined whole approved subsections with original 8 acceptance criteria, excluding tests/docs/fixtures/generated. No W-1 to W-8 source or reused evidence counts as new. Lower size reflects original native G/H/P/E/D helpers safely reused, not missing intended semantics. User-safe provider acceptance stays PENDING until normally checked READY revision and owner-owned fixtures.",
+  "relatedWorkDecision": "W-9 and W-10 are original final two Batch W entries; no invented new subsection labels. W-9 catalog is safely two separate confirmations because its newly created product cannot be included in original provider price_create preflight before product exists; original owner may finish both distinct approved native steps in sequence. W-10 private account Dashboard settings retain needs_you for actual owner choice, LIVE and profiled-app pages never edited. Next roadmap after Batch W is U-1, with V/G external acceptance separate.",
+  "decision": "SUBSTANTIAL"
+}
