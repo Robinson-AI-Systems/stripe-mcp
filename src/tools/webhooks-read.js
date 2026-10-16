@@ -1,4 +1,5 @@
 // G-4b: never expose webhook signing secrets or URL bearer-bearing paths.
+import {createHash} from 'node:crypto';
 import {guarded,fail,allProfiles,paging,pageResult,local} from './billing-shared.js';
 const invalid=m=>{throw new TypeError(m);};
 const validId=x=>typeof x==='string'&&/^we_[A-Za-z0-9]{2,100}$/.test(x);
@@ -97,7 +98,13 @@ export const handlers={
       const v=await s.webhookEndpoints.retrieve(a.endpointId);
       if(v?.id!==a.endpointId)invalid('Webhook endpoint ID mismatch');
       const projected=webhookSafe(v,{detail:a.detail,select:a.fields});
-      return {...projected,
+      // Exact opaque revision pins the COMPLETE underlying provider set and
+      // destination without publishing the private endpoint URL/path.
+      const subscriptionRevision=createHash('sha256').update(JSON.stringify({
+        id:v.id,status:v.status,url:v.url,
+        events:[...v.enabled_events].sort(),created:v.created
+      })).digest('hex');
+      return {...projected,subscriptionRevision,
         ...(a.requiredEvents?{eventCoverage:{wildcard:v.enabled_events.includes('*'),
           requirements:a.requiredEvents.map(event=>({event,
             covered:v.enabled_events.includes('*')||v.enabled_events.includes(event)})),
