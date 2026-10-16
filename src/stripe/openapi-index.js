@@ -106,7 +106,8 @@ export function validateSchema(input,source,{depth=0,root=null}={}){
     for(const [key,value] of Object.entries(input)){
       if(!/^[A-Za-z0-9_\-]{1,100}$/.test(key)||['__proto__','constructor','prototype'].includes(key))
         bad('Unsafe nested parameter name');
-      const prop=props[key];
+      const prop=props[key]??(depth>0&&typeof schema.additionalProperties==='object'?
+        schema.additionalProperties:null);
       if(!prop)bad('Unknown pinned OpenAPI parameter '+key);
       out[key]=validateSchema(value,prop,{depth:depth+1,root});
     }
