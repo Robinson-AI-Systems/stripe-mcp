@@ -35,6 +35,7 @@ const quoteSafe=(raw,label)=>{
     Math.abs(raw.invoiceTotalCents)>100000000||
     (raw.amountDueCents!==null&&raw.amountDueCents!==undefined&&
       !Number.isSafeInteger(raw.amountDueCents))||
+    raw.prorationLinesComplete!==true||
     !Array.isArray(raw.prorationLines)||raw.prorationLines.length>100||
     raw.prorationLines.some(l=>!integer(l.amountCents))||
     !['none','create_prorations','always_invoice'].includes(raw.prorationBehavior)||
@@ -90,6 +91,10 @@ async function createPlan(a,ctx,end){
     item.unitAmountCents<0||item.billingScheme!=='per_unit'||
     item.usageType!=='licensed'||!item.recurring)
     throw new TypeError('Complete fixed recurring USD item required');
+  if((a.priceId!==undefined&&a.priceId===item.price&&
+    (a.quantity===undefined||a.quantity===item.quantity))||
+    (a.priceId===undefined&&a.quantity===item.quantity))
+    throw new TypeError('Plan price and quantity are unchanged');
   if(a.quantity!==undefined&&(!Number.isSafeInteger(a.quantity)||
     a.quantity<1||a.quantity>100000))
     throw new TypeError('Invalid desired quantity');
