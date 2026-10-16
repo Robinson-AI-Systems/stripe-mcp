@@ -178,6 +178,10 @@ export const handlers={
   }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}},
   api_read:async(a,ctx)=>{try{return reply(await read(a,ctx));}
     catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}},
-  api_write:(a,ctx)=>ctx?.connection?.mode==='test'&&ctx.connection.profile==='full'?
-    makeWrite().handler(a,ctx):gone('Only full original TEST account with native guarded approval')
+  api_write:async(a,ctx)=>{
+    if(ctx?.connection?.mode!=='test'||ctx.connection.profile!=='full')
+      return gone('Only full original TEST account with native guarded approval');
+    try{return await makeWrite().handler(a,ctx);}
+    catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
+  }
 };
