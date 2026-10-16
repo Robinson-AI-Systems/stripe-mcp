@@ -71,6 +71,7 @@ async function close(a,ctx){
     flowsByCurrency:snap.moneyFlowsByCurrency,
     noCurrencyConversion:true,transactionCount:snap.balanceTransactionCount,
     recurringAtReportTime:snap.recurring,
+    recurringAsOf:'read_time_not_historical_month_end',
     mrrComplete:snap.mrrComplete===true,gaps:snap.gaps??[],
     report,reportReady:report?.privateExport.available===true,
     nextAction:!snap.complete?'Resolve original provider pagination/permissions before close':
