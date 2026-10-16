@@ -39,7 +39,10 @@ export function publicToolInfo(tool) {
   const properties={...schema.properties};
   // Keep legacy specialist shapes unchanged. Generic read tools gain the
   // standard detail and dotted-field controls without hand-editing each tool.
-  if(tool.writes===false){
+  // Workflow readers intentionally have strict, task-specific inputs.
+  // Do not advertise phantom detail/fields arguments that their original
+  // validator rejects; keep universal controls on native readers only.
+  if(tool.writes===false&&!tool.name.startsWith('workflow_')){
     if(!Object.hasOwn(properties,'detail'))properties.detail={
       type:'string',enum:['summary','full'],description:'Summary by default; full retains all safe fields'};
     if(!Object.hasOwn(properties,'fields'))properties.fields={
