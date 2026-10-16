@@ -30,7 +30,8 @@ export function isGuardedTestWrite(tool,connection){
     tool?.writeContract==='defineWrite-v1'&&
     (guardedTestAreas.has(tool.area)||
       (tool.area==='workflows'&&connection?.profile==='full'&&
-        fullOwnerWorkflowWrites.has(tool.name)))&&
+        fullOwnerWorkflowWrites.has(tool.name))||
+      (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
