@@ -1,3 +1,7 @@
+### October 15 — closing original Batch W with W-9/W-10 source and mandatory external acceptance separation
+
+Original approved W-9/W-10 end-of-Batch-W plan frozen pre-code in `docs/pr-cards/W-9.md` commit `c5a61593c0e345d37a998769e93fe5a5402658c4` against verified actual main `8b482f15ae4d9cd74851395c0e4198f57c889a42`. Four protected original-provider validations newly queued for selected custom TEST monthly-close/report, catalog setup, bounded find and business branding/Checkout. Original 9 PASSED preserved; now **42 total, 9 PASSED, 33 PENDING**. Existing 13 newer-source dependent rows still await checked READY promotion and 16 source-deployed rows remain gated by genuine original provider fixtures/owner OAuth/Dashboard/signed webhooks/Hub. All source/mock tests alone do NOT pass provider acceptance. No real Stripe account write, money-out, LIVE activation, public financial CSV link or manual release authorized.
+
 ### October 15 — original W-6/W-7/W-8 substantial operator-completion bundle: source in progress
 
 Actual baseline main `769a2fac1f8357481e270229b8c5021240137d33`, live Vercel READY `157acab51f59ac9ce9ed0439b68e4f3f41489af2`, 0 open PRs at startup, prior permanent #257 handoff independently read. All previously passed nine original provider checks preserved, 26 previously pending tasks retained exactly. Original approved W-6 dispute kit/draft, W-7 exact TEST webhook health/safe repair and W-8 honest 21-row app go-live checklist frozen before engineering in `docs/pr-cards/W-6.md` at `8d0c605683a314533ac2a6c40dfc1d65d97a94b8`. Protected native read delegated; direct Stripe SDK calls in workflows prohibited; original `dispute_save_evidence` and `webhook_add_events` ONLY original native writes, bank submission, LIVE and app-owned catalog copying explicitly excluded. New provider acceptance records separately PENDING until checked READY deployment and original protected provider fixtures. **Queue 9 PASSED / 29 PENDING / 38 total** (13 source-not-yet-deployed = earlier 10 plus new three; 16 other source-deployed but owner/fixtures/external conditions remain). No real provider mutation, money movement, autonomous spending or manual release authorized. CI/merge not acceptance.
@@ -779,6 +783,50 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "procedure": "docs/pr-cards/W-8.md; original custom selected-account TEST profile list, workflow_app_readiness P-3 per bound app, original live mode sentinel confirming no LIVE provider query, no catalog write; separate owner Dashboard LIVE parity acceptance deferred",
     "gates": "Checked READY source/live ancestry, original custom TEST read grant with selected bound app fixture; LIVE switch disabled, owner production consent absent, no inferred copy/production credential/parity, catalog ownership enforced",
     "lastEvidence": "2026-10-15 source-only original 21-row readiness delegation, no-LIVE sentinel and catalog ownership classification plus TEST fixtures. Original connected all-project read and owner-controlled LIVE parity remain PENDING."
+  },
+  {
+    "id": "STRIPE-W9-MONTH-END",
+    "priority": 36,
+    "status": "PENDING",
+    "requiredRevision": "db004c31704750f4b49f1ad18553099c7f9e0391",
+    "dependsOn": [],
+    "task": "Independently prove original custom selected TEST workflow_month_end_close money/fees/net per currency, Denver month boundaries, guarded report_run creation/pending/succeeded/readbacks and owner-authenticated private file handoff; never return raw CSV/signed URL",
+    "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Existing native workflow_money_snapshot, report_list_types, report_run and report_get_result_file on exact disposable TEST report; original owner approves report creation, no public export URL",
+    "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+  },
+  {
+    "id": "STRIPE-W9-CATALOG-SETUP",
+    "priority": 37,
+    "status": "PENDING",
+    "requiredRevision": "2f590c775d459e39b57134503fd3df1ac2e9e533",
+    "dependsOn": [],
+    "task": "Independently demonstrate original custom selected TEST workflow_set_up_catalog two protected native product/price confirmations, real immutable lookup key replay, exact app-owned refusal and no duplicate/automatic uncertain retry",
+    "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Original custom full/everyday TEST app ownership registry and owner-approved disposable independent product/price, exact native product_create then price_create confirmed readback",
+    "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+  },
+  {
+    "id": "STRIPE-W9-FIND",
+    "priority": 38,
+    "status": "PENDING",
+    "requiredRevision": "db004c31704750f4b49f1ad18553099c7f9e0391",
+    "dependsOn": [],
+    "task": "Independently verify original custom TEST workflow_find six selected native search categories, provider-safe projections, page cursors, multi-page/empty and inaccessible source gaps",
+    "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Read-only original selected TEST fixture with Stripe search API permissions; strict selected account and bounded provider pages",
+    "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+  },
+  {
+    "id": "STRIPE-W10-BRAND-BUSINESS",
+    "priority": 39,
+    "status": "PENDING",
+    "requiredRevision": "dcd6113f22abf738481bd36cce0a23e5dbc45bca",
+    "dependsOn": [],
+    "task": "Independently demonstrate original custom selected TEST workflow_brand_business guarded brand kit and optional Portal save, verified owner Dashboard needs-you, native guarded customer+price hosted TEST Checkout and no-op replay with old session ID; never edit app-owned pages or activate LIVE",
+    "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Original TEST verified brand kit DB account, owner-authorized non-app disposable customer/one-time price and secure hosted return URLs; original brand_save_kit/brand_preview_checkout readbacks; Dashboard-only settings remain manual",
+    "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
   }
 ]
 ```
