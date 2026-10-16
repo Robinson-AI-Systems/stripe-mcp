@@ -46,13 +46,13 @@ export const tools=[
 
 const regex={ch:/^ch_[A-Za-z0-9]{2,100}$/,
   sub:/^sub_[A-Za-z0-9]{2,100}$/};
-const writable=ctx=>{
+export const writable=ctx=>{
   verifyContext(ctx);
   if(!['everyday','full'].includes(ctx.connection.profile)||
     typeof ctx.db?.recordChange!=='function')
     throw new TypeError('Guarded TEST write profile and audit database required');
 };
-const check=(a,shape,kind)=>{
+export const check=(a,shape,kind)=>{
   if(!a||typeof a!=='object'||Array.isArray(a))
     throw new TypeError('Structured workflow arguments required');
   for(const [key,value] of Object.entries(a)){
@@ -103,13 +103,13 @@ export function verifiedSubscriptionFacts(s){
         usageType:i.usageType,discounts:i.discounts};
     })};
 }
-async function customer(customerId,ctx){
+export async function customer(customerId,ctx){
   const result=await nativeRead('customer_get',{customerId},ctx);
   if(result.id!==customerId||result.deleted===true)
     throw new TypeError('Selected TEST customer was not verified');
   return result;
 }
-async function nativeWrite(name,args,ctx){
+export async function nativeWrite(name,args,ctx){
   const {registry}=await import('./index.js');
   const t=registry.tools.find(v=>v.name===name);
   if(!t||t.writes!==true||t.writeContract!=='defineWrite-v1'||
@@ -170,7 +170,7 @@ async function chargeCandidate(a,ctx,end){
 }
 const refundArgs=v=>({chargeId:v.chargeId,amountCents:v.amountCents,
   reason:v.reason,...(v.outsideApp!==undefined?{outsideApp:v.outsideApp}:{})});
-async function readyStep(toolName,args,ctx){
+export async function readyStep(toolName,args,ctx){
   const response=await nativeWrite(toolName,{...args,dryRun:true},ctx);
   if(response.isError||typeof response.value.preview!=='string')
     throw new TypeError('Native '+toolName+' preview refused or unavailable');
