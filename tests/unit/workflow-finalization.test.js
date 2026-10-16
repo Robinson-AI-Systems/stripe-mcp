@@ -238,10 +238,10 @@ describe('W-10 original native TEST business brand kit and hosted Checkout',()=>
       expect.objectContaining({setting:'portalLook',status:'needs_you'})]));
     expect(observed).toMatchObject({noProviderWrite:true,done:false});
     expect(f.calls).toHaveLength(0);
-    const direct=await f.call('brand_set_portal_look',{
+    await expect(f.call('brand_set_portal_look',{
       configId:'bpc_WORK910',headline:'MCP owner override',
-      confirm:true,requestKey:'unsafe-portal'});
-    expect(direct.isError).toBe(true);
+      confirm:true,requestKey:'unsafe-portal'}))
+      .rejects.toThrow(/App-bound TEST Portal ownership cannot be proven/);
     expect(f.calls).toHaveLength(0);
   });
   it('previews and confirms independent TEST Portal ownership with safe native readback',async()=>{
