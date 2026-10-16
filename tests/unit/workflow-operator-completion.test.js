@@ -107,6 +107,21 @@ describe('W-6 original dispute kit, bank-submission safety and actual TEST guard
     expect((await f.call('workflow_dispute_kit',{disputeId:DU,invoiceId:IN})).isError).toBe(true);
     expect(f.calls).toHaveLength(0);
   });
+  it('exposes honest incomplete invoice-link pagination and denies a foreign charge/customer',async()=>{
+    const f=await fixture();
+    f.sdk.invoicePayments.list=async()=>({data:[{object:'invoice_payment',
+      id:'inpay_WORKFLOW987',invoice:IN,status:'paid',amount_paid:3600,
+      amount_requested:3600,payment:{charge:CH}}],has_more:true});
+    const incomplete=parse(await f.call('workflow_dispute_kit',{disputeId:DU,invoiceId:IN}));
+    expect(incomplete.complete).toBe(false);
+    expect(incomplete.canStageDraft).toBe(false);
+    expect(incomplete.gaps[0].section).toBe('invoice_payment_link');
+    f.sdk.charges.retrieve=async()=>({object:'charge',id:CH,
+      customer:'cus_FOREIGN987',currency:'usd',amount:3600,metadata:{},
+      status:'succeeded',paid:true});
+    expect((await f.call('workflow_dispute_kit',{disputeId:DU})).isError).toBe(true);
+    expect(f.calls).toHaveLength(0);
+  });
 });
 describe('W-7 webhook exact coverage, three-day diagnostics and guarded add-only fix',()=>{
   it('distinguishes endpoint subscription from global event delivery and keeps URL private',async()=>{
@@ -149,6 +164,17 @@ describe('W-7 webhook exact coverage, three-day diagnostics and guarded add-only
     expect((await f.call('workflow_webhook_health',args)).isError).toBe(true);
     expect(f.calls).toHaveLength(0);
   });
+  it('never reports global delivery healthy when the protected native Event read fails',async()=>{
+    const f=await fixture();
+    f.sdk.events.list=async()=>{throw new Error('Restricted TEST Event permission');};
+    const state=parse(await f.call('workflow_webhook_health',{endpointId:WE,
+      apps:['appliance-desk'],includeUndelivered:true}));
+    expect(state.complete).toBe(false);
+    expect(state.undelivered.verifiedGlobalScan).toBe(false);
+    expect(state.gaps).toEqual([expect.objectContaining({
+      section:'global_undelivered_events',reason:'guarded_read_unavailable'})]);
+    expect(f.calls).toHaveLength(0);
+  });
   it('treats more than 30 enabled events as provider-complete coverage, not summary truncation',async()=>{
     const f=await fixture();
     f.hook.enabled_events=Array.from({length:40},(_,i)=>'sample.event_'+i);
@@ -174,6 +200,18 @@ describe('W-8 selected bound app actual P-3 readiness versus LIVE disabled',()=>
     expect(first.catalog).toMatchObject({ownedByApp:true,
       eligibleForFutureCopyPlan:false,copyExecuted:false});
     expect(first.live).toMatchObject({readPerformed:false,parityVerified:false});
+    expect(f.calls).toHaveLength(0);
+  });
+  it('shows non-app-owned catalog only as a deferred LIVE review, never copies it',async()=>{
+    const f=await fixture();
+    await f.db.seedTestAppProfile({...APP_SEED,id:'external-catalog-app',
+      name:'External Catalog',stripe_accounts:[A],owns_catalog:false});
+    const state=parse(await f.call('workflow_go_live_checklist',{
+      apps:['external-catalog-app']}));
+    expect(state.projectCount).toBe(1);
+    expect(state.projects[0].catalog).toMatchObject({
+      ownedByApp:false,eligibleForFutureCopyPlan:true,copyExecuted:false});
+    expect(state.liveParity).toBe('not_verified');
     expect(f.calls).toHaveLength(0);
   });
   it('fails unknown app, missing account binding and direct LIVE mode',async()=>{
