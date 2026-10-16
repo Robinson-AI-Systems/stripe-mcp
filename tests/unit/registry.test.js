@@ -82,9 +82,9 @@ describe('tool registry', () => {
       'product_delete','price_create','price_update',
       'project_draft_profile','project_portal_create','workflow_project_setup',
       'workflow_money_snapshot','workflow_failed_payments','workflow_customer_overview',
-      'workflow_refund_customer','workflow_cancel_customer'
+      'workflow_refund_customer','workflow_cancel_customer','workflow_change_plan'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(115);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(116);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
