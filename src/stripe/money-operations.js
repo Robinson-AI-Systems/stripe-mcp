@@ -13,7 +13,7 @@ export function financialDecision(r,body={}){
     return {financial:true,reason:'Financial or unknown money-like Stripe operation requires a curated, independently approved native tool with provider-derived limits'};
   // Conservative fallback: all creates, transfers, sends, deletes and
   // authorizations are money-like until a separately approved classification.
-  if(/create|confirm|capture|pay|send|transfer|delete|void|post|finalize|close|issue|cancel|detach|attach/i.test(String(r.summary)+' '+r.id))
+  if(/create|confirm|capture|pay|send|transfer|delete|void|finalize|close|issue|cancel|detach|attach/i.test(String(r.summary)+' '+r.id))
     return {financial:true,reason:'Unreviewed irreversible or new Stripe operation classified as money-like'};
   return {financial:false};
 }
