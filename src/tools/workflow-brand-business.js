@@ -3,7 +3,7 @@
 // setting is never reported changed by a read-only guided instruction.
 import {createHash} from 'node:crypto';
 import {validateBrandKit} from '../brand/store.js';
-import {allProfiles,reply,fail} from './billing-shared.js';
+import {reply,fail} from './billing-shared.js';
 import {nativeRead,verifyContext,collect,deadline} from './workflow-read-common.js';
 import {writable,nativeWrite,readyStep} from './workflow-customer-actions.js';
 const id=(p)=>({type:'string',pattern:'^'+p+'_[A-Za-z0-9_]{3,190}$'});
