@@ -1,3 +1,7 @@
+### October 15 — original W-6/W-7/W-8 substantial operator-completion bundle: source in progress
+
+Actual baseline main `769a2fac1f8357481e270229b8c5021240137d33`, live Vercel READY `157acab51f59ac9ce9ed0439b68e4f3f41489af2`, 0 open PRs at startup, prior permanent #257 handoff independently read. All previously passed nine original provider checks preserved, 26 previously pending tasks retained exactly. Original approved W-6 dispute kit/draft, W-7 exact TEST webhook health/safe repair and W-8 honest 21-row app go-live checklist frozen before engineering in `docs/pr-cards/W-6.md` at `8d0c605683a314533ac2a6c40dfc1d65d97a94b8`. Protected native read delegated; direct Stripe SDK calls in workflows prohibited; original `dispute_save_evidence` and `webhook_add_events` ONLY original native writes, bank submission, LIVE and app-owned catalog copying explicitly excluded. New provider acceptance records separately PENDING until checked READY deployment and original protected provider fixtures. **Queue 9 PASSED / 29 PENDING / 38 total** (13 source-not-yet-deployed = earlier 10 plus new three; 16 other source-deployed but owner/fixtures/external conditions remain). No real provider mutation, money movement, autonomous spending or manual release authorized. CI/merge not acceptance.
+
 ### October 15 — bundle quality correction, original W-3/W-4 and new W-5 source completion
 
 Owner challenged the W-3/W-4 PR #256 bundle claim; repository guidance treats real project completion, not minimum PR counts or helper lines, as the target. Although #256 source/CI merged at 284 added/1 removed production lines, the full outcome was **not yet proven**: original W-4 fingerprint omitted price/quantity/period facts and a thrown downstream native step could erase earlier successes, with unit tests emphasizing denials instead of genuine confirmed multi-step execution. This source PR remedies those incomplete W-3/W-4 criteria, adds successful native guarded provider-mock receipt tests and delivers original approved W-5 `workflow_change_plan` with two independent original provider preview amounts and native guarded write approval/read-back. PR #256 source is preserved, but not credited as a completed substantial bundle by itself. `docs/pr-cards/W-5.md` records the before-code frozen planned correction and exact current main `7efd6f1f632d0e7900f73d1f555a32f2c14cab7c`; new W-5 source is pinned `3bfdfb61e99900a5308c87bf9a1e4e15170e7e0a` for later actual connected TEST acceptance. Existing 9 PASSED untouched; queue now **9 PASSED / 26 PENDING / 35 total**, including the prior 9 unreleased-source checks plus new W-5, while 16 already-serving-source checks still have their own external fixture/auth requirements. No real provider money-out, new fixture, separate approval, LIVE enabling or manual release authorized; native protected account smoke pending checked deployment. Do not claim completion until exact-head CI, security review, whole W-3/W-5 assessment and merge/handoff are actually done.
@@ -742,6 +746,39 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "procedure": "docs/pr-cards/W-5.md: original custom selected TEST workflow_change_plan two-provider-quote preview/confirm, compare native billing_preview_change and original billing_change_plan, exact synthetic change and independently read back",
     "gates": "Only after checked READY source; original custom selected TEST full grant; owner-approved isolated disposable subscription/price fixture; separate original money-out approval for actual credits; no live, app-owned policy override, auto-retry after uncertain state or spending",
     "lastEvidence": "2026-10-15 W-5 original complete source two-quote workflow, native guarded billing_change_plan and positive/negative synthetic test fixtures committed on branch; actual deployed original provider change and owner credit authorization not yet proven."
+  },
+  {
+    "id": "STRIPE-W6-DISPUTE-KIT",
+    "priority": 33,
+    "status": "PENDING",
+    "requiredRevision": "17c52898ea55bca5c998a30a4e07ef0ea42ccb21",
+    "dependsOn": [],
+    "task": "Verify real original custom selected-account TEST workflow_dispute_kit read-only dispute deadline, owner-scoped charge/invoice/payment allocation and app agreement link, plus independently guarded submit:false draft staging and original provider readback without bank submission",
+    "procedure": "docs/pr-cards/W-6.md; exact original custom selected TEST dispute_get, invoice_list_payments, app project_record_link, guarded dispute_save_evidence dryrun/confirm and separately retrieved dispute; no submit/accept",
+    "gates": "Checked READY source/live ancestry, owner-approved disposable disputed TEST charge/evidence file fixture, original custom full TEST grant and independent approval for draft-only mutation; no PRIVATE evidence body returned, bank submit/accept, LIVE or spending",
+    "lastEvidence": "2026-10-15 source/fixture tests authored, native original draft delegation and missing evidence accounting implemented. Protected real custom TEST disputed receipt, independent draft staging/cleanup and owner approval remain unverified."
+  },
+  {
+    "id": "STRIPE-W7-WEBHOOK-HEALTH",
+    "priority": 34,
+    "status": "PENDING",
+    "requiredRevision": "f56ee608099d8a46f43c9a2543906f87422ba082",
+    "dependsOn": [],
+    "task": "Verify native complete TEST webhook exact app-required event/destination coverage (including more than 30 subscriptions, wildcard), honest global three-day undelivered Event scope, then independently approved guarded add-only event repair and original provider readback preserving unrelated subscriptions",
+    "procedure": "docs/pr-cards/W-7.md; original custom webhook_get exact eventCoverage/destinationComparisons, original event_list_undelivered and original guarded webhook_add_events; independent endpoint/event reread after",
+    "gates": "Checked READY source/live ancestry, exact selected TEST endpoint and independently owner-approved fixture; don't infer per-endpoint delivery or signed ingestion, don't expose URL paths/signing secret, don't replace wildcard, no LIVE or manual release",
+    "lastEvidence": "2026-10-15 source-only native coverage/opaque complete event-set digest, bounded global delivery read and native guarded add-only TEST writer with synthetic fixtures. Original protected provider execution and signed delivery unverified."
+  },
+  {
+    "id": "STRIPE-W8-GO-LIVE-CHECKLIST",
+    "priority": 35,
+    "status": "PENDING",
+    "requiredRevision": "a04273dbfdd8afabcbab12bcf54bcfd8bc1e2a65",
+    "dependsOn": [],
+    "task": "Prove original custom selected TEST multi-project workflow_go_live_checklist runs all 21 guarded P-3 readiness checks for each active bound project, preserves unreadable/needs-owner/owner decision, keeps LIVE unqueried and never copies app-owned catalog",
+    "procedure": "docs/pr-cards/W-8.md; original custom selected-account TEST profile list, workflow_app_readiness P-3 per bound app, original live mode sentinel confirming no LIVE provider query, no catalog write; separate owner Dashboard LIVE parity acceptance deferred",
+    "gates": "Checked READY source/live ancestry, original custom TEST read grant with selected bound app fixture; LIVE switch disabled, owner production consent absent, no inferred copy/production credential/parity, catalog ownership enforced",
+    "lastEvidence": "2026-10-15 source-only original 21-row readiness delegation, no-LIVE sentinel and catalog ownership classification plus TEST fixtures. Original connected all-project read and owner-controlled LIVE parity remain PENDING."
   }
 ]
 ```

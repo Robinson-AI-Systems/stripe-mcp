@@ -788,13 +788,13 @@
         "W-5"
       ],
       "card": "docs/pr-cards/W-6.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "W-6"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -806,13 +806,13 @@
         "W-6"
       ],
       "card": "docs/pr-cards/W-7.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 350,
       "units": [
         "W-7"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -824,13 +824,13 @@
         "W-7"
       ],
       "card": "docs/pr-cards/W-8.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 500,
       "units": [
         "W-8"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {

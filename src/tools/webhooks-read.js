@@ -1,4 +1,5 @@
 // G-4b: never expose webhook signing secrets or URL bearer-bearing paths.
+import {createHash} from 'node:crypto';
 import {guarded,fail,allProfiles,paging,pageResult,local} from './billing-shared.js';
 const invalid=m=>{throw new TypeError(m);};
 const validId=x=>typeof x==='string'&&/^we_[A-Za-z0-9]{2,100}$/.test(x);
@@ -13,13 +14,29 @@ const listSchema={limit:{type:'integer',minimum:1,maximum:5},
   starting_after:{type:'string',pattern:'^we_[A-Za-z0-9]{2,100}$'},
   fields,detail};
 const getSchema={endpointId:{type:'string',pattern:'^we_[A-Za-z0-9]{2,100}$'},
-  fields,detail};
+  fields,detail,
+  requiredEvents:{type:'array',maxItems:100,uniqueItems:true,
+    items:{type:'string',minLength:3,maxLength:140}},
+  expectedDestinations:{type:'array',maxItems:8,uniqueItems:true,
+    items:{type:'string',minLength:9,maxLength:2048}}};
 function validate(a,keys){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>!keys.includes(k)))
     invalid('Exact safe webhook read arguments required');
   if(a.detail!==undefined&&!['summary','full'].includes(a.detail))
     invalid('Invalid webhook detail');
+  if(a.requiredEvents!==undefined&&(!Array.isArray(a.requiredEvents)||
+    a.requiredEvents.length>100||new Set(a.requiredEvents).size!==a.requiredEvents.length||
+    a.requiredEvents.some(e=>!validEvent(e)||e==='*')))
+    invalid('Invalid exact event requirement set');
+  if(a.expectedDestinations!==undefined&&
+    (!Array.isArray(a.expectedDestinations)||a.expectedDestinations.length>8||
+     new Set(a.expectedDestinations).size!==a.expectedDestinations.length||
+     a.expectedDestinations.some(url=>{
+       try{const u=new URL(url);return u.protocol!=='https:'||Boolean(u.username)||
+         Boolean(u.password)||Boolean(u.hash)||Boolean(u.port)||!u.hostname.includes('.');}
+       catch{return true;}
+     })))invalid('Invalid exact HTTPS destination comparison');
   if(a.fields!==undefined&&(!Array.isArray(a.fields)||a.fields.length>8||
     new Set(a.fields).size!==a.fields.length||
     a.fields.some(x=>!allowed.includes(x))))
@@ -85,6 +102,18 @@ export const handlers={
       if(!validId(a.endpointId))invalid('Exact webhook endpoint ID required');
       const v=await s.webhookEndpoints.retrieve(a.endpointId);
       if(v?.id!==a.endpointId)invalid('Webhook endpoint ID mismatch');
-      return webhookSafe(v,{detail:a.detail,select:a.fields});
+      const projected=webhookSafe(v,{detail:a.detail,select:a.fields});
+      const subscriptionRevision=createHash('sha256').update(JSON.stringify({
+        id:v.id,status:v.status,url:v.url,
+        events:[...v.enabled_events].sort(),created:v.created
+      })).digest('hex');
+      return {...projected,subscriptionRevision,
+        ...(a.requiredEvents?{eventCoverage:{wildcard:v.enabled_events.includes('*'),
+          requirements:a.requiredEvents.map(event=>({event,
+            covered:v.enabled_events.includes('*')||v.enabled_events.includes(event)})),
+          complete:true}}:{}),
+        ...(a.expectedDestinations?{destinationComparisons:a.expectedDestinations.map(
+          (_url,i)=>({index:i,matches:v.url===a.expectedDestinations[i]}))}:{}),
+        source:'verified_complete_provider_endpoint'};
     })
 };
