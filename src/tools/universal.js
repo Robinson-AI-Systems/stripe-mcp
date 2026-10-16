@@ -167,7 +167,6 @@ function makeWrite(){
     resultId:(_before,after)=>after?.id??null
   });
 }
-const write=makeWrite();
 export const handlers={
   api_search:async a=>{try{
     exact(a,['query','limit'],['query']);
