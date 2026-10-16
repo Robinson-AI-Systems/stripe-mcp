@@ -86,9 +86,10 @@ describe('tool registry', () => {
       'workflow_dispute_kit','workflow_dispute_kit_save',
       'workflow_webhook_health','workflow_webhook_health_fix','workflow_go_live_checklist',
       'workflow_month_end_close','workflow_month_end_report','workflow_find',
-      'workflow_set_up_catalog','workflow_brand_business'
+      'workflow_set_up_catalog','workflow_brand_business',
+      'api_search','api_describe','api_read','api_write'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(121);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(122);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {
