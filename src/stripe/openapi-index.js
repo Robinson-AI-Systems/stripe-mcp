@@ -86,7 +86,19 @@ function validateScalar(value,schema){
 }
 export function validateSchema(input,source,{depth=0,root=null}={}){
   if(depth>6)bad('OpenAPI nested parameters too deep');
-  const schema=resolveReference(root??catalog().spec,source??{});
+  let schema=resolveReference(root??catalog().spec,source??{});
+  // The pinned metadata shape is an anyOf object-map/string-clear
+  // union. Select by the supplied primitive kind, never allow a generic
+  // schema branch to bypass the exact pinned nested validation.
+  if(Array.isArray(schema.anyOf)||Array.isArray(schema.oneOf)){
+    const branches=(schema.anyOf??schema.oneOf).map(v=>
+      resolveReference(root??catalog().spec,v));
+    const matches=branches.filter(v=>input!==null&&typeof input==='object'?
+      (Array.isArray(input)?v.type==='array':v.type==='object'):
+      v.type===typeof input);
+    if(matches.length!==1)bad('Pinned OpenAPI parameter union ambiguous');
+    schema=matches[0];
+  }
   if(input===null){if(schema.nullable||schema.type==='null')return null;bad('Unexpected null parameter');}
   if(Array.isArray(input)){
     if(schema.type!=='array'||input.length>100)bad('Unexpected or oversized array');
