@@ -101,9 +101,19 @@ async function desiredStage(a,ctx){
     const keys={headline:'headline',privacyUrl:'privacyUrl',termsUrl:'termsUrl',
       defaultReturnUrl:'defaultReturnUrl'};
     if(Object.entries(keys).some(([k,x])=>p[k]!==undefined&&
-      (x==='defaultReturnUrl'?portal.defaultReturnUrl:portal.appearance?.[x])!==p[k]))
-      return {state,guidedRows,stage:{tool:'brand_set_portal_look',
+      (x==='defaultReturnUrl'?portal.defaultReturnUrl:portal.appearance?.[x])!==p[k])){
+      // A bound application may own the Stripe Portal configuration even
+      // without a readable ownership marker. Never stage an app-owned change.
+      if(typeof ctx.db?.listKnownAppsForAccount!=='function')
+        throw new TypeError('Account Portal ownership verification unavailable');
+      const apps=await ctx.db.listKnownAppsForAccount(ctx.connection.stripeAccount);
+      if(!Array.isArray(apps))throw new TypeError('Portal application binding unavailable');
+      if(apps.some(app=>app?.status==='active'))
+        guidedRows.push({setting:'portalLook',status:'needs_you',
+          ownerAction:'App-bound Portal ownership cannot be proved. Review this setting in the owner TEST Dashboard; no provider write was attempted.'});
+      else return {state,guidedRows,stage:{tool:'brand_set_portal_look',
         args:p},step:'portalLook',portal};
+    }
   }
   if(a.customerId&&a.priceId){
     const [customer,price]=await Promise.all([
@@ -168,9 +178,15 @@ async function run(a,ctx){
     if(source.step==='checkout'){
       const id=out.value.resourceId,session=await nativeRead('checkout_get',
         {sessionId:id},ctx);
+      const lines=await collect('checkout_list_line_items',
+        {sessionId:id,limit:100},ctx,{end:deadline()});
       if(session.id!==id||session.customer!==a.customerId||
-        session.mode!=='payment'||!publicUrl(session.url)||session.url!==out.value.url)
-        throw new TypeError('Created TEST hosted Checkout link not independently verified');
+        session.mode!=='payment'||session.status!=='open'||
+        !publicUrl(session.url)||session.url!==out.value.url||
+        !lines.complete||lines.data.length!==1||
+        lines.data[0].price!==a.priceId||lines.data[0].quantity!==1||
+        lines.data[0].currency!=='usd')
+        throw new TypeError('Created TEST hosted Checkout price/status not independently verified');
       return {...staged,done:pending.length===0,confirmed:true,
         needsConfirmation:false,checkoutVerified:true,
         checkout:{sessionId:id,url:session.url,verified:true,reused:false},
