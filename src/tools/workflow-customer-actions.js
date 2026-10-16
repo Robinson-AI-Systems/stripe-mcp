@@ -46,13 +46,13 @@ export const tools=[
 
 const regex={ch:/^ch_[A-Za-z0-9]{2,100}$/,
   sub:/^sub_[A-Za-z0-9]{2,100}$/};
-const writable=ctx=>{
+export const writable=ctx=>{
   verifyContext(ctx);
   if(!['everyday','full'].includes(ctx.connection.profile)||
     typeof ctx.db?.recordChange!=='function')
     throw new TypeError('Guarded TEST write profile and audit database required');
 };
-const check=(a,shape,kind)=>{
+export const check=(a,shape,kind)=>{
   if(!a||typeof a!=='object'||Array.isArray(a))
     throw new TypeError('Structured workflow arguments required');
   for(const [key,value] of Object.entries(a)){
@@ -75,16 +75,41 @@ const check=(a,shape,kind)=>{
   if(a.dryRun===true&&a.confirm===true)
     throw new TypeError('Preview cannot execute');
 };
-const finger=(account,kind,facts)=>createHash('sha256')
-  .update(JSON.stringify({account,mode:'test',kind,facts}))
+export const customerBillingFingerprint=(account,kind,facts,steps=[])=>createHash('sha256')
+  .update(JSON.stringify({account,mode:'test',kind,facts,
+    steps:steps.map(s=>({tool:s.tool,args:s.args,preview:s.preview}))}))
   .digest('hex');
-async function customer(customerId,ctx){
+export function verifiedSubscriptionFacts(s){
+  if(!s||typeof s.id!=='string'||typeof s.customer!=='string'||
+    s.currency!=='usd'||!Array.isArray(s.items)||s.moreItems===true||
+    !s.items.length)
+    throw new TypeError('Complete original USD subscription state unavailable');
+  return {id:s.id,customer:s.customer,status:s.status,currency:s.currency,
+    cancelAtPeriodEnd:s.cancelAtPeriodEnd,cancelAt:s.cancelAt??null,
+    latestInvoice:s.latestInvoice??null,billingMode:s.billingMode??null,
+    pauseCollection:s.pauseCollection??null,
+    items:s.items.map(i=>{
+      if(typeof i.id!=='string'||typeof i.price!=='string'||
+        !Number.isSafeInteger(i.quantity)||i.quantity<1||
+        !Number.isSafeInteger(i.currentPeriodStartUnix)||
+        !Number.isSafeInteger(i.currentPeriodEndUnix)||
+        i.currentPeriodStartUnix>=i.currentPeriodEndUnix)
+        throw new TypeError('Item price, quantity or billing period unverified');
+      return {id:i.id,price:i.price,quantity:i.quantity,
+        currentPeriodStartUnix:i.currentPeriodStartUnix,
+        currentPeriodEndUnix:i.currentPeriodEndUnix,
+        unitAmountCents:i.unitAmountCents,currency:i.currency,
+        recurring:i.recurring,billingScheme:i.billingScheme,
+        usageType:i.usageType,discounts:i.discounts};
+    })};
+}
+export async function customer(customerId,ctx){
   const result=await nativeRead('customer_get',{customerId},ctx);
   if(result.id!==customerId||result.deleted===true)
     throw new TypeError('Selected TEST customer was not verified');
   return result;
 }
-async function nativeWrite(name,args,ctx){
+export async function nativeWrite(name,args,ctx){
   const {registry}=await import('./index.js');
   const t=registry.tools.find(v=>v.name===name);
   if(!t||t.writes!==true||t.writeContract!=='defineWrite-v1'||
@@ -145,7 +170,7 @@ async function chargeCandidate(a,ctx,end){
 }
 const refundArgs=v=>({chargeId:v.chargeId,amountCents:v.amountCents,
   reason:v.reason,...(v.outsideApp!==undefined?{outsideApp:v.outsideApp}:{})});
-async function readyStep(toolName,args,ctx){
+export async function readyStep(toolName,args,ctx){
   const response=await nativeWrite(toolName,{...args,dryRun:true},ctx);
   if(response.isError||typeof response.value.preview!=='string')
     throw new TypeError('Native '+toolName+' preview refused or unavailable');
@@ -187,9 +212,7 @@ async function planCancel(a,ctx,end){
     !a.refundChargeId)
     throw new TypeError('Optional refund requires exact refundChargeId');
   const steps=[],snapshot={customerId:a.customerId,
-    subscription:{id:chosen.id,status:chosen.status,currency:chosen.currency,
-      cancelAtPeriodEnd:chosen.cancelAtPeriodEnd,
-      itemsCount:chosen.items?.length??null},
+    subscription:verifiedSubscriptionFacts(chosen),
     timing:a.timing,invoiceNow:a.invoiceNow??null,prorate:a.prorate??null,
     voidOpenInvoices:a.voidOpenInvoices===true,refund:null,invoices:[]};
   if(a.refundChargeId){
@@ -229,7 +252,8 @@ async function planCancel(a,ctx,end){
 const stepView=s=>({tool:s.tool,target:s.args.chargeId??s.args.subscriptionId??
   s.args.invoiceId,preview:s.preview});
 async function execute(kind,a,ctx,plan,end){
-  const token=finger(ctx.connection.stripeAccount,kind,plan.facts);
+  const token=customerBillingFingerprint(ctx.connection.stripeAccount,kind,
+    plan.facts,plan.steps);
   const preview={kind,mode:'test',account:ctx.connection.stripeAccount,
     previewToken:token,complete:true,
     note:'Not an atomic transaction. Each native step needs its own guarded approval; refund money-out always requires an independent owner grant.',
@@ -244,18 +268,28 @@ async function execute(kind,a,ctx,plan,end){
       warning:'Time budget expired; reconcile native receipts before any manual continuation'};
     const s=plan.steps[i],suffix=s.tool==='payment_create_refund'?'refund':
       s.tool==='billing_cancel_subscription'?'cancel':'void'+String(i);
-    const outcome=await nativeWrite(s.tool,{...s.args,
-      confirm:true,requestKey:a.requestKey+':'+suffix},ctx);
     const receipt={tool:s.tool,target:s.args.chargeId??s.args.subscriptionId??
-      s.args.invoiceId,confirmed:outcome.value.done===true&&
-      outcome.value.confirmed===true,
-      ...(code(outcome.value.idempotencyKey)?{idempotencyKey:code(outcome.value.idempotencyKey)}:{}),
-      ...(code(outcome.value.resourceId)?{resourceId:code(outcome.value.resourceId)}:{})};
-    if(outcome.isError||receipt.confirmed!==true)
+      s.args.invoiceId,confirmed:false};
+    try{
+      const outcome=await nativeWrite(s.tool,{...s.args,
+        confirm:true,requestKey:a.requestKey+':'+suffix},ctx);
+      receipt.confirmed=outcome.value.done===true&&outcome.value.confirmed===true;
+      if(code(outcome.value.idempotencyKey))
+        receipt.idempotencyKey=code(outcome.value.idempotencyKey);
+      if(code(outcome.value.resourceId))
+        receipt.resourceId=code(outcome.value.resourceId);
+      if(outcome.isError||receipt.confirmed!==true)
+        return {...preview,done:false,confirmed:false,completedSteps:finished,
+          failedStep:receipt,remainingSteps:plan.steps.slice(i+1).map(stepView),
+          warning:'Native guarded step denied or provider/audit outcome uncertain. Do not retry automatically; inspect exact native audit before any continuation.'};
+      finished.push(receipt);
+    }catch{
+      // A thrown native call might have reached Stripe before the transport failed.
+      // Preserve prior confirmed receipts; NEVER replay this or later children.
       return {...preview,done:false,confirmed:false,completedSteps:finished,
         failedStep:receipt,remainingSteps:plan.steps.slice(i+1).map(stepView),
-        warning:'Native guarded step denied or provider/audit outcome uncertain. Do not retry automatically; inspect exact native audit before any continuation.'};
-    finished.push(receipt);
+        warning:'Native step returned an uncertain exception. Previous confirmed steps are listed; inspect the native audit before any continuation.'};
+    }
   }
   return {...preview,done:true,confirmed:true,completedSteps:finished,
     remainingSteps:[],note:'Every native step confirmed its own read-back. Refund initiation is not a settlement guarantee.'};
