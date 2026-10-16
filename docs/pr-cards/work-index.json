@@ -770,13 +770,13 @@
         "W-4"
       ],
       "card": "docs/pr-cards/W-5.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 200,
       "units": [
         "W-5"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
