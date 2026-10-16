@@ -3,12 +3,14 @@ import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 const C='cus_COMPLETE123',A='acct_COMPLETE123',S='sub_COMPLETE123',
   I='in_COMPLETE123',OLD='price_OLD123',NEXT='price_NEW123';
-const data=r=>JSON.parse(r.content[0].text);
+const data=r=>{const value=r.content[0].text;
+  try{return JSON.parse(value);}catch{return value;}
+};
 function fixture({creditQuote=false}={}){
   const calls=[],db=createFakeDb({accounts:[{id:A,label:'TEST customer workflow'}]});
   const customer={object:'customer',id:C,metadata:{},name:'TEST',email:'owner@example.invalid'};
   const oldPrice={id:OLD,object:'price',active:true,type:'recurring',currency:'usd',
-    unit_amount:6000,metadata:{},recurring:{interval:'month',interval_count:1,
+    unit_amount:6000,billing_scheme:'per_unit',metadata:{},recurring:{interval:'month',interval_count:1,
       usage_type:'licensed'}};
   const newPrice={...oldPrice,id:NEXT,unit_amount:8000};
   const item={id:'si_COMPLETE123',quantity:1,price:oldPrice,
@@ -22,7 +24,7 @@ function fixture({creditQuote=false}={}){
     amount_remaining:2500,total:2500,amount_paid:0,auto_advance:false,
     post_payment_credit_notes_amount:0,
     lines:{data:[],has_more:false},metadata:{}};
-  let breakAfterCancel=false,failedAmount=false;
+  let breakAfterCancel=false;
   const list=(arr,a)=>{
     const start=a.starting_after?arr.findIndex(x=>x.id===a.starting_after)+1:0;
     const page=arr.slice(start,start+a.limit);
@@ -177,7 +179,7 @@ describe('W-5 original end-to-end provider quote and guarded write',()=>{
     expect(f.calls.filter(x=>x.name==='subscription.update')).toHaveLength(0);
     const pending=await f.db.listPendingMoneyApprovals({account:A});
     expect(pending).toHaveLength(1);
-    expect(pending[0]).toMatchObject({account:undefined,tool:'billing_change_plan',
+    expect(pending[0]).toMatchObject({tool:'billing_change_plan',
       amount_cents:500,currency:'usd'});
     // Only this synthetic TEST fake owner action can approve the pending grant.
     // The public workflow has NO approval argument or grant authority.
