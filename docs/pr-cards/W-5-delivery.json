@@ -1,0 +1,29 @@
+{
+  "subsections": [
+    {
+      "id": "W-5",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "workflow_change_plan identifies exactly one existing TEST customer subscription and one subscription item (or requires exact target when ambiguous), validates new price or quantity and keeps project-app ownership and account guards intact.",
+          "evidence": "W-5 native guarded customer_get plus bounded billing_list_subscriptions or exact billing_get_subscription selects only original customer; exact subscription/item IDs required on ambiguity, verifiedSubscriptionFacts seals all source price/quantity/period/recurring fields, rejects ended and app-owned writes delegated unchanged to native billing_change_plan. tests/unit/workflow-billing-completion.test.js verifies valid selection and refusal on invalid/missing/changed periods."
+        },
+        {
+          "criterion": "One provider-derived exact invoice/proration preview through wrapped billing_preview_change shows verified USD total, signed proration lines, effectiveAt and prorationBehavior; plan token covers source item price/quantity/period and the entire native quote, refuses stale, partial, unknown, LIVE and multi-currency scenarios.",
+          "evidence": "Original native billing_preview_change is invoked twice via wrapped registry, once with unchanged quantity (baseline) and once with requested price/quantity, using identical effectiveAt and prorationBehavior, verifying USD cents/proration lines and complete provider quote line pages. Original billing_change_plan dryRun provides separately verified native write preview. The W-5 fingerprint includes account, full subscription/items, original baseline/proposed quotes and child preview. tests/unit/workflow-billing-completion.test.js verifies provider preview calls/totals, positive delta and stale quote/period denial."
+        },
+        {
+          "criterion": "Explicit confirmed action delegates only to original guarded billing_change_plan with its own read-back, original owner money-out consent for credit, daily account cap, app guard, durable audit and per-operation idempotency; normal successful and denied/uncertain scenarios tested without direct Stripe SDK writes in workflow.",
+          "evidence": "On explicit token-matching confirmation with stable requestKey W-5 calls only native registered billing_change_plan (defineWrite-v1) and records original provider readback; positive synthetic TEST subscription.update success verified. Negative provider proration triggers original owner approval request, refuses until independent fake owner approval, then tests provider update with original money reservation and confirmed readback. tests/unit/workflow-billing-completion.test.js covers both. No LIVE or direct Stripe SDK in W-5."
+        }
+      ]
+    }
+  ],
+  "productionAdded": 235,
+  "productionRemoved": 21,
+  "newEngineering": "One new registered complete workflow_change_plan original approved subsection, independent baseline and proposed Stripe-native USD invoice previews and changed-price quote integrity; three native preview checks, original guarded account/app/owner money-out approval and confirmed provider read-back. Previously unfinished W-3/W-4 integration corrected: full financial subscription and child-preview fingerprint, partial success preserved after later exception; new positive original native refund/cancellation/void tests and synthetic independent owner credit approval.",
+  "planComparison": "Initial W-3/W-4 PR #256 was prematurely called a standalone bundle: 284 added/1 removed original production lines and incomplete evidence. This continuing owner-requested one-bundle outcome adds a distinct new W-5 subsection plus repairs, measured 235 added/21 removed (256 NEW changed prod lines); total DISTINCT across PR #256 and this PR is 284+235=519 added, 1+21=22 removed, 541 changed production lines. Combined full original W-3/W-4/W-5 outcome has three predefined whole approved subsections (not three made-up technical tasks). No existing W-1/W-2 code recounted. Frozen W-5 plan estimated 325 new lines; deliver fewer through tested native code reuse, no padding.",
+  "relatedWorkDecision": "Original W-3/W-4 merged but standalone bundle assertion withdrawn by owner quality review; this correction together with newly completed original W-5 forms the ONE owed substantial customer billing outcome, with genuine positive synthetic protected write paths, independent approval gates and accounted distinct source changes. Next W-6 original dispute-kit remains pending approved subsection, not started or credited. Real selected TEST protected provider acceptance and checked release stay distinct queue items.",
+  "decision": "SUBSTANTIAL_EXCEPTION",
+  "exceptionEvidence": "Although THIS follow-on PR has 256 new changed production lines and one NEW original subsection W-5, it finishes previously unaccepted W-3/W-4 behavior and positive guarded write proof from a prior 285-line merge. The single coherent customer refund/cancel/change outcome across both PRs has 541 distinct changed production-code lines and completes THREE original medium subsections with verified synthetic native positive refund, cancel, void and plan-change pathways including separate owner approval for refunds/credits, genuine quote integrity, partial failure/non-replay and app/LIVE guards. No phantom new work, report baseline pinned to actual post-#256 main. Provider LIVE and original TEST account acceptance remain separately open; don't credit owner approval as real."
+}
