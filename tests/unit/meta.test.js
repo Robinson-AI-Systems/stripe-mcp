@@ -16,12 +16,12 @@ describe('C-2 progressive tool disclosure and wrapped execution',()=>{
       'stripe_search_tools','stripe_describe_tool','stripe_call','stripe_batch','workflow_app_readiness',
       'workflow_money_snapshot','workflow_failed_payments','workflow_customer_overview',
       'workflow_dispute_kit','workflow_webhook_health','workflow_go_live_checklist',
-      'workflow_month_end_close','workflow_find']);
+      'workflow_month_end_close','workflow_find','api_search']);
     expect(listingForConnection(registry,{...connection,listing:'catalog'}).length)
       .toBe(registry.tools.filter(t=>t.writes===false&&
         t.profiles.includes('read_only')).length);
-    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(126);
-    expect(listingForConnection(registry,connection,'read_only')).toHaveLength(15);
+    expect(listingForConnection(registry,connection,'catalog')).toHaveLength(129);
+    expect(listingForConnection(registry,connection,'read_only')).toHaveLength(16);
   });
   it('searches, describes, delegates and batches through the same read-only gate',async()=>{
     const search=parse(await call('stripe_search_tools',{query:'accounts'}));
