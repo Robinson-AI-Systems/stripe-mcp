@@ -3,7 +3,7 @@
 import {allProfiles,fullProfiles,client,reply,fail} from './billing-shared.js';
 import {defineWrite,gone} from './write.js';
 import {findAppOwnership} from './app-guard.js';
-import {getOperation,describeOperation,findOperations,checkedRequest}
+import {describeOperation,findOperations,checkedRequest}
   from '../stripe/openapi-index.js';
 import {financialDecision,isSafeMetadataUpdate}
   from '../stripe/money-operations.js';
@@ -147,7 +147,7 @@ function makeWrite(){
       return {...beforeSnapshot,_operation:record.id,_path:path,
         _keys:Object.keys(body.metadata)};
     },
-    summarize:(before,a)=>'TEST: original pinned metadata-only Stripe update '+
+    summarize:(before,_a)=>'TEST: original pinned metadata-only Stripe update '+
       before._operation+' on '+before.id+'; only keys '+
       before._keys.slice(0,15).join(', ')+'. Original provider readback required; no LIVE or money action.',
     targetGuard:async(_a,ctx,before)=>{
