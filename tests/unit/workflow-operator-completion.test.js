@@ -78,7 +78,8 @@ describe('W-6 original dispute kit, bank-submission safety and actual TEST guard
   });
   it('previews and confirms draft through existing guarded native writer, never submit:true',async()=>{
     const f=await fixture();
-    const a={disputeId:DU,evidence:{productDescription:'Test appliance rental service'}};
+    const a={disputeId:DU,outsideApp:true,
+      evidence:{productDescription:'Test appliance rental service'}};
     const preview=parse(await f.call('workflow_dispute_kit_save',a));
     expect(preview.done).toBe(false);
     expect(preview.previewToken).toMatch(/^[a-f0-9]{64}$/);
@@ -92,7 +93,7 @@ describe('W-6 original dispute kit, bank-submission safety and actual TEST guard
     expect(f.dispute.evidence.product_description).toBe('Test appliance rental service');
   });
   it('does not stage expired dispute, stale evidence or invalid invoice association',async()=>{
-    const f=await fixture(),a={disputeId:DU,
+    const f=await fixture(),a={disputeId:DU,outsideApp:true,
       evidence:{uncategorizedText:'Only synthetic facts'}};
     const p=parse(await f.call('workflow_dispute_kit_save',a));
     f.dispute.evidence_details.due_by=Math.floor(Date.now()/1000)-3;
