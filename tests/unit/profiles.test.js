@@ -1,5 +1,7 @@
+import {registry} from '../../src/tools/index.js';
 import {describe,expect,it} from 'vitest';
-import {isToolAllowed,visibleTools,profileCounts,publicToolInfo} from
+import {isToolAllowed,visibleTools,profileCounts,publicToolInfo,
+  isGuardedTestWrite,listingForConnection} from
   '../../src/core/profiles.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import home from '../../api/index.js';
@@ -41,6 +43,26 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     expect(isToolAllowed({name:'fake',writes:false,profiles:['full']},'admin')).toBe(false);
     expect(isToolAllowed({name:'fake',writes:false,profiles:'full'},'full')).toBe(false);
     expect(visibleTools(null,'full')).toEqual([]);
+  });
+  it('only TEST full owner can discover the original eight guarded composite writes',()=>{
+    const names=['workflow_refund_customer','workflow_cancel_customer',
+      'workflow_change_plan','workflow_dispute_kit_save',
+      'workflow_webhook_health_fix','workflow_month_end_report',
+      'workflow_set_up_catalog','workflow_brand_business'];
+    for(const name of names){
+      const t=(awaitedRegistry=>awaitedRegistry.tools.find(x=>x.name===name))(registry);
+      expect(t?.writeContract).toBe('defineWrite-v1');
+      expect(isGuardedTestWrite(t,{mode:'test',profile:'full'})).toBe(true);
+      expect(isGuardedTestWrite(t,{mode:'test',profile:'everyday'})).toBe(false);
+      expect(isGuardedTestWrite(t,{mode:'live',profile:'full'})).toBe(false);
+    }
+    expect(listingForConnection(registry,{mode:'test',profile:'full',
+      listing:'catalog'}).map(x=>x.name)).toEqual(expect.arrayContaining(names));
+    expect(listingForConnection(registry,{mode:'test',profile:'everyday',
+      listing:'catalog'}).some(x=>names.includes(x.name))).toBe(false);
+    expect(isGuardedTestWrite({name:'workflow_unreviewed',
+      area:'workflows',writes:true,writeContract:'defineWrite-v1',profiles:['full']},
+      {mode:'test',profile:'full'})).toBe(false);
   });
   it('never publishes internal capability metadata with listed tools',()=>{
     const tool={name:'read',writes:false,profiles:['read_only'],description:'safe'};
