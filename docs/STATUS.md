@@ -1,3 +1,7 @@
+### October 16 — checked READY acceptance-first, real original TEST observations before U-1 implementation
+
+Verified actual main/live/Vercel READY SHA `a39ffb87e0a7490098fcdd345a102e3faa706a93` deployment `dpl_8L5qCy7koLyad8uHcbGnGZzN7qib`, 0 open PRs. Original custom Stripe Cloud account `STRIPE MCP TEST` was authenticated in full TEST profile, LIVE OFF and $0 money moved. Native read-only product/price list/get/search, real multi-page workflow_find, failed-payments read, September monthly close and zero-project go-live checklist were exercised; matching rows include sanitized partial evidence. The complete real provider report type list was blocked by an authentic nullable default-column case; U-1 branch repairs it without inventing a private CSV URL. No protected acceptance was marked PASSED without all explicit provider/owner proof: **42 checks / 9 PASSED / 33 PENDING unchanged**. Real connected TEST owner approvals required for any disposable provider write/money action; no writes made. Re-evaluate individual rows after the next checked release.
+
 ### October 15 — closing original Batch W with W-9/W-10 source and mandatory external acceptance separation
 
 Original approved W-9/W-10 end-of-Batch-W plan frozen pre-code in `docs/pr-cards/W-9.md` commit `c5a61593c0e345d37a998769e93fe5a5402658c4` against verified actual main `8b482f15ae4d9cd74851395c0e4198f57c889a42`. Four protected original-provider validations newly queued for selected custom TEST monthly-close/report, catalog setup, bounded find and business branding/Checkout. Original 9 PASSED preserved; now **42 total, 9 PASSED, 33 PENDING**. Existing 13 newer-source dependent rows still await checked READY promotion and 16 source-deployed rows remain gated by genuine original provider fixtures/owner OAuth/Dashboard/signed webhooks/Hub. All source/mock tests alone do NOT pass provider acceptance. No real Stripe account write, money-out, LIVE activation, public financial CSV link or manual release authorized.
@@ -645,7 +649,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Exact-head merged E-1, checked live READY source ancestry, protected service-owned TEST full/read_only OAuth and safe provider reads. No standard Stripe connector or mock substituted; no LIVE, spending, customer PII or app mutation.",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "2026-10-15 E-1 source and pinned Stripe mock contracts; no checked live deployment of E-1 or authenticated original TEST provider read. Existing connection refresh_uncertain."
+    "lastEvidence": "2026-10-15 E-1 source and pinned Stripe mock contracts; no checked live deployment of E-1 or authenticated original TEST provider read. Existing connection refresh_uncertain. 2026-10-16 READY a39ffb87 selected original custom TEST: product_list five with has_more true/next, product_get original disabled fixture, product_search six actual results, price_list four complete, price_get original test price and price_search five complete, all native projections; incomplete product list second-page cursor verification remains PENDING."
   },
   {
     "id": "STRIPE-E1-CATALOG-WRITES",
@@ -705,7 +709,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Prove original custom TEST workflow_failed_payments returns actual provider decline codes, next retry/hosted link only when set and honest complete/partial scopes",
     "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_failed_payments plus independent native TEST invoice and PaymentIntent read",
     "gates": "Checked READY source ancestry, original TEST read grant, approved original fixtures with no retry, payment action, customer PII disclosure or money-out",
-    "lastEvidence": "2026-10-15 W-2 source/fixture unit evidence PR #254; actual custom provider read/retry existence and delivery are not verified."
+    "lastEvidence": "2026-10-15 W-2 source/fixture unit evidence PR #254; actual custom provider read/retry existence and delivery are not verified. 2026-10-16 READY a39ffb87 selected original custom TEST: real workflow_failed_payments returned one genuine original requires_payment_method PI in 3600 USD minor units without a verified decline code, no invoice retry or write; positive provider decline/retry code fixture absent, remains PENDING."
   },
   {
     "id": "STRIPE-W2-CUSTOMER-OVERVIEW",
@@ -782,7 +786,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Prove original custom selected TEST multi-project workflow_go_live_checklist runs all 21 guarded P-3 readiness checks for each active bound project, preserves unreadable/needs-owner/owner decision, keeps LIVE unqueried and never copies app-owned catalog",
     "procedure": "docs/pr-cards/W-8.md; original custom selected-account TEST profile list, workflow_app_readiness P-3 per bound app, original live mode sentinel confirming no LIVE provider query, no catalog write; separate owner Dashboard LIVE parity acceptance deferred",
     "gates": "Checked READY source/live ancestry, original custom TEST read grant with selected bound app fixture; LIVE switch disabled, owner production consent absent, no inferred copy/production credential/parity, catalog ownership enforced",
-    "lastEvidence": "2026-10-15 source-only original 21-row readiness delegation, no-LIVE sentinel and catalog ownership classification plus TEST fixtures. Original connected all-project read and owner-controlled LIVE parity remain PENDING."
+    "lastEvidence": "2026-10-15 source-only original 21-row readiness delegation, no-LIVE sentinel and catalog ownership classification plus TEST fixtures. Original connected all-project read and owner-controlled LIVE parity remain PENDING. 2026-10-16 READY a39ffb87 original custom TEST returned projects:[] and readyToGoLive:false, LIVE not queried, no catalog copy/write; no active bound project to run 21 original P3 tests, remains PENDING."
   },
   {
     "id": "STRIPE-W9-MONTH-END",
@@ -793,7 +797,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Independently prove original custom selected TEST workflow_month_end_close money/fees/net per currency, Denver month boundaries, guarded report_run creation/pending/succeeded/readbacks and owner-authenticated private file handoff; never return raw CSV/signed URL",
     "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Existing native workflow_money_snapshot, report_list_types, report_run and report_get_result_file on exact disposable TEST report; original owner approves report creation, no public export URL",
     "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
-    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained. 2026-10-16 READY a39ffb87 selected original custom TEST: real September 2026 Colorado close returned complete:true, 0 balance transactions and 0 current MRR, no fabricated currency totals. Genuine provider report_list_types returned Invalid report type columns, separately triaged and code fix underway in U-1. No owner-approved report write, private file/browser handoff, multcurrency positive fixture; PENDING."
   },
   {
     "id": "STRIPE-W9-CATALOG-SETUP",
@@ -815,7 +819,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Independently verify original custom TEST workflow_find six selected native search categories, provider-safe projections, page cursors, multi-page/empty and inaccessible source gaps",
     "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Read-only original selected TEST fixture with Stripe search API permissions; strict selected account and bounded provider pages",
     "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
-    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained. 2026-10-16 READY a39ffb87 selected original custom TEST full account: real product search two pages / six results, price five, customer negative empty, invoice one, PaymentIntent and Charge zero; all six scope-specific provider searches completed. No real denied scoped key tested; leave PENDING until permission gap read evidence."
   },
   {
     "id": "STRIPE-W10-BRAND-BUSINESS",
