@@ -10,9 +10,9 @@ function fixture(){
   const customer={object:'customer',id:C,name:'TEST Merchant',
     livemode:false,metadata:{},invoice_settings:{}};
   const tx=[
-    {id:'txn_TESTA',object:'balance_transaction',created:1790950000,
+    {id:'txn_TESTA',object:'balance_transaction',created:1789430400,
       currency:'usd',amount:3000,fee:100,net:2900},
-    {id:'txn_TESTB',object:'balance_transaction',created:1790950001,
+    {id:'txn_TESTB',object:'balance_transaction',created:1789430401,
       currency:'eur',amount:-900,fee:0,net:-900}
   ];
   const sdk={
