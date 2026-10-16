@@ -149,6 +149,12 @@ async function find(a,ctx){
     if(!Array.isArray(data.data)||data.data.length>perPage||
       typeof data.has_more!=='boolean') {reason='invalid_provider_page';break;}
     pageCount++;
+    // Never silently truncate a final page while reporting complete=true.
+    // Discard the overflowing page and mark the scan explicitly incomplete.
+    if(results.length+data.data.length>250){
+      reason='row_limit';
+      break;
+    }
     for(const v of data.data){
       if(typeof v.id!=='string'||seenIds.has(v.id))
         {reason='duplicate_or_unverified_record';break;}
@@ -163,7 +169,7 @@ async function find(a,ctx){
   }
   if(!complete&&!reason)reason='page_or_row_limit';
   return {kind:'find',account:ctx.connection.stripeAccount,mode:'test',
-    type:a.type,query:a.query,results:results.slice(0,250),
+    type:a.type,query:a.query,results,
     resultCount:results.length,complete,reason,
     pages:pageCount,nextPage:complete?null:cursor,
     note:'Provider-safe projections only. Incomplete scans are not absence proofs.'};
