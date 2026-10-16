@@ -1,7 +1,7 @@
 // W-9 month-end financial close and bounded universal TEST find.
 // Only original wrapped native reads; a report CSV is NEVER a public URL.
 import {createHash} from 'node:crypto';
-import {allProfiles,reply,fail} from './billing-shared.js';
+import {reply,fail} from './billing-shared.js';
 import {verifyContext,nativeRead,collect,deadline,expired,dateWindow} from './workflow-read-common.js';
 import {writable,nativeWrite,readyStep} from './workflow-customer-actions.js';
 const month={type:'string',pattern:'^20[0-9]{2}-(0[1-9]|1[0-2])$'};
