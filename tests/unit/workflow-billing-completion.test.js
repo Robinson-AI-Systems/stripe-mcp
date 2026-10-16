@@ -4,7 +4,7 @@ import {createFakeDb} from '../../test/helpers/fake-db.js';
 const C='cus_COMPLETE123',A='acct_COMPLETE123',S='sub_COMPLETE123',
   I='in_COMPLETE123',OLD='price_OLD123',NEXT='price_NEW123';
 const data=r=>JSON.parse(r.content[0].text);
-function fixture(){
+function fixture({creditQuote=false}={}){
   const calls=[],db=createFakeDb({accounts:[{id:A,label:'TEST customer workflow'}]});
   const customer={object:'customer',id:C,metadata:{},name:'TEST',email:'owner@example.invalid'};
   const oldPrice={id:OLD,object:'price',active:true,type:'recurring',currency:'usd',
@@ -61,9 +61,12 @@ function fixture(){
       createPreview:async a=>{
         const target=a.subscription_details.items[0];
         calls.push({name:'invoice.createPreview',target});
-        const total=target.price===NEXT?8000:6000;
-        return {object:'invoice',currency:'usd',total,amount_due:total,
-          lines:{data:[],has_more:false}};
+        const isCredit=creditQuote&&target.price===NEXT;
+        const total=isCredit?-500:target.price===NEXT?8000:6000;
+        return {object:'invoice',currency:'usd',total,
+          amount_due:isCredit?0:total,
+          lines:{data:isCredit?[{amount:-500,description:'Verified TEST credit',
+            parent:{subscription_item_details:{proration:true}}}]:[],has_more:false}};
       }
     },
     prices:{retrieve:async id=>id===NEXT?newPrice:oldPrice}
@@ -160,17 +163,34 @@ describe('W-5 original end-to-end provider quote and guarded write',()=>{
     f.ctx.connection.mode='test';f.ctx.connection.profile='read_only';
     expect((await f.call('workflow_change_plan',change)).isError).toBe(true);
   });
-  it('requires an independent owner grant for negative credit via ORIGINAL guarded billing change',async()=>{
-    const f=fixture();
-    const negative={...change,priceId:OLD,quantity:2};
-    // A negative native prorated amount invokes the native money-out
-    // owner ledger. Use a synthetic Stripe quote, never bypass that ledger.
-    f.newPrice.unit_amount=1000;
-    const first=data(await f.call('workflow_change_plan',change));
-    expect(first.done).toBe(false);
+  it('enforces separate original money-out approval for provider-quoted credit and then confirms readback',async()=>{
+    const f=fixture({creditQuote:true});
+    const p=data(await f.call('workflow_change_plan',change));
+    expect(p.changedInvoiceQuote.invoiceTotalCents).toBe(-500);
+    expect(p.changedInvoiceQuote.prorationLines).toMatchObject([
+      {amountCents:-500}]);
+    const requestKey='credit-with-independent-owner';
+    const args={...change,confirm:true,requestKey,previewToken:p.previewToken};
+    const blocked=data(await f.call('workflow_change_plan',args));
+    expect(blocked).toMatchObject({done:false,confirmed:false,
+      failedStep:{tool:'billing_change_plan'}});
     expect(f.calls.filter(x=>x.name==='subscription.update')).toHaveLength(0);
+    const pending=await f.db.listPendingMoneyApprovals({account:A});
+    expect(pending).toHaveLength(1);
+    expect(pending[0]).toMatchObject({account:undefined,tool:'billing_change_plan',
+      amount_cents:500,currency:'usd'});
+    // Only this synthetic TEST fake owner action can approve the pending grant.
+    // The public workflow has NO approval argument or grant authority.
+    expect(await f.db.approveMoneyRequest({account:A,
+      idempotencyKey:pending[0].request_key})).toBe(true);
+    const succeeded=data(await f.call('workflow_change_plan',args));
+    expect(succeeded).toMatchObject({done:true,confirmed:true,
+      completedSteps:[{tool:'billing_change_plan',confirmed:true}]});
+    expect(f.calls.filter(x=>x.name==='subscription.update')).toHaveLength(1);
+    expect(f.item.price.id).toBe(NEXT);
     expect(registry.tools.find(x=>x.name==='workflow_change_plan'))
-      .toMatchObject({writes:true,safety:'$',moneySpec:'provider-derived'});
-    expect(negative.quantity).toBe(2);
+      .toMatchObject({writes:true,safety:'
+});
+,moneySpec:'provider-derived'});
   });
 });
