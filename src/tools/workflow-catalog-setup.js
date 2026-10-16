@@ -84,12 +84,28 @@ async function setup(a,ctx){
   writable(ctx);validate(a);const end=deadline();
   let candidate=a.productId?await nativeRead('product_get',{productId:a.productId},ctx):
     await exactName(a,ctx);
-  if(candidate&&(candidate.active!==true||candidate.name!==a.name||
-      !product.test(candidate.id)))throw new TypeError('Selected active original product does not match the named catalog');
+  if(candidate){
+    // Search projections alone cannot classify ownership. Re-read exact
+    // original TEST product with its native account-scoped app annotation.
+    if(!product.test(candidate.id))
+      throw new TypeError('Selected original product ID unavailable');
+    const verified=await nativeRead('product_get',{productId:candidate.id},ctx);
+    if(verified.id!==candidate.id||verified.active!==true||
+      verified.name!==a.name||verified.appRecord)
+      throw new TypeError('App-owned or mismatching original product cannot be independently configured');
+    candidate=verified;
+  }
   const existing=await nativeRead('price_list',{lookupKey:a.lookupKey,limit:2},ctx);
   if(!Array.isArray(existing.data)||existing.has_more!==false||existing.data.length>1)
     throw new TypeError('Exact stable price lookup is ambiguous or incomplete');
   const found=existing.data[0]??null;
+  if(found){
+    if(typeof found.id!=='string')
+      throw new TypeError('Original lookup price ID unavailable');
+    const exact=await nativeRead('price_get',{priceId:found.id},ctx);
+    if(exact.id!==found.id||exact.appRecord)
+      throw new TypeError('App-owned or unverified original price cannot be reused');
+  }
   if(found&&(!candidate||!priceMatches(found,a,candidate.id)))
     throw new TypeError('Lookup key is already assigned to different immutable price terms');
   if(expired(end))throw new TypeError('Catalog source time budget exceeded');
