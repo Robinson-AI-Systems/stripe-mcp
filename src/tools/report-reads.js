@@ -17,14 +17,19 @@ function reportType(v){
     !stamp(v.data_available_start)||!stamp(v.data_available_end)||
     v.data_available_start>v.data_available_end)
     invalid('Stripe TEST report type metadata invalid');
+  // Stripe report types may omit or null their optional default_columns.
+  // This is missing schema metadata, not an invalid financial report type;
+  // keep an explicit uncertainty marker rather than inventing zero columns.
   const cols=v.default_columns;
-  if(!Array.isArray(cols)||cols.length>100||
-    cols.some(c=>!/^[_a-z0-9]{1,80}$/.test(c)))
+  if(cols!==undefined&&cols!==null&&(!Array.isArray(cols)||
+    cols.length>200||cols.some(c=>!/^[_a-z0-9]{1,100}$/.test(c))))
     invalid('Invalid report type columns');
   return {id:v.id,name:names(v.name),version:v.version??null,
     dataAvailableStart:v.data_available_start,
     dataAvailableEnd:v.data_available_end,
-    defaultColumns:cols,dataStartLocal:local(v.data_available_start),
+    defaultColumns:Array.isArray(cols)?cols:null,
+    defaultColumnsVerified:Array.isArray(cols),
+    dataStartLocal:local(v.data_available_start),
     dataEndLocal:local(v.data_available_end)};
 }
 function run(v){
