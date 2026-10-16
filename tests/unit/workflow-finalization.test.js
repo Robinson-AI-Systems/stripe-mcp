@@ -7,6 +7,9 @@ const data=r=>{try{return JSON.parse(r.content[0].text);}catch{return r.content[
 function fixture(){
   const db=createFakeDb({accounts:[{id:A,label:'TEST final workflow'}]}),calls=[];
   let product=null,price=null,report=null,session=null;
+  const portal={object:'billing_portal.configuration',id:'bpc_WORK910',
+    livemode:false,active:true,features:{},metadata:{},
+    business_profile:{headline:'Old owner headline'}};
   const customer={object:'customer',id:C,name:'TEST Merchant',
     livemode:false,metadata:{},invoice_settings:{}};
   const tx=[
@@ -61,6 +64,14 @@ function fixture(){
         retrieve:async()=>report
       }
     },
+    billingPortal:{configurations:{
+      retrieve:async()=>portal,
+      update:async(_id,args,opts)=>{
+        calls.push({kind:'portal.update',args,opts});
+        portal.business_profile={...portal.business_profile,...args.business_profile};
+        return portal;
+      }
+    }},
     checkout:{sessions:{
       create:async(args,opts)=>{calls.push({kind:'checkout.create',args,opts});
         session={id:'cs_test_WORK910',object:'checkout.session',customer:C,
@@ -81,7 +92,7 @@ function fixture(){
     }};
   return {ctx,sdk,db,calls,call:(name,args)=>registry.handlers[name](args,ctx),
     get product(){return product;},get price(){return price;},
-    get report(){return report;},get session(){return session;}};
+    get report(){return report;},get session(){return session;},portal};
 }
 describe('W-9 provider-shaped month-end close, reports, find and staged catalog',()=>{
   it('computes civil dates and preserves EUR and USD without mixing totals',async()=>{
@@ -143,6 +154,42 @@ describe('W-9 provider-shaped month-end close, reports, find and staged catalog'
     expect(again).toMatchObject({done:true,reusedExisting:true,noProviderWrite:true});
     expect(f.calls.map(x=>x.kind)).toEqual(['product.create','price.create']);
   });
+  it('refuses an app-owned product AND app-owned lookup price before claiming a reused catalog',async()=>{
+    const f=fixture(),args={name:'Owner Sample Unit',lookupKey:'owner_sample_910',
+      unitAmountCents:2500,currency:'usd',productId:P};
+    await f.sdk.products.create({name:args.name},{});
+    await f.sdk.prices.create({product:P,currency:'usd',unit_amount:2500,
+      lookup_key:args.lookupKey},{});
+    f.calls.length=0;
+    f.product.metadata={agreementId:'rental_123'};
+    const ownedProduct=await f.call('workflow_set_up_catalog',args);
+    expect(ownedProduct.isError).toBe(true);
+    expect(f.calls).toHaveLength(0);
+    const byName=await f.call('workflow_set_up_catalog',{
+      name:args.name,lookupKey:args.lookupKey,unitAmountCents:2500,currency:'usd'});
+    expect(byName.isError).toBe(true);
+    f.product.metadata={};f.price.metadata={agreementId:'rental_123'};
+    const ownedPrice=await f.call('workflow_set_up_catalog',args);
+    expect(ownedPrice.isError).toBe(true);
+    expect(f.calls).toHaveLength(0);
+  });
+  it('reports page overflow as incomplete with consistent returned row count',async()=>{
+    const f=fixture(),page=Array.from({length:100},(_,i)=>({
+      object:'product',livemode:false,active:true,metadata:{},
+      id:'prod_ROW'+i,name:'Safe search fixture'}));
+    f.sdk.products.search=async args=>{
+      const offset=args.page==='second_page'?100:
+        args.page==='third_page'?200:0;
+      return {data:page.map((v,i)=>({...v,id:'prod_ROW'+(i+offset)})),
+        has_more:offset<200,next_page:offset===0?'second_page':'third_page'};
+    };
+    const outcome=data(await f.call('workflow_find',{type:'product',
+      query:"name:'Safe search fixture'",limit:100,maxPages:5}));
+    expect(outcome).toMatchObject({complete:false,reason:'row_limit',
+      resultCount:200});
+    expect(outcome.results).toHaveLength(outcome.resultCount);
+    expect(outcome.pages).toBe(3);
+  });
   it('refuses mismatch lookup key and LIVE write before any provider mutation',async()=>{
     const f=fixture(),args={name:'Owner Sample Unit',lookupKey:'owner_sample_910',
       unitAmountCents:2500,currency:'usd',productId:P};
@@ -180,6 +227,50 @@ describe('W-10 original native TEST business brand kit and hosted Checkout',()=>
       checkoutSessionId:'cs_test_WORK910'}));
     expect(rerun).toMatchObject({done:true,checkoutVerified:true,noProviderWrite:true});
     expect(f.calls.map(x=>x.kind)).toEqual(['checkout.create']);
+  });
+  it('never stages app-bound Portal appearance as a native mutation',async()=>{
+    const f=fixture();
+    await f.db.bindKnownAppAccount({id:'appliance-desk',account:A,
+      expectedVersion:1,attach:true});
+    const p={portalLook:{configId:'bpc_WORK910',headline:'MCP owner override'}};
+    const observed=data(await f.call('workflow_brand_business',p));
+    expect(observed.guidedSettings).toEqual(expect.arrayContaining([
+      expect.objectContaining({setting:'portalLook',status:'needs_you'})]));
+    expect(observed).toMatchObject({noProviderWrite:true,done:false});
+    expect(f.calls).toHaveLength(0);
+    const direct=await f.call('brand_set_portal_look',{
+      configId:'bpc_WORK910',headline:'MCP owner override',
+      confirm:true,requestKey:'unsafe-portal'});
+    expect(direct.isError).toBe(true);
+    expect(f.calls).toHaveLength(0);
+  });
+  it('previews and confirms independent TEST Portal ownership with safe native readback',async()=>{
+    const f=fixture(),args={portalLook:{configId:'bpc_WORK910',
+      headline:'Verified MCP owner portal'}};
+    const preview=data(await f.call('workflow_brand_business',args));
+    expect(preview).toMatchObject({brandingStage:'portalLook',needsConfirmation:true});
+    expect(f.calls).toHaveLength(0);
+    const result=data(await f.call('workflow_brand_business',{...args,
+      confirm:true,requestKey:'owner-portal-910',previewToken:preview.previewToken}));
+    expect(result).toMatchObject({confirmed:true,needsConfirmation:false,
+      brandingStage:'portalLook'});
+    expect(f.portal.business_profile.headline).toBe('Verified MCP owner portal');
+    expect(f.calls.map(x=>x.kind)).toEqual(['portal.update']);
+    const replay=data(await f.call('workflow_brand_business',args));
+    expect(replay).toMatchObject({noProviderWrite:true,brandingStage:'owner_actions'});
+  });
+  it('refuses wrong price, extra price or closed provider Checkout after a confirmed native create',async()=>{
+    const f=fixture(),args={customerId:C,priceId:PRICE};
+    const preview=data(await f.call('workflow_brand_business',args));
+    f.sdk.checkout.sessions.listLineItems=async()=>({
+      data:[{id:'li_WRONG910',object:'item',price:'price_OTHER910',
+        amount_total:2500,amount_subtotal:2500,currency:'usd',quantity:1}],
+      has_more:false});
+    const wrong=data(await f.call('workflow_brand_business',{...args,
+      confirm:true,requestKey:'wrong-provider-price',previewToken:preview.previewToken}));
+    expect(wrong).toMatchObject({checkoutVerified:false,confirmed:false,done:false});
+    expect(f.calls.filter(x=>x.kind==='checkout.create')).toHaveLength(1);
+    expect(JSON.stringify(wrong)).not.toContain('checkoutVerified":true');
   });
   it('keeps owner Dashboard-only brand changes as needs_you and refuses LIVE or wrong checkout state',async()=>{
     const f=fixture();
