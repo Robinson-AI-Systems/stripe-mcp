@@ -56,7 +56,19 @@ const paylinkSafe=v=>({
 });
 const portalSafe=v=>{
   const features=v.features??{};
+  const profile=v.business_profile??{};
+  const publicUrl=x=>{
+    if(x==null)return null;
+    if(typeof x!=='string'||x.length>500)return null;
+    try{const u=new URL(x);
+      return u.protocol==='https:'&&!u.username&&!u.password&&!u.hash&&
+        !u.port&&u.hostname.includes('.')?x:null;}catch{return null;}
+  };
   return {id:v.id,object:'billing_portal.configuration',name:v.name??null,
+    appearance:{headline:typeof profile.headline==='string'&&
+      profile.headline.length<=120?profile.headline:null,
+      privacyUrl:publicUrl(profile.privacy_policy_url),
+      termsUrl:publicUrl(profile.terms_of_service_url)},
     active:v.active===true,isDefault:v.is_default===true,
     defaultReturnUrl:v.default_return_url??null,
     features:{
