@@ -148,7 +148,9 @@ async function examine(a,ctx){
 }
 async function save(a,ctx){
   writable(ctx);validate(a,true);
-  const observed=await examine(a,ctx);
+  const observed=await examine({disputeId:a.disputeId,
+    ...(a.invoiceId?{invoiceId:a.invoiceId}:{}),
+    ...(a.app?{app:a.app}:{})},ctx);
   if(!observed.canStageDraft||!observed.complete)
     throw new TypeError('Original dispute has unmet staging prerequisites');
   const stage={disputeId:a.disputeId,...a.evidence,
