@@ -1,0 +1,33 @@
+{
+  "workKind": "ENGINEERING",
+  "baseRevision": "a39ffb87e0a7490098fcdd345a102e3faa706a93",
+  "subsections": [
+    {
+      "id": "U-1",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "Registered original api_search/api_describe/api_read/api_write discover and describe pinned immutable Stripe operation IDs across all operation families (including Terminal and Issuing), without memory/runtime token catalog inflation, preserving custom service autonomy.",
+          "evidence": "Checksum-verified 398-path upstream v2556 index reconstructed only after full SHA-1/SHA-256 and Stripe API version matching. Four registry names and runtime compact discovery, Terminal/Issuing searches, strict name/path/schema descriptions tested. Vercel includeFiles for 23 split upstream parts and corresponding test added."
+        },
+        {
+          "criterion": "Every read validates operation ID, method GET, path/query parameter allowlist and selected verified TEST account, correctly assembles named templated paths and returns only bounded redacted/result-scoped original provider safe projections. Unknown operation, unknown field and secret-bearing or unsupported raw responses fail closed.",
+          "evidence": "OperationId GET requires selected original authenticated TEST identity, exact allowed named path/query schema and no body, safeHost/no credential/account/header override, provider rawRequest with immutable Stripe client API version, only bounded whitelisted safe projection and has_more/partial scope; foreign/invalid/live/secret denied in unit and original registry tests."
+        },
+        {
+          "criterion": "Every write validates vendored pinned operation ID and exact path/body/query allowlists and cross-door original full TEST profile, does original guarded preview-confirm/idempotency/audit/provider-readback and refuses hand-built covered operations, unclassified money-like operations, app-owned/unknown targets, LIVE and unverified ownership; money movement never unapproved.",
+          "evidence": "api_write full TEST whitelist only via original guarded defineWrite: exact OpenAPI names and POST, hand-built operations diverted by name, unclassified creation/money/irreversible/unknown target fail closed, native app-owned marker denial, original provider readback and audit plus provider idempotency; no money moved or LIVE authorized. Positive nonfinancial tax-rate metadata write and no-write on app-owned provider fixture exercised."
+        },
+        {
+          "criterion": "Provider-shaped positive read and protected nonmoney write/replay, summary search/describe Terminal and Issuing, negative unknown field, target/secret/money override, brand/current source checks and mandatory exact-head CI plus true review. Existing E/R safety boundaries unchanged.",
+          "evidence": "1670+ unit suite complete, db/mock/RTC/core/target policy exact-head checked; positive/negative pinned provider-shape suite in tests/unit/universal.test.js, optional report type nullable metadata positive and negative tests; original real provider report_list_types failure identified while READY and corrected as nullable unknown, real protected provider reconfirmation pending checked release."
+        }
+      ]
+    }
+  ],
+  "productionAdded": 424,
+  "productionRemoved": 7,
+  "planComparison": "One substantial original approved universal U-1 section, NOT four synthetic tool subsections. Exactly 424 source lines added plus 7 removed (431 changed), excluding tests/docs/generated; about 430 meaningful deployment/code lines with broad checked operation schema, financial/owner/full TEST constraints and runtime. Native-compatible financial/unsupported mutating operations explicitly refuse and instruct preferred tool, not misreported as executed. The strict provider source remains undeployed until checked release.",
+  "otherWork": "Live provider read-only acceptance partial rows documented in authoritative STATUS unchanged 9/33; independent R/E/X remaining. Annual money-out rule independent and LIVE OFF.",
+  "decision": "ENGINEERING_COMPLETE_TEST_PROVIDER_ACCEPTANCE_PENDING"
+}
