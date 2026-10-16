@@ -56,9 +56,9 @@ export function publicToolInfo(tool) {
   // validator rejects; keep universal controls on native readers only.
   if(tool.writes===false&&!tool.name.startsWith('workflow_')){
     if(!Object.hasOwn(properties,'detail'))properties.detail={
-      type:'string',enum:['summary','full'],description:'Summary by default; full retains all safe fields'};
+      type:'string',enum:['summary','full'],description:'Safe summary or full'};
     if(!Object.hasOwn(properties,'fields'))properties.fields={
-      type:'string',maxLength:600,description:'Up to 12 comma-separated dotted field paths'};
+      type:'string',maxLength:600,description:'Max 12 dotted paths'};
   }
   return {...rest,inputSchema:{...schema,properties},
     annotations:{...rest.annotations,readOnlyHint:tool.writes===false,
