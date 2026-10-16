@@ -215,6 +215,14 @@ function portalLook(){
       const {s}=await testAccount(ctx),config=await s.billingPortal.configurations.retrieve(a.configId);
       if(config?.id!==a.configId||config?.active!==true)
         throw new TypeError('Active owned portal configuration required');
+      // Stripe's Portal configuration has no reliable MCP-created marker.
+      // Where any active project is bound, the account's Portal could be app
+      // managed. Refuse even an outsideApp override until ownership is proven.
+      if(typeof ctx.db?.listKnownAppsForAccount!=='function')
+        throw new TypeError('Portal app ownership registry unavailable');
+      const apps=await ctx.db.listKnownAppsForAccount(ctx.connection.stripeAccount);
+      if(!Array.isArray(apps)||apps.some(app=>app?.status==='active'))
+        throw new TypeError('App-bound TEST Portal ownership cannot be proven; use Dashboard review');
       return {...config,metadata:config.metadata??{}};
     },
     summarize:(before,a)=>'TEST MODE: change portal appearance for '+before.id+

@@ -16,10 +16,21 @@ export function profileCounts(registry,options={}) {
     [profile,visibleTools(registry,profile,options).length]));
 }
 const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk','identity']);
+// An entire workflow can delegate multiple original protected native writes.
+// Expose only these audited original whole-job operations to the independently
+// authenticated TEST full owner profile through stripe_call; never everyday,
+// read_only, LIVE, nested bulk calls or arbitrary future workflow names.
+const fullOwnerWorkflowWrites=new Set([
+  'workflow_refund_customer','workflow_cancel_customer','workflow_change_plan',
+  'workflow_dispute_kit_save','workflow_webhook_health_fix',
+  'workflow_month_end_report','workflow_set_up_catalog','workflow_brand_business'
+]);
 export function isGuardedTestWrite(tool,connection){
   return connection?.mode==='test'&&tool?.writes===true&&
     tool?.writeContract==='defineWrite-v1'&&
-    guardedTestAreas.has(tool.area)&&
+    (guardedTestAreas.has(tool.area)||
+      (tool.area==='workflows'&&connection?.profile==='full'&&
+        fullOwnerWorkflowWrites.has(tool.name)))&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
@@ -39,7 +50,10 @@ export function publicToolInfo(tool) {
   const properties={...schema.properties};
   // Keep legacy specialist shapes unchanged. Generic read tools gain the
   // standard detail and dotted-field controls without hand-editing each tool.
-  if(tool.writes===false){
+  // Workflow readers intentionally have strict, task-specific inputs.
+  // Do not advertise phantom detail/fields arguments that their original
+  // validator rejects; keep universal controls on native readers only.
+  if(tool.writes===false&&!tool.name.startsWith('workflow_')){
     if(!Object.hasOwn(properties,'detail'))properties.detail={
       type:'string',enum:['summary','full'],description:'Summary by default; full retains all safe fields'};
     if(!Object.hasOwn(properties,'fields'))properties.fields={

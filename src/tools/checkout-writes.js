@@ -161,6 +161,10 @@ function build(def){
   let created=null;
   const op=defineWrite({
     name:def.name,
+    resultId:(_before,after)=>[
+      'checkout_create_payment_link_for_customer',
+      'checkout_create_setup_link','paylink_create','portal_create_session'
+    ].includes(def.name)?after?.id??null:null,
     read:async(a,ctx)=>{
       valid(def,a);
       // Redirect configuration is a mandatory preflight, not an apply-time

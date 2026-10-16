@@ -151,7 +151,7 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
       try {
         const candidate = await resultId(before, observed, args, ctx);
         if (typeof candidate !== 'string' ||
-          !/^[a-z][a-z0-9]*_[A-Za-z0-9]{2,100}$/.test(candidate)) {
+          !/^(?:[a-z][a-z0-9]*|cs_test)_[A-Za-z0-9]{2,100}$/.test(candidate)) {
           throw new TypeError('Invalid verified resource identifier');
         }
         verifiedResourceId = candidate;
