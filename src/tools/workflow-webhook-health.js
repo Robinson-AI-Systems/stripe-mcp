@@ -106,6 +106,7 @@ async function source(a,ctx,{scan=true}={}){
     endpoint:{id:a.endpointId,status:endpointData.status,
       destinationOrigin:endpointData.destinationOrigin,
       enabledEventCount:endpointData.enabledEventCount,
+      subscriptionRevision:endpointData.subscriptionRevision,
       wildcard:endpointData.eventCoverage.wildcard===true},
     projects,missingEvents:missing,repairable:complete&&missing.length>0&&
       missing.length<=8&&endpointData.status==='enabled'&&
