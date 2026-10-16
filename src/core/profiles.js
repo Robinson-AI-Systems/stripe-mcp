@@ -16,10 +16,21 @@ export function profileCounts(registry,options={}) {
     [profile,visibleTools(registry,profile,options).length]));
 }
 const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk','identity']);
+// An entire workflow can delegate multiple original protected native writes.
+// Expose only these audited original whole-job operations to the independently
+// authenticated TEST full owner profile through stripe_call; never everyday,
+// read_only, LIVE, nested bulk calls or arbitrary future workflow names.
+const fullOwnerWorkflowWrites=new Set([
+  'workflow_refund_customer','workflow_cancel_customer','workflow_change_plan',
+  'workflow_dispute_kit_save','workflow_webhook_health_fix',
+  'workflow_month_end_report','workflow_set_up_catalog','workflow_brand_business'
+]);
 export function isGuardedTestWrite(tool,connection){
   return connection?.mode==='test'&&tool?.writes===true&&
     tool?.writeContract==='defineWrite-v1'&&
-    guardedTestAreas.has(tool.area)&&
+    (guardedTestAreas.has(tool.area)||
+      (tool.area==='workflows'&&connection?.profile==='full'&&
+        fullOwnerWorkflowWrites.has(tool.name)))&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
