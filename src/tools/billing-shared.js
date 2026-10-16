@@ -158,6 +158,7 @@ export function previewSafe(invoice,effectiveAt,behavior){
     amountDueCents:invoice.amount_due??null,
     effectiveAt,effectiveLocal:local(effectiveAt),
     prorationBehavior:behavior,
+    prorationLinesComplete:Array.isArray(invoice.lines?.data)&&invoice.lines.has_more===false,
     prorationLines:(invoice.lines?.data??[])
       .filter(i=>i.parent?.subscription_item_details?.proration===true)
       .map(i=>({amountCents:i.amount,description:i.description??null}))};
