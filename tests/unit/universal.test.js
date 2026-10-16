@@ -41,7 +41,7 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
     expect(matches.some(x=>x.path==='/v1/refunds'&&x.method==='POST')).toBe(true);
   });
   it('rejects missing operation IDs, foreign parameter names, malformed path and arbitrary body in GET',()=>{
-    const read=find('GET','/v1/products/{product}');
+    const read=find('GET','/v1/products/{id}');
     expect(read).toBeDefined();
     const key=paramNames(read,'path')[0].name;
     const good=checkedRequest(read.id,{pathParams:{[key]:P}});
@@ -55,7 +55,7 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
       body:{private_override:true}})).toThrow();
   });
   it('executes a real provider-shaped selected TEST GET, strips raw metadata and denies LIVE',async()=>{
-    const f=fixture(),record=find('GET','/v1/products/{product}');
+    const f=fixture(),record=find('GET','/v1/products/{id}');
     const key=paramNames(record,'path')[0].name;
     const result=parse(await f.call('api_read',{op:record.id,pathParams:{[key]:P}}));
     expect(result).toMatchObject({account:A,mode:'test',complete:true,
