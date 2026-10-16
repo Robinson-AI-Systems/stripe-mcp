@@ -2,7 +2,7 @@
 // unapproved app-owned mutation, duplicate lookup key or automatic uncertain retry.
 import {createHash} from 'node:crypto';
 import {reply,fail} from './billing-shared.js';
-import {nativeRead,verifyContext,deadline,expired} from './workflow-read-common.js';
+import {nativeRead,deadline,expired} from './workflow-read-common.js';
 import {writable,nativeWrite,readyStep} from './workflow-customer-actions.js';
 
 const shape={
