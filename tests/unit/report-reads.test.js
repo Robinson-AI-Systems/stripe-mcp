@@ -48,6 +48,21 @@ describe('G-1d1 provider-verified TEST report reads',()=>{
     expect((await f.call('report_list_types',{starting_after:'invalid.id.1'})).isError)
       .toBe(true);
   });
+  it('keeps nullable or absent actual provider report columns unverified without hiding the usable type',async()=>{
+    const f=fixture();
+    f.api.reportTypes.list.mockResolvedValue({data:[
+      {...reportType,default_columns:null},
+      {...reportType,id:'balance.summary.2',default_columns:undefined}
+    ],has_more:false});
+    const res=parse(await f.call('report_list_types',{}));
+    expect(res.data).toHaveLength(2);
+    expect(res.data.every(x=>x.defaultColumns===null&&
+      x.defaultColumnsVerified===false)).toBe(true);
+    f.api.reportTypes.list.mockResolvedValue({data:[
+      {...reportType,default_columns:['unexpected newline\\n']}
+    ],has_more:false});
+    expect((await f.call('report_list_types',{})).isError).toBe(true);
+  });
   it('runs list/retrieve project only file IDs, never a Stripe file URL',async()=>{
     const f=fixture(),res=parse(await f.call('report_list_runs',{limit:2}));
     expect(res.data[0]).toMatchObject({id:record.id,status:'succeeded',
