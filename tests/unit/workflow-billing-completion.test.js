@@ -191,8 +191,6 @@ describe('W-5 original end-to-end provider quote and guarded write',()=>{
     expect(f.calls.filter(x=>x.name==='subscription.update')).toHaveLength(1);
     expect(f.item.price.id).toBe(NEXT);
     expect(registry.tools.find(x=>x.name==='workflow_change_plan'))
-      .toMatchObject({writes:true,safety:'
-});
-,moneySpec:'provider-derived'});
+      .toMatchObject({writes:true,safety:String.fromCharCode(36),moneySpec:'provider-derived'});
   });
 });
