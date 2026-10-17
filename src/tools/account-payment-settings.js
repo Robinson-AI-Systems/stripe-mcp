@@ -1,6 +1,6 @@
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {selectedAccountClient,assertAccountResourceMode} from './account-mode.js';
 // G-5c1: native TEST own-account payment-method configuration visibility.
-import {client,reply,fail,allProfiles} from './billing-shared.js';
+import {reply,fail,allProfiles} from './billing-shared.js';
 const bad=message=>{throw new TypeError(message);};
 const idOk=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
 const cfgOk=x=>typeof x==='string'&&/^pmc_[A-Za-z0-9]{2,100}$/.test(x);
@@ -11,7 +11,8 @@ const unreadable=(account)=>({account,available:false,configurations:null,hasMor
   note:'This TEST key cannot read payment-method configurations. Check Stripe Dashboard TEST > Settings > Payment methods; this does not prove ACH is off.'});
 const unsupported=e=>[403,404].includes(e?.statusCode??e?.status)||
   ['permission_denied','resource_missing'].includes(e?.code);
-export function safeConfiguration(v){
+export function safeConfiguration(v,mode=null){
+  if(mode!==null)assertAccountResourceMode(v,mode);
   if(v?.object!=='payment_method_configuration'||!cfgOk(v.id)||
     typeof v.active!=='boolean'||(v.parent!==undefined&&v.parent!==null&&
       typeof v.parent!=='string')||(v.application!==undefined&&
@@ -38,7 +39,7 @@ function check(a){
     bad('Choose TEST configurations page 1–20 and a valid cursor');
 }
 export const tools=[{name:'account_list_payment_method_settings',area:'account',
-  description:'Read safe TEST payment-method configuration states; denied access is unreadable, not disabled.',
+  description:'Read safe selected TEST/LIVE payment-method configuration states; denied access is unreadable, not disabled.',
   writes:false,profiles:allProfiles,annotations:{readOnlyHint:true},
   inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:20},
     starting_after:{type:'string',pattern:'^pmc_[A-Za-z0-9]{2,100}$'}},
@@ -46,12 +47,11 @@ export const tools=[{name:'account_list_payment_method_settings',area:'account',
 export const handlers={
   async account_list_payment_method_settings(a,ctx){
     const account=ctx?.connection?.stripeAccount;
-    if(ctx?.connection?.mode!=='test'||!idOk(account))
+    if(!['test','live'].includes(ctx?.connection?.mode)||!idOk(account))
       return fail('Select a configured TEST account');
     try{
       check(a);
-      const s=await client(ctx);
-      await readVerifiedTestAccount(s,account);
+      const s=await selectedAccountClient(ctx);
       let p;
       try{p=await s.paymentMethodConfigurations.list({limit:a.limit??10,
         ...(a.starting_after?{starting_after:a.starting_after}:{})});}
@@ -59,7 +59,7 @@ export const handlers={
       if(p?.object!=='list'||!Array.isArray(p.data)||p.data.length>20||
         typeof p.has_more!=='boolean'||(p.has_more&&p.data.length===0))
         bad('Provider payment method settings page incomplete');
-      const configurations=p.data.map(safeConfiguration);
+      const configurations=p.data.map(v=>safeConfiguration(v,ctx.connection.mode));
       return reply({account,available:true,configurations,hasMore:p.has_more,
         nextCursor:p.has_more?configurations.at(-1).id:null,
         note:'Effective preference is observed configuration data, not proof that Checkout will offer a method for each payment.'});
