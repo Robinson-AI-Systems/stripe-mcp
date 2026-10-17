@@ -109,6 +109,38 @@ export function createDb(sql = getProductionSql()) {
           AND live_enabled=FALSE RETURNING client_id`;
       return rows.length===1;
     },
+    async createRtcPass({id,account,token,mode='test',profile='read_only',
+      areas,allowWrites=false,moneyLimitCents=0,forHub=false,
+      rateLimitPerMinute=120,expiresAt}) {
+      // The issuer authenticates the owner; storage still enforces the exact
+      // requested grants and usable TEST provider credentials independently.
+      if(typeof id!=='string'||!/^rtc-agent-[a-z0-9-]{8,80}$/.test(id)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
+        typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token)||
+        mode!=='test'||!['read_only','everyday','full'].includes(profile)||
+        typeof allowWrites!=='boolean'||allowWrites&&profile==='read_only'||
+        typeof forHub!=='boolean'||!Number.isSafeInteger(moneyLimitCents)||
+        moneyLimitCents<0||moneyLimitCents>0&&!allowWrites||
+        !Number.isInteger(rateLimitPerMinute)||rateLimitPerMinute<1||
+        rateLimitPerMinute>600||
+        !Array.isArray(areas)||areas.length<1||areas.length>6||
+        areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))||
+        new Set(areas).size!==areas.length||
+        !(expiresAt instanceof Date)||!Number.isFinite(expiresAt.getTime())||
+        expiresAt.getTime()<=Date.now()||
+        expiresAt.getTime()>Date.now()+(forHub?365:30)*86_400_000+60_000)
+        throw new TypeError('Invalid original owner-selected RTC TEST pass grant');
+      const areaList=areas.join(',');
+      const rows=await sql`INSERT INTO oauth_tokens
+        (token_hash,client_id,stripe_account,mode,profile,listing,kind,
+         allow_writes,money_limit_cents,areas,for_hub,rate_limit_per_minute,expires_at)
+        SELECT ${hashToken(token)},${id},id,'test',${profile},'compact','pass',
+          ${allowWrites},${moneyLimitCents},string_to_array(${areaList},','),
+          ${forHub},${rateLimitPerMinute},${expiresAt}
+        FROM stripe_accounts WHERE id=${account} AND test_key_enc IS NOT NULL
+        RETURNING client_id`;
+      return rows.length===1;
+    },
     async getRtcPassStatus(token) {
       if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token))return null;
       const rows=await sql`SELECT client_id,stripe_account,mode,profile,listing,
