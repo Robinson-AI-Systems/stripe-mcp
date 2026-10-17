@@ -154,11 +154,27 @@ export function createDb(sql = getProductionSql()) {
         (!Number.isInteger(limit)||limit<1||limit>600)||
         !Number.isInteger(units)||units<1||units>10)
         throw new TypeError('Valid RTC TEST rate selector required');
-      const rows=await sql`INSERT INTO rtc_pass_rates (token_hash,window_start,count)
+      // The initial batch must not bypass a pass whose limit is below its
+      // read-unit count. Refused calls must never consume a partial allocation.
+      if(units>limit)return false;
+      // Keep the counter <= owner limit even during bursts; don't allow
+      // unbounded post-limit growth. Expired windows are swept in small batches
+      // by the same single-statement request path without a background worker.
+      const rows=await sql`WITH stale AS (
+        SELECT token_hash,window_start FROM rtc_pass_rates
+        WHERE window_start < date_trunc('minute',now())-interval '1 hour'
+        ORDER BY window_start LIMIT 100
+      ), cleared AS (
+        DELETE FROM rtc_pass_rates r USING stale s
+        WHERE r.token_hash=s.token_hash AND r.window_start=s.window_start
+      )
+      INSERT INTO rtc_pass_rates (token_hash,window_start,count)
         VALUES (${hashToken(token)},date_trunc('minute',now()),${units})
         ON CONFLICT (token_hash,window_start) DO UPDATE SET
-          count=rtc_pass_rates.count+${units} RETURNING count`;
-      return Number(rows[0]?.count)<=limit;
+          count=rtc_pass_rates.count+${units}
+          WHERE rtc_pass_rates.count+${units} <= ${limit}
+        RETURNING count`;
+      return rows.length===1&&Number(rows[0].count)<=limit;
     },
     async getRtcPass(token) {
       if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token))return null;
