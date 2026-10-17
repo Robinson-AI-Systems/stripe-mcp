@@ -567,7 +567,7 @@ export function createDb(sql = getProductionSql()) {
     },
 
     // These decisions are ONLY staged by the password/CSRF-protected owner page.
-    // Each intent snapshots the complete provider-derived TEST request identity;
+    // Each intent snapshots the complete provider-derived mode-bound request identity;
     // no browser field or AI argument supplies the amount or target.
     async requestMoneyDecisionIntent({id,account,idempotencyKey,kind,expiresAt}) {
       if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id)||
@@ -575,7 +575,7 @@ export function createDb(sql = getProductionSql()) {
         typeof idempotencyKey!=='string'||!idempotencyKey||idempotencyKey.length>250||
         !['approve','override'].includes(kind)||!(expiresAt instanceof Date)||
         !Number.isFinite(expiresAt.getTime())||expiresAt.getTime()<=Date.now()||
-        expiresAt.getTime()>Date.now()+600000) throw new TypeError('Valid TEST owner decision required');
+        expiresAt.getTime()>Date.now()+600000) throw new TypeError('Valid owner mode-bound decision required');
       const rows=await sql`INSERT INTO owner_money_decision_intents
         (id,approval_id,stripe_account,request_key,tool,target,amount_cents,currency,mode,
           request_expires_at,kind,expires_at)
@@ -643,7 +643,7 @@ export function createDb(sql = getProductionSql()) {
           AND m.expires_at>now() AND m.expires_at=i.request_expires_at
           AND m.stripe_account=i.stripe_account AND m.request_key=i.request_key
           AND m.tool=i.tool AND m.target=i.target AND m.amount_cents=i.amount_cents
-          AND m.currency=i.currency AND m.mode=i.mode AND m.mode='test'
+          AND m.currency=i.currency AND m.mode=i.mode AND m.mode IN ('test','live')
           AND m.target<>'' AND m.currency='usd'
           AND ((
             i.kind='approve' AND (m.approved_at IS NULL OR
