@@ -23,6 +23,10 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
 const guardedLiveAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk','identity']);
 // These account writes have reviewed LIVE account/balance and result-mode proof;
 // other legacy account writes remain TEST-only until separately implemented.
+const guardedLiveCatalogWrites=new Set([
+  'product_create','product_update','product_archive','product_unarchive',
+  'product_delete','price_create','price_update'
+]);
 const guardedLiveWebhookWrites=new Set([
   'webhook_create','webhook_add_events','webhook_remove_events',
   'webhook_update','webhook_delete'
@@ -61,6 +65,7 @@ export function isGuardedLiveWrite(tool,connection){
     (guardedLiveAreas.has(tool.area)||
       (tool.area==='account'&&guardedLiveAccountWrites.has(tool.name))||
       (tool.area==='webhooks'&&guardedLiveWebhookWrites.has(tool.name))||
+      (tool.area==='catalog'&&guardedLiveCatalogWrites.has(tool.name))||
       (tool.area==='workflows'&&connection?.profile==='full'&&
         fullOwnerWorkflowWrites.has(tool.name))||
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&

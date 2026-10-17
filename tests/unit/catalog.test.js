@@ -1,20 +1,27 @@
-import {describe,it,expect,vi} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
 import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
+import {isGuardedLiveWrite,listingForConnection} from '../../src/core/profiles.js';
 
 const account='acct_CATALOG123',parse=r=>JSON.parse(r.content[0].text);
-function fixture(){
-  const db=createFakeDb({accounts:[{id:account,label:'Catalog fixture'}]});
+afterEach(()=>vi.unstubAllEnvs());
+function fixture({mode='test',providerMode=mode,grant=true,enabled=true,profile='full'}={}){
+  if(mode==='live')vi.stubEnv('VERCEL_ENV','production');
+  const db=createFakeDb({accounts:[{id:account,label:'Catalog fixture',
+    live_enabled:enabled,live_connected:true}]});
   const products=new Map(),prices=new Map(),calls=[];
   const mkProd=(id,name,metadata={})=>({id,name,metadata,description:null,
-    active:true,object:'product',livemode:false,created:1690000000});
+    active:true,object:'product',livemode:providerMode==='live',created:1690000000});
   const mkPrice=(id,product,lookupKey,amount,recurring=null)=>({
     id,product,lookup_key:lookupKey,unit_amount:amount,currency:'usd',
     type:recurring?'recurring':'one_time',recurring,active:true,
-    metadata:{},nickname:null,object:'price',livemode:false});
+    metadata:{},nickname:null,object:'price',livemode:providerMode==='live'});
   products.set('prod_BASE123',mkProd('prod_BASE123','Fixture product'));
   const sdk={
+    accounts:{retrieve:vi.fn(async()=>({id:account,object:'account'}))},
+    balance:{retrieve:vi.fn(async()=>({object:'balance',
+      livemode:providerMode==='live'}))},
     products:{
       list:vi.fn(async()=>({data:[...products.values()].filter(x=>!x.deleted),has_more:false})),
       search:vi.fn(async()=>({data:[...products.values()],has_more:false,next_page:null})),
@@ -60,8 +67,10 @@ function fixture(){
       })
     }
   };
-  const connection={stripeAccount:account,mode:'test',profile:'full'};
+  const connection={stripeAccount:account,mode,profile,
+    rtcLiveOwnerApproved:grant,moneyLimitCents:0,listing:'catalog'};
   const ctx={db,connection,connectionId:'catalog-regression',
+    liveAccessGranted:mode==='live'&&grant,
     services:{stripeForConnection:async()=>sdk}};
   const call=(name,args={})=>registry.handlers[name](args,ctx);
   const confirm=(name,args)=>call(name,{...args,confirm:true,
@@ -177,7 +186,7 @@ describe('E-1 native TEST catalog profile and contract',()=>{
     f.sdk.products.retrieve.mockResolvedValueOnce({id:'prod_BASE123',object:'product',
       livemode:true,name:'Wrong mode',metadata:{}});
     await expect(f.confirm('product_archive',{productId:'prod_BASE123'}))
-      .rejects.toThrow(/TEST product/);
+      .rejects.toThrow(/selected-mode product/);
     expect(f.calls).toHaveLength(0);
   });
   it('refuses an unmarked price when its parent product is app owned',async()=>{
@@ -220,4 +229,139 @@ describe('E-1 native TEST catalog profile and contract',()=>{
     expect(unknown.warning).toMatch(/uncertain/i);
     expect(g.sdk.products.del).toHaveBeenCalledTimes(1);
   });
+
+  it('lists and searches actual selected LIVE products and prices without acquiring TEST records',async()=>{
+    const f=fixture({mode:'live'});
+    f.prices.set('price_LIVEBASE',f.mkPrice('price_LIVEBASE','prod_BASE123',
+      'live_month',4500,{interval:'month',interval_count:1,usage_type:'licensed'}));
+    for(const [name,args] of [
+      ['product_list',{limit:3}],
+      ['product_get',{productId:'prod_BASE123'}],
+      ['product_search',{query:"name:'Fixture'"}],
+      ['price_list',{lookupKey:'live_month'}],
+      ['price_get',{priceId:'price_LIVEBASE'}],
+      ['price_search',{query:"lookup_key:'live_month'"}]
+    ]){
+      const result=await f.call(name,args);
+      expect(result.isError,name).not.toBe(true);
+    }
+    expect(f.sdk.balance.retrieve).toHaveBeenCalledTimes(6);
+    expect(f.calls).toHaveLength(0);
+    expect(parse(await f.call('price_get',{priceId:'price_LIVEBASE'})))
+      .toMatchObject({unitAmountCents:4500,currency:'usd'});
+  });
+  it('advertises seven original guarded catalog writers only for separately granted LIVE scope',()=>{
+    const f=fixture({mode:'live'});
+    const names=['product_create','product_update','product_archive',
+      'product_unarchive','product_delete','price_create','price_update'];
+    for(const name of names){
+      const t=registry.tools.find(x=>x.name===name);
+      expect(isGuardedLiveWrite(t,f.ctx.connection)).toBe(true);
+      expect(isGuardedLiveWrite(t,{...f.ctx.connection,
+        rtcLiveOwnerApproved:false})).toBe(false);
+      expect(isGuardedLiveWrite(t,{...f.ctx.connection,profile:'read_only'})).toBe(false);
+    }
+    expect(listingForConnection(registry,f.ctx.connection).filter(t=>
+      t.area==='catalog'&&t.writes===true).map(t=>t.name).sort()).toEqual([...names].sort());
+  });
+  it('previews then performs owner-confirmed LIVE product create/update and reversible archive',async()=>{
+    const f=fixture({mode:'live'});
+    const draft=parse(await f.call('product_create',{name:'Real-visible test product'}));
+    expect(draft).toMatchObject({mode:'LIVE',done:false,needsConfirmation:true});
+    expect(draft.preview).toMatch(/LIVE MODE|LIVE prices/);
+    expect(f.calls).toHaveLength(0);
+    const added=parse(await f.confirm('product_create',{name:'Real-visible test product'}));
+    expect(added).toMatchObject({done:true,confirmed:true,mode:'LIVE',
+      resourceId:'prod_NEW123'});
+    const updated=parse(await f.confirm('product_update',{
+      productId:'prod_NEW123',name:'Renamed LIVE-visible product'}));
+    expect(updated).toMatchObject({done:true,confirmed:true,mode:'LIVE'});
+    const archive=parse(await f.confirm('product_archive',{productId:'prod_NEW123'}));
+    expect(archive).toMatchObject({done:true,confirmed:true,mode:'LIVE'});
+    expect(f.products.get('prod_NEW123').active).toBe(false);
+    const unarchive=parse(await f.confirm('product_unarchive',{productId:'prod_NEW123'}));
+    expect(unarchive).toMatchObject({done:true,confirmed:true,mode:'LIVE'});
+    expect(f.products.get('prod_NEW123').active).toBe(true);
+    expect(f.calls.every(x=>x.opts?.idempotencyKey?.startsWith('rmcp_'))).toBe(true);
+  });
+  it('creates exact LIVE immutable recurring price only once, then updates only supported fields',async()=>{
+    const f=fixture({mode:'live'});
+    const args={productId:'prod_BASE123',lookupKey:'live_rental_month',
+      unitAmountCents:6000,currency:'usd',interval:'month'};
+    const preview=parse(await f.call('price_create',args));
+    expect(preview).toMatchObject({mode:'LIVE',needsConfirmation:true});
+    expect(preview.preview).toContain('future charges');
+    expect(f.sdk.prices.create).not.toHaveBeenCalled();
+    const first=parse(await f.confirm('price_create',args));
+    const repeat=parse(await f.confirm('price_create',args));
+    expect(first).toMatchObject({mode:'LIVE',done:true,confirmed:true,
+      resourceId:'price_NEW123'});
+    expect(repeat).toMatchObject({mode:'LIVE',done:true,confirmed:true});
+    expect(f.sdk.prices.create).toHaveBeenCalledTimes(1);
+    const updated=parse(await f.confirm('price_update',{
+      priceId:'price_NEW123',nickname:'New live rental label'}));
+    expect(updated).toMatchObject({mode:'LIVE',done:true,confirmed:true});
+    expect(f.prices.get('price_NEW123').unit_amount).toBe(6000);
+    await expect(f.confirm('price_update',{
+      priceId:'price_NEW123',unitAmountCents:9999})).rejects.toThrow();
+    await expect(f.confirm('price_create',{
+      ...args,unitAmountCents:7000})).rejects.toThrow(/different immutable/);
+    expect(f.sdk.prices.create).toHaveBeenCalledTimes(1);
+  });
+  it('deletes LIVE product only if no prices and separately verifies provider result',async()=>{
+    const f=fixture({mode:'live'});
+    const args={productId:'prod_BASE123'};
+    expect(parse(await f.call('product_delete',args))).toMatchObject({
+      mode:'LIVE',done:false,needsConfirmation:true});
+    expect(f.sdk.products.del).not.toHaveBeenCalled();
+    const done=parse(await f.confirm('product_delete',args));
+    expect(done).toMatchObject({mode:'LIVE',done:true,confirmed:true});
+    expect(f.sdk.products.del).toHaveBeenCalledTimes(1);
+    const other=fixture({mode:'live'});
+    other.prices.set('price_LIVEEXISTING',other.mkPrice('price_LIVEEXISTING',
+      'prod_BASE123','existing_live_fee',3500));
+    await expect(other.confirm('product_delete',args)).rejects.toThrow(/prices/);
+    expect(other.sdk.products.del).not.toHaveBeenCalled();
+  });
+  it('never grants LIVE catalog rights to read_only, missing owner consent or disabled accounts',async()=>{
+    const requested={name:'Do not create',confirm:true,requestKey:'denied-live'};
+    for(const config of [{mode:'live',grant:false},{mode:'live',enabled:false},
+      {mode:'live',profile:'read_only'},{mode:'live',providerMode:'test'}]){
+      const f=fixture(config);
+      const response=await f.call('product_create',requested)
+        .catch(()=>({isError:true}));
+      expect(response.isError).toBe(true);
+      expect(f.calls).toHaveLength(0);
+      const seen=await dispatchReadOnlyTool({registry,name:'price_create',
+        args:{productId:'prod_BASE123',lookupKey:'attempt_live',
+          unitAmountCents:5000,currency:'usd',confirm:true},
+        connection:{...f.ctx.connection},db:f.db,services:f.ctx.services});
+      if(config.grant===false||config.profile==='read_only')
+        expect(seen.isError).toBe(true);
+      expect(f.sdk.prices.create).not.toHaveBeenCalled();
+    }
+    const g=fixture({mode:'live'});
+    vi.stubEnv('VERCEL_ENV','preview');
+    expect((await g.call('product_create',requested)).isError).toBe(true);
+    expect(g.calls).toHaveLength(0);
+  });
+  it('refuses cross-account provider proof, app-owned product and unresolved provider readback',async()=>{
+    const foreign=fixture({mode:'live'});
+    foreign.sdk.accounts.retrieve.mockResolvedValueOnce({
+      object:'account',id:'acct_OTHERLIVE'});
+    await expect(foreign.call('product_create',{name:'Foreign live'})).rejects.toThrow();
+    expect(foreign.calls).toHaveLength(0);
+    const owned=fixture({mode:'live'});
+    owned.products.get('prod_BASE123').metadata={agreementId:'agr_APP'};
+    await expect(owned.confirm('product_update',{productId:'prod_BASE123',
+      name:'Should not change'})).rejects.toThrow(/Application-owned/);
+    expect(owned.sdk.products.update).not.toHaveBeenCalled();
+    const uncertain=fixture({mode:'live'});
+    uncertain.sdk.products.create.mockImplementationOnce(async()=>
+      ({id:'prod_NEW123',object:'product',livemode:true}));
+    const result=parse(await uncertain.confirm('product_create',{name:'Unobserved LIVE product'}));
+    expect(result).toMatchObject({done:false,confirmed:false,mode:'LIVE'});
+    expect(uncertain.sdk.products.create).toHaveBeenCalledTimes(1);
+  });
+
 });
