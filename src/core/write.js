@@ -161,8 +161,8 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     }
     return respond({ done: completed, confirmed: completed, mode: connection.mode,
       idempotencyKey: key, summary,
-      ...(Number.isSafeInteger(finalizedAuditId)&&finalizedAuditId>0?
-        {logged:{id:finalizedAuditId}}:{}),
+      ...(Number.isSafeInteger(Number(finalizedAuditId))&&Number(finalizedAuditId)>0?
+        {logged:{id:Number(finalizedAuditId)}}:{}),
       ...(verifiedResourceId ? { resourceId: verifiedResourceId } : {}),
       ...(receiptWarning ? { warning: receiptWarning } : !completed ? { warning: status === 'rejected'
         ? 'Stripe definitively rejected the request; no money moved and the reservation was released'
