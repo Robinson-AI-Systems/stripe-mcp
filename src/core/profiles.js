@@ -41,8 +41,10 @@ export function isGuardedLiveWrite(tool,connection){
   return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
     tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
     guardedTestAreas.has(tool.area)&&
-    tool?.money!==true&&tool?.moneySpec!=='provider-derived'&&
-    tool?.safety!==String.fromCharCode(36)&&
+    (tool?.money!==true&&tool?.moneySpec!=='provider-derived'&&
+      tool?.safety!==String.fromCharCode(36)||
+      Number.isSafeInteger(connection?.moneyLimitCents)&&
+      connection.moneyLimitCents>0)&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
