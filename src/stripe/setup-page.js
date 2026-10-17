@@ -163,7 +163,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
     (moneyInbox ? '<h2>Verified pending requests</h2>' +
       '<p>Stripe account: <strong>' + escapeHtml(moneyInbox.account) +
       '</strong>. Mode: ' + escapeHtml(moneyInbox.mode.toUpperCase()) +
-      '</strong>. Shared Colorado-day usage: ' + escapeHtml(usd(moneyInbox.usedCents)) +
+      '. Shared Colorado-day usage: ' + escapeHtml(usd(moneyInbox.usedCents)) +
       '. Daily limit: ' + escapeHtml(usd(moneyInbox.limitCents)) + '.</p>' +
       (moneyInbox.rows.length ? '<ol>' + moneyInbox.rows.map(item =>
         '<li>Operation: ' + escapeHtml(item.tool) +
