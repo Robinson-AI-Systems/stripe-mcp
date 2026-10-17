@@ -174,6 +174,7 @@ export function rtcOpenApi(){
           {name:'listing',in:'query',schema:{type:'string',enum:['compact','catalog']}},
           {name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:100}},
           {name:'offset',in:'query',schema:{type:'integer',minimum:0,maximum:100000}},
+          {name:'page',in:'query',schema:{type:'integer',minimum:1,maximum:1000}},
           {name:'audience',in:'query',schema:{type:'string',
             enum:['owner','operator','builder']}}],
         responses:success}},
@@ -186,7 +187,7 @@ export function rtcOpenApi(){
         requestBody:batchBody,responses:success}},
       '/api/results/{handle}':{get:{summary:'Read own scoped result',
         parameters:[...pathParam('handle'),
-          {name:'page',in:'query',schema:{type:'integer',minimum:0,maximum:100000}}],
+          {name:'page',in:'query',schema:{type:'integer',minimum:1,maximum:100000}}],
         responses:success}}
     }};
 }
@@ -312,8 +313,13 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(route==='catalog'){
       if(req.method!=='GET')return error('invalid_args',405);
       const limit=boundedPage(req.query?.limit,20,1,100);
-      const offset=boundedPage(req.query?.offset,0,0,100000);
-      if(limit===null||offset===null)return error('invalid_args');
+      const numbered=req.query?.page!==undefined;
+      const page=numbered?boundedPage(req.query.page,1,1,1000):null;
+      if(numbered&&req.query?.offset!==undefined)return error('invalid_args');
+      const offset=numbered&&page!==null?(page-1)*limit:
+        boundedPage(req.query?.offset,0,0,100000);
+      if(limit===null||offset===null||(numbered&&page===null))
+        return error('invalid_args');
       const q=req.query?.q,area=req.query?.area,listing=req.query?.listing;
       const audience=req.query?.audience;
       if(q!==undefined&&(typeof q!=='string'||q.length>100)||
@@ -332,7 +338,10 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
           'stripe_call','stripe_batch','stripe_get_result'].includes(t.name));
       const list=tools.slice(offset,offset+limit).map(t=>metadata(t,connection));
       return success({tools:list,total:tools.length,offset,
-        next:tools.length>offset+limit?offset+limit:null});
+        // RTC 1 continuation uses 1-based string pages. Preserve the original
+        // numeric offset-only API for existing legacy callers.
+        next:tools.length>offset+limit?
+          numbered?String(page+1):offset+limit:null});
     }
     if(route==='describe'){
       if(req.method!=='GET'||typeof name!=='string')return error('invalid_args');
@@ -368,10 +377,27 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(route==='result'){
       if(req.method!=='GET'||typeof name!=='string'||
         !/^res_[A-Za-z0-9_-]{24,48}$/.test(name))return error('invalid_args');
-      const page=boundedPage(req.query?.page,0,0,100000);
+      const page=boundedPage(req.query?.page,1,1,100000);
       if(page===null)return error('invalid_args');
-      const value=await call('stripe_get_result',{handle:name,page},connection);
-      return value.error?error(value.error,callErrorStatus(value.error)):success(value.result);
+      // Public RTC 1 has 1-based contiguous bounded result pages; the
+      // original MCP stripe_get_result remains its own 0-based interface.
+      // Both paths are scoped to the same authenticated token-owned UUID.
+      const stored=await db.getScopedResult({
+        handle:name,connection:connection.resultScope});
+      if(!stored)return error('not_found',404);
+      const value=await call('stripe_get_result',{handle:name,page:page-1},connection);
+      if(value.error)return error(value.error,callErrorStatus(value.error));
+      const body=stored.body;
+      if(!Array.isArray(body?.pages)||body.pages.length<page||
+         !body.pages.every(piece=>typeof piece==='string'))
+        return error('not_found',404);
+      const bytes=body.totalBytes;
+      if(!Number.isSafeInteger(bytes)||bytes<0||
+        bytes!==Buffer.byteLength(body.pages.join(''),'utf8'))
+        return error('service_error',503);
+      return success({page,pages:body.pages.length,bytes,
+        content:body.pages[page-1],
+        next:page<body.pages.length?page+1:null});
     }
     return error('not_found',404);
   };
