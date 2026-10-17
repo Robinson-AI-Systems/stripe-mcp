@@ -48,6 +48,30 @@ describe('K-3 portable OAuth protocol / original Stripe identity',()=>{
       expect(builder.buildAccessRow({accessToken:'access',refreshToken:'refresh',
         clientId:'client',grant:row})).toBeNull();
   });
+  it('accepts an original owner-issued LIVE code only on its current production account',async()=>{
+    let adapter;
+    const core={createOAuthProtocolHandlers(x){adapter=x;return {token(){}}}};
+    const source={createOAuthHandlers(){return {}}};
+    const db={
+      getOAuthClient:async()=>null,createOAuthClient:async()=>null,
+      createAccessToken:async()=>null,rotateRefreshToken:async()=>null,
+      consumeAuthCode:async()=>({client_id:'owner',stripe_account:'acct_LiveOwner',
+        mode:'live',profile:'full',listing:'catalog',live_write_approved:true}),
+      getStripeAccount:async()=>({id:'acct_LiveOwner',
+        live_enabled:true,live_connected:true})
+    };
+    createStripeOAuthProtocolAdapter({core,source,db,env:{VERCEL_ENV:'production'}});
+    const grant=await adapter.db.consumeAuthCode('test-code');
+    expect(adapter.buildAccessRow({accessToken:'access',refreshToken:'refresh',
+      clientId:'owner',grant})).toMatchObject({
+        stripeAccount:'acct_LiveOwner',mode:'live',liveWriteApproved:true});
+    db.getStripeAccount=async()=>({id:'acct_LiveOwner',
+      live_enabled:false,live_connected:true});
+    expect(await adapter.db.consumeAuthCode('disabled-code')).toBeNull();
+    createStripeOAuthProtocolAdapter({core,source,db,env:{}});
+    expect(adapter.buildAccessRow({accessToken:'access',refreshToken:'refresh',
+      clientId:'owner',grant})).toBeNull();
+  });
   it('retains true durable row account across refresh instead of caller scope',async()=>{
     let handlers;
     const core={createOAuthProtocolHandlers(x){handlers=x;return {token(){}}}};

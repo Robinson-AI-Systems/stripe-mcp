@@ -303,6 +303,87 @@ describe('personal-use OAuth HTTP endpoints', () => {
       { ...authorizeArgs(client), mode: 'live', passphrase: env.ADMIN_PASSPHRASE }));
     expect(result.statusCode).toBe(400);
   });
+
+  it('keeps independently selected LIVE read-only by default and durably retains explicit LIVE write consent',async()=>{
+    const liveEnv={...env,VERCEL_ENV:'production'};
+    const db=createFakeDb({accounts:[{id:'acct_fake_one',label:'Synthetic LIVE account',
+      live_enabled:true,live_connected:true}]});
+    const h=createOAuthHandlers({db,env:liveEnv}),client=await register(h);
+    const p=authorizeArgs(client);
+    const page=await call(h.authorize,request('GET',{...p,mode:'live'}));
+    expect(page.body).toContain('<option value="test" selected>');
+    expect(page.body).toContain('<option value="live">');
+    expect(page.body).toContain('name="liveWriteConsent"');
+    for(const badArgs of [
+      {...p,liveWriteConsent:'confirm'},
+      {...p,mode:'live',profile:'read_only',liveWriteConsent:'confirm'},
+      {...p,mode:'live',liveWriteConsent:'true'}
+    ]){
+      const denied=await call(h.authorize,request('POST',{
+        ...badArgs,passphrase:env.ADMIN_PASSPHRASE}));
+      expect(denied.statusCode).toBe(400);
+    }
+    async function grant(withWrites){
+      const authorized=await call(h.authorize,request('POST',{...p,
+        mode:'live',passphrase:env.ADMIN_PASSPHRASE,
+        ...(withWrites?{liveWriteConsent:'confirm'}:{})}));
+      expect(authorized.statusCode).toBe(302);
+      const code=new URL(authorized.headers.Location).searchParams.get('code');
+      const token=await call(h.token,request('POST',{
+        grant_type:'authorization_code',client_id:client.client_id,
+        client_secret:client.client_secret,redirect_uri:callback,
+        code,code_verifier:verifier,resource}));
+      expect(token.statusCode).toBe(200);
+      return json(token);
+    }
+    const read=await grant(false);
+    expect(await db.getAccessToken(read.access_token)).toMatchObject({
+      mode:'live',allow_writes:false});
+    const readConnection=await requireMcpToken(request('POST',{},{
+      authorization:'Bearer '+read.access_token}),response(),db,liveEnv);
+    expect(readConnection).toMatchObject({
+      mode:'live',rtcLiveOwnerApproved:false,moneyLimitCents:0});
+    const writable=await grant(true);
+    expect(await db.getAccessToken(writable.access_token)).toMatchObject({
+      mode:'live',allow_writes:true});
+    const authorizedConnection=await requireMcpToken(request('POST',{},{
+      authorization:'Bearer '+writable.access_token}),response(),db,liveEnv);
+    expect(authorizedConnection).toMatchObject({
+      mode:'live',rtcLiveOwnerApproved:true,moneyLimitCents:0});
+    const rotated=await call(h.token,request('POST',{
+      grant_type:'refresh_token',client_id:client.client_id,
+      client_secret:client.client_secret,refresh_token:writable.refresh_token,resource}));
+    expect(rotated.statusCode).toBe(200);
+    expect(await db.getAccessToken(json(rotated).access_token)).toMatchObject({
+      mode:'live',allow_writes:true});
+    expect((await call(h.token,request('POST',{
+      grant_type:'refresh_token',client_id:client.client_id,
+      client_secret:client.client_secret,refresh_token:writable.refresh_token,resource}))).statusCode).toBe(400);
+    db.getStripeAccount=async()=>({id:'acct_fake_one',live_enabled:false,live_connected:true});
+    const responseDenied=response();
+    expect(await requireMcpToken(request('POST',{},{
+      authorization:'Bearer '+json(rotated).access_token}),responseDenied,db,liveEnv)).toBeNull();
+    expect(responseDenied.statusCode).toBe(401);
+    expect(await requireMcpToken(request('POST',{},{
+      authorization:'Bearer '+read.access_token}),response(),db,env)).toBeNull();
+  });
+  it('refuses LIVE code exchange if account activation was withdrawn',async()=>{
+    const liveEnv={...env,VERCEL_ENV:'production'};
+    const db=createFakeDb({accounts:[{id:'acct_fake_one',label:'Synthetic LIVE account',
+      live_enabled:true,live_connected:true}]});
+    const h=createOAuthHandlers({db,env:liveEnv}),client=await register(h);
+    const approved=await call(h.authorize,request('POST',{...authorizeArgs(client),
+      mode:'live',passphrase:env.ADMIN_PASSPHRASE}));
+    expect(approved.statusCode).toBe(302);
+    db.getStripeAccount=async()=>({id:'acct_fake_one',live_enabled:false,live_connected:true});
+    const code=new URL(approved.headers.Location).searchParams.get('code');
+    const token=await call(h.token,request('POST',{
+      grant_type:'authorization_code',client_id:client.client_id,
+      client_secret:client.client_secret,redirect_uri:callback,
+      code,code_verifier:verifier,resource}));
+    expect(token.statusCode).toBe(400);
+    expect(json(token).error).toBe('invalid_grant');
+  });
   it('locks the user after five wrong passwords; valid password cannot bypass it', async () => {
     const { h } = createFixture();
     const client = await register(h), p = authorizeArgs(client);

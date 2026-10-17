@@ -12,10 +12,22 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
       'consumeAuthCode','createOAuthClient'].some(k=>typeof db[k]!=='function'))
     throw new TypeError('Real source OAuth UI, durable SQL and private protocol required');
   const original=source.createOAuthHandlers({db,env});
+  const liveEligible=async accountId=>{
+    if(env?.VERCEL_ENV!=='production'||typeof db.getStripeAccount!=='function')
+      return false;
+    try{
+      const a=await db.getStripeAccount(accountId);
+      return a?.id===accountId&&a.live_enabled===true&&a.live_connected===true;
+    }catch{return false;}
+  };
   const sql={
     createOAuthClient:(...args)=>db.createOAuthClient(...args),
     getOAuthClient:(...args)=>db.getOAuthClient(...args),
-    consumeAuthCode:(...args)=>db.consumeAuthCode(...args),
+    consumeAuthCode:async(...args)=>{
+      const row=await db.consumeAuthCode(...args);
+      if(row?.mode==='live'&&!await liveEligible(row.stripe_account))return null;
+      return row;
+    },
     createAccessToken:(...args)=>db.createAccessToken(...args),
     async rotateRefreshToken({refreshToken,clientId,accessToken,newRefreshToken}){
       // Only durable SQL may consume a refresh token and retain the original
@@ -28,8 +40,9 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
         ...Object.fromEntries(['stripe_account','mode','profile','listing'].map(k=>[k,own(old,k)]))};
       // DB is authoritative; never let the caller fill missing fields or LIVE.
       if(own(old,'client_id')!==clientId||typeof row.stripe_account!=='string'||
-        !row.stripe_account||row.mode!=='test'||!profiles.has(row.profile)||
-        !listings.has(row.listing)) return null;
+        !row.stripe_account||!['test','live'].includes(row.mode)||
+        !profiles.has(row.profile)||!listings.has(row.listing)||
+        row.mode==='live'&&!await liveEligible(row.stripe_account))return null;
       return row;
     }
   };
@@ -38,7 +51,9 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
     buildAccessRow:({accessToken,refreshToken,clientId,grant})=>{
       if(!grant||typeof grant!=='object'||Array.isArray(grant)||
         ![Object.prototype,null].includes(Object.getPrototypeOf(grant))||
-        own(grant,'client_id')!==clientId||own(grant,'mode')!=='test'||
+        own(grant,'client_id')!==clientId||
+        !['test','live'].includes(own(grant,'mode'))||
+        (own(grant,'mode')==='live'&&env?.VERCEL_ENV!=='production')||
         typeof own(grant,'stripe_account')!=='string'||
         !own(grant,'stripe_account')||
         !profiles.has(own(grant,'profile'))||!listings.has(own(grant,'listing')))
@@ -46,8 +61,10 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
       // Existing original SQL parameter names are deliberate; the portable
       // validator asserts the access/refresh/client triplet before issuance.
       return {accessToken,refreshToken,clientId,
-        stripeAccount:own(grant,'stripe_account'),mode:'test',
-        profile:own(grant,'profile'),listing:own(grant,'listing')};
+        stripeAccount:own(grant,'stripe_account'),mode:own(grant,'mode'),
+        profile:own(grant,'profile'),listing:own(grant,'listing'),
+        ...(own(grant,'mode')==='live'?{
+          liveWriteApproved:own(grant,'live_write_approved')===true}:{})};
     }
   });
   async function token(req,res){

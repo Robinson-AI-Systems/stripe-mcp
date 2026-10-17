@@ -3,6 +3,7 @@ import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import {publicToolInfo} from '../../src/core/profiles.js';
 import {tools as devTools,handlers as devHandlers} from '../../src/tools/dev-seed.js';
 import {overlayDispatch} from '../../scripts/k3-dispatch-overlay.mjs';
+import {createStripeCoreDispatcher} from '../../src/core/k3-dispatch-seams.js';
 import {readFileSync,existsSync} from 'node:fs';
 const conn={stripeAccount:'acct_TESTK3',mode:'test',profile:'full',
   listing:'catalog',resultScope:'k3-scope'};
@@ -52,6 +53,41 @@ describe('original MCP source dispatch + portable adapter safety',()=>{
       args:{},connection:conn,db:{}});
     expect(error(out)).toBe(true);
     expect(writes).toBe(0);
+  });
+  it('portable dispatcher forwards only persisted owner LIVE write consent to original handler',async()=>{
+    let called=0;
+    const tool={name:'api_write',area:'universal',writes:true,profiles:['full'],
+      writeContract:'defineWrite-v1'};
+    const registry={tools:[tool],handlers:{api_write:async(_args,ctx)=>{
+      called++;
+      return {content:[{type:'text',text:JSON.stringify({
+        liveAccessGranted:ctx.liveAccessGranted})}]};
+    }}};
+    const core={createGuardedMcpDispatcher:({registry:copy,authorizeTool})=>({
+      dispatch:async({name,args,connection,db,services})=>{
+        const selected=copy.tools.find(t=>t.name===name);
+        if(!await authorizeTool(selected,connection))return {isError:true};
+        return copy.handlers[name](args,{connection,db,services});
+      }})};
+    const dispatch=createStripeCoreDispatcher({core,registry,
+      sourceDispatch:async()=>{throw Error('Unexpected nested path');}});
+    const entitled={...conn,mode:'live',rtcLiveOwnerApproved:true,
+      moneyLimitCents:0};
+    const granted=await dispatch({name:'api_write',args:{},
+      connection:entitled,db:{},services:{}});
+    expect(JSON.parse(granted.content[0].text)).toEqual({
+      liveAccessGranted:true});
+    expect(called).toBe(1);
+    const denied=await dispatch({name:'api_write',args:{},
+      connection:{...entitled,rtcLiveOwnerApproved:false},
+      db:{},services:{}});
+    expect(denied.isError).toBe(true);
+    expect(called).toBe(1);
+    const readOnly=await dispatch({name:'api_write',args:{},
+      connection:{...entitled,profile:'read_only'},
+      db:{},services:{}});
+    expect(readOnly.isError).toBe(true);
+    expect(called).toBe(1);
   });
   it('preserves original MCP SDK transport while temporarily swapping dispatch',()=>{
     const pristine=new URL('../../src/core/k3-mcp-original-private.js',import.meta.url);

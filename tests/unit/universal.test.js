@@ -7,6 +7,7 @@ import {preferredNative} from '../../src/stripe/hand-built-map.js';
 import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {isGuardedTestWrite,listingForConnection} from '../../src/core/profiles.js';
+import {safePreparsedObject} from '../../src/core/http.js';
 
 const A='acct_U1TEST',P='prod_U1TEST',T='txr_U1TEST';
 const parse=r=>{try{return JSON.parse(r.content[0].text);}
@@ -71,6 +72,18 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
       .toThrow();
     expect(()=>checkedRequest(read.id,{pathParams:{[key]:P},
       body:{private_override:true}})).toThrow();
+  });
+  it('accepts strictly sanitized inert MCP JSON parameters but rejects custom object prototypes',()=>{
+    const op=find('POST','/v1/tax_rates');
+    const inert=safePreparsedObject({body:{display_name:'Allowed plain tax rate',
+      percentage:5,inclusive:false}});
+    expect(Object.getPrototypeOf(inert.body)).toBeNull();
+    expect(checkedRequest(op.id,{body:inert.body})).toMatchObject({
+      record:{id:op.id},body:{display_name:'Allowed plain tax rate',
+        percentage:5,inclusive:false}});
+    const exotic=Object.create(new Date());
+    exotic.display_name='Forbidden';exotic.percentage=5;exotic.inclusive=false;
+    expect(()=>checkedRequest(op.id,{body:exotic})).toThrow(/Only plain JSON/);
   });
   it('executes a selected TEST GET, redacts secrets, refuses mismatched LIVE data',async()=>{
     const f=fixture(),record=find('GET','/v1/products/{id}');

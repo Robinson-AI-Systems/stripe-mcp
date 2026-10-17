@@ -64,9 +64,11 @@ export function createDb(sql = getProductionSql()) {
       return rows[0] ? { client_id: rows[0].client_id, ...rows[0].data } : null;
     },
     async createAuthCode({ code, clientId, redirectUri, codeChallenge, codeChallengeMethod = 'S256',
-      stripeAccount = null, mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 600 }) {
+      stripeAccount = null, mode = 'test', profile = 'everyday', listing = 'catalog',
+      liveWriteApproved = false, ttlSeconds = 600 }) {
       const data = JSON.stringify({
-        redirect_uri: redirectUri, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod
+        redirect_uri: redirectUri, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod,
+        live_write_approved: mode==='live'&&liveWriteApproved===true
       });
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
       await sql`INSERT INTO oauth_codes (code, client_id, data, stripe_account, mode, profile, listing, expires_at)
@@ -81,12 +83,15 @@ export function createDb(sql = getProductionSql()) {
       return row ? { client_id: row.client_id, ...row.data, ...connectionSettings(row) } : null;
     },
     async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
-      mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 3600 }) {
+      mode = 'test', profile = 'everyday', listing = 'catalog',
+      liveWriteApproved = false, ttlSeconds = 3600 }) {
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
       await sql`INSERT INTO oauth_tokens
-        (token_hash, refresh_hash, client_id, stripe_account, mode, profile, listing, expires_at)
+        (token_hash, refresh_hash, client_id, stripe_account, mode, profile,
+         listing, allow_writes, money_limit_cents, expires_at)
         VALUES (${hashToken(accessToken)}, ${refreshToken ? hashToken(refreshToken) : null},
-          ${clientId}, ${stripeAccount}, ${mode}, ${profile}, ${listing}, ${expiresAt})`;
+          ${clientId}, ${stripeAccount}, ${mode}, ${profile}, ${listing},
+          ${mode==='live'&&liveWriteApproved===true}, 0, ${expiresAt})`;
     },
     async createRtcReadOnlyPass({id,account,token,expiresAt,areas=null}) {
       if(areas!==null&&(!Array.isArray(areas)||areas.length<1||areas.length>6||
@@ -190,7 +195,7 @@ export function createDb(sql = getProductionSql()) {
     async getAccessToken(accessToken) {
       if (typeof accessToken !== 'string' || !accessToken) return null;
       const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing, kind, result_scope,
-        expires_at, revoked_at FROM oauth_tokens WHERE token_hash = ${hashToken(accessToken)}
+        allow_writes, expires_at, revoked_at FROM oauth_tokens WHERE token_hash = ${hashToken(accessToken)}
         AND expires_at > now() AND revoked_at IS NULL AND kind = 'connector'`;
       return rows[0] || null;
     },
@@ -211,6 +216,9 @@ export function createDb(sql = getProductionSql()) {
         expires_at = ${expiresAt}, last_used_at = NULL
         WHERE refresh_hash = ${hashToken(refreshToken)} AND client_id = ${clientId}
           AND revoked_at IS NULL AND kind = 'connector'
+          AND (mode = 'test' OR (mode = 'live' AND EXISTS (
+            SELECT 1 FROM stripe_accounts a WHERE a.id = oauth_tokens.stripe_account
+              AND a.live_enabled = TRUE AND a.live_key_enc IS NOT NULL)))
         RETURNING client_id, stripe_account, mode, profile, listing`;
       return rows[0] || null;
     },
