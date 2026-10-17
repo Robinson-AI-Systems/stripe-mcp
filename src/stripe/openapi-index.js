@@ -107,7 +107,12 @@ export function validateSchema(input,source,{depth=0,root=null}={}){
   if(input&&typeof input==='object'){
     if(schema.type&&schema.type!=='object'&&!schema.allOf&&
       !schema.oneOf&&!schema.anyOf)bad('Unexpected nested parameter object');
-    if(Object.getPrototypeOf(input)!==Object.prototype)bad('Only plain JSON parameters');
+    // The authenticated MCP transport sanitizes arbitrary JSON bodies into inert
+    // null-prototype records before handing them to the pinned OpenAPI validator.
+    // Both plain JSON forms are safe; reject all exotic/custom prototypes.
+    const proto=Object.getPrototypeOf(input);
+    if(proto!==Object.prototype&&proto!==null)
+      bad('Only plain JSON parameters');
     const combined=schema.allOf?.map(v=>resolveReference(root??catalog().spec,v))??[];
     const props={...schema.properties};
     for(const other of combined)Object.assign(props,other.properties??{});
