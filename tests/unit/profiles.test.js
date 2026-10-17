@@ -81,8 +81,13 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
           'webhook_create','webhook_add_events','webhook_remove_events',
           'webhook_update','webhook_delete'
         ]);
+        const liveCatalog=new Set([
+          'product_create','product_update','product_archive','product_unarchive',
+          'product_delete','price_create','price_update'
+        ]);
         const approved=area==='account'&&liveAccount.has(tool.name)||
-          area==='webhooks'&&liveWebhooks.has(tool.name);
+          area==='webhooks'&&liveWebhooks.has(tool.name)||
+          area==='catalog'&&liveCatalog.has(tool.name);
         expect(isGuardedLiveWrite(tool,{mode:'live',profile:'full',
           rtcLiveOwnerApproved:true,moneyLimitCents:10000})).toBe(approved);
       }
