@@ -1,6 +1,6 @@
 // Stripe-specific encrypted key store. No tool or MCP API accepts a Stripe key argument.
 import { makeStripeClient } from './stripe/client.js';
-import { readVerifiedTestAccount } from './stripe/test-account.js';
+import { readVerifiedTestAccount,readVerifiedLiveAccount } from './stripe/test-account.js';
 import { encryptSecret, decryptSecret, readEncryptionKey } from './core/crypto.js';
 
 // Harmless read probes only. Permission-denied means unavailable; network/provider errors abort setup.
@@ -49,13 +49,31 @@ export function createKeyStore({ db, makeClient = makeStripeClient,
       await db.saveTestKey({ account, label: safeLabel, ciphertext, kind, last4, permissions });
       return { account, label: safeLabel, mode: 'test', kind, last4 };
     },
+    async storeLiveKey({key,account}) {
+      // This method is reached only from the protected owner browser after
+      // explicit LIVE consent. It stores a credential; it never activates LIVE.
+      if(typeof key!=='string'||!/^(?:sk|rk)_live_[A-Za-z0-9]+$/.test(key)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
+        typeof db.saveLiveKey!=='function')
+        throw new TypeError('Explicit existing Stripe account and LIVE key required');
+      const stripe=makeClient({key,mode:'live'});
+      try{await readVerifiedLiveAccount(stripe,account);}
+      catch{throw new Error('Unable to verify exact LIVE Stripe account and mode');}
+      const ciphertext=encryptSecret(key,{aad:'stripe-account/'+account+'/live',key:encryptionKey});
+      const saved=await db.saveLiveKey({account,ciphertext,
+        kind:key.startsWith('rk_')?'restricted':'secret',last4:key.slice(-4)});
+      if(!saved)throw new Error('Enroll a matching TEST account before adding its LIVE credential');
+      return {account,mode:'live',kind:key.startsWith('rk_')?'restricted':'secret',last4:key.slice(-4),activated:false};
+    },
     async loadKeySnapshot({ account, mode = 'test' }) {
-      if (mode !== 'test') throw new Error('Live Stripe access is not enabled');
-      const record = await db.getEncryptedKey({ account, mode });
-      if (!record?.ciphertext) throw new Error('No test key is configured for this Stripe account');
+      if(!['test','live'].includes(mode)||
+        (mode==='live'&&process.env.VERCEL_ENV!=='production'))
+        throw new Error('LIVE credential access requires an activated production deployment');
+      const record=await db.getEncryptedKey({account,mode});
+      if(!record?.ciphertext)throw new Error('No authorized key for this account and mode');
       return {
         key:decryptSecret(record.ciphertext,
-          { aad: 'stripe-account/' + account + '/test', key: encryptionKey }),
+          { aad:'stripe-account/'+account+'/'+mode,key:encryptionKey }),
         expectedCiphertext:record.ciphertext
       };
     },
