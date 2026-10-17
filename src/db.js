@@ -117,7 +117,7 @@ export function createDb(sql = getProductionSql()) {
       if(typeof id!=='string'||!/^rtc-agent-[a-z0-9-]{8,80}$/.test(id)||
         typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
         typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token)||
-        mode!=='test'||!['read_only','everyday','full'].includes(profile)||
+        !['test','live'].includes(mode)||!['read_only','everyday','full'].includes(profile)||
         typeof allowWrites!=='boolean'||allowWrites&&profile==='read_only'||
         typeof forHub!=='boolean'||!Number.isSafeInteger(moneyLimitCents)||
         moneyLimitCents<0||moneyLimitCents>0&&!allowWrites||
@@ -129,15 +129,17 @@ export function createDb(sql = getProductionSql()) {
         !(expiresAt instanceof Date)||!Number.isFinite(expiresAt.getTime())||
         expiresAt.getTime()<=Date.now()||
         expiresAt.getTime()>Date.now()+(forHub?365:30)*86_400_000+60_000)
-        throw new TypeError('Invalid original owner-selected RTC TEST pass grant');
+        throw new TypeError('Invalid original owner-selected RTC pass grant');
       const areaList=areas.join(',');
       const rows=await sql`INSERT INTO oauth_tokens
         (token_hash,client_id,stripe_account,mode,profile,listing,kind,
          allow_writes,money_limit_cents,areas,for_hub,rate_limit_per_minute,expires_at)
-        SELECT ${hashToken(token)},${id},id,'test',${profile},'compact','pass',
+        SELECT ${hashToken(token)},${id},id,${mode},${profile},'compact','pass',
           ${allowWrites},${moneyLimitCents},string_to_array(${areaList},','),
           ${forHub},${rateLimitPerMinute},${expiresAt}
-        FROM stripe_accounts WHERE id=${account} AND test_key_enc IS NOT NULL
+        FROM stripe_accounts WHERE id=${account}
+          AND ((${mode}='test' AND test_key_enc IS NOT NULL) OR
+            (${mode}='live' AND live_key_enc IS NOT NULL AND live_enabled=TRUE))
         RETURNING client_id`;
       return rows.length===1;
     },
@@ -254,6 +256,19 @@ export function createDb(sql = getProductionSql()) {
           test_key_last4 = EXCLUDED.test_key_last4, key_permissions = EXCLUDED.key_permissions,
           key_checked_at = now()`;
     },
+    // LIVE key enrollment never enables LIVE; the existing independent B-8
+    // owner reauthentication and LIVE-mode account flag remain mandatory.
+    async saveLiveKey({account,ciphertext,kind,last4}) {
+      if(typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
+        typeof ciphertext!=='string'||!ciphertext||
+        !['restricted','secret'].includes(kind)||
+        typeof last4!=='string'||!/^[A-Za-z0-9]{4}$/.test(last4))
+        throw new TypeError('Verified encrypted LIVE key required');
+      const rows=await sql`UPDATE stripe_accounts SET live_key_enc=${ciphertext},
+        live_key_kind=${kind},live_key_last4=${last4}
+        WHERE id=${account} RETURNING id`;
+      return rows.length===1;
+    },
     async updateKeyPermissions({account,permissions,expectedCiphertext}) {
       if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
           typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
@@ -267,10 +282,14 @@ export function createDb(sql = getProductionSql()) {
       return rows.length===1;
     },
     async getEncryptedKey({ account, mode }) {
-      if (mode !== 'test') return null;
-      const rows = await sql`SELECT test_key_enc AS ciphertext FROM stripe_accounts
-        WHERE id = ${account}`;
-      return rows[0] || null;
+      if(!['test','live'].includes(mode)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account))return null;
+      const rows=mode==='test'?
+        await sql`SELECT test_key_enc AS ciphertext FROM stripe_accounts
+          WHERE id=${account}`:
+        await sql`SELECT live_key_enc AS ciphertext FROM stripe_accounts
+          WHERE id=${account} AND live_enabled=TRUE`;
+      return rows[0]||null;
     },
     async addOneTimeSecret({ id, account, mode, kind, ciphertext, expiresAt }) {
       await sql`INSERT INTO one_time_secrets
