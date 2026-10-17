@@ -21,6 +21,11 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
   'disputes','risk','identity','money','webhooks','account','branding','catalog','reports']);
 // Do not silently mark newly surfaced TEST-only operations as LIVE-ready.
 const guardedLiveAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk','identity']);
+// These account writes have reviewed LIVE account/balance and result-mode proof;
+// other legacy account writes remain TEST-only until separately implemented.
+const guardedLiveAccountWrites=new Set([
+  'account_update_payment_method_settings','account_add_apple_pay_domain'
+]);
 // An entire workflow can delegate multiple original protected native writes.
 // Expose only these audited original whole-job operations to the independently
 // authenticated TEST full owner profile through stripe_call; never everyday,
@@ -50,6 +55,7 @@ export function isGuardedLiveWrite(tool,connection){
   return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
     tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
     (guardedLiveAreas.has(tool.area)||
+      (tool.area==='account'&&guardedLiveAccountWrites.has(tool.name))||
       (tool.area==='workflows'&&connection?.profile==='full'&&
         fullOwnerWorkflowWrites.has(tool.name))||
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&

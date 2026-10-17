@@ -1,6 +1,6 @@
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {selectedAccountClient,assertAccountResourceMode} from './account-mode.js';
 // G-5d1: native TEST payment-method domains (Apple Pay registration status).
-import {client,reply,fail,allProfiles} from './billing-shared.js';
+import {reply,fail,allProfiles} from './billing-shared.js';
 const bad=m=>{throw new TypeError(m);};
 const acctOk=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
 const idOk=x=>typeof x==='string'&&/^pmd_[A-Za-z0-9]{2,100}$/.test(x);
@@ -9,9 +9,10 @@ const hostOk=x=>typeof x==='string'&&x.length<=253&&x.length>3&&
 const states=['active','inactive','pending'];
 const unsupported=e=>[403,404].includes(e?.statusCode??e?.status)||
   ['permission_denied','resource_missing'].includes(e?.code);
-export function safeDomain(v){
+export function safeDomain(v,mode='test'){
+  assertAccountResourceMode(v,mode,{required:true});
   if(v?.object!=='payment_method_domain'||!idOk(v.id)||!hostOk(v.domain_name)||
-    typeof v.enabled!=='boolean'||v.livemode===true||
+    typeof v.enabled!=='boolean'||
     !v.apple_pay||!states.includes(v.apple_pay.status))
     bad('Provider TEST domain registration status unreadable');
   return {id:v.id,domain:v.domain_name,enabled:v.enabled,
@@ -26,19 +27,18 @@ function check(a){
 }
 export const tools=[{name:'account_list_apple_pay_domains',area:'account',
   writes:false,profiles:allProfiles,annotations:{readOnlyHint:true},
-  description:'Read TEST payment-method domain registrations and observed Apple Pay status; unavailable is not active.',
+  description:'Read selected TEST/LIVE payment-method domain registrations and observed Apple Pay status; unavailable is not active.',
   inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:20},
     starting_after:{type:'string',pattern:'^pmd_[A-Za-z0-9]{2,100}$'}},
     additionalProperties:false}}];
 export const handlers={
   async account_list_apple_pay_domains(a,ctx){
     const account=ctx?.connection?.stripeAccount;
-    if(ctx?.connection?.mode!=='test'||!acctOk(account))
+    if(!['test','live'].includes(ctx?.connection?.mode)||!acctOk(account))
       return fail('Select a connected TEST account');
     try{
       check(a);
-      const s=await client(ctx);
-      await readVerifiedTestAccount(s,account);
+      const s=await selectedAccountClient(ctx);
       let p;
       try{p=await s.paymentMethodDomains.list({limit:a.limit??10,
         ...(a.starting_after?{starting_after:a.starting_after}:{})});}
@@ -51,7 +51,7 @@ export const handlers={
       if(p?.object!=='list'||!Array.isArray(p.data)||p.data.length>20||
         typeof p.has_more!=='boolean'||(p.has_more&&p.data.length===0))
         bad('Provider domain page incomplete');
-      const domains=p.data.map(safeDomain);
+      const domains=p.data.map(v=>safeDomain(v,ctx.connection.mode));
       return reply({account,available:true,domains,hasMore:p.has_more,
         nextCursor:p.has_more?domains.at(-1).id:null,
         note:'Only an enabled domain with active provider Apple Pay status is reported ready; actual Checkout eligibility may require further conditions.'});
