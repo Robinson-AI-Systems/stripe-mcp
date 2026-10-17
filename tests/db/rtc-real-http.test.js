@@ -91,7 +91,7 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     const manifest=await http('/api/contract');
     expect(manifest.status).toBe(200);
     expect(manifest.data).toMatchObject({rtc:1,prefix:'stripe',
-      access:'owner_scoped_TEST_passes',
+      access:'owner_scoped_passes_with_independent_LIVE_activation',
       profiles:['read_only','everyday','full']});
     // Public manifest describes the UNION of eligible RTC permissions, not
     // the restricted catalog a legacy read-only bearer is entitled to see.
