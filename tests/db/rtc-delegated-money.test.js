@@ -105,7 +105,7 @@ describe('R-1 LIVE mode financial grant in disposable SQL only',()=>{
       idempotencyKey:request,kind:'approve',
       expiresAt:new Date(Date.now()+5*60000)})).toBe(true);
     expect(await db.getMoneyDecisionIntent(intent)).toMatchObject({
-      stripe_account:liveAccount,mode:'live',amount_cents:150,target:'ch_FAKE12345'});
+      stripe_account:liveAccount,mode:'live',amount_cents:'150',target:'ch_FAKE12345'});
     expect(await peer.consumeMoneyDecisionIntent(intent)).toBe(true);
     expect(await db.consumeMoneyDecisionIntent(intent)).toBe(false);
     const first=await db.reserveMoneyOut({account:liveAccount,connection:scoped,
