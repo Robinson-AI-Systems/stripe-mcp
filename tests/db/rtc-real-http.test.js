@@ -138,7 +138,14 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     const expectedReadOnly=registry.tools.filter(t=>
       t.writes===false&&t.profiles?.includes('read_only')&&
       t.money!==true&&t.moneySpec!=='provider-derived'&&
-      t.safety!=='
+      t.safety!==String.fromCharCode(36)&&t.destructive!==true&&
+      !['stripe_call','stripe_batch','stripe_search_tools',
+        'stripe_describe_tool','api_search'].includes(t.name));
+    expect(names).toHaveLength(expectedReadOnly.length);
+    const actualAreas=new Set(names.map(name=>registry.tools.find(t=>
+      (t.name.startsWith('stripe_')?t.name:'stripe_'+t.name)===name)?.area??'server'));
+    expect(manifest.data.areas.every(area=>typeof area==='string')).toBe(true);
+    expect([...actualAreas].every(area=>manifest.data.areas.includes(area))).toBe(true);
     expect(names).toContain('stripe_account_get');
     expect(names).not.toContain('stripe_call');
     expect(names).not.toContain('stripe_batch');
