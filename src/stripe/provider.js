@@ -8,7 +8,7 @@ export function createStripeForConnection({db,keyStoreFactory=createKeyStore,cli
       throw new Error('An authenticated selected Stripe account is required');
     if(connection.mode==='live') {
       if(process.env.VERCEL_ENV!=='production')
-        throw new Error('LIVE provider calls require production');
+        throw new Error('Only a verified TEST account is available outside production; LIVE provider calls require production');
       const selected=await db.getStripeAccount(connection.stripeAccount);
       if(!selected?.live_enabled||!selected?.live_connected)
         throw new Error('Account LIVE access was not independently enabled');
