@@ -101,6 +101,11 @@ describe('R-1 explicit owner-selected TEST RTC delegation',()=>{
     await expect(issuer({account:A,mode:'live',confirm:true,liveConfirm:true,
       liveWriteConfirm:true,profile:'full',allowWrites:true,moneyLimitCents:1}))
       .rejects.toThrow(/LIVE/);
+    const funded=await issuer({account:A,mode:'live',confirm:true,liveConfirm:true,
+      liveWriteConfirm:true,liveMoneyConfirm:true,profile:'full',
+      allowWrites:true,moneyLimitCents:200,areas:'payments'});
+    expect(funded).toMatchObject({mode:'live',profile:'full',allowWrites:true,
+      moneyLimitCents:200});
     const read=await issuer({account:A,mode:'live',confirm:true,liveConfirm:true});
     expect(read).toMatchObject({mode:'live',profile:'read_only',allowWrites:false,
       moneyLimitCents:0});
