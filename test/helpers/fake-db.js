@@ -181,6 +181,30 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         money_limit_cents:0,areas:areas===null?null:[...areas],for_hub:false,rate_limit_per_minute:120,
         expires_at:expiresAt.getTime(),revoked_at:null});return true;
     },
+    async createRtcPass({id,account,token,mode='test',profile='read_only',
+      areas,allowWrites=false,moneyLimitCents=0,forHub=false,
+      rateLimitPerMinute=120,expiresAt}){
+      if(!accountRows.has(account)||!encryptedTestKeys.has(account))return false;
+      if(mode!=='test'||!['read_only','everyday','full'].includes(profile)||
+        typeof allowWrites!=='boolean'||allowWrites&&profile==='read_only'||
+        !Number.isSafeInteger(moneyLimitCents)||moneyLimitCents<0||
+        moneyLimitCents>0&&!allowWrites||
+        !Number.isInteger(rateLimitPerMinute)||rateLimitPerMinute<1||
+        rateLimitPerMinute>600||
+        !Array.isArray(areas)||areas.length<1||areas.length>6||
+        areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))||
+        new Set(areas).size!==areas.length||
+        !(expiresAt instanceof Date)||expiresAt.getTime()<=clock()||
+        expiresAt.getTime()>clock()+(forHub?365:30)*86400000+60000)
+        throw new TypeError('Unsafe TEST owner pass policy');
+      tokens.set(hashToken(token),{token_hash:hashToken(token),client_id:id,
+        stripe_account:account,mode,profile,listing:'compact',kind:'pass',
+        result_scope:randomUUID(),allow_writes:allowWrites,
+        money_limit_cents:moneyLimitCents,areas:[...areas],for_hub:forHub,
+        rate_limit_per_minute:rateLimitPerMinute,
+        expires_at:expiresAt.getTime(),revoked_at:null});
+      return true;
+    },
     async getRtcPassStatus(token){
       const row=tokens.get(hashToken(token));
       return row?.kind==='pass'?structuredClone(row):null;
