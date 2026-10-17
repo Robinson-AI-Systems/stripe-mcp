@@ -68,7 +68,7 @@ export function createKeyStore({ db, makeClient = makeStripeClient,
     async loadKeySnapshot({ account, mode = 'test' }) {
       if(!['test','live'].includes(mode)||
         (mode==='live'&&process.env.VERCEL_ENV!=='production'))
-        throw new Error('LIVE credential access requires an activated production deployment');
+        throw new Error('Live Stripe access is not enabled outside an activated production deployment');
       const record=await db.getEncryptedKey({account,mode});
       if(!record?.ciphertext)throw new Error('No authorized key for this account and mode');
       return {
