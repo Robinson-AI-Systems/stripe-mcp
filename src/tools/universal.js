@@ -1,6 +1,6 @@
-// U-1: original authenticated TEST-only pinned API discovery and guarded
-// universal resource access. A native curated tool always takes precedence.
-import {allProfiles,fullProfiles,client,reply,fail} from './billing-shared.js';
+// U-1: pinned mode-bound provider discovery and guarded universal execution.
+// Developer TEST-only credentials must not restrict an owner-authorized LIVE pass.
+import {allProfiles,fullProfiles,reply,fail} from './billing-shared.js';
 import {compact} from './util.js';
 import {readDetail} from './result-rules.js';
 import {defineWrite,gone} from './write.js';
@@ -45,12 +45,12 @@ export const tools=[
     {...writeFields},['op'],true)
 ];
 function context(ctx,full=false){
-  if(ctx?.connection?.mode!=='test'||!/^acct_[A-Za-z0-9]{2,100}$/.test(
+  if(!['test','live'].includes(ctx?.connection?.mode)||!/^acct_[A-Za-z0-9]{2,100}$/.test(
     ctx.connection.stripeAccount??'')||
     (full?ctx.connection.profile!=='full':!allProfiles.includes(ctx.connection.profile)))
-    bad('Selected authenticated TEST account/profile required');
+    bad('Selected authenticated Stripe account/profile required');
 }
-function currentResult(raw){
+function currentResult(raw,mode){
   if(!raw||typeof raw!=='object'||Array.isArray(raw))
     bad('Original Stripe provider returned invalid data');
   // rawRequest in official stripe-node resolves to a StripeResponse resource;
@@ -58,7 +58,8 @@ function currentResult(raw){
   const result=raw.object||raw.id||raw.has_more!==undefined?raw:raw.data;
   if(!result||typeof result!=='object'||Array.isArray(result))
     bad('Original Stripe response identity missing');
-  if(result.livemode===true)bad('LIVE provider object refused');
+  if(typeof result.livemode==='boolean'&&result.livemode!==(mode==='live'))
+    bad('Provider response does not match authenticated account mode');
   return result;
 }
 function submitted(a){
@@ -68,12 +69,16 @@ function submitted(a){
   return {record,path,query,body};
 }
 async function provider(method,path,data,ctx,options={}){
-  const stripe=await client(ctx);
+  // Only the server-owned factory can load the selected encrypted key; in
+  // LIVE mode it independently verifies production and account activation.
+  if(typeof ctx?.services?.stripeForConnection!=='function')
+    bad('Authenticated Stripe provider unavailable');
+  const stripe=await ctx.services.stripeForConnection(ctx.connection);
   if(typeof stripe.rawRequest!=='function')
     bad('Pinned Stripe rawRequest unavailable; universal dispatch disabled');
   // No caller-controlled API version, Stripe account, keys or headers.
   const raw=await stripe.rawRequest(method,path,data,options);
-  return currentResult(raw);
+  return currentResult(raw,ctx.connection.mode);
 }
 function rejectSecret(record){
   if(!record.path.startsWith('/v1/')||/\b(secret|ephemeral_keys|tokens|person|bank_account|files|identity\/verification|issuing\/cardholders)\b/i.test(record.path))
@@ -87,11 +92,11 @@ async function read(a,ctx){
   const result=await provider('GET',path,query,ctx);
   if(result.has_more===true&&(!Array.isArray(result.data)||
     result.data.length>100))bad('Unbounded original Stripe provider page');
-  const projected=readDetail(compact(result,{mode:'test'}),{
+  const projected=readDetail(compact(result,{mode:ctx.connection.mode}),{
     detail:a.detail??'summary',fields:a.fields});
   if(Buffer.byteLength(JSON.stringify(projected),'utf8')>8192)
     bad('Selected read exceeds safe result budget; use fields or a narrower provider limit');
-  return {mode:'test',account:ctx.connection.stripeAccount,
+  return {mode:ctx.connection.mode,account:ctx.connection.stripeAccount,
     operationId:record.id,method:'GET',path:record.path,
     provider:projected,complete:result.has_more!==true,
     hasMore:result.has_more===true,
@@ -132,11 +137,12 @@ function makeWrite(){
       context(ctx,true);
       command=safeWrite(a);
       const obj=command.policy.kind==='create'?
-        {id:ctx.connection.stripeAccount,metadata:{},livemode:false,
+        {id:ctx.connection.stripeAccount,metadata:{},
+          livemode:ctx.connection.mode==='live',
           _newResource:true}:await get(command.path,ctx);
-      if(!obj?.id||obj.livemode!==false||
+      if(!obj?.id||obj.livemode!==(ctx.connection.mode==='live')||
         typeof obj.metadata!=='object'||obj.metadata===null)
-        bad('Original TEST target identity/ownership metadata unavailable');
+        bad('Mode-bound target identity/ownership metadata unavailable');
       const owner=await findAppOwnership(obj,ctx);
       if(owner?.unknown)bad('Cannot establish Stripe application ownership');
       command.originalId=obj.id;
@@ -150,7 +156,8 @@ function makeWrite(){
       const cmd=safeWrite(a);
       created=await provider(cmd.record.method,cmd.path,cmd.body,ctx,{
         idempotencyKey,maxNetworkRetries:0});
-      if(typeof created?.id!=='string'||created.livemode===true)
+      if(typeof created?.id!=='string'||
+        created.livemode!==(ctx.connection.mode==='live'))
         bad('Original Stripe response identity unverified');
       if(cmd.policy.kind!=='create'&&created.id!==command.originalId)
         bad('Stripe mutation returned a different resource');
@@ -169,14 +176,14 @@ function makeWrite(){
           return {id:still?.id,livemode:still?.livemode,deleted:false};
         }catch(error){
           if(error?.statusCode===404||error?.statusCode===410)
-            return {id:created.id,livemode:false,deleted:true};
+            return {id:created.id,livemode:ctx.connection.mode==='live',deleted:true};
           throw error;
         }
       }
       return get(command.path,ctx);
     },
-    verify:(before,after,_a)=>{
-      if(!after||after.livemode!==false)return false;
+    verify:(before,after,_a,ctx)=>{
+      if(!after||after.livemode!==(ctx.connection.mode==='live'))return false;
       if(command.policy.kind==='create')
         return after.id===created?.id&&after.id!==before.id&&
           Object.entries(command.body).every(([key,value])=>
@@ -215,8 +222,8 @@ export const handlers={
   api_read:async(a,ctx)=>{try{return reply(await read(a,ctx));}
     catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}},
   api_write:async(a,ctx)=>{
-    if(ctx?.connection?.mode!=='test'||ctx.connection.profile!=='full')
-      return gone('Only full original TEST account with native guarded approval');
+    if(!['test','live'].includes(ctx?.connection?.mode)||ctx.connection.profile!=='full')
+      return gone('Only authenticated full Stripe scope with guarded approval');
     try{return await makeWrite()(a,ctx);}
     catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   }

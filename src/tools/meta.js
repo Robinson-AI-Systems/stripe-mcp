@@ -1,6 +1,6 @@
 // Context-efficient discovery. Every indirect execution goes through the
 // exact same default-deny dispatcher as a direct MCP tool call.
-import {visibleTools,isToolAllowed,publicToolInfo,isGuardedTestWrite} from '../core/profiles.js';
+import {visibleTools,isToolAllowed,publicToolInfo,isGuardedTestWrite,isGuardedLiveWrite} from '../core/profiles.js';
 const profiles=['read_only','everyday','full'];
 const shape={type:'object',additionalProperties:false};
 const noNested=new Set(['stripe_call','stripe_batch','stripe_search_tools','stripe_describe_tool']);
@@ -34,7 +34,7 @@ export const tools=[
 ];
 const allowed=(registry,connection,name)=>{
   const tool=registry?.tools?.find(t=>t.name===name);
-  const safeWrite=isGuardedTestWrite(tool,connection);
+  const safeWrite=isGuardedTestWrite(tool,connection)||isGuardedLiveWrite(tool,connection);
   return isToolAllowed(tool,connection?.profile,{allowWrites:safeWrite})&&
     (tool.writes===false||safeWrite)?tool:null;
 };
@@ -47,7 +47,7 @@ export const handlers={
       return deny('Provide a bounded tool search query, area and limit');
     const words=args.query.toLowerCase().trim().split(/\s+/).slice(0,10);
     const filtered=visibleTools(registry,connection.profile,
-      {allowWrites:connection.mode==='test'})
+      {allowWrites:connection.mode==='test'||connection.rtcLiveOwnerApproved===true})
       .filter(t=>allowed(registry,connection,t.name)&&(!args.area||
         (t.area||t.name.split('_')[0])===args.area))
       .map(t=>({tool:t,score:words.reduce((n,w)=>
@@ -55,7 +55,7 @@ export const handlers={
       .filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.tool.name.localeCompare(b.tool.name));
     return okay({matches:filtered.slice(0,args.limit??10).map(({tool})=>({
       name:tool.name,description:tool.description,
-      safety:tool.writes===false?'READ ONLY':'GUARDED TEST WRITE'})),
+      safety:tool.writes===false?'READ ONLY':'GUARDED '+connection.mode.toUpperCase()+' WRITE'})),
       total:filtered.length,hasMore:filtered.length>(args.limit??10)});
   },
   async stripe_describe_tool(args,{registry,connection}){
@@ -66,7 +66,7 @@ export const handlers={
     const info=publicToolInfo(t);
     return okay({name:info.name,description:info.description,
       inputSchema:info.inputSchema,annotations:info.annotations,
-      safety:t.writes===true?'GUARDED TEST WRITE':'READ ONLY',area:t.area||t.name.split('_')[0]});
+      safety:t.writes===true?'GUARDED '+connection.mode.toUpperCase()+' WRITE':'READ ONLY',area:t.area||t.name.split('_')[0]});
   },
   async stripe_call(args,{registry,connection,runRead}){
     if(typeof args?.name!=='string'||noNested.has(args.name)||

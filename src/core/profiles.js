@@ -15,7 +15,12 @@ export function profileCounts(registry,options={}) {
   return Object.fromEntries(CONNECTION_PROFILES.map(profile=>
     [profile,visibleTools(registry,profile,options).length]));
 }
-const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk','identity']);
+// Existing native TEST writers from these areas all declare the original
+// defineWrite contract. Their own provider/owner/app/financial checks remain.
+const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer',
+  'disputes','risk','identity','money','webhooks','account','branding','catalog','reports']);
+// Do not silently mark newly surfaced TEST-only operations as LIVE-ready.
+const guardedLiveAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk','identity']);
 // An entire workflow can delegate multiple original protected native writes.
 // Expose only these audited original whole-job operations to the independently
 // authenticated TEST full owner profile through stripe_call; never everyday,
@@ -44,7 +49,7 @@ export function isGuardedLiveWrite(tool,connection){
     connection.moneyLimitCents>0;
   return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
     tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
-    (guardedTestAreas.has(tool.area)||
+    (guardedLiveAreas.has(tool.area)||
       (tool.area==='workflows'&&connection?.profile==='full'&&
         fullOwnerWorkflowWrites.has(tool.name))||
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
@@ -57,8 +62,9 @@ export function listingForConnection(registry,connection,override){
   // Listing cannot change the account, profile or read/write eligibility.
   const mode=['compact','catalog'].includes(override)?override:connection?.listing;
   const available=visibleTools(registry,connection?.profile,
-    {allowWrites:connection?.mode==='test'}).filter(t=>t.writes===false||
-      isGuardedTestWrite(t,connection));
+    {allowWrites:connection?.mode==='test'||
+      connection?.rtcLiveOwnerApproved===true}).filter(t=>t.writes===false||
+      isGuardedTestWrite(t,connection)||isGuardedLiveWrite(t,connection));
   return mode==='compact'?available.filter(t=>compactNames.has(t.name)||
     t.name==='api_search'||t.name.startsWith('workflow_')):available;
 }

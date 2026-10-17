@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto';
 // Live-mode decisions are server-side and never accepted from tool arguments.
-// Nothing in the current MCP dispatcher grants liveAccessGranted. A future
-// owner-only two-step activation must establish this server-owned gate.
+// LIVE grants come from the server's separately owner-approved connection, not
+// caller arguments. Preview is allowed before confirm; the original defineWrite
+// guard still refuses every write without confirmation and an audit record.
 export const LIVE_REAUTH_WINDOW_MS = 10 * 60 * 1000;
 
 export function isRecentOwnerVerification({ confirmed, verifiedAt, now = Date.now() }) {
@@ -14,7 +15,7 @@ export async function authorizeLiveWrite({ args, ctx, env = process.env }) {
   const connection = ctx?.connection;
   if (connection?.mode === 'test') return true;
   if (connection?.mode !== 'live' || !connection.stripeAccount ||
-      args?.confirm !== true || env?.VERCEL_ENV !== 'production' ||
+      env?.VERCEL_ENV !== 'production' ||
       ctx?.liveAccessGranted !== true ||
       typeof ctx?.db?.getStripeAccount !== 'function') return false;
   try {

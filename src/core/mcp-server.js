@@ -38,11 +38,11 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
   }catch{return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};}
   const guardedWrite=isGuardedTestWrite(item,fixedConnection)||
     isGuardedLiveWrite(item,fixedConnection);
-  // A single guarded TEST write may be delegated only through the original
-  // stripe_call meta tool. Arbitrary reads/batches and deeper calls cannot.
+  // Delegation admits one original guarded TEST or owner-activated LIVE write
+  // through stripe_call, not arbitrary nested reads or batch writers.
   const nestedWrite=depth>0&&item?.writes!==false;
   const explicitlyGuarded=nestedWrite&&depth===1&&parent==='stripe_call'&&
-    guardedWrite===true&&fixedConnection.mode==='test';
+    guardedWrite===true;
   if(!isToolAllowed(item,fixedConnection.profile,{allowWrites:guardedWrite})||
     nestedWrite&&!explicitlyGuarded){
     return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};
@@ -95,7 +95,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
           Array.isArray(value?.accounts)?value.accounts.length:1;
     }catch{records=1;}
     const summary='Saved '+records+' result record(s) from '+name+
-      ', '+body.totalBytes+' bytes (TEST connection only)';
+      ', '+body.totalBytes+' bytes ('+fixedConnection.mode+' connection only)';
     await db.putScopedResult({handle,connection:fixedConnection.resultScope,
       body,summary,expiresAt:new Date(Date.now()+86400000)});
     return {content:[{type:'text',text:JSON.stringify({
