@@ -1041,6 +1041,8 @@ export function createDb(sql = getProductionSql()) {
         v_previous RECORD;
         v_duplicate BOOLEAN;
         v_approval RECORD;
+        v_pass RECORD;
+        v_pass_used BIGINT;
       BEGIN
         IF p_account IS NULL OR p_account = '' OR p_connection IS NULL OR p_connection = ''
           OR p_key IS NULL OR p_key = '' OR p_cents IS NULL OR p_cents <= 0
@@ -1060,6 +1062,35 @@ export function createDb(sql = getProductionSql()) {
         IF NOT FOUND THEN
           decision := 'account_missing'; used_cents := 0; limit_cents := 0;
           RETURN NEXT; RETURN;
+        END IF;
+        -- A service-owned RTC pass has an additional OWNER-CHOSEN daily
+        -- ceiling. The account row lock above serializes this comparison
+        -- with every other reservation, including a second serverless worker.
+        -- Unlike a preflight read, the test and reservation live in this same
+        -- SQL transaction. Revoked/expired passes never acquire spend power.
+        SELECT stripe_account,mode,profile,allow_writes,money_limit_cents,
+               expires_at,revoked_at INTO v_pass
+          FROM oauth_tokens WHERE result_scope=p_connection AND kind='pass'
+          FOR UPDATE;
+        IF FOUND THEN
+          IF v_pass.stripe_account IS DISTINCT FROM p_account
+             OR v_pass.mode <> 'test' OR v_pass.profile = 'read_only'
+             OR v_pass.allow_writes IS NOT TRUE
+             OR v_pass.revoked_at IS NOT NULL OR v_pass.expires_at<=now()
+             OR v_pass.money_limit_cents IS NULL OR v_pass.money_limit_cents<=0 THEN
+            decision := 'delegated_pass_denied'; used_cents := 0;
+            limit_cents := 0; RETURN NEXT; RETURN;
+          END IF;
+          SELECT COALESCE(SUM(amount_cents),0)::BIGINT INTO v_pass_used
+            FROM money_reservations
+            WHERE connection=p_connection AND local_day=v_day
+              AND state <> 'rejected';
+          IF p_cents > v_pass.money_limit_cents::BIGINT-v_pass_used THEN
+            decision := 'delegated_limit_exceeded';
+            used_cents := v_pass_used;
+            limit_cents := v_pass.money_limit_cents;
+            RETURN NEXT; RETURN;
+          END IF;
         END IF;
         SELECT amount_cents, currency, state, local_day INTO v_previous
           FROM money_reservations
