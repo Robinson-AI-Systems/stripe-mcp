@@ -1,20 +1,27 @@
-import {describe,it,expect,vi} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
 import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
+import {isGuardedLiveWrite,listingForConnection} from '../../src/core/profiles.js';
 
 const account='acct_CATALOG123',parse=r=>JSON.parse(r.content[0].text);
-function fixture(){
-  const db=createFakeDb({accounts:[{id:account,label:'Catalog fixture'}]});
+afterEach(()=>vi.unstubAllEnvs());
+function fixture({mode='test',providerMode=mode,grant=true,enabled=true,profile='full'}={}){
+  if(mode==='live')vi.stubEnv('VERCEL_ENV','production');
+  const db=createFakeDb({accounts:[{id:account,label:'Catalog fixture',
+    live_enabled:enabled,live_connected:true}]});
   const products=new Map(),prices=new Map(),calls=[];
   const mkProd=(id,name,metadata={})=>({id,name,metadata,description:null,
-    active:true,object:'product',livemode:false,created:1690000000});
+    active:true,object:'product',livemode:providerMode==='live',created:1690000000});
   const mkPrice=(id,product,lookupKey,amount,recurring=null)=>({
     id,product,lookup_key:lookupKey,unit_amount:amount,currency:'usd',
     type:recurring?'recurring':'one_time',recurring,active:true,
-    metadata:{},nickname:null,object:'price',livemode:false});
+    metadata:{},nickname:null,object:'price',livemode:providerMode==='live'});
   products.set('prod_BASE123',mkProd('prod_BASE123','Fixture product'));
   const sdk={
+    accounts:{retrieve:vi.fn(async()=>({id:account,object:'account'}))},
+    balance:{retrieve:vi.fn(async()=>({object:'balance',
+      livemode:providerMode==='live'}))},
     products:{
       list:vi.fn(async()=>({data:[...products.values()].filter(x=>!x.deleted),has_more:false})),
       search:vi.fn(async()=>({data:[...products.values()],has_more:false,next_page:null})),
@@ -60,8 +67,10 @@ function fixture(){
       })
     }
   };
-  const connection={stripeAccount:account,mode:'test',profile:'full'};
+  const connection={stripeAccount:account,mode,profile,
+    rtcLiveOwnerApproved:grant,moneyLimitCents:0,listing:'catalog'};
   const ctx={db,connection,connectionId:'catalog-regression',
+    liveAccessGranted:mode==='live'&&grant,
     services:{stripeForConnection:async()=>sdk}};
   const call=(name,args={})=>registry.handlers[name](args,ctx);
   const confirm=(name,args)=>call(name,{...args,confirm:true,
