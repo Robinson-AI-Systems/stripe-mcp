@@ -181,8 +181,14 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
       expiresAt:new Date(Date.now()+3600000)});
     const mine=await http('/api/results/'+id,{token:mainPass});
     expect(mine.status).toBe(200);
-    expect(mine.data.result).toMatchObject({handle:id,page:0});
-    expect(mine.data.result.pageCount).toBeGreaterThan(1);
+    expect(mine.data.result).toMatchObject({page:1,bytes:expect.any(Number),
+      pages:expect.any(Number),content:expect.any(String),next:2});
+    expect(mine.data.result.pages).toBeGreaterThan(1);
+    expect(Buffer.byteLength(mine.data.result.content,'utf8')).toBeLessThanOrEqual(4096);
+    const second=await http('/api/results/'+id+'?page=2',{token:mainPass});
+    expect(second.status).toBe(200);
+    expect(second.data.result.page).toBe(2);
+    expect((await http('/api/results/'+id+'?page=0',{token:mainPass})).status).toBe(400);
     const wrong=await http('/api/results/'+id,{token:otherPass});
     expect(wrong.status).toBe(404);
     expect(wrong.data.error.code).toBe('not_found');
