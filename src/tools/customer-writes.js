@@ -86,7 +86,7 @@ const changed=(obj,args,keys)=>keys.every(k=>args[k]===undefined||
     ? Object.entries(args[k]).every(([p,v])=>obj[k]?.[p]===v)
     :obj[k]===args[k]));
 function build(def){
-  let created=null;
+  let created=null,deleteTaxReceipt=null;
   const operation=defineWrite({
     name:def.name,
     // Every customer write returns the customer ID for customer_get follow-up.
@@ -94,6 +94,8 @@ function build(def){
     // masquerade as customer IDs in the common receipt field.
     resultId:(_before,observed,args)=>def.name==='customer_create'?observed?.id:args.customerId,
     read:async(a,ctx)=>{
+      // A prior invocation's receipt must never prove another deletion.
+      deleteTaxReceipt=null;
       permittedArgs(def,a);
       if(def.name==='customer_create')return {id:null,metadata:{}};
       const s=await getClient(ctx);
@@ -142,8 +144,16 @@ function build(def){
           amount:a.creditCents?-a.creditCents:a.debitCents,currency:'usd',description:a.description},opts);
       if(n==='customer_add_tax_id')
         created=await s.customers.createTaxId(a.customerId,{type:a.type,value:a.value},opts);
-      if(n==='customer_delete_tax_id')
-        await s.customers.deleteTaxId(a.customerId,a.taxId,undefined,opts);
+      if(n==='customer_delete_tax_id'){
+        const receipt=await s.customers.deleteTaxId(a.customerId,a.taxId,undefined,opts);
+        // A real Stripe DELETE returns an ID-bound deleted tombstone.
+        // A missing/wrong receipt cannot authorize a later 404 as success.
+        if(receipt?.id===a.taxId&&receipt.deleted===true&&
+          (receipt.object===undefined||receipt.object==='tax_id')&&
+          (receipt.livemode===undefined||
+            receipt.livemode===(ctx.connection.mode==='live')))
+          deleteTaxReceipt={id:a.taxId,object:'tax_id',deleted:true};
+      }
       if(n==='customer_remove_discount')
         await s.customers.deleteDiscount(a.customerId,undefined,opts);
     },
@@ -155,9 +165,23 @@ function build(def){
         await s.paymentMethods.retrieve(a.paymentMethodId),ctx);
       if(n==='customer_add_balance_credit')return created?.id?
         observed(await s.customers.retrieveBalanceTransaction(a.customerId,created.id),ctx):null;
-      if(n==='customer_add_tax_id'||n==='customer_delete_tax_id')return observed(
-        await s.customers.retrieveTaxId(a.customerId,n==='customer_add_tax_id'?created?.id:a.taxId),ctx,
-          {tombstone:n==='customer_delete_tax_id'});
+      if(n==='customer_delete_tax_id'){
+        if(!deleteTaxReceipt)return null;
+        try{return observed(await s.customers.retrieveTaxId(a.customerId,a.taxId),ctx,
+          {tombstone:true});}
+        catch(error){
+          // Stripe may make a successfully deleted tax ID unreadable.
+          // Only exact DELETE receipt + definitive provider resource_missing
+          // readback qualifies as independently reconciled deletion.
+          if(error?.statusCode===404&&error.code==='resource_missing'&&
+            error.type==='StripeInvalidRequestError'&&
+            deleteTaxReceipt.id===a.taxId)
+            return {...deleteTaxReceipt,providerNotFound:true};
+          throw error;
+        }
+      }
+      if(n==='customer_add_tax_id')return observed(
+        await s.customers.retrieveTaxId(a.customerId,created?.id),ctx);
       const customer=await s.customers.retrieve(a.customerId);
       return observed(customer,ctx,{tombstone:n==='customer_delete'});
     },
@@ -170,7 +194,8 @@ function build(def){
       if(n==='customer_update')return after.id===a.customerId&&
         changed(after,a,['name','email','phone','description','metadata','address']);
       if(n==='customer_delete')return after.id===a.customerId&&after.deleted===true;
-      if(n==='customer_delete_tax_id')return after.id===a.taxId&&after.deleted===true;
+      if(n==='customer_delete_tax_id')return deleteTaxReceipt?.id===a.taxId&&
+        after.id===a.taxId&&after.deleted===true;
       if(n==='customer_remove_payment_method')return after.id===a.paymentMethodId&&after.customer===null;
       if(n==='customer_set_default_payment_method')
         return after.id===a.customerId&&
