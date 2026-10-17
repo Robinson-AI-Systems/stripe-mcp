@@ -36,7 +36,7 @@ function fixture({grant=true,enabled=true,mode='live',providerMode='live',
     balance:{retrieve:async()=>({object:'balance',livemode:providerMode==='live'})},
     webhookEndpoints:{
       list:async()=>{provider.lists++;return {object:'list',
-        has_more:false,data:[...endpoint?[clone(endpoint)]:[],...created?[clone(created)]:[]]};},
+        has_more:false,data:[...(endpoint?[clone(endpoint)]:[]),...(created?[clone(created)]:[])]};},
       retrieve:async id=>{
         provider.reads++;
         if(stale&&!changedRead&&provider.reads>=2&&id===eid){
