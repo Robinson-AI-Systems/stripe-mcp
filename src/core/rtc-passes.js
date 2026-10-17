@@ -60,7 +60,7 @@ export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server']
   const available=new Set(availableAreas);
   return async function issueOwnerPass({account,mode='test',profile='read_only',
     areas='server',allowWrites=false,moneyLimitCents=0,rateLimitPerMinute=120,
-    hours=24,forHub=false,confirm=false}={}){
+    hours=24,forHub=false,confirm=false,liveConfirm=false,liveWriteConfirm=false}={}){
     // A submitted form value is never proof of the owner's identity.
     if(await verifyOwner({account})!==true||confirm!==true)
       throw new TypeError('Authenticated independent owner confirmation required');
@@ -74,25 +74,31 @@ export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server']
       (allowWrites&&profile==='read_only')||
       (moneyLimitCents>0&&!allowWrites))
       throw new TypeError('Invalid owner-selected RTC scope/expiry/rate/financial policy');
-    // Production owner activation is a separate B-8 passphrase reauthentication
-    // step; the owner form cannot silently convert a TEST grant into LIVE.
-    if(mode!=='test')throw new TypeError('Owner LIVE pass requires separate activated account and reauthentication');
+    // The account is enabled separately by B-8's owner passphrase step; this
+    // pass gets its own fresh password gate and mode-specific express consent.
+    // LIVE money-out has no independently approved LIVE reservation contract;
+    // never represent a delegated ceiling as authorization for such a request.
+    if(!['test','live'].includes(mode)||
+      (mode==='live'&&(liveConfirm!==true||
+        (allowWrites&&liveWriteConfirm!==true)||moneyLimitCents!==0)))
+      throw new TypeError('Separate owner LIVE consent and existing LIVE money safeguards required');
     const selectedAreas=passAreas(areas,available);
     const selected=await db.getStripeAccount(account);
-    if(!selected?.test_connected)
-      throw new TypeError('TEST account is not enrolled with a valid owner credential');
+    if(mode==='test'&&!selected?.test_connected||
+      mode==='live'&&(!selected?.live_enabled||!selected?.live_connected))
+      throw new TypeError('Selected account is not independently enrolled and activated for this mode');
     const id='rtc-agent-'+randomBytes(12).toString('hex');
     const token='rtc_pass_'+randomBytes(32).toString('base64url');
     if(!RTC_PASS_PATTERN.test(token))
       throw new TypeError('Cryptographic RTC pass generation failed');
     const expiresAt=new Date(now()+hours*3_600_000);
-    const grant={id,account,token,mode:'test',profile,areas:selectedAreas,
+    const grant={id,account,token,mode,profile,areas:selectedAreas,
       allowWrites,moneyLimitCents,forHub,rateLimitPerMinute,expiresAt};
     if(await db.createRtcPass(grant)!==true)
       throw new TypeError('Selected account cannot issue that RTC pass');
     let issued;
     try{
-      issued=await oneTimeStore.issue({account,mode:'test',kind:'rtc-pass',secret:token});
+      issued=await oneTimeStore.issue({account,mode,kind:'rtc-pass',secret:token});
       if(!new RegExp('^/api/stripe/setup[?]show=[A-Za-z0-9_-]{32}$').test(issued?.setupPath))
         throw new TypeError('Private one-time reveal path unavailable');
     }catch(error){
@@ -100,7 +106,7 @@ export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server']
       await db.revokeAccessToken(token).catch(()=>{});
       throw error;
     }
-    return {id,account,mode:'test',profile,areas:selectedAreas,
+    return {id,account,mode,profile,areas:selectedAreas,
       allowWrites,moneyLimitCents,forHub,rateLimitPerMinute,expiresAt,
       lifetimeHours:hours,setupPath:issued.setupPath,
       notice:moneyLimitCents>0?'This is a delegated ceiling, not an independent money-out approval.':
