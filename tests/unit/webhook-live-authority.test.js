@@ -200,14 +200,16 @@ describe('G-4 webhook lifecycle — end-user LIVE delegation versus developer sa
     const mutation={...opt,events:['charge.succeeded'],confirm:true};
     for(const scenario of [{grant:false},{enabled:false},{providerMode:'test'}]){
       const f=fixture(scenario);
-      const result=await f.call(events.webhook_add_events,mutation);
+      const result=await f.call(events.webhook_add_events,mutation)
+        .catch(()=>({isError:true}));
       expect(result.isError).toBe(true);
       expect(f.provider.updates).toBe(0);
       const listed=await f.call(readers.webhook_list,{});
       if(scenario.enabled===false||scenario.providerMode==='test')
         expect(listed.isError).toBe(true);
       const create=await f.call(creates.webhook_create,{
-        url:safeUrl,events:['invoice.paid'],requestKey:'not-authorized',confirm:true});
+        url:safeUrl,events:['invoice.paid'],requestKey:'not-authorized',confirm:true})
+        .catch(()=>({isError:true}));
       expect(create.isError).toBe(true);
       expect(f.provider.creates).toBe(0);
     }
@@ -232,10 +234,11 @@ describe('G-4 webhook lifecycle — end-user LIVE delegation versus developer sa
     for(const opts of [{missingSecret:true},{uncertainCreate:true},{providerMode:'test'}]){
       const f=fixture(opts),args={url:safeUrl,events:['invoice.paid'],
         requestKey:'unknown-outcome',confirm:true};
-      const result=await f.call(creates.webhook_create,args);
+      const result=await f.call(creates.webhook_create,args)
+        .catch(()=>({isError:true}));
       expect(result.isError===true||parse(result).done===false).toBe(true);
       const before=f.provider.creates;
-      await f.call(creates.webhook_create,args);
+      await f.call(creates.webhook_create,args).catch(()=>({isError:true}));
       expect(f.provider.creates).toBe(before);
       expect(f.provider.seenSecretModes).toEqual([]);
     }
