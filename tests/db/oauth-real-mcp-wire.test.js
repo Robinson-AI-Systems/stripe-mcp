@@ -1,7 +1,7 @@
 // Real HTTP + isolated PostgreSQL + official MCP SDK public OAuth path.
 // The client and Stripe account are synthetic. No hosted ingress, owner secret,
 // live provider, actual Stripe request or remote OAuth acceptance is implied.
-import {beforeAll,afterAll,describe,it,expect} from 'vitest';
+import {beforeAll,afterAll,describe,it,expect,vi} from 'vitest';
 import {createServer} from 'node:http';
 import {createHash,randomBytes} from 'node:crypto';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
@@ -10,6 +10,7 @@ import {createDb} from '../../src/db.js';
 import {createOAuthHandlers} from '../../src/core/oauth-handlers.js';
 import {createMcpHandler} from '../../src/core/mcp-server.js';
 import {registry} from '../../src/tools/index.js';
+import {catalog} from '../../src/stripe/openapi-index.js';
 import {openIsolatedSchema,closeIsolatedSchema,neonShapedQuery,rawQuery}
   from '../../test/helpers/pg-neon-adapter.js';
 
@@ -20,6 +21,7 @@ const callback='http://localhost:34121/callback';
 const resource=publicOrigin+'/api/mcp';
 const passphrase='TEST-ONLY-NOT-A-REAL-OWNER-PASSWORD';
 const env={PUBLIC_BASE_URL:publicOrigin,ADMIN_PASSPHRASE:passphrase};
+let createdLiveTax=null,liveProviderWrites=0;
 let db,server,host;
 function adapt(res){
   res.status=n=>{res.statusCode=n;return res;};
@@ -58,7 +60,24 @@ beforeAll(async()=>{
   await rawQuery('INSERT INTO stripe_accounts(id,label,test_key_enc) VALUES($1,$2,$3),($4,$5,$6)',
     [account,'OAuth isolated TEST','v1.fake',otherAccount,'Other isolated TEST','v1.fake']);
   const oauth=createOAuthHandlers({db,env});
-  const mcp=createMcpHandler({db,registry,env});
+  const mcp=createMcpHandler({db,registry,env,services:{
+    stripeForConnection:async c=>{
+      if(c.mode!=='live'||c.stripeAccount!==account)
+        throw Error('Only synthetic selected LIVE provider is allowed');
+      return {rawRequest:async(method,path,params)=>{
+        if(method==='POST'&&path==='/v1/tax_rates'){
+          liveProviderWrites++;
+          createdLiveTax={id:'txr_SYNTHLIVE1',object:'tax_rate',livemode:true,
+            metadata:{},display_name:params.display_name,
+            percentage:params.percentage,inclusive:params.inclusive};
+          return {...createdLiveTax};
+        }
+        if(method==='GET'&&path==='/v1/tax_rates/txr_SYNTHLIVE1'&&createdLiveTax)
+          return {...createdLiveTax};
+        throw Error('Unexpected synthetic Stripe provider request');
+      }};
+    }
+  }});
   server=createServer(async(req,res)=>{
     adapt(res);
     try{
@@ -173,4 +192,83 @@ describe('actual OAuth public PKCE -> MCP SDK HTTP acceptance boundary',()=>{
           refresh_token:rotated.json.refresh_token,resource}});
       expect(revokedRefresh.status).toBe(400);
     },20000);
+
+  it('issues owner-approved LIVE OAuth access and enforces database-backed write consent, readback and immediate revocation',async()=>{
+    env.VERCEL_ENV='production';
+    vi.stubEnv('VERCEL_ENV','production');
+    try{
+      await rawQuery('UPDATE stripe_accounts SET live_key_enc=$1,live_enabled=TRUE WHERE id=$2',
+        ['v1.fake',account]); // Disposable PostgreSQL only; never a real Stripe key.
+      const reg=await request('/api/oauth/register',{method:'POST',data:{
+        redirect_uris:[callback],token_endpoint_auth_method:'none',
+        client_name:'Synthetic owner-enabled LIVE OAuth'
+      }});
+      expect(reg.status).toBe(201);
+      const verifier=randomBytes(32).toString('base64url');
+      const challenge=createHash('sha256').update(verifier).digest('base64url');
+      const auth={client_id:reg.json.client_id,redirect_uri:callback,response_type:'code',
+        code_challenge:challenge,code_challenge_method:'S256',resource,
+        stripe_account:account,mode:'live',profile:'full',listing:'catalog',state:'live-nonce'};
+      async function grant(writes){
+        const approved=await request('/api/oauth/authorize',{method:'POST',form:true,
+          data:{...auth,passphrase,...(writes?{liveWriteConsent:'confirm'}:{})}});
+        expect(approved.status).toBe(302);
+        const code=new URL(approved.location).searchParams.get('code');
+        const granted=await request('/api/oauth/token',{method:'POST',form:true,
+          data:{grant_type:'authorization_code',client_id:reg.json.client_id,
+            redirect_uri:callback,code_verifier:verifier,resource,code}});
+        expect(granted.status).toBe(200);
+        return granted.json;
+      }
+      const noWrites=await grant(false);
+      const op=[...catalog().operations.values()].find(x=>
+        x.method==='POST'&&x.path==='/v1/tax_rates');
+      expect(op).toBeDefined();
+      const input={op:op.id,body:{display_name:'Isolated LIVE fake tax rate',
+        percentage:5,inclusive:false}};
+      const readOnlyClient=await connect(noWrites.access_token);
+      try{
+        const names=(await readOnlyClient.listTools()).tools.map(t=>t.name);
+        expect(names).not.toContain('api_write');
+        expect((await readOnlyClient.callTool({name:'api_write',
+          arguments:{...input,confirm:true,requestKey:'denied-write'}})).isError).toBe(true);
+      }finally{await readOnlyClient.close();}
+      expect(liveProviderWrites).toBe(0);
+      const granted=await grant(true);
+      const client=await connect(granted.access_token);
+      try{
+        const names=(await client.listTools()).tools.map(t=>t.name);
+        expect(names).toContain('api_write');
+        const preview=JSON.parse((await client.callTool({
+          name:'api_write',arguments:input})).content[0].text);
+        expect(preview).toMatchObject({mode:'LIVE',done:false,needsConfirmation:true});
+        expect(liveProviderWrites).toBe(0);
+        const confirmed=JSON.parse((await client.callTool({name:'api_write',arguments:{
+          ...input,confirm:true,requestKey:'isolated-live-oauth-create'}})).content[0].text);
+        expect(confirmed).toMatchObject({mode:'LIVE',done:true,confirmed:true,
+          resourceId:'txr_SYNTHLIVE1'});
+        expect(liveProviderWrites).toBe(1);
+      }finally{await client.close();}
+      const refreshed=await request('/api/oauth/token',{method:'POST',form:true,data:{
+        grant_type:'refresh_token',client_id:reg.json.client_id,
+        refresh_token:granted.refresh_token,resource}});
+      expect(refreshed.status).toBe(200);
+      expect(await db.getAccessToken(refreshed.json.access_token)).toMatchObject({
+        mode:'live',profile:'full',allow_writes:true});
+      await rawQuery('UPDATE stripe_accounts SET live_enabled=FALSE WHERE id=$1',[account]);
+      const refused=await request('/api/mcp',{method:'POST',token:refreshed.json.access_token,
+        data:{jsonrpc:'2.0',id:123,method:'tools/list',params:{}}});
+      expect(refused.status).toBe(401);
+      expect(refused.json.error).toBe('invalid_token');
+      const forbiddenRefresh=await request('/api/oauth/token',{method:'POST',form:true,
+        data:{grant_type:'refresh_token',client_id:reg.json.client_id,
+          refresh_token:refreshed.json.refresh_token,resource}});
+      expect(forbiddenRefresh.status).toBe(400);
+      expect(forbiddenRefresh.json.error).toBe('invalid_grant');
+    }finally{
+      delete env.VERCEL_ENV;
+      vi.unstubAllEnvs();
+    }
+  },20000);
+
 });
