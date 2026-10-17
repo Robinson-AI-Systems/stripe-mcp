@@ -54,7 +54,8 @@ export function publicToolInfo(tool) {
   // Workflow readers intentionally have strict, task-specific inputs.
   // Do not advertise phantom detail/fields arguments that their original
   // validator rejects; keep universal controls on native readers only.
-  if(tool.writes===false&&!tool.name.startsWith('workflow_')){
+  if(tool.writes===false&&!tool.name.startsWith('workflow_')&&
+    !tool.name.startsWith('api_')){
     if(!Object.hasOwn(properties,'detail'))properties.detail={
       type:'string',enum:['summary','full'],description:'Safe summary or full'};
     if(!Object.hasOwn(properties,'fields'))properties.fields={

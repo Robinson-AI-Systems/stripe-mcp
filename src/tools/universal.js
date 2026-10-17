@@ -38,8 +38,9 @@ export const tools=[
       limit:{type:'integer',minimum:1,maximum:20}},['query']),
   definition('api_describe','Read pinned Stripe operation path, query, body parameters and policy.',
     {op:operationId},['op']),
-  definition('api_read','Call pinned Stripe TEST GET using only validated paths and query fields.',
-    {...requestFields},['op']),
+  definition('api_read','Read selected Stripe provider GET with safe summary/full field projection.',
+    {...requestFields,detail:{type:'string',enum:['summary','full']},
+      fields:{type:'string',maxLength:600}},['op']),
   definition('api_write','Preview confirmed guarded Stripe POST/DELETE; financial and ownership gates remain independent.',
     {...writeFields},['op'],true)
 ];
@@ -59,31 +60,6 @@ function currentResult(raw){
     bad('Original Stripe response identity missing');
   if(result.livemode===true)bad('LIVE provider object refused');
   return result;
-}
-const string=(x,n=180)=>typeof x==='string'&&x.length<=n?x:null;
-function publicSafe(v,depth=0){
-  if(depth>3)return null;
-  if(Array.isArray(v))return v.slice(0,25).map(x=>publicSafe(x,depth+1));
-  if(!v||typeof v!=='object')return v===true||v===false||Number.isSafeInteger(v)?
-    v:string(v,200);
-  const safe=['id','object','status','active','livemode','currency','created',
-    'amount','unit_amount','interval','billing_scheme','type','has_more','next',
-    'lookup_key','name','product','price','quantity','last4','interval_count',
-    'data','metadata'];
-  const out={};
-  for(const key of safe){
-    if(!Object.hasOwn(v,key))continue;
-    if(key==='metadata'){
-      out.metadataKeys=Object.keys(v.metadata??{}).filter(k=>
-        /^[A-Za-z0-9_-]{1,50}$/.test(k)).slice(0,20);
-      continue;
-    }
-    if(key==='name'&&depth>0)continue;
-    if((key==='product'||key==='price')&&typeof v[key]==='object')
-      out[key]=string(v[key]?.id,120);
-    else out[key]=publicSafe(v[key],depth+1);
-  }
-  return out;
 }
 function submitted(a){
   const checked=checkedRequest(a.op,{
@@ -138,6 +114,14 @@ function safeWrite(a){
   if(Object.keys(query).length)bad('Universal write query unsupported; use original native tool');
   return {record,path,body,policy};
 }
+function matchesProvider(request,returned){
+  if(request===null||typeof request!=='object')return request===returned;
+  if(Array.isArray(request))return Array.isArray(returned)&&
+    request.length===returned.length&&
+    request.every((v,i)=>matchesProvider(v,returned[i]));
+  return !!returned&&typeof returned==='object'&&
+    Object.entries(request).every(([k,v])=>matchesProvider(v,returned[k]));
+}
 function makeWrite(){
   // Mutable receipt state exists only within this individual tool invocation.
   let command=null,created=null;
@@ -155,6 +139,7 @@ function makeWrite(){
         bad('Original TEST target identity/ownership metadata unavailable');
       const owner=await findAppOwnership(obj,ctx);
       if(owner?.unknown)bad('Cannot establish Stripe application ownership');
+      command.originalId=obj.id;
       return {...obj,_operation:command.record.id};
     },
     summarize:(_before,_a)=>
@@ -167,8 +152,7 @@ function makeWrite(){
         idempotencyKey,maxNetworkRetries:0});
       if(typeof created?.id!=='string'||created.livemode===true)
         bad('Original Stripe response identity unverified');
-      if(cmd.policy.kind!=='create'&&created.id!==command?.originalId&&
-        created.id!==a.pathParams?.[Object.keys(a.pathParams??{})[0]])
+      if(cmd.policy.kind!=='create'&&created.id!==command.originalId)
         bad('Stripe mutation returned a different resource');
     },
     readAfter:async(_a,ctx)=>{
@@ -191,10 +175,12 @@ function makeWrite(){
       }
       return get(command.path,ctx);
     },
-    verify:(before,after,a)=>{
+    verify:(before,after,_a)=>{
       if(!after||after.livemode!==false)return false;
       if(command.policy.kind==='create')
-        return after.id===created?.id&&after.id!==before.id;
+        return after.id===created?.id&&after.id!==before.id&&
+          Object.entries(command.body).every(([key,value])=>
+            matchesProvider(value,after[key]));
       if(command.policy.kind==='delete')
         return after.id===before.id&&after.deleted===true;
       if(after.id!==before.id)return false;

@@ -18,8 +18,25 @@ function fixture(){
     name:'Owned fixture',metadata:{}};
   const tax={id:T,object:'tax_rate',livemode:false,active:true,
     metadata:{memo:'old'}};
+  const location={id:'tml_U1TEST',object:'terminal.location',livemode:false,
+    metadata:{},display_name:'Greeley TEST'},state={deleted:false,createdTax:null};
   const stripe={rawRequest:async(method,path,params,opts)=>{
     calls.push({method,path,params,opts});
+    if(path==='/v1/tax_rates'&&method==='POST'){
+      state.createdTax={id:'txr_CREATEDTEST',object:'tax_rate',livemode:false,
+        metadata:{},display_name:params.display_name,percentage:params.percentage,
+        inclusive:params.inclusive};
+      return {...state.createdTax};
+    }
+    if(path==='/v1/tax_rates/txr_CREATEDTEST'&&state.createdTax)
+      return {...state.createdTax};
+    if(path.includes('/terminal/locations/')){
+      if(method==='DELETE'){state.deleted=true;return {id:location.id,
+        object:'terminal.location',deleted:true,livemode:false};}
+      if(state.deleted)throw Object.assign(new Error('Deleted TEST location'),
+        {statusCode:404});
+      return {...location};
+    }
     if(path.includes('/tax_rates/')){
       if(method==='POST')Object.assign(tax.metadata,params.metadata);
       return {...tax,metadata:{...tax.metadata}};
@@ -29,7 +46,7 @@ function fixture(){
   }};
   const ctx={connection:{mode:'test',profile:'full',stripeAccount:A},
     connectionId:'u1-provider',db,services:{stripeForConnection:async()=>stripe}};
-  return {db,ctx,calls,tax,product,
+  return {db,ctx,calls,tax,product,location,state,
     call:(name,args)=>registry.handlers[name](args,ctx)};
 }
 describe('U-1 original immutable Stripe operation coverage',()=>{
@@ -59,7 +76,7 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
     const key=paramNames(record,'path')[0].name;
     const result=parse(await f.call('api_read',{op:record.id,pathParams:{[key]:P}}));
     expect(result).toMatchObject({account:A,mode:'test',complete:true,
-      provider:{id:P,object:'product',metadataKeys:[]}});
+      provider:{id:P,object:'product'}});
     expect(result.provider).not.toHaveProperty('metadata');
     expect(f.calls).toHaveLength(1);
     f.ctx.connection.mode='live';
@@ -98,6 +115,50 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
     expect(f.tax.metadata.memo).toBe('new');
     expect(f.calls.filter(x=>x.method==='POST')).toHaveLength(1);
     expect((await f.db.listAuditForTest()).length).toBeGreaterThan(0);
+  });
+  it('creates an independently read-back pinned nonfinancial TEST resource after preview',async()=>{
+    const f=fixture(),op=find('POST','/v1/tax_rates');
+    expect(op).toBeDefined();
+    const a={op:op.id,body:{display_name:'Rental TEST Sales Tax',
+      percentage:7.5,inclusive:false}};
+    const preview=parse(await f.call('api_write',a));
+    expect(preview).toMatchObject({done:false,needsConfirmation:true});
+    expect(f.calls.filter(c=>c.method==='POST')).toHaveLength(0);
+    const verified=parse(await f.call('api_write',{...a,confirm:true,
+      requestKey:'u1-creates-test-tax'}));
+    expect(verified).toMatchObject({done:true,confirmed:true,
+      resourceId:'txr_CREATEDTEST'});
+    expect(f.calls.filter(c=>c.method==='POST')).toHaveLength(1);
+    expect(f.calls.some(c=>c.path==='/v1/tax_rates/txr_CREATEDTEST'&&
+      c.method==='GET')).toBe(true);
+    expect((await f.db.listAuditForTest()).length).toBeGreaterThan(0);
+  });
+  it('confirms pinned TEST deletion only after provider deletion reply AND definitive 404 readback',async()=>{
+    const f=fixture(),op=find('DELETE','/v1/terminal/locations/{location}');
+    expect(op).toBeDefined();
+    const a={op:op.id,pathParams:{location:'tml_U1TEST'}};
+    const preview=parse(await f.call('api_write',a));
+    expect(preview).toMatchObject({done:false,needsConfirmation:true});
+    expect(f.state.deleted).toBe(false);
+    const accepted=parse(await f.call('api_write',{...a,confirm:true,
+      requestKey:'u1-terminal-delete'}));
+    expect(accepted).toMatchObject({done:true,confirmed:true,
+      resourceId:'tml_U1TEST'});
+    expect(f.state.deleted).toBe(true);
+    expect(f.calls.filter(c=>c.method==='DELETE')).toHaveLength(1);
+  });
+  it('provides authorized full metadata but redacts secrets and rejects unsupported financial raw writes',async()=>{
+    const f=fixture(),get=find('GET','/v1/products/{id}');
+    f.product.metadata={note:'Owner approved',secret:'sk_test_FAKEDEMO1234567'};
+    const full=parse(await f.call('api_read',{op:get.id,pathParams:{id:P},
+      detail:'full',fields:'id,metadata'}));
+    expect(full.provider).toMatchObject({id:P,
+      metadata:{note:'Owner approved',secret:'[hidden]'}});
+    const refund=find('POST','/v1/refunds');
+    const denied=await f.call('api_write',{op:refund.id,body:{
+      charge:'ch_U1TEST',amount:300}});
+    expect(denied.isError).toBe(true);
+    expect(f.calls.filter(c=>c.method==='POST')).toHaveLength(0);
   });
   it('refuses app-owned metadata, unknown fields and financial update without issuing a write',async()=>{
     const f=fixture(),target=find('POST','/v1/tax_rates/{tax_rate}');
