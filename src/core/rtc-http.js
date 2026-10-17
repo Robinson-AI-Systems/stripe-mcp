@@ -57,12 +57,14 @@ const metadata=(t,connection)=>{
           t.inputSchema.properties.fields:
           {type:'array',minItems:1,maxItems:12,uniqueItems:true,
             items:{type:'string',minLength:1,maxLength:100}}]}}};
-  return {name:alias(t.name),description:String(t.description).slice(0,160),
+  const warning=moneyTool(t)&&!String(t.description).startsWith('MOVES MONEY:')?
+    'MOVES MONEY: ':'';
+  return {name:alias(t.name),description:(warning+String(t.description)).slice(0,160),
     inputSchema,area:t.area??'server',profiles:[connection?.profile??'read_only'],
     writes:t.writes===true,money:moneyTool(t),destructive:t.destructive===true,
     audience:t.area==='admin'?['owner']:['builder','owner','operator'],
     annotations:{readOnlyHint:t.writes===false,
-      destructiveHint:t.writes===true&&t.destructive!==false,
+      destructiveHint:t.destructive===true,
       idempotentHint:t.writes===false,openWorldHint:true}};
 };
 const isRecord=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
