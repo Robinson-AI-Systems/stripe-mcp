@@ -5,6 +5,7 @@
 import {createServer} from 'node:http';
 import {fork} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
+import {hashToken} from '../src/core/oauth.js';
 import {createDb} from '../src/db.js';
 import {registry} from '../src/tools/index.js';
 import {createRtcReadOnlyHttpHandler,rtcManifest,rtcOpenApi}
@@ -65,6 +66,36 @@ try{
     token:ratePass,areas:['server'],rateLimitPerMinute:5,
     expiresAt:new Date(Date.now()+3600000)}))
     throw Error('Could not issue isolated five-per-minute rate fixture');
+  // The official OAuth preservation probe inspects a real connector row.
+  // Refresh rotates its original token in place, including persisted areas;
+  // it must never reconstruct authorization from account defaults.
+  const oauthClient='rtc-official-oauth-client';
+  const originalAccess='fixture_access_'+randomBytes(32).toString('base64url');
+  const originalRefresh='fixture_refresh_'+randomBytes(32).toString('base64url');
+  await db.createAccessToken({accessToken:originalAccess,
+    refreshToken:originalRefresh,clientId:oauthClient,stripeAccount:account,
+    mode:'test',profile:'everyday',listing:'compact'});
+  await rawQuery('UPDATE oauth_tokens SET areas=ARRAY[$1,$2] WHERE token_hash=$3',
+    ['server','account',hashToken(originalAccess)]);
+  const oauth={
+    async inspect(value=originalAccess){
+      const rows=await rawQuery(
+        'SELECT stripe_account,mode,profile,listing,areas FROM oauth_tokens WHERE token_hash=$1 AND kind=$2',
+        [hashToken(value),'connector']);
+      const row=rows[0];
+      if(!row)throw Error('Authenticated OAuth row not found after refresh');
+      return {account:row.stripe_account,mode:row.mode,profile:row.profile,
+        listing:row.listing,areas:row.areas};
+    },
+    async refresh(){
+      const nextAccess='fixture_access_'+randomBytes(32).toString('base64url');
+      const nextRefresh='fixture_refresh_'+randomBytes(32).toString('base64url');
+      const rotated=await db.rotateRefreshToken({refreshToken:originalRefresh,
+        clientId:oauthClient,accessToken:nextAccess,newRefreshToken:nextRefresh});
+      if(rotated?.client_id!==oauthClient)throw Error('OAuth refresh did not rotate original row');
+      return nextAccess;
+    }
+  };
   const rtc=createRtcReadOnlyHttpHandler({db,registry});
   server=createServer(async(req,res)=>{
     res.status=n=>{res.statusCode=n;return res;};
@@ -116,7 +147,7 @@ try{
   const peerUrls=await Promise.all([
     startIndependentPeer(schema),startIndependentPeer(schema)
   ]);
-  const result=await runConformance({url,passes,
+  const result=await runConformance({url,passes,oauth,
     instances:{urls:peerUrls,pass:ratePass,limit:5}});
   const results=new Map(result.checks.map(row=>[row.name,row]));
   // These rules genuinely apply to the documented TEST HTTPS subset.
@@ -144,10 +175,11 @@ try{
     throw Error('Two-process isolated PostgreSQL conformance failed: '+
       String(rate?.message??'missing'));
   process.stdout.write('SERVICE_PASS limits.two_instance (two OS processes, one SQL schema)\n');
-  const oauth=results.get('oauth.refresh_settings');
-  if(!oauth?.skipped||oauth.ok)
-    throw Error('Missing OAuth adapter may not be called a full conformance PASS');
-  process.stdout.write('INDEPENDENT_EVIDENCE oauth.refresh_settings (not certified here)\n');
+  const refresh=results.get('oauth.refresh_settings');
+  if(!refresh?.ok||refresh.skipped)
+    throw Error('Original persisted OAuth refresh conformance failed: '+
+      String(refresh?.message??'missing'));
+  process.stdout.write('SERVICE_PASS oauth.refresh_settings (original connector row)\n');
   if(result.ok)throw Error('Read-only subset must not certify full RTC 1');
   // Upstream "safety" selection also requires a write + guarded write,
   // which this public TEST surface intentionally never offers. Independently
@@ -173,8 +205,8 @@ try{
     'no full conformance, deployed service or provider claim\n');
 }finally{
   for(const peer of peerProcesses){
-    peer.disconnect();
-    peer.kill();
+    if(peer.connected)peer.disconnect();
+    if(!peer.killed)peer.kill();
   }
   if(server)await new Promise((resolve,reject)=>
     server.close(e=>e?reject(e):resolve()));
