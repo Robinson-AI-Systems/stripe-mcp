@@ -14,6 +14,24 @@ function parseUsdCents(text) {
 }
 const usd=cents=>new Intl.NumberFormat('en-US',
   {style:'currency',currency:'USD'}).format(cents/100);
+// Native tools send untrusted form suggestions, never credentials or authorization.
+function ownerFormSuggestions(q={}) {
+  const valid=(v,re)=>typeof v==='string'&&re.test(v)?v:'';
+  const account=valid(q.account,/^acct_[A-Za-z0-9]{2,100}$/);
+  const revokeAccount=valid(q.revokeAccount,/^acct_[A-Za-z0-9]{2,100}$/);
+  const revokeClient=valid(q.revokeClient,/^[A-Za-z0-9:_-]{1,160}$/);
+  const profile=['read_only','everyday','full'].includes(q.profile)?q.profile:'read_only';
+  const mode=['test','live'].includes(q.mode)?q.mode:'test';
+  const areas=valid(q.areas,/^[a-z_,]{1,120}$/)||'server';
+  const number=(key,defaultValue,max)=>typeof q[key]==='string'&&
+    /^(0|[1-9][0-9]*)$/.test(q[key])&&Number(q[key])<=max?
+    q[key]:String(defaultValue);
+  return {account,revokeAccount,revokeClient,profile,mode,areas,
+    allowWrites:q.allowWrites==='true',forHub:q.forHub==='true',
+    moneyLimitCents:number('moneyLimitCents',0,2147483647),
+    rateLimitPerMinute:number('rateLimitPerMinute',120,600),
+    hours:number('hours',24,8760)};
+}
 function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
@@ -46,9 +64,10 @@ function renderOwnerFeedback(result, smokeResult) {
     summary + '</section>';
 }
 
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill = null, liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null }) {
   const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent);
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
+  const hint=nativePrefill||ownerFormSuggestions();
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
     '<style>body{font:16px system-ui,sans-serif;max-width:600px;margin:4vh auto;padding:16px}.owner-group{margin:16px 0;border:1px solid #aaa;border-radius:10px;padding:12px}.owner-group summary{font-weight:700;cursor:pointer}#owner-follow-up{border:2px solid currentColor;padding:14px;border-radius:10px;margin:16px 0}#owner-feedback{border:2px solid currentColor;padding:14px;border-radius:10px;margin:18px 0}#owner-feedback h2{margin-top:0}#owner-feedback li{margin:8px 0}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
@@ -262,21 +281,24 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Issue TEST read-only pass</button></form>' +
     '</details>' +
-    '<details class="owner-group" id="rtc-delegated-pass"><summary>Create owner-delegated TEST agent pass</summary>' +
-    '<p>This grants only the selected TEST account/profile/areas. A spending ceiling is NOT approval for any specific payment or refund. LIVE requires separate owner account activation and reauthentication.</p>' +
+    '<details class="owner-group" id="rtc-delegated-pass"><summary>Create owner-delegated agent pass (TEST or activated LIVE)</summary>' +
+    '<p>A spending ceiling is NOT approval for a payment or refund. LIVE requires separate account activation, a new owner password check and explicit LIVE consent. LIVE writes also require independent LIVE write consent and native per-operation approvals.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="issue-owner-rtc-pass">' +
-    '<label>TEST account<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110"></label>' +
-    '<label>Profile<select name="profile"><option value="read_only">Read only (default)</option><option value="everyday">Everyday</option><option value="full">Full</option></select></label>' +
-    '<label>Allowed areas, comma-separated<input name="areas" value="server" maxlength="120" required></label>' +
-    '<label>Allow native guarded write requests<input type="checkbox" name="allowWrites" value="yes"></label>' +
-    '<label>Delegated money ceiling in minor units (does NOT approve payments)<input type="number" name="moneyLimitCents" min="0" max="2147483647" value="0" required></label>' +
-    '<label>Pass requests per minute<input type="number" name="rateLimitPerMinute" min="1" max="600" value="120" required></label>' +
-    '<label>Pass hours (max 720, or 8760 for Hub passes)<input type="number" name="hours" min="1" max="8760" value="24" required></label>' +
-    '<label>For Robinson Toolkit Hub (permits up to 365 days)<input type="checkbox" name="forHub" value="yes"></label>' +
+    '<label>Stripe account<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110" value="' + escapeHtml(hint.account) + '"></label>' +
+    '<label>Pass mode<select name="mode"><option value="test"' + (hint.mode==='test'?' selected':'') + '>TEST</option><option value="live"' + (hint.mode==='live'?' selected':'') + '>LIVE (activated account only)</option></select></label>' +
+    '<label>Profile<select name="profile"><option value="read_only"' + (hint.profile==='read_only'?' selected':'') + '>Read only (default)</option><option value="everyday"' + (hint.profile==='everyday'?' selected':'') + '>Everyday</option><option value="full"' + (hint.profile==='full'?' selected':'') + '>Full</option></select></label>' +
+    '<label>Allowed areas, comma-separated<input name="areas" value="' + escapeHtml(hint.areas) + '" maxlength="120" required></label>' +
+    '<label>Allow native guarded write requests<input type="checkbox" name="allowWrites" value="yes"' + (hint.allowWrites?' checked':'') + '></label>' +
+    '<label>Delegated money ceiling in minor units (does NOT approve payments)<input type="number" name="moneyLimitCents" min="0" max="2147483647" value="' + escapeHtml(hint.moneyLimitCents) + '" required></label>' +
+    '<label>Pass requests per minute<input type="number" name="rateLimitPerMinute" min="1" max="600" value="' + escapeHtml(hint.rateLimitPerMinute) + '" required></label>' +
+    '<label>Pass hours (max 720, or 8760 for Hub passes)<input type="number" name="hours" min="1" max="8760" value="' + escapeHtml(hint.hours) + '" required></label>' +
+    '<label>For Robinson Toolkit Hub (permits up to 365 days)<input type="checkbox" name="forHub" value="yes"' + (hint.forHub?' checked':'') + '></label>' +
+    '<label><input type="checkbox" name="ownerLiveConsent" value="yes"> I approve LIVE pass issuance for the already activated account.</label>' +
+    '<label><input type="checkbox" name="ownerLiveWriteConsent" value="yes"> I separately approve a LIVE write pass, subject to all native operation approvals.</label>' +
     '<label>Admin passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<label>Explicitly authorize these selected pass scopes<input type="checkbox" name="passConfirm" value="yes" required></label>' +
-    '<button type="submit">Create scoped TEST pass (one-time private reveal)</button></form></details>' +
+    '<button type="submit">Create scoped owner pass (one-time private reveal)</button></form></details>' +
     '<details class="owner-group" id="test-key-tools"><summary>Add or rotate an encrypted TEST key</summary>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -291,8 +313,8 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<p>Use a Stripe account ID and the AI client ID from the account connection list. This signs out that connection; it never touches customer payments.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="request-revoke">' +
-    '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
-    '<label>AI client ID<input name="clientId" required maxlength="160" autocomplete="off"></label>' +
+    '<label>Stripe account ID<input name="account" required maxlength="110" autocomplete="off" value="' + escapeHtml(hint.revokeAccount) + '"></label>' +
+    '<label>AI client ID<input name="clientId" required maxlength="160" autocomplete="off" value="' + escapeHtml(hint.revokeClient) + '"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview connection removal</button></form>' +
     '</details>' +
@@ -369,7 +391,8 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         /^[A-Za-z0-9_-]{32}$/.test(req.query.liveEnable)?req.query.liveEnable:'';
       const liveIntent = liveId && typeof db.getLiveEnableIntent === 'function'
         ? await db.getLiveEnableIntent(liveId) : null;
-      return send(res, 200, htmlPage({ csrf, show, liveIntent }),
+      return send(res, 200, htmlPage({ csrf, show, liveIntent,
+        nativePrefill:ownerFormSuggestions(req.query) }),
         'text/html; charset=utf-8');
     }
     // Require an exact same-origin browser form and its double-submit CSRF token.
@@ -544,7 +567,9 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
           if(!Number.isSafeInteger(n)||n>max)throw new TypeError('Value exceeds permitted input');
           return n;
         };
-        const issued=await issueOwnerRtcPass({account:p.account,mode:'test',
+        const issued=await issueOwnerRtcPass({account:p.account,mode:p.mode??'test',
+          liveConfirm:p.ownerLiveConsent==='yes',
+          liveWriteConfirm:p.ownerLiveWriteConsent==='yes',
           profile:p.profile??'read_only',areas:p.areas??'server',
           allowWrites:p.allowWrites==='yes',forHub:p.forHub==='yes',
           moneyLimitCents:uint(p.moneyLimitCents??'0',2147483647),
@@ -553,7 +578,7 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         if(!/^\/api\/stripe\/setup\?show=[A-Za-z0-9_-]{32}$/.test(issued.setupPath))
           throw new TypeError('Private one-time owner handoff is not verifiable');
         return send(res,200,htmlPage({csrf:cookie,result:
-          'Owner RTC TEST pass created for '+issued.account+'. Selected profile '+issued.profile+
+          'Owner RTC '+issued.mode.toUpperCase()+' pass created for '+issued.account+'. Selected profile '+issued.profile+
           ', expiry '+issued.lifetimeHours+' hours, rate '+issued.rateLimitPerMinute+
           '/minute, areas '+issued.areas.join(', ')+'. Delegated money ceiling: '+
           issued.moneyLimitCents+' cents. This is NOT a money-out approval. '+
