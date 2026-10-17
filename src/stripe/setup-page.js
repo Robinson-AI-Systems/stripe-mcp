@@ -308,6 +308,15 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
     '<label>Account label (optional)<input name="label" maxlength="100"></label>' +
     '<button type="submit">Verify account and save encrypted test key</button></form>' +
     '</details>' +
+    '<details class="owner-group" id="live-key-tools"><summary>Enroll an encrypted LIVE credential (owner only)</summary>' +
+    '<p>Only for an existing verified Stripe account on the production server after you separately enable LIVE setup. This securely stores the LIVE key and does NOT activate LIVE or authorize payments. The key never enters an AI tool.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="add-live-key">' +
+    '<label>Exact enrolled Stripe account<input name="account" required pattern="acct_[A-Za-z0-9]+" maxlength="110" autocomplete="off"></label>' +
+    '<label>Stripe LIVE secret or restricted key<input type="password" name="key" required autocomplete="off"></label>' +
+    '<label><input type="checkbox" name="ownerLiveKeyConsent" value="yes" required> I explicitly authorize encrypted LIVE credential enrollment, not LIVE activation.</label>' +
+    '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Verify LIVE account and store key; leave LIVE disabled</button></form></details>' +
     '<details class="owner-group" id="revoke-tools"><summary>Disconnect an AI client</summary>' +
     '<h2>Disconnect an AI connection (owner only)</h2>' +
     '<p>Use a Stripe account ID and the AI client ID from the account connection list. This signs out that connection; it never touches customer payments.</p>' +
@@ -697,6 +706,22 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
           result:'Unable to verify and save this TEST key. Check its read permissions and try again.' }),
           'text/html; charset=utf-8');
       }
+    }
+    if(p.action==='add-live-key'){
+      if(env.LIVE_MODE_OWNER_APPROVED!=='true'||process.env.VERCEL_ENV!=='production'||
+        p.ownerLiveKeyConsent!=='yes'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account??''))
+        return send(res,403,htmlPage({csrf:cookie,result:
+          'LIVE credential enrollment needs production, explicit owner configuration, account selection and independent consent.'}),
+          'text/html; charset=utf-8');
+      try{
+        const saved=await keyStore.storeLiveKey({key:p.key,account:p.account});
+        return send(res,200,htmlPage({csrf:cookie,result:
+          'Verified and encrypted LIVE '+saved.kind+' credential for '+saved.account+
+          ' ending '+saved.last4+'. LIVE remains OFF until separate owner activation.'}),
+          'text/html; charset=utf-8');
+      }catch{return send(res,400,htmlPage({csrf:cookie,result:
+        'LIVE account identity, credential, or independent authorization could not be verified. No key enrolled.'}),
+        'text/html; charset=utf-8');}
     }
     if (p.action === 'reveal') {
       try {
