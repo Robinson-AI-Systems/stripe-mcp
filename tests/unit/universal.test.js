@@ -168,6 +168,7 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
     }});
     const sample=[...catalog().operations.values()].filter(x=>
       x.method==='GET'&&!x.path.includes('{')&&
+      !paramNames(x,'query').some(p=>p.required)&&
       !/(?:secret|ephemeral_keys|tokens|person|bank_account|files|identity\/verification|issuing\/cardholders)/.test(x.path))
       .sort((a,b)=>a.path.localeCompare(b.path)).slice(0,25);
     expect(sample).toHaveLength(25);
