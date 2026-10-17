@@ -512,7 +512,7 @@ export function createDb(sql = getProductionSql()) {
         SELECT ${account},${idempotencyKey},${tool},${description},${amountCents},
           ${currency},${target},${mode},now()+interval '24 hours'
         FROM stripe_accounts a WHERE a.id=${account} AND
-          ((${mode}='test' AND a.test_key_enc IS NOT NULL) OR
+          ((${mode}='test') OR
            (${mode}='live' AND a.live_enabled=TRUE AND a.live_key_enc IS NOT NULL))
         ON CONFLICT (stripe_account,request_key) DO NOTHING`;
       const rows=await sql`SELECT tool,amount_cents,currency,description,target,mode,
