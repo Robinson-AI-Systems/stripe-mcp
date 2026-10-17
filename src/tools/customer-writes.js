@@ -1,6 +1,7 @@
 // Customer TEST writes: all calls are through the shared owner-safe defineWrite contract.
 import {defineWrite,gone} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
+import {customerClient,selectedCustomerMode,verifiedCustomerResource} from './customer-mode.js';
 const profiles=['everyday','full'],full=['full'];
 const id={type:'string',pattern:'^cus_[A-Za-z0-9]{2,100}$'};
 const txt=(max=200)=>({type:'string',minLength:1,maxLength:max});
@@ -10,37 +11,35 @@ const address={type:'object',properties:Object.fromEntries(addressFields.map(k=>
   k,txt(k==='country'?2:k==='postal_code'?40:200)])),additionalProperties:false};
 const balanceCents={type:'integer',minimum:1,maximum:100000000};
 const plans=[
-  {name:'customer_create',description:'Create a TEST customer with verified fields and read-back.',
+  {name:'customer_create',description:'Create a selected TEST/LIVE customer with verified fields and read-back.',
     props:{name:txt(),email:txt(512),phone:txt(),description:txt(500),
       metadata:{type:'object',additionalProperties:{type:'string'}}},required:[]},
-  {name:'customer_update',description:'Update an existing TEST customer after ownership and field checks.',
+  {name:'customer_update',description:'Update an existing selected TEST/LIVE customer after ownership and field checks.',
     props:{...common,name:txt(),email:txt(512),phone:txt(),description:txt(500),address,
       metadata:{type:'object',additionalProperties:{type:'string'}}},required:['customerId']},
-  {name:'customer_delete',description:'Delete a TEST customer after final confirmation; irreversible.',
+  {name:'customer_delete',description:'Delete a selected TEST/LIVE customer after final confirmation; irreversible.',
     props:common,required:['customerId'],full:true,destructive:true},
-  {name:'customer_remove_payment_method',description:'Detach a TEST customer payment method after checking ownership.',
+  {name:'customer_remove_payment_method',description:'Detach a selected TEST/LIVE customer payment method after checking ownership.',
     props:{...common,paymentMethodId:{type:'string',pattern:'^pm_[A-Za-z0-9]{2,100}$'}},
     required:['customerId','paymentMethodId'],destructive:true},
   {name:'customer_set_default_payment_method',description:'Set a saved TEST method as invoice default for one customer.',
     props:{...common,paymentMethodId:{type:'string',pattern:'^pm_[A-Za-z0-9]{2,100}$'}},
     required:['customerId','paymentMethodId']},
-  {name:'customer_add_balance_credit',description:'Credit a TEST customer balance with an independently owner-approved USD amount.',
+  {name:'customer_add_balance_credit',description:'Credit a selected TEST/LIVE customer balance with an independently owner-approved USD amount.',
     props:{...common,creditCents:balanceCents,debitCents:balanceCents,
       description:txt(150)},required:['customerId','description'],money:true},
-  {name:'customer_add_tax_id',description:'Add a TEST customer tax ID after reviewing its tax type.',
+  {name:'customer_add_tax_id',description:'Add a selected TEST/LIVE customer tax ID after reviewing its tax type.',
     props:{...common,type:txt(30),value:txt(100)},required:['customerId','type','value']},
-  {name:'customer_delete_tax_id',description:'Delete a TEST customer tax ID after review.',
+  {name:'customer_delete_tax_id',description:'Delete a selected TEST/LIVE customer tax ID after review.',
     props:{...common,taxId:{type:'string',pattern:'^txi_[A-Za-z0-9]{2,100}$'}},
     required:['customerId','taxId'],destructive:true},
-  {name:'customer_remove_discount',description:'Remove a TEST customer-level coupon after ownership check.',
+  {name:'customer_remove_discount',description:'Remove a selected TEST/LIVE customer-level coupon after ownership check.',
     props:common,required:['customerId'],destructive:true}
 ];
 const safeId=(v,kind)=>typeof v==='string'&&new RegExp('^'+kind+'_[A-Za-z0-9]{2,100}$').test(v);
-const getClient=async ctx=>{
-  if(ctx?.connection?.mode!=='test'||typeof ctx?.services?.stripeForConnection!=='function')
-    throw new Error('TEST Stripe customer write provider unavailable');
-  return ctx.services.stripeForConnection(ctx.connection);
-};
+const getClient=ctx=>customerClient(ctx);
+const observed=(record,ctx,{tombstone=false}={})=>
+  verifiedCustomerResource(record,ctx,{tombstone});
 function permittedArgs(def,args){
   if(!args||typeof args!=='object'||Array.isArray(args))
     throw new TypeError('Expected customer arguments');
@@ -98,22 +97,24 @@ function build(def){
       if(def.name==='customer_create')return {id:null,metadata:{}};
       const s=await getClient(ctx);
       if(def.name==='customer_remove_payment_method'){
-        const pm=await s.paymentMethods.retrieve(a.paymentMethodId);
+        const pm=observed(await s.paymentMethods.retrieve(a.paymentMethodId),ctx);
         if(pm.customer!==a.customerId)throw new TypeError('Payment method belongs to another customer');
       }
       if(def.name==='customer_set_default_payment_method'){
-        const pm=await s.paymentMethods.retrieve(a.paymentMethodId);
+        const pm=observed(await s.paymentMethods.retrieve(a.paymentMethodId),ctx);
         if(pm.customer!==a.customerId)throw new TypeError('Method is not attached to selected customer');
       }
-      if(def.name==='customer_delete_tax_id')return {...await s.customers.retrieve(a.customerId),
-        _taxId:await s.customers.retrieveTaxId(a.customerId,a.taxId)};
-      return s.customers.retrieve(a.customerId);
+      if(def.name==='customer_delete_tax_id')return {
+        ...observed(await s.customers.retrieve(a.customerId),ctx),
+        _taxId:observed(await s.customers.retrieveTaxId(a.customerId,a.taxId),ctx)};
+      return observed(await s.customers.retrieve(a.customerId),ctx);
     },
-    summarize:async(_b,a)=>'TEST MODE. '+def.name+' on '+
+    summarize:async(_b,a,ctx)=>ctx.connection.mode.toUpperCase()+' MODE. '+def.name+' on '+
       (a.customerId||'a new customer')+'; proposed fields: '+
       Object.keys(a).filter(k=>!['dryRun','confirm','requestKey','outsideApp'].includes(k))
         .join(', ')+'. Independently verify the provider read-back.'+
-      (def.destructive?' WARNING: destructive action may not be reversible.':''),
+      (def.destructive?' WARNING: destructive action may not be reversible.':'')+
+      (ctx.connection.mode==='live'?' LIVE customer changes can affect invoices, saved payment access and future billing.':''),
     money:def.money?async(a,_ctx,b)=>({
       amountCents:a.creditCents??a.debitCents,currency:'usd',direction:'out',targetId:b.id,
       description:(a.creditCents?'Customer credit: ':'Customer debit: ')+a.description}):undefined,
@@ -148,17 +149,21 @@ function build(def){
     readAfter:async(a,ctx)=>{
       const s=await getClient(ctx),n=def.name;
       if(n==='customer_create')return created?.id?
-        s.customers.retrieve(created.id):null;
-      if(n==='customer_remove_payment_method')return s.paymentMethods.retrieve(a.paymentMethodId);
+        observed(await s.customers.retrieve(created.id),ctx):null;
+      if(n==='customer_remove_payment_method')return observed(
+        await s.paymentMethods.retrieve(a.paymentMethodId),ctx);
       if(n==='customer_add_balance_credit')return created?.id?
-        s.customers.retrieveBalanceTransaction(a.customerId,created.id):null;
-      if(n==='customer_add_tax_id'||n==='customer_delete_tax_id')return s.customers.retrieveTaxId(
-        a.customerId,n==='customer_add_tax_id'?created?.id:a.taxId);
-      return s.customers.retrieve(a.customerId);
+        observed(await s.customers.retrieveBalanceTransaction(a.customerId,created.id),ctx):null;
+      if(n==='customer_add_tax_id'||n==='customer_delete_tax_id')return observed(
+        await s.customers.retrieveTaxId(a.customerId,n==='customer_add_tax_id'?created?.id:a.taxId),ctx,
+          {tombstone:n==='customer_delete_tax_id'});
+      const customer=await s.customers.retrieve(a.customerId);
+      return observed(customer,ctx,{tombstone:n==='customer_delete'});
     },
-    verify:async(_before,after,a)=>{
+    verify:async(_before,after,a,ctx)=>{
       if(!after)return false;
       const n=def.name;
+      observed(after,ctx,{tombstone:n==='customer_delete'||n==='customer_delete_tax_id'});
       if(n==='customer_create')return after.id===created?.id&&
         changed(after,a,['name','email','phone','description','metadata','address']);
       if(n==='customer_update')return after.id===a.customerId&&
@@ -177,10 +182,12 @@ function build(def){
       return false;
     }
   });
-  // TEST is an invariant on the concrete operation itself, not just its MCP door.
+  // Customer monetary balance movement needs separate provider-derived amount
+  // semantics and per-transaction owner approvals before LIVE delegation.
   return {...operation,handler:(args,ctx)=>
-    ctx?.connection?.mode==='test'?operation.handler(args,ctx):
-      gone('This customer mutation is available in TEST mode only')};
+    !selectedCustomerMode(ctx)||def.money&&ctx.connection.mode!=='test'?
+      gone('Selected customer mode not yet supported for this monetary action'):
+      operation.handler(args,ctx)};
 }
 export function makeCustomerWrite(name){
   const def=plans.find(x=>x.name===name);
@@ -199,7 +206,11 @@ export const tools=plans.map(def=>{
     annotations:{destructiveHint:def.destructive===true}};
 });
 export const handlers=Object.fromEntries(plans.map(def=>[def.name,async(args,ctx)=>{
-  // All mutable state is per invocation, never module-global.
+  // Reject non-delegated LIVE calls before loading provider credentials;
+  // tool arguments never supply a server-verified owner grant.
+  if(!selectedCustomerMode(ctx)||def.money&&ctx.connection.mode==='live'||
+    ctx.connection.mode==='live'&&ctx.connection.rtcLiveOwnerApproved!==true)
+    return gone('Selected customer permission or monetary approval unavailable');
   const s=await getClient(ctx);
   return build(def).handler(args,{...ctx,getCustomer:id=>s.customers.retrieve(id)});
 }]));
