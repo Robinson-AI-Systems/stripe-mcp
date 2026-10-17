@@ -710,7 +710,8 @@ export function createDb(sql = getProductionSql()) {
         throw new TypeError('Selected account and bounded limit/offset required');
       }
       // Never select bearer hashes, refresh hashes, client secrets or codes.
-      return await sql`SELECT client_id, mode, profile, listing, kind, rate_limit_per_minute, created_at,
+      return await sql`SELECT client_id, mode, profile, listing, kind, rate_limit_per_minute,
+          allow_writes, money_limit_cents, areas, for_hub, created_at,
           last_used_at, expires_at, revoked_at
         FROM oauth_tokens WHERE stripe_account = ${account} AND kind IN ('connector','pass')
         ORDER BY created_at DESC, token_hash DESC LIMIT ${limit} OFFSET ${offset}`;
