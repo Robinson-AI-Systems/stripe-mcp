@@ -34,6 +34,17 @@ export function isGuardedTestWrite(tool,connection){
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
+// Only owner-issued, independently activated LIVE RTC grants may expose a
+// curated original *non-money* native write. This never grants OAuth/MCP LIVE
+// access or waives defineWrite confirmation, readback or provider permission.
+export function isGuardedLiveWrite(tool,connection){
+  return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
+    tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
+    guardedTestAreas.has(tool.area)&&
+    tool?.money!==true&&tool?.moneySpec!=='provider-derived'&&
+    tool?.safety!==String.fromCharCode(36)&&
+    isToolAllowed(tool,connection?.profile,{allowWrites:true});
+}
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
   'stripe_describe_tool','stripe_call','stripe_batch','stripe_get_result']);
 export function listingForConnection(registry,connection,override){
