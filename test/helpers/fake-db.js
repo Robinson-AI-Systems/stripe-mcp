@@ -13,6 +13,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const attempts = [];
   const accountRows = new Map(accounts.map(a => [a.id, structuredClone(a)]));
   const encryptedTestKeys = new Map();
+  const encryptedLiveKeys = new Map();
   const oneTimeSecrets = new Map();
   const webhookSigningSecrets = new Map();
   const testWebhookReceipts = new Map();
@@ -184,8 +185,10 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async createRtcPass({id,account,token,mode='test',profile='read_only',
       areas,allowWrites=false,moneyLimitCents=0,forHub=false,
       rateLimitPerMinute=120,expiresAt}){
-      if(!accountRows.has(account)||!encryptedTestKeys.has(account))return false;
-      if(mode!=='test'||!['read_only','everyday','full'].includes(profile)||
+      const row=accountRows.get(account);
+      if(!row||mode==='test'&&!encryptedTestKeys.has(account)||
+        mode==='live'&&(!row.live_enabled||!encryptedLiveKeys.has(account)))return false;
+      if(!['test','live'].includes(mode)||!['read_only','everyday','full'].includes(profile)||
         typeof allowWrites!=='boolean'||allowWrites&&profile==='read_only'||
         !Number.isSafeInteger(moneyLimitCents)||moneyLimitCents<0||
         moneyLimitCents>0&&!allowWrites||
@@ -274,13 +277,17 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return structuredClone({ ...account, test_key_kind: saved?.kind || null,
         test_key_last4: saved?.last4 || null, key_permissions: saved?.permissions || {},
         money_limit_cents: account.money_limit_cents ?? 50000, test_connected: !!saved,
-        live_connected: !!account.live_connected });
+        live_connected: encryptedLiveKeys.has(id)||!!account.live_connected });
     },
     async saveTestKey({ account, label, ciphertext, kind, last4, permissions = {} }) {
       const before = accountRows.get(account) || { id: account, is_default: accountRows.size === 0,
         live_enabled: false };
       accountRows.set(account, { ...before, label });
       encryptedTestKeys.set(account, { ciphertext, kind, last4, permissions: structuredClone(permissions) });
+    },
+    async saveLiveKey({account,ciphertext,kind,last4}){
+      if(!accountRows.has(account))return false;
+      encryptedLiveKeys.set(account,{ciphertext,kind,last4});return true;
     },
     async updateKeyPermissions({account,permissions,expectedCiphertext}) {
       if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
@@ -294,11 +301,12 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       stored.permissions=structuredClone(permissions);
       return true;
     },
-    async getEncryptedKey({ account, mode }) {
-      if (mode !== 'test') return null;
-      const row = encryptedTestKeys.get(account);
-      return row ? { ciphertext: row.ciphertext } : null;
-    },
+    async getEncryptedKey({account,mode}) {
+      const row=mode==='test'?encryptedTestKeys.get(account):
+        mode==='live'&&accountRows.get(account)?.live_enabled===true?
+          encryptedLiveKeys.get(account):null;
+      return row?{ciphertext:row.ciphertext}:null;
+    }
     async addOneTimeSecret({ id, account, mode, kind, ciphertext, expiresAt }) {
       oneTimeSecrets.set(id, { stripe_account: account, mode, kind, ciphertext,
         expires_at: new Date(expiresAt).getTime() });
