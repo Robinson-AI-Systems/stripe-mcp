@@ -3,6 +3,7 @@
 // Unsupported full/write checks remain FAIL/SKIP in the upstream raw report;
 // only independently applicable TEST read-only checks may pass this CI gate.
 import {createServer} from 'node:http';
+import {fork} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {createDb} from '../src/db.js';
 import {registry} from '../src/tools/index.js';
@@ -19,9 +20,29 @@ const {runConformance}=await import(
 const account='acct_RTCOFFICIALSERVICE';
 const pass=()=> 'rtc_pass_'+randomBytes(32).toString('base64url');
 const passes={full:pass(),readOnly:pass(),expired:pass(),revoked:pass()};
+const ratePass=pass();
+const peerProcesses=[];
+async function startIndependentPeer(schema){
+  const child=fork(new URL('./rtc-conformance-peer.mjs',import.meta.url),[],{
+    env:{...process.env,RTC_TEST_SCHEMA:schema},silent:true});
+  peerProcesses.push(child);
+  const port=await new Promise((resolve,reject)=>{
+    const timeout=setTimeout(()=>reject(new Error('RTC peer failed to start')),12000);
+    child.once('message',message=>{
+      clearTimeout(timeout);
+      if(!Number.isInteger(message?.port)||message.port<=0)
+        reject(new Error('RTC peer did not return a listening port'));
+      else resolve(message.port);
+    });
+    child.once('error',error=>{clearTimeout(timeout);reject(error);});
+    child.once('exit',code=>{clearTimeout(timeout);
+      reject(new Error('RTC peer exited early '+String(code)));});
+  });
+  return 'http://127.0.0.1:'+port;
+}
 let server,opened=false;
 try{
-  await openIsolatedSchema(dsn);
+  const schema=await openIsolatedSchema(dsn);
   opened=true;
   const db=createDb(neonShapedQuery());
   await db.initSchema();
@@ -40,6 +61,10 @@ try{
     ['rtc-agent-official-expire']);
   await rawQuery('UPDATE oauth_tokens SET revoked_at=now() WHERE client_id=$1',
     ['rtc-agent-official-revoke']);
+  if(!await db.createRtcPass({id:'rtc-agent-official-rate5',account,
+    token:ratePass,areas:['server'],rateLimitPerMinute:5,
+    expiresAt:new Date(Date.now()+3600000)}))
+    throw Error('Could not issue isolated five-per-minute rate fixture');
   const rtc=createRtcReadOnlyHttpHandler({db,registry});
   server=createServer(async(req,res)=>{
     res.status=n=>{res.statusCode=n;return res;};
@@ -85,7 +110,14 @@ try{
     server.listen(0,'127.0.0.1',resolve);
   });
   const url='http://127.0.0.1:'+server.address().port;
-  const result=await runConformance({url,passes});
+  // The upstream runner calls two independent OS processes, each with its
+  // own SQL connection but one short-lived, isolated PostgreSQL schema.
+  // This is stronger than two in-memory handler objects in a single process.
+  const peerUrls=await Promise.all([
+    startIndependentPeer(schema),startIndependentPeer(schema)
+  ]);
+  const result=await runConformance({url,passes,
+    instances:{urls:peerUrls,pass:ratePass,limit:5}});
   const results=new Map(result.checks.map(row=>[row.name,row]));
   // These rules genuinely apply to the documented TEST HTTPS subset.
   const applicable=['manifest','manifest.openapi','catalog','passes',
@@ -107,12 +139,15 @@ try{
       throw Error('Full-profile '+name+' is unexpectedly certified or failed for another reason');
     process.stdout.write('OUT_OF_SUBSET '+name+' (upstream requires HTTPS writes)\n');
   }
-  for(const name of ['oauth.refresh_settings','limits.two_instance']){
-    const row=results.get(name);
-    if(!row?.skipped||row?.ok)
-      throw Error('Unexpected claim for independent '+name);
-    process.stdout.write('INDEPENDENT_EVIDENCE '+name+' (not certified here)\n');
-  }
+  const rate=results.get('limits.two_instance');
+  if(!rate?.ok||rate.skipped)
+    throw Error('Two-process isolated PostgreSQL conformance failed: '+
+      String(rate?.message??'missing'));
+  process.stdout.write('SERVICE_PASS limits.two_instance (two OS processes, one SQL schema)\n');
+  const oauth=results.get('oauth.refresh_settings');
+  if(!oauth?.skipped||oauth.ok)
+    throw Error('Missing OAuth adapter may not be called a full conformance PASS');
+  process.stdout.write('INDEPENDENT_EVIDENCE oauth.refresh_settings (not certified here)\n');
   if(result.ok)throw Error('Read-only subset must not certify full RTC 1');
   // Upstream "safety" selection also requires a write + guarded write,
   // which this public TEST surface intentionally never offers. Independently
@@ -137,6 +172,10 @@ try{
   process.stdout.write('RTC_TEST_SUBSET verified against actual Stripe HTTP + SQL; '+
     'no full conformance, deployed service or provider claim\n');
 }finally{
+  for(const peer of peerProcesses){
+    peer.disconnect();
+    peer.kill();
+  }
   if(server)await new Promise((resolve,reject)=>
     server.close(e=>e?reject(e):resolve()));
   if(opened)await closeIsolatedSchema();
