@@ -470,10 +470,12 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       if (![account,idempotencyKey,tool,description].every(x=>typeof x==='string'&&x) ||
           !/^acct_[A-Za-z0-9]+$/.test(account) ||
           !Number.isSafeInteger(amountCents)||amountCents<=0||currency!=='usd'||
-          description.length>240||mode!=='test'||typeof target!=='string'||
+          description.length>240||!['test','live'].includes(mode)||typeof target!=='string'||
           (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(target)))
         throw new TypeError('Invalid provider money approval request');
-      if(!accountRows.has(account))return false;
+      if(!accountRows.has(account)||
+        (mode==='test'&&!encryptedTestKeys.has(account))||
+        (mode==='live'&&(!accountRows.get(account)?.live_enabled||!encryptedLiveKeys.has(account))))return false;
       let row=approvals.find(a=>a.account===account&&a.key===idempotencyKey);
       if(!row){
         row={account,key:idempotencyKey,tool,description,amountCents,currency,
@@ -486,11 +488,11 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         row.target===target&&row.mode===mode&&row.consumedAt===null&&
         row.expiresAt>clock();
     },
-    async listPendingMoneyApprovals({account,limit=10}){
+    async listPendingMoneyApprovals({account,mode='test',limit=10}){
       if(!/^acct_[A-Za-z0-9]+$/.test(account)||!Number.isInteger(limit)||
-          limit<1||limit>20)throw new TypeError('Invalid pending money filter');
+          limit<1||limit>20||!['test','live'].includes(mode))throw new TypeError('Invalid pending money filter');
       return structuredClone(approvals.filter(r=>r.account===account&&
-        r.target!==''&&r.mode==='test'&&r.consumedAt===null&&
+        r.target!==''&&r.mode===mode&&r.consumedAt===null&&
         r.expiresAt>clock()).slice().reverse().slice(0,limit)
         .map(r=>({request_key:r.key,tool:r.tool,target:r.target,
           description:r.description,amount_cents:r.amountCents,
@@ -508,8 +510,9 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         expiresAt.getTime()<=clock()||expiresAt.getTime()>clock()+600000)
         throw new TypeError('Valid owner decision required');
       const m=approvals.find(r=>r.account===account&&r.key===idempotencyKey&&
-        r.mode==='test'&&r.target!==''&&r.consumedAt===null&&r.expiresAt>clock());
-      if(!m||!encryptedTestKeys.has(account))return false;
+        ['test','live'].includes(r.mode)&&r.target!==''&&r.consumedAt===null&&r.expiresAt>clock());
+      if(!m||m.mode==='test'&&!encryptedTestKeys.has(account)||
+        m.mode==='live'&&(!accountRows.get(account)?.live_enabled||!encryptedLiveKeys.has(account)))return false;
       const usage=await this.getMoneyUsage({account,connection:'owner'});
       const eligible=kind==='approve'
         ? m.approvedAt===null||m.approvedAt<=clock()-600000
@@ -525,10 +528,12 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async getMoneyDecisionIntent(id){
       const i=decisionIntents.find(r=>r.id===id&&r.consumedAt===null&&
         r.expiresAt>clock()),m=i&&approvals.find(a=>a.account===i.account&&a.key===i.key);
-      if(!i||!m||!encryptedTestKeys.has(i.account)||m.consumedAt!==null||
+      if(!i||!m||m.mode==='test'&&!encryptedTestKeys.has(i.account)||
+        m.mode==='live'&&(!accountRows.get(i.account)?.live_enabled||!encryptedLiveKeys.has(i.account))||
+        m.consumedAt!==null||
         m.expiresAt<=clock()||m.expiresAt!==i.requestExpiresAt||
         !['tool','target','currency','mode'].every(k=>m[k]===i[k])||
-        m.amountCents!==i.amountCents||m.target===''||m.mode!=='test'||
+        m.amountCents!==i.amountCents||m.target===''||!['test','live'].includes(m.mode)||
         (i.kind==='approve' ? m.approvedAt!==null&&m.approvedAt>clock()-600000
           : m.approvedAt===null||m.approvedAt<=clock()-600000||m.allowOverLimit))
         return null;
@@ -554,7 +559,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         m.overrideApprovedAt=null;
       }
       row.consumedAt=clock();
-      audit.push({id:audit.length+1,stripe_account:row.account,mode:'test',
+      audit.push({id:audit.length+1,stripe_account:row.account,mode:row.mode,
         tool:row.kind==='override'?'owner_override_money_out':'owner_approve_money_out',
         target:row.target,amount_cents:row.amountCents,currency:'usd',
         idempotency_key:row.key,dry_run:false,at:new Date(clock())});
@@ -598,11 +603,25 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         existing.currency !== currency ? 'request_conflict' :
           existing.day !== day ? 'previous_day' : 'already_' + existing.state,
         used_cents, limit_cents };
+      const pass=[...tokens.values()].find(t=>t.result_scope===connection&&t.kind==='pass');
+      if(pass&&(pass.stripe_account!==account||!['test','live'].includes(pass.mode)||
+        pass.revoked_at||pass.expires_at<=clock()||!pass.allow_writes||
+        pass.profile==='read_only'||!Number.isSafeInteger(pass.money_limit_cents)||
+        pass.money_limit_cents<=0||pass.mode==='live'&&
+          (!row.live_enabled||!encryptedLiveKeys.has(account))))
+        return {decision:'delegated_pass_denied',used_cents,limit_cents};
+      if(pass){
+        const used=reservations.filter(x=>x.connection===connection&&x.day===day&&
+          x.state!=='rejected').reduce((n,x)=>n+x.amountCents,0);
+        if(used+amountCents>pass.money_limit_cents)
+          return {decision:'delegated_limit_exceeded',used_cents:used,
+            limit_cents:pass.money_limit_cents};
+      }
       const approval = approvals.find(a => a.account === account && a.key === idempotencyKey);
       if (!approval || approval.amountCents !== amountCents || approval.currency !== currency ||
           approval.approvedAt === null || approval.consumedAt !== null ||
           approval.expiresAt <= clock() || approval.approvedAt < clock() - 600000 ||
-          !approval.target || approval.mode!=='test') {
+          !approval.target || approval.mode!==(pass?.mode??'test')) {
         return { decision:'owner_approval_required', used_cents, limit_cents };
       }
       if (used_cents > limit_cents - amountCents &&
