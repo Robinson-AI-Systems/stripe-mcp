@@ -11,7 +11,7 @@ next bounded implementation.
 - Database code passes on throwaway Postgres; schema changes are additive and idempotent.
 - `npm run check` green: secret scan, docs check, index validation, lint, write-safety, token budgets.
 - No secret in code, docs, tests, logs, PR text or tool results (key-scan test).
-- Test mode only. No live key, no live write, no real money, no purchases (AGENTS hard limits).
+- Developer-agent acceptance only: no unauthorized LIVE keys, Stripe writes, real money movement or purchases during implementation. This is NOT a restriction on authorized end users. User-issued LIVE passes require independent account activation, actual provider authorization and the original guarded finance controls (see END-USER-AUTHORITY.md).
 - Owner inputs are inputs, not things to invent: build the mechanism, keep the dependent behavior off, list the `IN-xx`.
 - Money shown in dollars and cents, stored in cents; times shown America/Denver, stored UTC.
 - The PR description carries the card's acceptance checklist with evidence.
