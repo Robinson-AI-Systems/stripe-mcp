@@ -77,3 +77,61 @@ describe('R-2 atomic service-owned delegated money ceiling',()=>{
     expect(rows.every(x=>x.connection===scope&&x.state==='reserved')).toBe(true);
   });
 });
+
+describe('R-1 LIVE mode financial grant in disposable SQL only',()=>{
+  it('requires active account, private exact owner approval, per-pass cap and single-use reservation',async()=>{
+    const liveAccount='acct_RTCLIVECAP26';
+    await rawQuery('INSERT INTO stripe_accounts(id,label,test_key_enc,live_key_enc,money_limit_cents,live_enabled) VALUES ($1,$2,$3,$4,$5,FALSE)',
+      [liveAccount,'Disposable LIVE-only DB fixture','v1.mocktest','v1.mocklive',1000]);
+    const secret=makeToken(),expiresAt=new Date(Date.now()+3600000);
+    expect(await db.createRtcPass({id:'rtc-agent-live-fixture',account:liveAccount,
+      token:secret,mode:'live',profile:'full',areas:['payments'],
+      allowWrites:true,moneyLimitCents:200,expiresAt})).toBe(false);
+    // Only a synthetic local row is activated. No remote provider, owner or live deployment is touched.
+    await rawQuery('UPDATE stripe_accounts SET live_enabled=TRUE WHERE id=$1',[liveAccount]);
+    expect(await db.createRtcPass({id:'rtc-agent-live-fixture',account:liveAccount,
+      token:secret,mode:'live',profile:'full',areas:['payments'],
+      allowWrites:true,moneyLimitCents:200,expiresAt})).toBe(true);
+    const scoped=(await db.getRtcPassStatus(secret)).result_scope;
+    const request='fixture-live-refund-first';
+    expect(await db.requestMoneyApproval({account:liveAccount,idempotencyKey:request,
+      tool:'stripe_refund_create',description:'Synthetic exact provider refund',
+      target:'ch_FAKE12345',amountCents:150,currency:'usd',mode:'live'})).toBe(true);
+    expect((await db.reserveMoneyOut({account:liveAccount,connection:scoped,
+      idempotencyKey:request,amountCents:150,currency:'usd'})).decision)
+      .toBe('owner_approval_required');
+    const intent='liveMoneyIntent'+randomBytes(16).toString('hex');
+    expect(await db.requestMoneyDecisionIntent({id:intent,account:liveAccount,
+      idempotencyKey:request,kind:'approve',
+      expiresAt:new Date(Date.now()+5*60000)})).toBe(true);
+    expect(await db.getMoneyDecisionIntent(intent)).toMatchObject({
+      stripe_account:liveAccount,mode:'live',amount_cents:150,target:'ch_FAKE12345'});
+    expect(await peer.consumeMoneyDecisionIntent(intent)).toBe(true);
+    expect(await db.consumeMoneyDecisionIntent(intent)).toBe(false);
+    const first=await db.reserveMoneyOut({account:liveAccount,connection:scoped,
+      idempotencyKey:request,amountCents:150,currency:'usd'});
+    expect(first.decision).toBe('reserved');
+    expect((await db.reserveMoneyOut({account:liveAccount,connection:scoped,
+      idempotencyKey:request,amountCents:150,currency:'usd'})).decision)
+      .toBe('delegated_limit_exceeded'); // cumulative cap is checked ahead of replay
+    const next='fixture-live-refund-next';
+    expect(await peer.requestMoneyApproval({account:liveAccount,idempotencyKey:next,
+      tool:'stripe_refund_create',description:'Synthetic second provider refund',
+      target:'ch_FAKE12345',amountCents:60,currency:'usd',mode:'live'})).toBe(true);
+    const second='liveMoneyIntent'+randomBytes(16).toString('hex');
+    expect(await peer.requestMoneyDecisionIntent({id:second,account:liveAccount,
+      idempotencyKey:next,kind:'approve',
+      expiresAt:new Date(Date.now()+5*60000)})).toBe(true);
+    expect(await db.consumeMoneyDecisionIntent(second)).toBe(true);
+    expect((await peer.reserveMoneyOut({account:liveAccount,connection:scoped,
+      idempotencyKey:next,amountCents:60,currency:'usd'})).decision)
+      .toBe('delegated_limit_exceeded');
+    await rawQuery('UPDATE stripe_accounts SET live_enabled=FALSE WHERE id=$1',[liveAccount]);
+    expect((await db.reserveMoneyOut({account:liveAccount,connection:scoped,
+      idempotencyKey:'disabled-request',amountCents:1,currency:'usd'})).decision)
+      .toBe('delegated_pass_denied');
+    expect(await db.requestMoneyApproval({account:liveAccount,idempotencyKey:'disabled-request',
+      tool:'stripe_refund_create',description:'Should not store pending LIVE grant',
+      target:'ch_FAKE12345',amountCents:1,currency:'usd',mode:'live'})).toBe(false);
+  });
+});
