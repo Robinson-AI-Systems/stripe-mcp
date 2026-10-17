@@ -91,9 +91,14 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     const manifest=await http('/api/contract');
     expect(manifest.status).toBe(200);
     expect(manifest.data).toMatchObject({rtc:1,prefix:'stripe',
-      access:'test_read_only_only'});
-    expect(manifest.data).toMatchObject({profiles:['read_only'],
-      counts:{writes:0,money:0}});
+      access:'owner_scoped_TEST_passes',
+      profiles:['read_only','everyday','full']});
+    // Public manifest describes the UNION of eligible RTC permissions, not
+    // the restricted catalog a legacy read-only bearer is entitled to see.
+    expect(manifest.data.counts.tools).toBeGreaterThan(0);
+    expect(manifest.data.counts.writes).toBeGreaterThan(0);
+    expect(manifest.data.counts.money).toBeGreaterThanOrEqual(0);
+    expect(manifest.data.counts.money).toBeLessThanOrEqual(manifest.data.counts.writes);
     const missing=await http('/api/whoami');
     expect(missing.status).toBe(401);
     expect(missing.data.error.code).toBe('permission');
@@ -122,12 +127,107 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
       expect(catalog.next).toBeGreaterThan(offset);
       offset=catalog.next;
     }
-    expect(names).toHaveLength(manifest.data.counts.tools);
+    // Every legacy read-only tool must be in the public union; the union also
+    // includes guarded TEST writes which this pass must NEVER discover.
+    const allNames=new Set(registry.tools.map(t=>
+      t.name.startsWith('stripe_')?t.name:'stripe_'+t.name));
     expect(new Set(names).size).toBe(names.length);
-    expect(manifest.data.areas).toEqual([...new Set(
-      names.map(name=>registry.tools.find(t=>
-        (t.name.startsWith('stripe_')?t.name:'stripe_'+t.name)===name)?.area??'server')
-    )].sort());
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.length).toBeLessThan(manifest.data.counts.tools);
+    expect(names.every(name=>allNames.has(name))).toBe(true);
+    const expectedReadOnly=registry.tools.filter(t=>
+      t.writes===false&&t.profiles?.includes('read_only')&&
+      t.money!==true&&t.moneySpec!=='provider-derived'&&
+      t.safety!=='
+    expect(names).toContain('stripe_account_get');
+    expect(names).not.toContain('stripe_call');
+    expect(names).not.toContain('stripe_batch');
+  });
+  it('lists and executes real selected-account read metadata, but not any write',async()=>{
+    const who=await http('/api/whoami',{token:mainPass});
+    expect(who.status).toBe(200);
+    expect(who.data.result).toMatchObject({account:acct,mode:'test',
+      profile:'read_only',allowWrites:false,moneyLimitCents:0,
+      areas:['server','account']});
+    const searched=await http('/api/tools?listing=catalog&q=stripe_whoami&limit=10',
+      {token:mainPass});
+    expect(searched.status).toBe(200);
+    expect(searched.data.result.tools.some(t=>t.name==='stripe_whoami')).toBe(true);
+    const read=await http('/api/tools/stripe_whoami',
+      {token:mainPass,method:'POST',body:{}});
+    expect(read.status).toBe(200);
+    expect(read.data.result).toMatchObject({account:acct,mode:'test',profile:'read_only'});
+    const forbidden=registry.tools.find(t=>t.writes===true);
+    expect(forbidden).toBeTruthy();
+    const writeName=forbidden.name.startsWith('stripe_')?
+      forbidden.name:'stripe_'+forbidden.name;
+    const denied=await http('/api/tools/'+encodeURIComponent(writeName),
+      {token:mainPass,method:'POST',body:{confirm:true,dryRun:false}});
+    expect(denied.status).toBe(403);
+    expect(denied.data.error.code).toBe('refused_by_guard');
+  });
+  it('enforces actual scoped result ownership between two different passes',async()=>{
+    const id='res_'+randomBytes(18).toString('base64url');
+    const row=await db.getRtcPassStatus(mainPass);
+    await db.putScopedResult({handle:id,connection:row.result_scope,
+      body:splitResult({payload:'x'.repeat(9000)}),summary:'isolated fixture',
+      expiresAt:new Date(Date.now()+3600000)});
+    const mine=await http('/api/results/'+id,{token:mainPass});
+    expect(mine.status).toBe(200);
+    expect(mine.data.result).toMatchObject({handle:id,page:0});
+    expect(mine.data.result.pageCount).toBeGreaterThan(1);
+    const wrong=await http('/api/results/'+id,{token:otherPass});
+    expect(wrong.status).toBe(404);
+    expect(wrong.data.error.code).toBe('not_found');
+  });
+  it('distinguishes expired from actively owner-revoked credentials',async()=>{
+    const expired=await http('/api/whoami',{token:expiredPass});
+    expect(expired.status).toBe(401);
+    expect(expired.data.error.code).toBe('pass_expired');
+    const id='E'.repeat(32);
+    expect(await db.requestConnectionRevokeIntent({id,account:acct,
+      clientId:'rtc-agent-wireother',expiresAt:new Date(Date.now()+600000)})).toBe(true);
+    expect(await db.consumeConnectionRevokeIntent(id)).toBe(true);
+    const revoked=await http('/api/whoami',{token:otherPass});
+    expect(revoked.status).toBe(401);
+    expect(revoked.data.error.code).toBe('pass_revoked');
+  });
+});
+
+describe('legacy unscoped RTC pass with genuine HTTP and PostgreSQL',()=>{
+  it('retains direct TEST read yet cannot invoke MCP meta dispatch',async()=>{
+    const row=await db.getRtcPassStatus(legacyPass);
+    expect(row.areas).toBeNull();
+    const direct=await http('/api/tools/stripe_whoami',
+      {token:legacyPass,method:'POST',body:{}});
+    expect(direct.status).toBe(200);
+    expect(direct.data.result).toMatchObject({account:acct,mode:'test'});
+    const catalog=await http('/api/tools?listing=catalog&limit=100',
+      {token:legacyPass});
+    expect(catalog.status).toBe(200);
+    expect(catalog.data.result.tools.some(t=>t.name==='stripe_whoami')).toBe(true);
+    for(const meta of ['stripe_call','stripe_batch','stripe_search_tools',
+      'stripe_describe_tool']){
+      expect(catalog.data.result.tools.some(t=>t.name===meta)).toBe(false);
+      const denied=await http('/api/tools/'+meta,
+        {token:legacyPass,method:'POST',body:{}});
+      expect(denied.status).toBe(403);
+      expect(denied.data.error.code).toBe('refused_by_guard');
+    }
+    const batch=await http('/api/tools/_batch',{token:legacyPass,
+      method:'POST',body:{calls:[{name:'stripe_call',args:{name:'stripe_whoami'}}]}});
+    expect(batch.status).toBe(400);
+    expect(batch.data.error.code).toBe('invalid_args');
+  });
+});
+&&t.destructive!==true&&
+      !['stripe_call','stripe_batch','stripe_search_tools',
+        'stripe_describe_tool','api_search'].includes(t.name));
+    expect(names).toHaveLength(expectedReadOnly.length);
+    const actualAreas=new Set(names.map(name=>registry.tools.find(t=>
+      (t.name.startsWith('stripe_')?t.name:'stripe_'+t.name)===name)?.area??'server'));
+    expect(manifest.data.areas.every(area=>typeof area==='string')).toBe(true);
+    expect([...actualAreas].every(area=>manifest.data.areas.includes(area))).toBe(true);
     expect(names).toContain('stripe_account_get');
     expect(names).not.toContain('stripe_call');
     expect(names).not.toContain('stripe_batch');
