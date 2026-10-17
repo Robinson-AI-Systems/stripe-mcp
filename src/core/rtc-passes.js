@@ -60,7 +60,8 @@ export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server']
   const available=new Set(availableAreas);
   return async function issueOwnerPass({account,mode='test',profile='read_only',
     areas='server',allowWrites=false,moneyLimitCents=0,rateLimitPerMinute=120,
-    hours=24,forHub=false,confirm=false,liveConfirm=false,liveWriteConfirm=false}={}){
+    hours=24,forHub=false,confirm=false,liveConfirm=false,liveWriteConfirm=false,
+    liveMoneyConfirm=false}={}){
     // A submitted form value is never proof of the owner's identity.
     if(await verifyOwner({account})!==true||confirm!==true)
       throw new TypeError('Authenticated independent owner confirmation required');
@@ -76,11 +77,12 @@ export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server']
       throw new TypeError('Invalid owner-selected RTC scope/expiry/rate/financial policy');
     // The account is enabled separately by B-8's owner passphrase step; this
     // pass gets its own fresh password gate and mode-specific express consent.
-    // LIVE money-out has no independently approved LIVE reservation contract;
-    // never represent a delegated ceiling as authorization for such a request.
+    // LIVE money delegation requires its own owner checkbox and never removes
+    // the separately password-authenticated per-request money approval gate.
     if(!['test','live'].includes(mode)||
       (mode==='live'&&(liveConfirm!==true||
-        (allowWrites&&liveWriteConfirm!==true)||moneyLimitCents!==0)))
+        (allowWrites&&liveWriteConfirm!==true)||
+        (moneyLimitCents>0&&liveMoneyConfirm!==true)))
       throw new TypeError('Separate owner LIVE consent and existing LIVE money safeguards required');
     const selectedAreas=passAreas(areas,available);
     const selected=await db.getStripeAccount(account);
