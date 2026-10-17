@@ -93,7 +93,7 @@ export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server']
     let issued;
     try{
       issued=await oneTimeStore.issue({account,mode:'test',kind:'rtc-pass',secret:token});
-      if(!/^\\/api\\/stripe\\/setup\\?show=[A-Za-z0-9_-]{32}$/.test(issued?.setupPath))
+      if(!new RegExp('^/api/stripe/setup[?]show=[A-Za-z0-9_-]{32}$').test(issued?.setupPath))
         throw new TypeError('Private one-time reveal path unavailable');
     }catch(error){
       // No unusable bearer survives a failed private one-time handoff.
