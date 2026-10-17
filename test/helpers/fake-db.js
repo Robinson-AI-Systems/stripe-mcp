@@ -474,7 +474,6 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
           (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(target)))
         throw new TypeError('Invalid provider money approval request');
       if(!accountRows.has(account)||
-        (mode==='test'&&!encryptedTestKeys.has(account))||
         (mode==='live'&&(!accountRows.get(account)?.live_enabled||!encryptedLiveKeys.has(account))))return false;
       let row=approvals.find(a=>a.account===account&&a.key===idempotencyKey);
       if(!row){
