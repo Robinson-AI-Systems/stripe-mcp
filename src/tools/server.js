@@ -3,6 +3,7 @@ import { STRIPE_API_VERSION } from '../stripe/client.js';
 import { whereIsSetting } from '../data/dashboard-map.js';
 import { denverLocalTime } from './util.js';
 import { resultPage } from './result-rules.js';
+import {publicOrigin} from '../core/http.js';
 const schema = { type: 'object', properties: {}, additionalProperties: false };
 const profiles = ['read_only','everyday','full'];
 export const tools = [
@@ -27,6 +28,23 @@ export const tools = [
     inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:50},
       offset:{type:'integer',minimum:0}},
       additionalProperties:false},annotations:{readOnlyHint:true},writes:false,profiles },
+  // These native operations prepare an account-bound private owner workflow. They
+  // NEVER mint, reveal or revoke a bearer from an MCP call: the existing owner
+  // browser independently verifies passphrase, Origin, CSRF and explicit consent.
+  { name:'stripe_create_pass',description:'Prepare the private owner-confirmed RTC pass issuance form for this selected Stripe account. No credential is created or returned by this tool.',
+    inputSchema:{type:'object',properties:{
+      mode:{type:'string',enum:['test','live']},
+      profile:{type:'string',enum:profiles},
+      areas:{type:'string',maxLength:120},
+      allowWrites:{type:'boolean'},moneyLimitCents:{type:'integer',minimum:0,maximum:2147483647},
+      rateLimitPerMinute:{type:'integer',minimum:1,maximum:600},
+      hours:{type:'integer',minimum:1,maximum:8760},forHub:{type:'boolean'}
+    },additionalProperties:false},annotations:{readOnlyHint:true},writes:false,profiles:['full'] },
+  { name:'stripe_revoke_connection',description:'Prepare an owner-confirmed connection revocation for this exact account/client ID. No access is revoked until private owner confirmation.',
+    inputSchema:{type:'object',properties:{
+      clientId:{type:'string',minLength:1,maxLength:160}
+    },required:['clientId'],additionalProperties:false},
+    annotations:{readOnlyHint:true},writes:false,profiles:['full'] },
   { name:'stripe_get_result', description:'Read a saved, paged Stripe result belonging only to this authenticated connection.',
     inputSchema:{type:'object',properties:{
       handle:{type:'string',pattern:'^res_[A-Za-z0-9_-]{24,48}$'},
@@ -83,6 +101,54 @@ function pageOf(rows,{account,offset,limit,field,extra={}}) {
 }
 const fail = value => ({ isError:true,content:[{type:'text',text:value}] });
 export const handlers = {
+  async stripe_create_pass(args,{connection,registry}) {
+    if(connection?.mode!=='test'||connection?.profile!=='full'||
+      !/^acct_[A-Za-z0-9]{2,100}$/.test(connection?.stripeAccount??''))
+      return fail('A selected full-profile TEST owner connection is required');
+    const a=args??{};
+    const mode=a.mode??'test',profile=a.profile??'read_only',
+      areas=a.areas??'server',allowWrites=a.allowWrites??false,
+      moneyLimitCents=a.moneyLimitCents??0,
+      rateLimitPerMinute=a.rateLimitPerMinute??120,
+      hours=a.hours??24,forHub=a.forHub??false;
+    const validAreas=new Set(registry?.tools?.map(t=>t.area??'server')??[]);
+    const selected=typeof areas==='string'?areas.split(',').map(v=>v.trim()):[];
+    if(!['test','live'].includes(mode)||!profiles.includes(profile)||
+      typeof allowWrites!=='boolean'||typeof forHub!=='boolean'||
+      !Number.isSafeInteger(moneyLimitCents)||moneyLimitCents<0||moneyLimitCents>2147483647||
+      !Number.isInteger(rateLimitPerMinute)||rateLimitPerMinute<1||rateLimitPerMinute>600||
+      !Number.isInteger(hours)||hours<1||hours>(forHub?8760:720)||
+      selected.length<1||selected.length>6||new Set(selected).size!==selected.length||
+      selected.some(v=>!validAreas.has(v)||!/^[a-z][a-z_]{0,49}$/.test(v))||
+      (allowWrites&&profile==='read_only')||(moneyLimitCents>0&&!allowWrites))
+      return fail('Invalid pass scope, duration or selected owner policy');
+    try{
+      const url=new URL(publicOrigin(process.env)+'/api/stripe/setup');
+      for(const [key,value] of Object.entries({account:connection.stripeAccount,mode,
+        profile,areas:selected.join(','),allowWrites,moneyLimitCents,
+        rateLimitPerMinute,hours,forHub}))
+        url.searchParams.set(key,String(value));
+      return ok({status:'owner_confirmation_required',account:connection.stripeAccount,
+        mode,profile,areas:selected,allowWrites,moneyLimitCents,rateLimitPerMinute,
+        hours,forHub,ownerSetupUrl:url.toString(),
+        notice:'No pass was created. The account owner must review these proposed values and authorize issuance on the private setup page; the bearer can only be revealed there once.'});
+    }catch{return fail('Private owner setup URL is not configured');}
+  },
+  async stripe_revoke_connection(args,{connection}) {
+    if(connection?.mode!=='test'||connection?.profile!=='full'||
+      !/^acct_[A-Za-z0-9]{2,100}$/.test(connection?.stripeAccount??'')||
+      typeof args?.clientId!=='string'||
+      !/^[A-Za-z0-9:_-]{1,160}$/.test(args.clientId))
+      return fail('Select an exact client ID from a full-profile TEST owner connection');
+    try{
+      const url=new URL(publicOrigin(process.env)+'/api/stripe/setup');
+      url.searchParams.set('revokeAccount',connection.stripeAccount);
+      url.searchParams.set('revokeClient',args.clientId);
+      return ok({status:'owner_confirmation_required',account:connection.stripeAccount,
+        clientId:args.clientId,ownerSetupUrl:url.toString(),revoked:false,
+        notice:'No connection was revoked. The private owner page must authenticate, preview and independently confirm the exact revocation.'});
+    }catch{return fail('Private owner setup URL is not configured');}
+  },
   async stripe_get_result(args,{db,connection}) {
     if(!connection?.resultScope||typeof db?.getScopedResult!=='function')
       return fail('Private result storage is not configured for this connection');

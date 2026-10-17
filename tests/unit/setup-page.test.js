@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { createSetupHandler } from '../../src/stripe/setup-page.js';
+import {handlers as nativeOwner} from '../../src/tools/server.js';
+import {registry as nativeRegistry} from '../../src/tools/index.js';
 import {OwnerSmokeFailure} from '../../src/acceptance/owner-smoke-failure.js';
 import {createOwnerSmokeRunner} from '../../src/acceptance/owner-smoke-runner.js';
 import { createFakeDb } from '../../test/helpers/fake-db.js';
@@ -525,6 +527,55 @@ describe('owner TEST diagnostic stage contract',()=>{
   });
 });
 
+describe('R-1 native pass and revoke owner browser handoff',()=>{
+  it('returns scoped browser prefill without issuing credentials or revoking a client',async()=>{
+    vi.stubEnv('PUBLIC_BASE_URL',env.PUBLIC_BASE_URL);
+    try{
+      const connection={stripeAccount:'acct_NATIVE26',mode:'test',profile:'full'};
+      const proposed=await nativeOwner.stripe_create_pass({profile:'everyday',
+        areas:'payments,server',allowWrites:true,moneyLimitCents:200,
+        rateLimitPerMinute:5,hours:48},{connection,registry:nativeRegistry});
+      expect(proposed.isError).toBeUndefined();
+      const value=JSON.parse(proposed.content[0].text);
+      expect(value).toMatchObject({status:'owner_confirmation_required',mode:'test',
+        account:'acct_NATIVE26',profile:'everyday',allowWrites:true,moneyLimitCents:200});
+      expect(JSON.stringify(value)).not.toContain('rtc_pass_');
+      const url=new URL(value.ownerSetupUrl);
+      expect(url.origin).toBe(env.PUBLIC_BASE_URL);
+      expect(url.pathname).toBe('/api/stripe/setup');
+      const {handler}=await fixture();
+      const browser=await page(handler,Object.fromEntries(url.searchParams.entries()));
+      expect(browser.body).toContain('value="acct_NATIVE26"');
+      expect(browser.body).toContain('value="200"');
+      expect(browser.body).toContain('value="everyday" selected');
+      const refused=await submit(handler,cookiePage(browser),{action:'issue-owner-rtc-pass',
+        account:'acct_NATIVE26',passphrase:'wrong',passConfirm:'yes'});
+      expect(refused.statusCode).toBe(401);
+      const revoke=await nativeOwner.stripe_revoke_connection({clientId:'rtc-agent-0123456789abcdef'},
+        {connection});
+      const removed=JSON.parse(revoke.content[0].text);
+      expect(removed.revoked).toBe(false);
+      const revokeUrl=new URL(removed.ownerSetupUrl);
+      const revokePage=await page(handler,Object.fromEntries(revokeUrl.searchParams.entries()));
+      expect(revokePage.body).toContain('value="rtc-agent-0123456789abcdef"');
+      expect(revokePage.body).toContain('value="acct_NATIVE26"');
+      expect(await nativeOwner.stripe_create_pass({},
+        {connection:{...connection,profile:'read_only'},registry:nativeRegistry}))
+        .toMatchObject({isError:true});
+    }finally{vi.unstubAllEnvs();}
+  });
+  it('treats attacker query values as inert form suggestions only',async()=>{
+    const {handler}=await fixture();
+    const response=await page(handler,{account:'<script>alert(1)</script>',
+      revokeClient:'<img src=x onerror=alert(1)>',profile:'full',
+      areas:'payments<script>',moneyLimitCents:'99999999999999'});
+    expect(response.statusCode).toBe(200);
+    expect(response.body).not.toContain('<script>alert(1)</script>');
+    expect(response.body).not.toContain('<img src=x');
+    expect(response.body).toContain('name="moneyLimitCents" min="0" max="2147483647" value="0"');
+  });
+});
+
 describe('all owner setup workflows — private UX, isolation and safe GET',()=>{
   it('keeps exactly one copy of each owner form under explicit native groups',async()=>{
     const {handler}=await fixture();
@@ -532,14 +583,15 @@ describe('all owner setup workflows — private UX, isolation and safe GET',()=>
     const html=response.body;
     const actions=['list-app-profiles','bind-app-profile','enable-app-scope',
       'list-test-accounts','run-test-smoke','provision-webhook-secret',
-      'forget-webhook-secret','download-report','lookup-test-receipt','issue-rtc-pass',
-      'add-key','request-revoke','request-disable-live','request-default-account',
+      'forget-webhook-secret','download-report','lookup-test-receipt','issue-rtc-pass','issue-owner-rtc-pass',
+      'add-key','add-live-key','request-revoke','request-disable-live','request-default-account',
       'request-money-limit','view-money-requests'];
     for(const action of actions){
       expect(html.split('name="action" value="'+action+'"')).toHaveLength(2);
     }
-    expect(html.match(/<details class="owner-group"/g)).toHaveLength(10);
-    expect(html.match(/<\/details>/g)).toHaveLength(10);
+    expect(html.match(/<details class="owner-group"/g)).toHaveLength(12);
+    expect(html.match(/<\/details>/g)).toHaveLength(12);
+    expect(html).toContain('id="rtc-delegated-pass"');
     expect(html).toContain('id="webhook-tools"');
     expect(html).toContain('id="rtc-pass-tools"');
     expect(html).toContain('id="live-disable-tools"');

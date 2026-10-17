@@ -14,6 +14,24 @@ function parseUsdCents(text) {
 }
 const usd=cents=>new Intl.NumberFormat('en-US',
   {style:'currency',currency:'USD'}).format(cents/100);
+// Native tools send untrusted form suggestions, never credentials or authorization.
+function ownerFormSuggestions(q={}) {
+  const valid=(v,re)=>typeof v==='string'&&re.test(v)?v:'';
+  const account=valid(q.account,/^acct_[A-Za-z0-9]{2,100}$/);
+  const revokeAccount=valid(q.revokeAccount,/^acct_[A-Za-z0-9]{2,100}$/);
+  const revokeClient=valid(q.revokeClient,/^[A-Za-z0-9:_-]{1,160}$/);
+  const profile=['read_only','everyday','full'].includes(q.profile)?q.profile:'read_only';
+  const mode=['test','live'].includes(q.mode)?q.mode:'test';
+  const areas=valid(q.areas,/^[a-z_,]{1,120}$/)||'server';
+  const number=(key,defaultValue,max)=>typeof q[key]==='string'&&
+    /^(0|[1-9][0-9]*)$/.test(q[key])&&Number(q[key])<=max?
+    q[key]:String(defaultValue);
+  return {account,revokeAccount,revokeClient,profile,mode,areas,
+    allowWrites:q.allowWrites==='true',forHub:q.forHub==='true',
+    moneyLimitCents:number('moneyLimitCents',0,2147483647),
+    rateLimitPerMinute:number('rateLimitPerMinute',120,600),
+    hours:number('hours',24,8760)};
+}
 function csrfCookie(req) {
   const cookie = String(req.headers?.cookie || '');
   return /(?:^|;\s*)stripe_setup_csrf=([A-Za-z0-9_-]{43})/.exec(cookie)?.[1] || null;
@@ -46,9 +64,10 @@ function renderOwnerFeedback(result, smokeResult) {
     summary + '</section>';
 }
 
-function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null }) {
+function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill = null, liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null }) {
   const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent);
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
+  const hint=nativePrefill||ownerFormSuggestions();
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stripe MCP owner setup</title>' +
     '<style>body{font:16px system-ui,sans-serif;max-width:600px;margin:4vh auto;padding:16px}.owner-group{margin:16px 0;border:1px solid #aaa;border-radius:10px;padding:12px}.owner-group summary{font-weight:700;cursor:pointer}#owner-follow-up{border:2px solid currentColor;padding:14px;border-radius:10px;margin:16px 0}#owner-feedback{border:2px solid currentColor;padding:14px;border-radius:10px;margin:18px 0}#owner-feedback h2{margin-top:0}#owner-feedback li{margin:8px 0}form{display:grid;gap:12px;margin:20px 0;padding:14px;border:1px solid #ccc;border-radius:10px}input,button{font:inherit;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
@@ -71,13 +90,13 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<label><input type="checkbox" name="ownerLiveConsent" value="yes" required> I personally authorize LIVE mode for this exact Stripe account.</label>' +
       '<button type="submit">Approve this LIVE account (final step)</button></form>' : '') +
-    (moneyDecisionIntent ? '<h2>Final owner confirmation — TEST ' +
+    (moneyDecisionIntent ? '<h2>Final owner confirmation — ' + escapeHtml(moneyDecisionIntent.mode?.toUpperCase()) + ' ' +
       escapeHtml(moneyDecisionIntent.kind === 'override' ? 'OVER-LIMIT OVERRIDE' : 'INDIVIDUAL MONEY-OUT') +
       '</h2><p>Exact account: ' + escapeHtml(moneyDecisionIntent.stripe_account) +
       '; tool: ' + escapeHtml(moneyDecisionIntent.tool) +
       '; Stripe-derived target: ' + escapeHtml(moneyDecisionIntent.target) +
       '; amount: <strong>' + escapeHtml(usd(Number(moneyDecisionIntent.amount_cents))) +
-      ' USD</strong>; mode: TEST; request key: ' + escapeHtml(moneyDecisionIntent.request_key) +
+      ' USD</strong>; mode: ' + escapeHtml(moneyDecisionIntent.mode?.toUpperCase()) + '; request key: ' + escapeHtml(moneyDecisionIntent.request_key) +
       '; preview must be confirmed before: ' + escapeHtml(new Intl.DateTimeFormat('en-US',{
         timeZone:'America/Denver',dateStyle:'medium',timeStyle:'short'
       }).format(new Date(Math.min(new Date(moneyDecisionIntent.expires_at).getTime(),
@@ -90,8 +109,9 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<input type="hidden" name="action" value="confirm-money-decision">' +
       '<input type="hidden" name="id" value="' + escapeHtml(moneyDecisionIntent.id) + '">' +
       '<label><input type="checkbox" name="ownerMoneyConsent" value="yes" required> I personally authorize ONLY this exact ' +
-      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'over-limit override' : 'TEST money-out request') +
+      escapeHtml(moneyDecisionIntent.kind === 'override' ? 'over-limit override' : moneyDecisionIntent.mode?.toUpperCase()+' money-out request') +
       ', account, Stripe target, amount and request key.</label>' +
+      (moneyDecisionIntent.mode==='live' ? '<label><input type="checkbox" name="ownerMoneyLiveConsent" value="yes" required> I independently approve this exact LIVE financial transaction, not a standing LIVE grant.</label>' : '') +
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<button type="submit">Confirm this ' +
       escapeHtml(moneyDecisionIntent.kind === 'override' ? 'separate override' : 'individual approval') +
@@ -142,13 +162,14 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
       '<button type="submit">Set this account limit</button></form>' : '') +
     (moneyInbox ? '<h2>Verified pending requests</h2>' +
       '<p>Stripe account: <strong>' + escapeHtml(moneyInbox.account) +
-      '</strong>. Shared Colorado-day usage: ' + escapeHtml(usd(moneyInbox.usedCents)) +
+      '</strong>. Mode: ' + escapeHtml(moneyInbox.mode.toUpperCase()) +
+      '. Shared Colorado-day usage: ' + escapeHtml(usd(moneyInbox.usedCents)) +
       '. Daily limit: ' + escapeHtml(usd(moneyInbox.limitCents)) + '.</p>' +
       (moneyInbox.rows.length ? '<ol>' + moneyInbox.rows.map(item =>
         '<li>Operation: ' + escapeHtml(item.tool) +
         '; target: ' + escapeHtml(item.target) +
         '; amount: ' + escapeHtml(usd(Number(item.amount_cents))) +
-        '; TEST mode; request key: ' + escapeHtml(item.request_key) +
+        '; ' + escapeHtml(item.mode.toUpperCase()) + ' mode; request key: ' + escapeHtml(item.request_key) +
         '; note: ' + escapeHtml(item.description) +
         '; expires: ' + escapeHtml(item.expiresLocal) +
         '; status: ' + escapeHtml(item.approvedFresh ? (item.needsOverride ?
@@ -162,6 +183,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
           '<input type="hidden" name="requestKey" value="' + escapeHtml(item.request_key) + '">' +
           '<input type="hidden" name="kind" value="' +
             (item.approvedFresh ? 'override' : 'approve') + '">' +
+          (item.mode==='live' ? '<label><input type="checkbox" name="ownerMoneyLiveConsent" value="yes" required> I intend to preview independent authorization of this exact LIVE financial operation.</label>' : '') +
           '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
           '<button type="submit">Privately preview ' +
             (item.approvedFresh ? 'separate over-limit confirmation' : 'individual approval') +
@@ -262,6 +284,25 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Issue TEST read-only pass</button></form>' +
     '</details>' +
+    '<details class="owner-group" id="rtc-delegated-pass"><summary>Create owner-delegated agent pass (TEST or activated LIVE)</summary>' +
+    '<p>A spending ceiling is NOT approval for a payment or refund. LIVE requires separate account activation, a new owner password check and explicit LIVE consent. LIVE writes also require independent LIVE write consent and native per-operation approvals.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="issue-owner-rtc-pass">' +
+    '<label>Stripe account<input name="account" pattern="acct_[A-Za-z0-9]+" required maxlength="110" value="' + escapeHtml(hint.account) + '"></label>' +
+    '<label>Pass mode<select name="mode"><option value="test"' + (hint.mode==='test'?' selected':'') + '>TEST</option><option value="live"' + (hint.mode==='live'?' selected':'') + '>LIVE (activated account only)</option></select></label>' +
+    '<label>Profile<select name="profile"><option value="read_only"' + (hint.profile==='read_only'?' selected':'') + '>Read only (default)</option><option value="everyday"' + (hint.profile==='everyday'?' selected':'') + '>Everyday</option><option value="full"' + (hint.profile==='full'?' selected':'') + '>Full</option></select></label>' +
+    '<label>Allowed areas, comma-separated<input name="areas" value="' + escapeHtml(hint.areas) + '" maxlength="120" required></label>' +
+    '<label>Allow native guarded write requests<input type="checkbox" name="allowWrites" value="yes"' + (hint.allowWrites?' checked':'') + '></label>' +
+    '<label>Delegated money ceiling in minor units (does NOT approve payments)<input type="number" name="moneyLimitCents" min="0" max="2147483647" value="' + escapeHtml(hint.moneyLimitCents) + '" required></label>' +
+    '<label>Pass requests per minute<input type="number" name="rateLimitPerMinute" min="1" max="600" value="' + escapeHtml(hint.rateLimitPerMinute) + '" required></label>' +
+    '<label>Pass hours (max 720, or 8760 for Hub passes)<input type="number" name="hours" min="1" max="8760" value="' + escapeHtml(hint.hours) + '" required></label>' +
+    '<label>For Robinson Toolkit Hub (permits up to 365 days)<input type="checkbox" name="forHub" value="yes"' + (hint.forHub?' checked':'') + '></label>' +
+    '<label><input type="checkbox" name="ownerLiveConsent" value="yes"> I approve LIVE pass issuance for the already activated account.</label>' +
+    '<label><input type="checkbox" name="ownerLiveWriteConsent" value="yes"> I separately approve a LIVE write pass, subject to all native operation approvals.</label>' +
+    '<label><input type="checkbox" name="ownerLiveMoneyConsent" value="yes"> If granting a positive LIVE money ceiling, I separately authorize this maximum, subject to a fresh independent owner approval for EVERY specific money-out transaction.</label>' +
+    '<label>Admin passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<label>Explicitly authorize these selected pass scopes<input type="checkbox" name="passConfirm" value="yes" required></label>' +
+    '<button type="submit">Create scoped owner pass (one-time private reveal)</button></form></details>' +
     '<details class="owner-group" id="test-key-tools"><summary>Add or rotate an encrypted TEST key</summary>' +
     '<p>This page stores your test Stripe key in encrypted storage. Keys are never entered in AI chat. Live keys are not accepted.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -271,13 +312,22 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Account label (optional)<input name="label" maxlength="100"></label>' +
     '<button type="submit">Verify account and save encrypted test key</button></form>' +
     '</details>' +
+    '<details class="owner-group" id="live-key-tools"><summary>Enroll an encrypted LIVE credential (owner only)</summary>' +
+    '<p>Only for an existing verified Stripe account on the production server after you separately enable LIVE setup. This securely stores the LIVE key and does NOT activate LIVE or authorize payments. The key never enters an AI tool.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="add-live-key">' +
+    '<label>Exact enrolled Stripe account<input name="account" required pattern="acct_[A-Za-z0-9]+" maxlength="110" autocomplete="off"></label>' +
+    '<label>Stripe LIVE secret or restricted key<input type="password" name="key" required autocomplete="off"></label>' +
+    '<label><input type="checkbox" name="ownerLiveKeyConsent" value="yes" required> I explicitly authorize encrypted LIVE credential enrollment, not LIVE activation.</label>' +
+    '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Verify LIVE account and store key; leave LIVE disabled</button></form></details>' +
     '<details class="owner-group" id="revoke-tools"><summary>Disconnect an AI client</summary>' +
     '<h2>Disconnect an AI connection (owner only)</h2>' +
     '<p>Use a Stripe account ID and the AI client ID from the account connection list. This signs out that connection; it never touches customer payments.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="request-revoke">' +
-    '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
-    '<label>AI client ID<input name="clientId" required maxlength="160" autocomplete="off"></label>' +
+    '<label>Stripe account ID<input name="account" required maxlength="110" autocomplete="off" value="' + escapeHtml(hint.revokeAccount) + '"></label>' +
+    '<label>AI client ID<input name="clientId" required maxlength="160" autocomplete="off" value="' + escapeHtml(hint.revokeClient) + '"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview connection removal</button></form>' +
     '</details>' +
@@ -309,18 +359,19 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', liveIntent = nu
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview daily money-out limit</button></form>' +
     '</details>' +
-    '<details class="owner-group" id="money-approval-tools"><summary>Review pending TEST money-out requests</summary>' +
-    '<h2>Pending money-out requests (private TEST owner review)</h2>' +
-    '<p>Viewing requests never approves or executes money. Each grant requires a separate password-authenticated confirmation for one exact request; crossing the account daily limit requires a second separate confirmation. No LIVE or Stripe payment tool is enabled here.</p>' +
+    '<details class="owner-group" id="money-approval-tools"><summary>Review pending mode-bound money-out requests</summary>' +
+    '<h2>Pending money-out requests (private TEST or activated LIVE owner review)</h2>' +
+    '<p>Viewing requests never approves or executes money. Each grant requires a separate password-authenticated confirmation for one exact request; crossing the account daily limit requires a second separate confirmation. LIVE additionally requires an activated account, independent live-mode consent at preview and confirmation and the original guarded provider write.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="view-money-requests">' +
     '<label>Stripe account ID<input name="account" required maxlength="80" autocomplete="off"></label>' +
+    '<label>Mode<select name="mode"><option value="test" selected>TEST</option><option value="live">LIVE (independently activated account only)</option></select></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-    '<button type="submit">Privately view pending TEST requests</button></form>' +
+    '<button type="submit">Privately view pending mode-specific requests</button></form>' +
     '</details>' +
     '</body></html>';
 }
-export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, runTestSmoke, issueRtcPass, lookupTestReceipt, env = process.env }) {
+export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, runTestSmoke, issueRtcPass, issueOwnerRtcPass, lookupTestReceipt, env = process.env }) {
   return async function setup(req, res) {
     if (!only(res, req, ['GET','POST'])) return;
     let origin;
@@ -354,7 +405,8 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         /^[A-Za-z0-9_-]{32}$/.test(req.query.liveEnable)?req.query.liveEnable:'';
       const liveIntent = liveId && typeof db.getLiveEnableIntent === 'function'
         ? await db.getLiveEnableIntent(liveId) : null;
-      return send(res, 200, htmlPage({ csrf, show, liveIntent }),
+      return send(res, 200, htmlPage({ csrf, show, liveIntent,
+        nativePrefill:ownerFormSuggestions(req.query) }),
         'text/html; charset=utf-8');
     }
     // Require an exact same-origin browser form and its double-submit CSRF token.
@@ -516,6 +568,41 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       }catch{return send(res,400,htmlPage({csrf:cookie,
         result:'Cannot issue a TEST pass. Verify enrolled account and owner access.'}),'text/html; charset=utf-8');}
     }
+    if(p.action==='issue-owner-rtc-pass'){
+      if(typeof issueOwnerRtcPass!=='function')
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'Owner-delegated RTC pass issuance is unavailable.'}),
+          'text/html; charset=utf-8');
+      try{
+        const uint=(value,max)=>{
+          if(typeof value!=='string'||!/^(0|[1-9][0-9]*)$/.test(value))
+            throw new TypeError('Choose a decimal integer');
+          const n=Number(value);
+          if(!Number.isSafeInteger(n)||n>max)throw new TypeError('Value exceeds permitted input');
+          return n;
+        };
+        const issued=await issueOwnerRtcPass({account:p.account,mode:p.mode??'test',
+          liveConfirm:p.ownerLiveConsent==='yes',
+          liveWriteConfirm:p.ownerLiveWriteConsent==='yes',
+          liveMoneyConfirm:p.ownerLiveMoneyConsent==='yes',
+          profile:p.profile??'read_only',areas:p.areas??'server',
+          allowWrites:p.allowWrites==='yes',forHub:p.forHub==='yes',
+          moneyLimitCents:uint(p.moneyLimitCents??'0',2147483647),
+          rateLimitPerMinute:uint(p.rateLimitPerMinute??'120',600),
+          hours:uint(p.hours??'24',8760),confirm:p.passConfirm==='yes'});
+        if(!/^\/api\/stripe\/setup\?show=[A-Za-z0-9_-]{32}$/.test(issued.setupPath))
+          throw new TypeError('Private one-time owner handoff is not verifiable');
+        return send(res,200,htmlPage({csrf:cookie,result:
+          'Owner RTC '+issued.mode.toUpperCase()+' pass created for '+issued.account+'. Selected profile '+issued.profile+
+          ', expiry '+issued.lifetimeHours+' hours, rate '+issued.rateLimitPerMinute+
+          '/minute, areas '+issued.areas.join(', ')+'. Delegated money ceiling: '+
+          issued.moneyLimitCents+' cents. This is NOT a money-out approval. '+
+          'To see the pass once, open the private reveal URL and reenter your administrator passphrase: '+
+          issued.setupPath}),'text/html; charset=utf-8');
+      }catch{return send(res,400,htmlPage({csrf:cookie,result:
+        'Owner RTC pass was refused; confirm account, permissions and delegation.'}),
+        'text/html; charset=utf-8');}
+    }
     if (p.action === 'forget-webhook-secret'){
       if(typeof forgetWebhookSecret!=='function')return send(res,503,htmlPage({csrf:cookie,
         result:'Private credential removal is unavailable.'}),'text/html; charset=utf-8');
@@ -626,6 +713,22 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
           'text/html; charset=utf-8');
       }
     }
+    if(p.action==='add-live-key'){
+      if(env.LIVE_MODE_OWNER_APPROVED!=='true'||process.env.VERCEL_ENV!=='production'||
+        p.ownerLiveKeyConsent!=='yes'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account??''))
+        return send(res,403,htmlPage({csrf:cookie,result:
+          'LIVE credential enrollment needs production, explicit owner configuration, account selection and independent consent.'}),
+          'text/html; charset=utf-8');
+      try{
+        const saved=await keyStore.storeLiveKey({key:p.key,account:p.account});
+        return send(res,200,htmlPage({csrf:cookie,result:
+          'Verified and encrypted LIVE '+saved.kind+' credential for '+saved.account+
+          ' ending '+saved.last4+'. LIVE remains OFF until separate owner activation.'}),
+          'text/html; charset=utf-8');
+      }catch{return send(res,400,htmlPage({csrf:cookie,result:
+        'LIVE account identity, credential, or independent authorization could not be verified. No key enrolled.'}),
+        'text/html; charset=utf-8');}
+    }
     if (p.action === 'reveal') {
       try {
         const revealed = await oneTimeStore.consume(p.id);
@@ -670,16 +773,18 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         'text/html; charset=utf-8');
     }
     if (p.action === 'view-money-requests') {
-      if(typeof p.account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(p.account))
+      if(typeof p.account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(p.account)||
+        !['test','live'].includes(p.mode??'test'))
         return send(res,400,htmlPage({csrf:cookie,result:'Select a valid Stripe account.'}),
           'text/html; charset=utf-8');
       try {
         const account=await db.getStripeAccount(p.account);
-        if(!account?.test_connected) return send(res,404,htmlPage({csrf:cookie,result:
-          'A verified TEST-connected Stripe account is required.'}),
+        if((p.mode??'test')==='test'&&!account?.test_connected||
+          p.mode==='live'&&(!account?.live_enabled||!account?.live_connected)) return send(res,404,htmlPage({csrf:cookie,result:
+          'An independently verified account in this selected mode is required.'}),
           'text/html; charset=utf-8');
         const [rows,usage]=await Promise.all([
-          db.listPendingMoneyApprovals({account:p.account,limit:10}),
+          db.listPendingMoneyApprovals({account:p.account,mode:p.mode??'test',limit:10}),
           db.getMoneyUsage({account:p.account,connection:'owner-inbox'})
         ]);
         const usedCents=Number(usage?.used_cents);
@@ -694,7 +799,7 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         const verified=rows.map(row=>{
           const amount=Number(row.amount_cents);
           const expires=new Date(row.expires_at);
-          if(row.mode!=='test'||!Number.isSafeInteger(amount)||amount<=0||
+          if(row.mode!==(p.mode??'test')||!Number.isSafeInteger(amount)||amount<=0||
               row.currency!=='usd'||!Number.isFinite(expires.getTime())||
               typeof row.target!=='string'||!row.target||
               typeof row.tool!=='string'||typeof row.request_key!=='string')
@@ -707,7 +812,7 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         });
         res.setHeader('Cache-Control','no-store');
         return send(res,200,htmlPage({csrf:cookie,
-          moneyInbox:{account:p.account,usedCents,limitCents,rows:verified}}),
+          moneyInbox:{account:p.account,mode:p.mode??'test',usedCents,limitCents,rows:verified}}),
           'text/html; charset=utf-8');
       } catch {
         return send(res,503,htmlPage({csrf:cookie,result:
@@ -733,9 +838,12 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       if(!moneyDecisionIntent)return send(res,409,htmlPage({csrf:cookie,result:
         'Request changed before the private review. No approval was granted.'}),
         'text/html; charset=utf-8');
+      if(moneyDecisionIntent.mode==='live'&&p.ownerMoneyLiveConsent!=='yes')
+        return send(res,403,htmlPage({csrf:cookie,result:
+          'Independent LIVE money preview consent is required.'}),'text/html; charset=utf-8');
       res.setHeader('Cache-Control','no-store');
       return send(res,200,htmlPage({csrf:cookie,moneyDecisionIntent,
-        result:'Preview only. Recheck the full TEST transaction and independently confirm with your passphrase.'}),
+        result:'Preview only. Recheck the exact '+moneyDecisionIntent.mode.toUpperCase()+' transaction and independently confirm with your passphrase.'}),
         'text/html; charset=utf-8');
     }
     if (p.action === 'confirm-money-decision') {
@@ -746,12 +854,15 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       if(!intent)return send(res,410,htmlPage({csrf:cookie,result:
         'This owner intent is expired, used, altered or no longer eligible. No authorization granted.'}),
         'text/html; charset=utf-8');
+      if(intent.mode==='live'&&p.ownerMoneyLiveConsent!=='yes')
+        return send(res,403,htmlPage({csrf:cookie,result:
+          'Separate LIVE-mode financial approval is required.'}),'text/html; charset=utf-8');
       const granted=await db.consumeMoneyDecisionIntent(p.id);
       res.setHeader('Cache-Control','no-store');
       return send(res,granted?200:409,htmlPage({csrf:cookie,result:granted?
         (intent.kind==='override'?
-          'You separately approved one over-limit TEST request. This is not a standing cap increase.' :
-          'You approved exactly one TEST money-out request. The shared daily cap and all further checks still apply.') :
+          'You separately approved one over-limit '+intent.mode.toUpperCase()+' request. This is not a standing cap increase.' :
+          'You approved exactly one '+intent.mode.toUpperCase()+' money-out request. The shared daily cap and all further checks still apply.') :
         'Another owner action or transaction changed this request. No new authorization granted.'}),
         'text/html; charset=utf-8');
     }

@@ -13,12 +13,14 @@ function request(method,body,headers={}){
   return {method,body,query:method==='GET'?body:{},headers,
     socket:{remoteAddress:'192.0.2.84'}};
 }
-async function fixture(){
+async function fixture({live=false}={}){
   let timeOffset=0;
-  const db=createFakeDb({clock:()=>Date.now()+timeOffset,accounts:[{id:account},{id:'acct_OTHER'}]});
+  const db=createFakeDb({clock:()=>Date.now()+timeOffset,accounts:[{id:account,live_enabled:live},{id:'acct_OTHER'}]});
   for(const a of [account,'acct_OTHER'])
     await db.saveTestKey({account:a,label:a,ciphertext:'fake-cipher-'+a,
       kind:'restricted',last4:'FAKE'});
+  if(live)await db.saveLiveKey({account,ciphertext:'v1.live-fixture',
+    kind:'restricted',last4:'FAKE'});
   const handler=createSetupHandler({db,keyStore:null,oneTimeStore:null,env});
   const get=response();await handler(request('GET',{}),get);
   const cookie=get.headers['Set-Cookie'].split(';')[0];
@@ -33,7 +35,7 @@ async function fixture(){
   const pending=(key,amountCents=1,target='ch_FAKE123')=>
     db.requestMoneyApproval({account,idempotencyKey:key,
       tool:'stripe_test_refund',description:'Test provider refund',target,
-      amountCents,currency:'usd',mode:'test'});
+      amountCents,currency:'usd',mode:live?'live':'test'});
   const owner=(action,fields={})=>({action,passphrase:env.ADMIN_PASSPHRASE,...fields});
   return {db,get,post,pending,owner,advance:ms=>{timeOffset+=ms;}};
 }
@@ -92,6 +94,33 @@ describe('B-8c2 owner-only exact money authorization (TEST)',()=>{
       idempotencyKey:'large',amountCents:50001,currency:'usd'})).decision)
       .toMatch(/^already_/);
     expect((await f.db.listAuditForTest()).map(r=>r.tool)).toContain('owner_override_money_out');
+  });
+  it('LIVE requests require independent consent on BOTH owner stages, exact mode and one-time approval',async()=>{
+    const f=await fixture({live:true});
+    expect(await f.pending('live-refund',123)).toBe(true);
+    const inbox=await f.post(f.owner('view-money-requests',{account,mode:'live'}));
+    expect(inbox.statusCode).toBe(200);
+    expect(inbox.body).toContain('LIVE mode');
+    expect(inbox.body).toContain('live-refund');
+    expect((await f.post(f.owner('view-money-requests',{account,mode:'test'}))).body)
+      .not.toContain('live-refund');
+    const action=f.owner('request-money-decision',{
+      account,requestKey:'live-refund',kind:'approve'});
+    expect((await f.post(action)).statusCode).toBe(403);
+    const preview=await f.post({...action,ownerMoneyLiveConsent:'yes'});
+    expect(preview.statusCode).toBe(200);
+    expect(preview.body).toContain('LIVE');
+    expect(preview.body).toContain('$1.23');
+    const id=intentFrom(preview.body);
+    expect(id).toBeTruthy();
+    expect((await f.post(f.owner('confirm-money-decision',{
+      id,ownerMoneyConsent:'yes'}))).statusCode).toBe(403);
+    expect((await f.post(f.owner('confirm-money-decision',{
+      id,ownerMoneyConsent:'yes',ownerMoneyLiveConsent:'yes'}))).statusCode).toBe(200);
+    expect((await f.post(f.owner('confirm-money-decision',{
+      id,ownerMoneyConsent:'yes',ownerMoneyLiveConsent:'yes'}))).statusCode).toBe(410);
+    expect((await f.db.listAuditForTest()).filter(a=>a.tool==='owner_approve_money_out'))
+      .toEqual([expect.objectContaining({mode:'live',amount_cents:123})]);
   });
   it('rejects cross-account, target changes, stale grants, expired intents and unconnected accounts',async()=>{
     const f=await fixture();await f.pending('bound',123,'ch_BOUND123');

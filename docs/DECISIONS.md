@@ -170,3 +170,20 @@ design-maintenance exception to routine no-docs-only implementation work, not a
 feature PR or completed subsection. Existing owner-specific missing inputs,
 spending/production/credential/cleanup authority remain gated; this entry does
 not mark them answered. The original Toolkit stays reference-only.
+
+## 2026-10-17 — R-2 pass limits must be at the ORIGINAL atomic financial boundary
+
+Developer authorization to edit the service is separate from product
+capabilities granted personally by an end user. A delegated full RTC TEST
+pass may request original guarded writes, but an owner-selected money ceiling
+only restricts that pass. It cannot substitute for independent per-operation
+money-out approval or the shared Stripe account daily cap. Check the pass
+identity, revocation, expiry, permissions and per-pass Denver-day usage inside
+`reserve_money_out_guarded`, after acquiring the original account row lock
+and before consuming the exact separately authorized approval. This prevents
+a two-serverless-instance overrun. Keep fail-closed zero defaults and original
+owner proof, do not invent a permanent agent inability to spend. Shared
+minute-rate limits likewise stay SQL-atomic with bounded counters and old
+window cleanup. R-3 conformance uses isolated child OS processes sharing a
+disposable local PostgreSQL schema; CI must not turn a subset into a full-pass
+certificate. Draft PR #263 remains unmerged pending frozen acceptance.

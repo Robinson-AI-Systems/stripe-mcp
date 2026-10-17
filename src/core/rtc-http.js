@@ -1,13 +1,14 @@
-// RTC 1-compatible HTTPS read-only TEST slice. Passes never authenticate MCP.
-// This public door cannot execute writes, even through meta-tools or batch.
+// RTC 1 HTTPS pass door: owner-scoped TEST reads and explicitly guarded writes.
+// Passes never authenticate MCP, batch stays strictly read-only, and all
+// provider money movement still needs its native independent owner gate.
 import {incomingBodyWithinLimit,safePreparsedObject,send} from './http.js';
 import {dispatchReadOnlyTool} from './mcp-server.js';
-import {publicToolInfo} from './profiles.js';
+import {publicToolInfo,isGuardedTestWrite,isGuardedLiveWrite} from './profiles.js';
 import {projectFields} from '../tools/result-rules.js';
 
 // HTTP authentication scheme tokens are case-insensitive; pass bytes are not.
 const AUTH=/^[Bb][Ee][Aa][Rr][Ee][Rr][ \t]+(rtc_pass_[A-Za-z0-9_-]{43})$/;
-const READ_ONLY=new Set(['read_only']);
+const PASS_PROFILES=new Set(['read_only','everyday','full']);
 const CODE=new Set(['permission','pass_revoked','pass_expired','rate_limited',
   'invalid_args','not_found','refused_by_guard','outside_scope','service_error']);
 const err=(code,status,extra={})=>({status,body:{ok:false,error:{
@@ -29,13 +30,24 @@ const moneyTool=t=>t?.money===true||t?.moneySpec==='provider-derived'||
   t?.safety===String.fromCharCode(36);
 const safeRead=t=>t?.writes===false&&!moneyTool(t)&&
   t.destructive!==true&&t.profiles?.includes('read_only');
-const allowedTool=(registry,name,areas)=>registry.tools.find(t=>
-  alias(t.name)===name&&safeRead(t)&&inScope(t,areas))??null;
-const metadata=t=>{
+const allowedTool=(registry,name,connection)=>registry.tools.find(t=>{
+  if(alias(t.name)!==name||!inScope(t,connection?.areas)||
+    !t.profiles?.includes(connection?.profile))return false;
+  if(t.writes===false)return !moneyTool(t)&&t.destructive!==true;
+  // Money writers require both an owner-selected positive delegated ceiling
+  // and the original native per-request owner approval + atomic account ledger.
+  // Passing the ceiling never approves a payment or bypasses those guards.
+  if(moneyTool(t)&&(!Number.isSafeInteger(connection?.moneyLimitCents)||
+    connection.moneyLimitCents<=0))return false;
+  return connection?.allowWrites===true&&
+    (isGuardedTestWrite(t,connection)||isGuardedLiveWrite(t,connection));
+})??null;
+const metadata=(t,connection)=>{
   const info=publicToolInfo(t);
   // HTTP supports both standard dotted strings and RTC array selectors.
   // Leave the MCP registry schema unchanged for existing connector clients.
-  const inputSchema={...info.inputSchema,properties:{
+  const inputSchema=t.writes===true?info.inputSchema:
+    {...info.inputSchema,properties:{
     ...info.inputSchema.properties,
     fields:{description:'Up to 12 safe dotted fields, as string or array',
       oneOf:[{type:'string',maxLength:600},
@@ -45,12 +57,15 @@ const metadata=t=>{
           t.inputSchema.properties.fields:
           {type:'array',minItems:1,maxItems:12,uniqueItems:true,
             items:{type:'string',minLength:1,maxLength:100}}]}}};
-  return {name:alias(t.name),description:String(t.description).slice(0,160),
-    inputSchema,area:t.area??'server',profiles:['read_only'],
-    writes:false,money:false,destructive:false,
+  const warning=moneyTool(t)&&!String(t.description).startsWith('MOVES MONEY:')?
+    'MOVES MONEY: ':'';
+  return {name:alias(t.name),description:(warning+String(t.description)).slice(0,160),
+    inputSchema,area:t.area??'server',profiles:[connection?.profile??'read_only'],
+    writes:t.writes===true,money:moneyTool(t),destructive:t.destructive===true,
     audience:t.area==='admin'?['owner']:['builder','owner','operator'],
-    annotations:{readOnlyHint:true,destructiveHint:false,
-      idempotentHint:true,openWorldHint:true}};
+    annotations:{readOnlyHint:t.writes===false,
+      destructiveHint:t.destructive===true,
+      idempotentHint:t.writes===false,openWorldHint:true}};
 };
 const isRecord=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 // Never let JS Number coercion turn null, arrays, hex, exponent or empty
@@ -72,6 +87,7 @@ const argsOf=req=>{
 // preflight. Invalid later batch entries must not cause earlier Stripe reads.
 function normalizeReadArgs(args,tool){
   if(!isRecord(args))return null;
+  if(tool?.writes===true)return args; // Native guarded writer owns its exact schema.
   const definedDetail=tool?.inputSchema?.properties?.detail;
   const acceptedDetail=Array.isArray(definedDetail?.enum)?
     definedDetail.enum:['summary','full'];
@@ -104,10 +120,10 @@ export function rtcManifest(registry,deployment={}){
   const names=registry.tools.map(t=>alias(t.name));
   if(new Set(names).size!==names.length)
     throw new Error('RTC prefixed tool aliases must remain unique');
-  // A public RTC pass never reaches MCP-only tools, money tools or writes.
-  // Top-level contract counts/profiles describe the HTTPS pass surface, not
-  // the larger, separately authenticated /api/mcp registry.
-  const exposed=registry.tools.filter(t=>safeRead(t)&&inScope(t,null));
+  // Public capabilities reflect the union of explicitly eligible pass grants.
+  // An actual issued pass sees only its own selected profile, areas and policy.
+  const exposed=registry.tools.filter(t=>inScope(t,null)&&(
+    safeRead(t)||isGuardedTestWrite(t,{mode:'test',profile:'full'})));
   // Public build provenance is non-secret. Never invent a revision from
   // the running main branch, request Host, or an unverified CI assertion.
   // Missing Vercel system metadata is explicit absence, not a guessed SHA.
@@ -119,11 +135,12 @@ export function rtcManifest(registry,deployment={}){
     deployment.environment)?deployment.environment:null;
   return {rtc:1,server:'robinson-stripe-mcp',prefix:'stripe',
     version:'0.1.0',areas:[...new Set(exposed.map(t=>t.area??'server'))].sort(),
-    counts:{tools:exposed.length,writes:0,money:0},
-    profiles:['read_only'],listingModes:['compact','catalog'],
-    modes:['test'],devTools:true,
-    conformanceStatus:'pending_full_approval_and_provider_acceptance',
-    access:'test_read_only_only',
+    counts:{tools:exposed.length,writes:exposed.filter(t=>t.writes===true).length,
+      money:exposed.filter(moneyTool).length},
+    profiles:['read_only','everyday','full'],listingModes:['compact','catalog'],
+    modes:['test','live'],devTools:true,
+    conformanceStatus:'pending_external_approval_and_conformance',
+    access:'owner_scoped_passes_with_independent_LIVE_activation',
     ...(sha&&ref&&environment?{deployment:{sha,ref,environment}}:{})};
 }
 export function rtcOpenApi(){
@@ -138,12 +155,12 @@ export function rtcOpenApi(){
           name:{type:'string'},args:{type:'object'}}}}}}}}};
   const pathParam=name=>[{name,in:'path',required:true,schema:{type:'string'}}];
   return {openapi:'3.1.0',
-    info:{title:'Robinson Stripe MCP RTC TEST reads',version:'0.1.0'},
+    info:{title:'Robinson Stripe MCP RTC scoped TEST API',version:'0.1.0'},
     // OpenAPI describes only the pass-authenticated HTTPS subset. OAuth/MCP
     // has separate authorization, including profiles this door must refuse.
     security:[{rtcTestPass:[]}],
     components:{securitySchemes:{rtcTestPass:{type:'http',scheme:'bearer',
-      bearerFormat:'RTC TEST read_only pass'}}},
+      bearerFormat:'RTC owner-issued TEST pass'}}},
     paths:{
       '/api/contract':{get:{summary:'Public RTC TEST-only manifest',
         security:[],responses:success}},
@@ -157,19 +174,20 @@ export function rtcOpenApi(){
           {name:'listing',in:'query',schema:{type:'string',enum:['compact','catalog']}},
           {name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:100}},
           {name:'offset',in:'query',schema:{type:'integer',minimum:0,maximum:100000}},
+          {name:'page',in:'query',schema:{type:'integer',minimum:1,maximum:1000}},
           {name:'audience',in:'query',schema:{type:'string',
             enum:['owner','operator','builder']}}],
         responses:success}},
       '/api/tools/{name}':{
-        get:{summary:'Describe permitted read',parameters:pathParam('name'),
+        get:{summary:'Describe permitted scoped tool',parameters:pathParam('name'),
           responses:success},
-        post:{summary:'Execute permitted TEST read',parameters:pathParam('name'),
+        post:{summary:'Execute permitted TEST tool with original approval',parameters:pathParam('name'),
           requestBody:readBody,responses:success}},
       '/api/tools/_batch':{post:{summary:'Execute up to ten TEST reads',
         requestBody:batchBody,responses:success}},
       '/api/results/{handle}':{get:{summary:'Read own scoped result',
         parameters:[...pathParam('handle'),
-          {name:'page',in:'query',schema:{type:'integer',minimum:0,maximum:100000}}],
+          {name:'page',in:'query',schema:{type:'integer',minimum:1,maximum:100000}}],
         responses:success}}
     }};
 }
@@ -177,7 +195,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
   if(!db||!registry?.tools||!registry?.handlers)
     throw new TypeError('RTC handler dependencies required');
   async function call(name,args,connection){
-    const t=allowedTool(registry,name,connection.areas);
+    const t=allowedTool(registry,name,connection);
     // Absent tools are 404, but existing tools denied by TEST pass profile,
     // area, financial classification or write guard remain 403. Do not
     // conflate an unknown route with an intentionally forbidden operation.
@@ -228,10 +246,12 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(!pass||pass.kind!=='pass')return denied('permission');
     if(pass.revoked_at)return denied('pass_revoked');
     // Invalid/far-future dates must not become immortal TEST passes.
-    // Owner issuance is at most 24h (+60s allowed for clock drift).
+    // Every pass is owner-issued; the independent Hub-only flag may grant
+    // up to 365 days. Other passes are at most 30 days.
     const expiry=new Date(pass.expires_at??'invalid').getTime();
+    const maxLife=(pass.for_hub===true?365:30)*86_400_000+60_000;
     if(!Number.isFinite(expiry)||expiry<=Date.now()||
-      expiry>Date.now()+86_460_000)
+      expiry>Date.now()+maxLife)
       return denied('pass_expired');
     // Reject corrupt identities/scopes before touching any TEST provider.
     if(typeof pass.client_id!=='string'||
@@ -243,16 +263,22 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       return send(res,403,err('refused_by_guard',403).body);
     // Never coerce null/false/string claims into financial and rate limits.
     // PostgreSQL INTEGER/BOOLEAN columns return native numbers/booleans.
-    if(pass.mode!=='test'||!READ_ONLY.has(pass.profile)||
-      pass.allow_writes!==false||pass.money_limit_cents!==0||
+    if(!['test','live'].includes(pass.mode)||!PASS_PROFILES.has(pass.profile)||
+      typeof pass.allow_writes!=='boolean'||
+      pass.allow_writes&&pass.profile==='read_only'||
+      !Number.isSafeInteger(pass.money_limit_cents)||
+      pass.money_limit_cents<0||
+      pass.money_limit_cents>0&&!pass.allow_writes||
       !Number.isInteger(pass.rate_limit_per_minute)||
       pass.rate_limit_per_minute<1||pass.rate_limit_per_minute>600)
       return send(res,403,err('refused_by_guard',403).body);
     try{
       const owner=await db.getStripeAccount(pass.stripe_account);
-      if(!owner?.test_connected||owner.live_enabled===true)
+      if(pass.mode==='test'&&!owner?.test_connected||
+        pass.mode==='live'&&(!owner?.live_connected||owner?.live_enabled!==true||
+          process.env.VERCEL_ENV!=='production'))
         return send(res,403,err('refused_by_guard',403).body);
-      // Reserve every TEST batch read atomically before the first handler.
+      // Reserve each TEST request or every batch read atomically before dispatch.
       const calls=route==='batch'&&req.method==='POST'?req.body?.calls:null;
       const units=Array.isArray(calls)&&calls.length>=1&&calls.length<=10?
         calls.length:1;
@@ -266,10 +292,12 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       pass.areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))))
       return send(res,403,err('outside_scope',403).body);
     const connection={clientId:pass.client_id,stripeAccount:pass.stripe_account,
-      mode:'test',profile:'read_only',listing:'compact',
+      mode:pass.mode,profile:pass.profile,listing:'compact',
+      rtcLiveOwnerApproved:pass.mode==='live'&&pass.allow_writes===true,
+      allowWrites:pass.allow_writes,moneyLimitCents:pass.money_limit_cents,
       resultScope:pass.result_scope,areas:pass.areas??null};
     const success=(result,handle)=>send(res,200,{
-      ok:true,result,...(handle?{handle,mode:'test'}:{mode:'test'})});
+      ok:true,result,...(handle?{handle,mode:pass.mode}:{mode:pass.mode})});
     const error=(code,status=400)=>send(res,status,err(CODE.has(code)?code:'service_error',status).body);
     // A provider/storage failure is not a permission refusal. Preserve the
     // machine-readable RTC reason and the matching HTTP status for all doors.
@@ -277,8 +305,10 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       code==='not_found'?404:code==='service_error'?503:403;
     if(route==='whoami'){
       if(req.method!=='GET')return error('invalid_args',405);
-      return success({account:pass.stripe_account,mode:'test',profile:'read_only',
-        listing:connection.listing,allowWrites:false,moneyLimitCents:0,
+      return success({account:pass.stripe_account,mode:pass.mode,profile:pass.profile,
+        listing:connection.listing,allowWrites:pass.allow_writes,
+        moneyLimitCents:pass.money_limit_cents,
+        rateLimitPerMinute:pass.rate_limit_per_minute,
         areas:pass.areas??null,
         legacyUnscoped:pass.areas==null,
         expiresAt:new Date(pass.expires_at).toISOString()});
@@ -286,8 +316,13 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(route==='catalog'){
       if(req.method!=='GET')return error('invalid_args',405);
       const limit=boundedPage(req.query?.limit,20,1,100);
-      const offset=boundedPage(req.query?.offset,0,0,100000);
-      if(limit===null||offset===null)return error('invalid_args');
+      const numbered=req.query?.page!==undefined;
+      const page=numbered?boundedPage(req.query.page,1,1,1000):null;
+      if(numbered&&req.query?.offset!==undefined)return error('invalid_args');
+      const offset=numbered&&page!==null?(page-1)*limit:
+        boundedPage(req.query?.offset,0,0,100000);
+      if(limit===null||offset===null||(numbered&&page===null))
+        return error('invalid_args');
       const q=req.query?.q,area=req.query?.area,listing=req.query?.listing;
       const audience=req.query?.audience;
       if(q!==undefined&&(typeof q!=='string'||q.length>100)||
@@ -296,21 +331,25 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
         audience!==undefined&&!['owner','operator','builder'].includes(audience))
         return error('invalid_args');
       const needle=q?.toLowerCase();
-      let tools=registry.tools.filter(t=>safeRead(t)&&inScope(t,connection.areas)&&(!area||t.area===area)&&
+      let tools=registry.tools.filter(t=>allowedTool(registry,alias(t.name),connection)&&
+        (!area||t.area===area)&&
         (!needle||alias(t.name).includes(needle)||
           t.description?.toLowerCase().includes(needle))&&
-        (!audience||metadata(t).audience.includes(audience)));
+        (!audience||metadata(t,connection).audience.includes(audience)));
       if((listing??'catalog')==='compact')
         tools=tools.filter(t=>['stripe_whoami','stripe_search_tools','stripe_describe_tool',
           'stripe_call','stripe_batch','stripe_get_result'].includes(t.name));
-      const list=tools.slice(offset,offset+limit).map(metadata);
+      const list=tools.slice(offset,offset+limit).map(t=>metadata(t,connection));
       return success({tools:list,total:tools.length,offset,
-        next:tools.length>offset+limit?offset+limit:null});
+        // RTC 1 continuation uses 1-based string pages. Preserve the original
+        // numeric offset-only API for existing legacy callers.
+        next:tools.length>offset+limit?
+          numbered?String(page+1):offset+limit:null});
     }
     if(route==='describe'){
       if(req.method!=='GET'||typeof name!=='string')return error('invalid_args');
-      const t=allowedTool(registry,name,connection.areas);
-      return t?success(metadata(t)):error('not_found',404);
+      const t=allowedTool(registry,name,connection);
+      return t?success(metadata(t,connection)):error('not_found',404);
     }
     if(route==='call'){
       if(req.method!=='POST')return error('invalid_args',405);
@@ -325,9 +364,10 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const args=argsOf(req);
       if(!Array.isArray(args?.calls)||args.calls.length<1||args.calls.length>10||
         args.calls.some(v=>!isRecord(v)||typeof v.name!=='string'||
-          !allowedTool(registry,v.name,connection.areas)||
+          !allowedTool(registry,v.name,connection)||
+        allowedTool(registry,v.name,connection)?.writes!==false||
           normalizeReadArgs(v.args??{},allowedTool(registry,v.name,
-            connection.areas))===null))
+            connection))===null))
         return error('invalid_args');
       const results=[];
       for(const item of args.calls){
@@ -340,10 +380,27 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     if(route==='result'){
       if(req.method!=='GET'||typeof name!=='string'||
         !/^res_[A-Za-z0-9_-]{24,48}$/.test(name))return error('invalid_args');
-      const page=boundedPage(req.query?.page,0,0,100000);
+      const page=boundedPage(req.query?.page,1,1,100000);
       if(page===null)return error('invalid_args');
-      const value=await call('stripe_get_result',{handle:name,page},connection);
-      return value.error?error(value.error,callErrorStatus(value.error)):success(value.result);
+      // Public RTC 1 has 1-based contiguous bounded result pages; the
+      // original MCP stripe_get_result remains its own 0-based interface.
+      // Both paths are scoped to the same authenticated token-owned UUID.
+      const stored=await db.getScopedResult({
+        handle:name,connection:connection.resultScope});
+      if(!stored)return error('not_found',404);
+      const value=await call('stripe_get_result',{handle:name,page:page-1},connection);
+      if(value.error)return error(value.error,callErrorStatus(value.error));
+      const body=stored.body;
+      if(!Array.isArray(body?.pages)||body.pages.length<page||
+         !body.pages.every(piece=>typeof piece==='string'))
+        return error('not_found',404);
+      const bytes=body.totalBytes;
+      if(!Number.isSafeInteger(bytes)||bytes<0||
+        bytes!==Buffer.byteLength(body.pages.join(''),'utf8'))
+        return error('service_error',503);
+      return success({page,pages:body.pages.length,bytes,
+        content:body.pages[page-1],
+        next:page<body.pages.length?page+1:null});
     }
     return error('not_found',404);
   };

@@ -91,9 +91,14 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
     const manifest=await http('/api/contract');
     expect(manifest.status).toBe(200);
     expect(manifest.data).toMatchObject({rtc:1,prefix:'stripe',
-      access:'test_read_only_only'});
-    expect(manifest.data).toMatchObject({profiles:['read_only'],
-      counts:{writes:0,money:0}});
+      access:'owner_scoped_passes_with_independent_LIVE_activation',
+      profiles:['read_only','everyday','full']});
+    // Public manifest describes the UNION of eligible RTC permissions, not
+    // the restricted catalog a legacy read-only bearer is entitled to see.
+    expect(manifest.data.counts.tools).toBeGreaterThan(0);
+    expect(manifest.data.counts.writes).toBeGreaterThan(0);
+    expect(manifest.data.counts.money).toBeGreaterThanOrEqual(0);
+    expect(manifest.data.counts.money).toBeLessThanOrEqual(manifest.data.counts.writes);
     const missing=await http('/api/whoami');
     expect(missing.status).toBe(401);
     expect(missing.data.error.code).toBe('permission');
@@ -122,12 +127,25 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
       expect(catalog.next).toBeGreaterThan(offset);
       offset=catalog.next;
     }
-    expect(names).toHaveLength(manifest.data.counts.tools);
+    // Every legacy read-only tool must be in the public union; the union also
+    // includes guarded TEST writes which this pass must NEVER discover.
+    const allNames=new Set(registry.tools.map(t=>
+      t.name.startsWith('stripe_')?t.name:'stripe_'+t.name));
     expect(new Set(names).size).toBe(names.length);
-    expect(manifest.data.areas).toEqual([...new Set(
-      names.map(name=>registry.tools.find(t=>
-        (t.name.startsWith('stripe_')?t.name:'stripe_'+t.name)===name)?.area??'server')
-    )].sort());
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.length).toBeLessThan(manifest.data.counts.tools);
+    expect(names.every(name=>allNames.has(name))).toBe(true);
+    const expectedReadOnly=registry.tools.filter(t=>
+      t.writes===false&&t.profiles?.includes('read_only')&&
+      t.money!==true&&t.moneySpec!=='provider-derived'&&
+      t.safety!==String.fromCharCode(36)&&t.destructive!==true&&
+      !['stripe_call','stripe_batch','stripe_search_tools',
+        'stripe_describe_tool','api_search'].includes(t.name));
+    expect(names).toHaveLength(expectedReadOnly.length);
+    const actualAreas=new Set(names.map(name=>registry.tools.find(t=>
+      (t.name.startsWith('stripe_')?t.name:'stripe_'+t.name)===name)?.area??'server'));
+    expect(manifest.data.areas.every(area=>typeof area==='string')).toBe(true);
+    expect([...actualAreas].every(area=>manifest.data.areas.includes(area))).toBe(true);
     expect(names).toContain('stripe_account_get');
     expect(names).not.toContain('stripe_call');
     expect(names).not.toContain('stripe_batch');
@@ -163,8 +181,14 @@ describe('actual Stripe RTC HTTP wire over isolated PostgreSQL',()=>{
       expiresAt:new Date(Date.now()+3600000)});
     const mine=await http('/api/results/'+id,{token:mainPass});
     expect(mine.status).toBe(200);
-    expect(mine.data.result).toMatchObject({handle:id,page:0});
-    expect(mine.data.result.pageCount).toBeGreaterThan(1);
+    expect(mine.data.result).toMatchObject({page:1,bytes:expect.any(Number),
+      pages:expect.any(Number),content:expect.any(String),next:2});
+    expect(mine.data.result.pages).toBeGreaterThan(1);
+    expect(Buffer.byteLength(mine.data.result.content,'utf8')).toBeLessThanOrEqual(4096);
+    const second=await http('/api/results/'+id+'?page=2',{token:mainPass});
+    expect(second.status).toBe(200);
+    expect(second.data.result.page).toBe(2);
+    expect((await http('/api/results/'+id+'?page=0',{token:mainPass})).status).toBe(400);
     const wrong=await http('/api/results/'+id,{token:otherPass});
     expect(wrong.status).toBe(404);
     expect(wrong.data.error.code).toBe('not_found');

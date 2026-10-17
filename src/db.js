@@ -109,6 +109,40 @@ export function createDb(sql = getProductionSql()) {
           AND live_enabled=FALSE RETURNING client_id`;
       return rows.length===1;
     },
+    async createRtcPass({id,account,token,mode='test',profile='read_only',
+      areas,allowWrites=false,moneyLimitCents=0,forHub=false,
+      rateLimitPerMinute=120,expiresAt}) {
+      // The issuer authenticates the owner; storage still enforces the exact
+      // requested grants and usable TEST provider credentials independently.
+      if(typeof id!=='string'||!/^rtc-agent-[a-z0-9-]{8,80}$/.test(id)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
+        typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token)||
+        !['test','live'].includes(mode)||!['read_only','everyday','full'].includes(profile)||
+        typeof allowWrites!=='boolean'||allowWrites&&profile==='read_only'||
+        typeof forHub!=='boolean'||!Number.isSafeInteger(moneyLimitCents)||
+        moneyLimitCents<0||moneyLimitCents>0&&!allowWrites||
+        !Number.isInteger(rateLimitPerMinute)||rateLimitPerMinute<1||
+        rateLimitPerMinute>600||
+        !Array.isArray(areas)||areas.length<1||areas.length>6||
+        areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))||
+        new Set(areas).size!==areas.length||
+        !(expiresAt instanceof Date)||!Number.isFinite(expiresAt.getTime())||
+        expiresAt.getTime()<=Date.now()||
+        expiresAt.getTime()>Date.now()+(forHub?365:30)*86_400_000+60_000)
+        throw new TypeError('Invalid original owner-selected RTC pass grant');
+      const areaList=areas.join(',');
+      const rows=await sql`INSERT INTO oauth_tokens
+        (token_hash,client_id,stripe_account,mode,profile,listing,kind,
+         allow_writes,money_limit_cents,areas,for_hub,rate_limit_per_minute,expires_at)
+        SELECT ${hashToken(token)},${id},id,${mode},${profile},'compact','pass',
+          ${allowWrites},${moneyLimitCents},string_to_array(${areaList},','),
+          ${forHub},${rateLimitPerMinute},${expiresAt}
+        FROM stripe_accounts WHERE id=${account}
+          AND ((${mode}='test' AND test_key_enc IS NOT NULL) OR
+            (${mode}='live' AND live_key_enc IS NOT NULL AND live_enabled=TRUE))
+        RETURNING client_id`;
+      return rows.length===1;
+    },
     async getRtcPassStatus(token) {
       if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token))return null;
       const rows=await sql`SELECT client_id,stripe_account,mode,profile,listing,
@@ -122,11 +156,27 @@ export function createDb(sql = getProductionSql()) {
         (!Number.isInteger(limit)||limit<1||limit>600)||
         !Number.isInteger(units)||units<1||units>10)
         throw new TypeError('Valid RTC TEST rate selector required');
-      const rows=await sql`INSERT INTO rtc_pass_rates (token_hash,window_start,count)
+      // The initial batch must not bypass a pass whose limit is below its
+      // read-unit count. Refused calls must never consume a partial allocation.
+      if(units>limit)return false;
+      // Keep the counter <= owner limit even during bursts; don't allow
+      // unbounded post-limit growth. Expired windows are swept in small batches
+      // by the same single-statement request path without a background worker.
+      const rows=await sql`WITH stale AS (
+        SELECT token_hash,window_start FROM rtc_pass_rates
+        WHERE window_start < date_trunc('minute',now())-interval '1 hour'
+        ORDER BY window_start LIMIT 100
+      ), cleared AS (
+        DELETE FROM rtc_pass_rates r USING stale s
+        WHERE r.token_hash=s.token_hash AND r.window_start=s.window_start
+      )
+      INSERT INTO rtc_pass_rates (token_hash,window_start,count)
         VALUES (${hashToken(token)},date_trunc('minute',now()),${units})
         ON CONFLICT (token_hash,window_start) DO UPDATE SET
-          count=rtc_pass_rates.count+${units} RETURNING count`;
-      return Number(rows[0]?.count)<=limit;
+          count=rtc_pass_rates.count+${units}
+          WHERE rtc_pass_rates.count+${units} <= ${limit}
+        RETURNING count`;
+      return rows.length===1&&Number(rows[0].count)<=limit;
     },
     async getRtcPass(token) {
       if(typeof token!=='string'||!/^rtc_pass_[A-Za-z0-9_-]{43}$/.test(token))return null;
@@ -206,6 +256,19 @@ export function createDb(sql = getProductionSql()) {
           test_key_last4 = EXCLUDED.test_key_last4, key_permissions = EXCLUDED.key_permissions,
           key_checked_at = now()`;
     },
+    // LIVE key enrollment never enables LIVE; the existing independent B-8
+    // owner reauthentication and LIVE-mode account flag remain mandatory.
+    async saveLiveKey({account,ciphertext,kind,last4}) {
+      if(typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
+        typeof ciphertext!=='string'||!ciphertext||
+        !['restricted','secret'].includes(kind)||
+        typeof last4!=='string'||!/^[A-Za-z0-9]{4}$/.test(last4))
+        throw new TypeError('Verified encrypted LIVE key required');
+      const rows=await sql`UPDATE stripe_accounts SET live_key_enc=${ciphertext},
+        live_key_kind=${kind},live_key_last4=${last4}
+        WHERE id=${account} RETURNING id`;
+      return rows.length===1;
+    },
     async updateKeyPermissions({account,permissions,expectedCiphertext}) {
       if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
           typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
@@ -219,10 +282,14 @@ export function createDb(sql = getProductionSql()) {
       return rows.length===1;
     },
     async getEncryptedKey({ account, mode }) {
-      if (mode !== 'test') return null;
-      const rows = await sql`SELECT test_key_enc AS ciphertext FROM stripe_accounts
-        WHERE id = ${account}`;
-      return rows[0] || null;
+      if(!['test','live'].includes(mode)||
+        typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account))return null;
+      const rows=mode==='test'?
+        await sql`SELECT test_key_enc AS ciphertext FROM stripe_accounts
+          WHERE id=${account}`:
+        await sql`SELECT live_key_enc AS ciphertext FROM stripe_accounts
+          WHERE id=${account} AND live_enabled=TRUE`;
+      return rows[0]||null;
     },
     async addOneTimeSecret({ id, account, mode, kind, ciphertext, expiresAt }) {
       await sql`INSERT INTO one_time_secrets
@@ -432,18 +499,21 @@ export function createDb(sql = getProductionSql()) {
       if (![account,idempotencyKey,tool,description].every(v => typeof v==='string' && v.length>0) ||
           !/^acct_[A-Za-z0-9]+$/.test(account) || description.length>240 ||
           !Number.isSafeInteger(amountCents) || amountCents<=0 ||
-          currency!=='usd' || mode!=='test' ||
+          currency!=='usd' || !['test','live'].includes(mode) ||
           typeof target!=='string' ||
           (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(target))) {
-        throw new TypeError('A safe, provider-derived TEST money identity is required');
+        throw new TypeError('A safe, provider-derived money identity and mode are required');
       }
       // Empty targets preserve old unapproved test fixtures, but can NEVER
       // receive an owner grant. The owner inbox excludes them completely.
       await sql`INSERT INTO money_approvals
         (stripe_account,request_key,tool,description,amount_cents,currency,
           target,mode,expires_at)
-        VALUES (${account},${idempotencyKey},${tool},${description},${amountCents},
-          ${currency},${target},${mode},now()+interval '24 hours')
+        SELECT ${account},${idempotencyKey},${tool},${description},${amountCents},
+          ${currency},${target},${mode},now()+interval '24 hours'
+        FROM stripe_accounts a WHERE a.id=${account} AND
+          ((${mode}='test') OR
+           (${mode}='live' AND a.live_enabled=TRUE AND a.live_key_enc IS NOT NULL))
         ON CONFLICT (stripe_account,request_key) DO NOTHING`;
       const rows=await sql`SELECT tool,amount_cents,currency,description,target,mode,
         consumed_at,expires_at FROM money_approvals WHERE stripe_account=${account}
@@ -454,16 +524,16 @@ export function createDb(sql = getProductionSql()) {
         row.target===target && row.mode===mode &&
         row.consumed_at===null && new Date(row.expires_at).getTime()>Date.now();
     },
-    async listPendingMoneyApprovals({account,limit=10}) {
+    async listPendingMoneyApprovals({account,mode='test',limit=10}) {
       if(typeof account!=='string'||!/^acct_[A-Za-z0-9]+$/.test(account)||
-          !Number.isInteger(limit)||limit<1||limit>20)
-        throw new TypeError('Selected account and page size 1..20 required');
+          !Number.isInteger(limit)||limit<1||limit>20||!['test','live'].includes(mode))
+        throw new TypeError('Selected account, mode and page size 1..20 required');
       // No client tokens, passphrases, Stripe secrets or raw provider data.
       return await sql`SELECT request_key,tool,target,description,amount_cents,
         currency,mode,created_at,expires_at,approved_at,override_approved_at,
         allow_over_limit
         FROM money_approvals
-        WHERE stripe_account=${account} AND mode='test' AND target <> ''
+        WHERE stripe_account=${account} AND mode=${mode} AND target <> ''
           AND consumed_at IS NULL AND expires_at>now()
         ORDER BY created_at DESC,id DESC LIMIT ${limit}`;
     },
@@ -497,7 +567,7 @@ export function createDb(sql = getProductionSql()) {
     },
 
     // These decisions are ONLY staged by the password/CSRF-protected owner page.
-    // Each intent snapshots the complete provider-derived TEST request identity;
+    // Each intent snapshots the complete provider-derived mode-bound request identity;
     // no browser field or AI argument supplies the amount or target.
     async requestMoneyDecisionIntent({id,account,idempotencyKey,kind,expiresAt}) {
       if(typeof id!=='string'||!/^[A-Za-z0-9_-]{32,64}$/.test(id)||
@@ -505,7 +575,7 @@ export function createDb(sql = getProductionSql()) {
         typeof idempotencyKey!=='string'||!idempotencyKey||idempotencyKey.length>250||
         !['approve','override'].includes(kind)||!(expiresAt instanceof Date)||
         !Number.isFinite(expiresAt.getTime())||expiresAt.getTime()<=Date.now()||
-        expiresAt.getTime()>Date.now()+600000) throw new TypeError('Valid TEST owner decision required');
+        expiresAt.getTime()>Date.now()+600000) throw new TypeError('Valid owner mode-bound decision required');
       const rows=await sql`INSERT INTO owner_money_decision_intents
         (id,approval_id,stripe_account,request_key,tool,target,amount_cents,currency,mode,
           request_expires_at,kind,expires_at)
@@ -513,8 +583,10 @@ export function createDb(sql = getProductionSql()) {
           m.currency,m.mode,m.expires_at,${kind},${expiresAt}
         FROM money_approvals m JOIN stripe_accounts a ON a.id=m.stripe_account
         WHERE m.stripe_account=${account} AND m.request_key=${idempotencyKey}
-          AND m.mode='test' AND m.target<>'' AND m.currency='usd'
-          AND m.consumed_at IS NULL AND m.expires_at>now() AND a.test_key_enc IS NOT NULL
+          AND m.mode IN ('test','live') AND m.target<>'' AND m.currency='usd'
+          AND m.consumed_at IS NULL AND m.expires_at>now() AND
+          ((m.mode='test' AND a.test_key_enc IS NOT NULL) OR
+           (m.mode='live' AND a.live_enabled=TRUE AND a.live_key_enc IS NOT NULL))
           AND ((
             ${kind}='approve' AND (m.approved_at IS NULL OR
               m.approved_at<=now()-interval '10 minutes')
@@ -537,11 +609,13 @@ export function createDb(sql = getProductionSql()) {
         JOIN money_approvals m ON m.id=i.approval_id
         JOIN stripe_accounts a ON a.id=i.stripe_account
         WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
-          AND a.test_key_enc IS NOT NULL AND m.consumed_at IS NULL
+          AND ((m.mode='test' AND a.test_key_enc IS NOT NULL) OR
+               (m.mode='live' AND a.live_enabled=TRUE AND a.live_key_enc IS NOT NULL))
+          AND m.consumed_at IS NULL
           AND m.expires_at>now() AND m.expires_at=i.request_expires_at
           AND m.stripe_account=i.stripe_account AND m.request_key=i.request_key
           AND m.tool=i.tool AND m.target=i.target AND m.amount_cents=i.amount_cents
-          AND m.currency=i.currency AND m.mode=i.mode AND m.mode='test'
+          AND m.currency=i.currency AND m.mode=i.mode AND m.mode IN ('test','live')
           AND m.target<>''
           AND ((i.kind='approve' AND (m.approved_at IS NULL OR
                 m.approved_at<=now()-interval '10 minutes'))
@@ -563,11 +637,13 @@ export function createDb(sql = getProductionSql()) {
         FROM owner_money_decision_intents i, stripe_accounts a
         WHERE i.id=${id} AND i.consumed_at IS NULL AND i.expires_at>now()
           AND m.id=i.approval_id AND a.id=i.stripe_account
-          AND a.test_key_enc IS NOT NULL AND m.consumed_at IS NULL
+          AND ((m.mode='test' AND a.test_key_enc IS NOT NULL) OR
+               (m.mode='live' AND a.live_enabled=TRUE AND a.live_key_enc IS NOT NULL))
+          AND m.consumed_at IS NULL
           AND m.expires_at>now() AND m.expires_at=i.request_expires_at
           AND m.stripe_account=i.stripe_account AND m.request_key=i.request_key
           AND m.tool=i.tool AND m.target=i.target AND m.amount_cents=i.amount_cents
-          AND m.currency=i.currency AND m.mode=i.mode AND m.mode='test'
+          AND m.currency=i.currency AND m.mode=i.mode AND m.mode IN ('test','live')
           AND m.target<>'' AND m.currency='usd'
           AND ((
             i.kind='approve' AND (m.approved_at IS NULL OR
@@ -580,7 +656,7 @@ export function createDb(sql = getProductionSql()) {
                 AND r.local_day=(now() AT TIME ZONE 'America/Denver')::date
                 AND r.state<>'rejected') > a.money_limit_cents::BIGINT-m.amount_cents
           ))
-        RETURNING i.id,i.kind,m.stripe_account,m.request_key,m.target,m.amount_cents
+        RETURNING i.id,i.kind,m.stripe_account,m.request_key,m.target,m.amount_cents,m.mode
       ), consumed AS (
         UPDATE owner_money_decision_intents i SET consumed_at=now()
         FROM granted g WHERE i.id=g.id AND i.consumed_at IS NULL
@@ -588,12 +664,12 @@ export function createDb(sql = getProductionSql()) {
       )
       INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run,
         amount_cents,currency,idempotency_key)
-      SELECT g.stripe_account,'test',
+      SELECT g.stripe_account,g.mode,
         CASE WHEN g.kind='override' THEN 'owner_override_money_out'
           ELSE 'owner_approve_money_out' END,
         g.target,CASE WHEN g.kind='override' THEN
-          'Owner separately approved this exact TEST transaction above the daily cap'
-          ELSE 'Owner independently approved this exact TEST money-out request' END,
+          'Owner separately approved this exact ' || UPPER(g.mode) || ' transaction above the daily cap'
+          ELSE 'Owner independently approved this exact ' || UPPER(g.mode) || ' money-out request' END,
         FALSE,g.amount_cents,'usd',g.request_key
       FROM granted g JOIN consumed c ON c.id=g.id RETURNING id`;
       return rows.length===1;
@@ -678,7 +754,8 @@ export function createDb(sql = getProductionSql()) {
         throw new TypeError('Selected account and bounded limit/offset required');
       }
       // Never select bearer hashes, refresh hashes, client secrets or codes.
-      return await sql`SELECT client_id, mode, profile, listing, kind, rate_limit_per_minute, created_at,
+      return await sql`SELECT client_id, mode, profile, listing, kind, rate_limit_per_minute,
+          allow_writes, money_limit_cents, areas, for_hub, created_at,
           last_used_at, expires_at, revoked_at
         FROM oauth_tokens WHERE stripe_account = ${account} AND kind IN ('connector','pass')
         ORDER BY created_at DESC, token_hash DESC LIMIT ${limit} OFFSET ${offset}`;
@@ -989,13 +1066,27 @@ export function createDb(sql = getProductionSql()) {
         target TEXT NOT NULL,
         amount_cents BIGINT NOT NULL CHECK (amount_cents > 0),
         currency TEXT NOT NULL CHECK (currency='usd'),
-        mode TEXT NOT NULL CHECK (mode='test'),
+        mode TEXT NOT NULL CHECK (mode IN ('test','live')),
         request_expires_at TIMESTAMPTZ NOT NULL,
         kind TEXT NOT NULL CHECK (kind IN ('approve','override')),
         expires_at TIMESTAMPTZ NOT NULL,
         consumed_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
+      // Older installations recorded only TEST intents. An idempotent, guarded
+      // migration preserves existing one-time approvals before enabling LIVE.
+      await sql`DO $migration$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_constraint
+          WHERE conrelid='owner_money_decision_intents'::regclass
+            AND conname='owner_money_decision_intents_mode_check'
+            AND pg_get_constraintdef(oid) NOT LIKE '%live%') THEN
+          ALTER TABLE owner_money_decision_intents
+            DROP CONSTRAINT owner_money_decision_intents_mode_check;
+          ALTER TABLE owner_money_decision_intents
+            ADD CONSTRAINT owner_money_decision_intents_mode_check
+            CHECK (mode IN ('test','live'));
+        END IF;
+      END $migration$`;
       await sql`CREATE INDEX IF NOT EXISTS owner_money_decision_expiry_idx
         ON owner_money_decision_intents (expires_at)`;
       await sql`CREATE OR REPLACE FUNCTION reserve_money_out_guarded(
@@ -1009,6 +1100,10 @@ export function createDb(sql = getProductionSql()) {
         v_previous RECORD;
         v_duplicate BOOLEAN;
         v_approval RECORD;
+        v_pass RECORD;
+        v_pass_used BIGINT;
+        v_live_enabled BOOLEAN;
+        v_live_connected BOOLEAN;
       BEGIN
         IF p_account IS NULL OR p_account = '' OR p_connection IS NULL OR p_connection = ''
           OR p_key IS NULL OR p_key = '' OR p_cents IS NULL OR p_cents <= 0
@@ -1023,11 +1118,42 @@ export function createDb(sql = getProductionSql()) {
           decision := 'currency_unsupported'; used_cents := 0; limit_cents := 0;
           RETURN NEXT; RETURN;
         END IF;
-        SELECT money_limit_cents::BIGINT INTO v_limit
+        SELECT money_limit_cents::BIGINT,live_enabled,live_key_enc IS NOT NULL
+          INTO v_limit,v_live_enabled,v_live_connected
         FROM stripe_accounts WHERE id = p_account FOR UPDATE;
         IF NOT FOUND THEN
           decision := 'account_missing'; used_cents := 0; limit_cents := 0;
           RETURN NEXT; RETURN;
+        END IF;
+        -- A service-owned RTC pass has an additional OWNER-CHOSEN daily
+        -- ceiling. The account row lock above serializes this comparison
+        -- with every other reservation, including a second serverless worker.
+        -- Unlike a preflight read, the test and reservation live in this same
+        -- SQL transaction. Revoked/expired passes never acquire spend power.
+        SELECT stripe_account,mode,profile,allow_writes,money_limit_cents,
+               expires_at,revoked_at INTO v_pass
+          FROM oauth_tokens WHERE result_scope=p_connection AND kind='pass'
+          FOR UPDATE;
+        IF FOUND THEN
+          IF v_pass.stripe_account IS DISTINCT FROM p_account
+             OR v_pass.mode NOT IN ('test','live') OR v_pass.profile = 'read_only'
+             OR (v_pass.mode='live' AND (v_live_enabled IS NOT TRUE OR v_live_connected IS NOT TRUE))
+             OR v_pass.allow_writes IS NOT TRUE
+             OR v_pass.revoked_at IS NOT NULL OR v_pass.expires_at<=now()
+             OR v_pass.money_limit_cents IS NULL OR v_pass.money_limit_cents<=0 THEN
+            decision := 'delegated_pass_denied'; used_cents := 0;
+            limit_cents := 0; RETURN NEXT; RETURN;
+          END IF;
+          SELECT COALESCE(SUM(amount_cents),0)::BIGINT INTO v_pass_used
+            FROM money_reservations
+            WHERE connection=p_connection AND local_day=v_day
+              AND state <> 'rejected';
+          IF p_cents > v_pass.money_limit_cents::BIGINT-v_pass_used THEN
+            decision := 'delegated_limit_exceeded';
+            used_cents := v_pass_used;
+            limit_cents := v_pass.money_limit_cents;
+            RETURN NEXT; RETURN;
+          END IF;
         END IF;
         SELECT amount_cents, currency, state, local_day INTO v_previous
           FROM money_reservations
@@ -1056,7 +1182,8 @@ export function createDb(sql = getProductionSql()) {
           WHERE stripe_account = p_account AND request_key = p_key FOR UPDATE;
         IF NOT FOUND OR v_approval.amount_cents <> p_cents OR v_approval.currency <> p_currency
           OR v_approval.approved_at IS NULL OR v_approval.consumed_at IS NOT NULL
-          OR v_approval.target IS NULL OR v_approval.target='' OR v_approval.mode<>'test'
+          OR v_approval.target IS NULL OR v_approval.target='' OR
+          v_approval.mode IS DISTINCT FROM COALESCE(v_pass.mode,'test')
           OR v_approval.expires_at <= now()
           OR v_approval.approved_at < now() - interval '10 minutes' THEN
           decision := 'owner_approval_required';

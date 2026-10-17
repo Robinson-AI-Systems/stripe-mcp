@@ -38,7 +38,7 @@ async function fixture(){
 describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
   it('publishes safe prefixed discovery without changing registered MCP names',async()=>{
     expect(rtcManifest(registry)).toMatchObject({rtc:1,prefix:'stripe',
-      profiles:['read_only'],counts:{tools:2,writes:0,money:0},areas:['account','server']});
+      profiles:['read_only','everyday','full'],counts:{tools:2,writes:0,money:0},areas:['account','server']});
     const spec=rtcOpenApi();
     expect(Object.keys(spec.paths)).toContain('/api/contract');
     expect(Object.keys(spec.paths)).toContain('/api/openapi.json');

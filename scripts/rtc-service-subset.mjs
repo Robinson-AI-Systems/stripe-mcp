@@ -1,11 +1,13 @@
-// Executable Stripe-service RTC 1 read-only subset check against Hub's pinned
-// OFFICIAL conformance runner. Nothing connects to an actual Stripe provider.
-// Unsupported full/write checks remain FAIL/SKIP in the upstream raw report;
-// only independently applicable TEST read-only checks may pass this CI gate.
+// Published FULL RTC 1 conformance against original Stripe native guarded
+// dispatch + an isolated fake provider backed by disposable local PostgreSQL.
+// Separate OS processes share that test DB. No actual Stripe key or write.
 import {createServer} from 'node:http';
+import {fork} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
+import {hashToken} from '../src/core/oauth.js';
 import {createDb} from '../src/db.js';
-import {registry} from '../src/tools/index.js';
+import {registry as nativeRegistry} from '../src/tools/index.js';
+import {createRtcHubFixture} from '../test/helpers/rtc-hub-fixture.js';
 import {createRtcReadOnlyHttpHandler,rtcManifest,rtcOpenApi}
   from '../src/core/rtc-http.js';
 import {openIsolatedSchema,closeIsolatedSchema,neonShapedQuery,rawQuery}
@@ -19,27 +21,90 @@ const {runConformance}=await import(
 const account='acct_RTCOFFICIALSERVICE';
 const pass=()=> 'rtc_pass_'+randomBytes(32).toString('base64url');
 const passes={full:pass(),readOnly:pass(),expired:pass(),revoked:pass()};
+const ratePass=pass();
+const peerProcesses=[];
+async function startIndependentPeer(schema){
+  const child=fork(new URL('./rtc-conformance-peer.mjs',import.meta.url),[],{
+    env:{...process.env,RTC_TEST_SCHEMA:schema},silent:true});
+  peerProcesses.push(child);
+  const port=await new Promise((resolve,reject)=>{
+    const timeout=setTimeout(()=>reject(new Error('RTC peer failed to start')),12000);
+    child.once('message',message=>{
+      clearTimeout(timeout);
+      if(!Number.isInteger(message?.port)||message.port<=0)
+        reject(new Error('RTC peer did not return a listening port'));
+      else resolve(message.port);
+    });
+    child.once('error',error=>{clearTimeout(timeout);reject(error);});
+    child.once('exit',code=>{clearTimeout(timeout);
+      reject(new Error('RTC peer exited early '+String(code)));});
+  });
+  return 'http://127.0.0.1:'+port;
+}
 let server,opened=false;
 try{
-  await openIsolatedSchema(dsn);
+  const schema=await openIsolatedSchema(dsn);
   opened=true;
   const db=createDb(neonShapedQuery());
   await db.initSchema();
+  // The two fake writes use the ORIGINAL defineWrite/readback/audit machinery.
+  // Every changed row belongs exclusively to the temporary PostgreSQL schema.
+  const fixture=await createRtcHubFixture({registry:nativeRegistry,rawQuery});
+  const registry=fixture.registry;
   await rawQuery('INSERT INTO stripe_accounts(id,label,test_key_enc) VALUES($1,$2,$3)',
     [account,'Local conformance TEST','v1.fake']);
+  const expiresAt=new Date(Date.now()+3600000);
+  if(!await db.createRtcPass({
+    id:'rtc-agent-official-full',account,token:passes.full,
+    profile:'full',areas:['server','account','payments'],
+    allowWrites:true,moneyLimitCents:2500,expiresAt
+  }))throw Error('Failed to create disposable full-profile original RTC pass');
   for(const [role,id] of Object.entries({
-    full:'rtc-agent-official-full',readOnly:'rtc-agent-official-read',
+    readOnly:'rtc-agent-official-read',
     expired:'rtc-agent-official-expire',revoked:'rtc-agent-official-revoke'
   })){
     if(!await db.createRtcReadOnlyPass({id,account,
-      token:passes[role],areas:['server','account'],
-      expiresAt:new Date(Date.now()+3600000)}))
-      throw Error('Failed to create disposable RTC fixture');
+      token:passes[role],areas:['server','account','payments'],expiresAt}))
+      throw Error('Failed to create disposable read-only RTC fixture');
   }
   await rawQuery("UPDATE oauth_tokens SET expires_at=now()-interval '1 second' WHERE client_id=$1",
     ['rtc-agent-official-expire']);
   await rawQuery('UPDATE oauth_tokens SET revoked_at=now() WHERE client_id=$1',
     ['rtc-agent-official-revoke']);
+  if(!await db.createRtcPass({id:'rtc-agent-official-rate5',account,
+    token:ratePass,areas:['server'],rateLimitPerMinute:5,
+    expiresAt:new Date(Date.now()+3600000)}))
+    throw Error('Could not issue isolated five-per-minute rate fixture');
+  // The official OAuth preservation probe inspects a real connector row.
+  // Refresh rotates its original token in place, including persisted areas;
+  // it must never reconstruct authorization from account defaults.
+  const oauthClient='rtc-official-oauth-client';
+  const originalAccess='fixture_access_'+randomBytes(32).toString('base64url');
+  const originalRefresh='fixture_refresh_'+randomBytes(32).toString('base64url');
+  await db.createAccessToken({accessToken:originalAccess,
+    refreshToken:originalRefresh,clientId:oauthClient,stripeAccount:account,
+    mode:'test',profile:'everyday',listing:'compact'});
+  await rawQuery('UPDATE oauth_tokens SET areas=ARRAY[$1,$2] WHERE token_hash=$3',
+    ['server','account',hashToken(originalAccess)]);
+  const oauth={
+    async inspect(value=originalAccess){
+      const rows=await rawQuery(
+        'SELECT stripe_account,mode,profile,listing,areas FROM oauth_tokens WHERE token_hash=$1 AND kind=$2',
+        [hashToken(value),'connector']);
+      const row=rows[0];
+      if(!row)throw Error('Authenticated OAuth row not found after refresh');
+      return {account:row.stripe_account,mode:row.mode,profile:row.profile,
+        listing:row.listing,areas:row.areas};
+    },
+    async refresh(){
+      const nextAccess='fixture_access_'+randomBytes(32).toString('base64url');
+      const nextRefresh='fixture_refresh_'+randomBytes(32).toString('base64url');
+      const rotated=await db.rotateRefreshToken({refreshToken:originalRefresh,
+        clientId:oauthClient,accessToken:nextAccess,newRefreshToken:nextRefresh});
+      if(rotated?.client_id!==oauthClient)throw Error('OAuth refresh did not rotate original row');
+      return nextAccess;
+    }
+  };
   const rtc=createRtcReadOnlyHttpHandler({db,registry});
   server=createServer(async(req,res)=>{
     res.status=n=>{res.statusCode=n;return res;};
@@ -85,58 +150,31 @@ try{
     server.listen(0,'127.0.0.1',resolve);
   });
   const url='http://127.0.0.1:'+server.address().port;
-  const result=await runConformance({url,passes});
-  const results=new Map(result.checks.map(row=>[row.name,row]));
-  // These rules genuinely apply to the documented TEST HTTPS subset.
-  const applicable=['manifest','manifest.openapi','catalog','passes',
-    'passes.expired','passes.revoked','budget'];
-  // Upstream selection() requires 1 read, 1 write, 1 guarded write. Stripe
-  // deliberately exposes NO writes or full-profile passes on HTTPS.
-  const fullProfile=['meta','reads','writes','passes.read_only','safety'];
-  for(const name of applicable){
-    const row=results.get(name);
-    if(!row?.ok||row.skipped)
-      throw Error('Stripe RTC service applicable '+name+' failed: '+
-        String(row?.message??'missing').slice(0,150));
-    process.stdout.write('SERVICE_PASS '+name+'\n');
+  // The upstream runner calls two independent OS processes, each with its
+  // own SQL connection but one short-lived, isolated PostgreSQL schema.
+  // This is stronger than two in-memory handler objects in a single process.
+  const peerUrls=await Promise.all([
+    startIndependentPeer(schema),startIndependentPeer(schema)
+  ]);
+  const result=await runConformance({url,passes,oauth,fixtures:fixture.fixtures,
+    instances:{urls:peerUrls,pass:ratePass,limit:5}});
+  // The *official pinned* Hub runner must certify every named probe.
+  // Never turn a failed or skipped write/readback into a subset PASS.
+  for(const row of result.checks){
+    if(!row.ok||row.skipped)throw Error('RTC full conformance '+row.name+
+      ': '+String(row.message??'missing result').slice(0,180));
+    process.stdout.write('SERVICE_PASS '+row.name+'\n');
   }
-  for(const name of fullProfile){
-    const row=results.get(name);
-    if(row?.ok||row?.skipped||
-      !row?.message?.includes('reference probes need read, write and guarded tools'))
-      throw Error('Full-profile '+name+' is unexpectedly certified or failed for another reason');
-    process.stdout.write('OUT_OF_SUBSET '+name+' (upstream requires HTTPS writes)\n');
-  }
-  for(const name of ['oauth.refresh_settings','limits.two_instance']){
-    const row=results.get(name);
-    if(!row?.skipped||row?.ok)
-      throw Error('Unexpected claim for independent '+name);
-    process.stdout.write('INDEPENDENT_EVIDENCE '+name+' (not certified here)\n');
-  }
-  if(result.ok)throw Error('Read-only subset must not certify full RTC 1');
-  // Upstream "safety" selection also requires a write + guarded write,
-  // which this public TEST surface intentionally never offers. Independently
-  // verify the supported negative envelope and unknown-vs-forbidden split.
-  const missing=await fetch(url+'/api/tools/definitely_not_a_tool',{
-    method:'POST',headers:{authorization:'Bearer '+passes.full,
-      'content-type':'application/json'},body:'{}'});
-  const absent=await missing.json();
-  if(missing.status!==404||absent.ok!==false||
-    absent.error?.code!=='not_found'||
-    !['what','cause','todo','technical','code'].every(k=>
-      typeof absent.error[k]==='string'))
-    throw Error('Unknown RTC call must produce a safe 404 not_found envelope');
-  process.stdout.write('SERVICE_PASS unknown_tool_404\n');
-  // Invalid write remains 403; actual nonexistent names are distinct 404.
-  const bad=await fetch(url+'/api/tools/stripe_payment_cancel',{
-    method:'POST',headers:{authorization:'Bearer '+passes.full,
-      'content-type':'application/json'},body:'{}'});
-  if(bad.status!==403||(await bad.json()).error?.code!=='refused_by_guard')
-    throw Error('A forbidden money/write route must remain 403');
-  process.stdout.write('SERVICE_PASS denied_write_403\n');
-  process.stdout.write('RTC_TEST_SUBSET verified against actual Stripe HTTP + SQL; '+
-    'no full conformance, deployed service or provider claim\n');
+  if(result.ok!==true||result.checks.length<12)
+    throw Error('Official full RTC 1 conformance incomplete');
+  if((await fixture.readValue())!=='committed')
+    throw Error('Actual fake-provider state was not read back from PostgreSQL');
+  process.stdout.write('RTC_FULL_CONFORMANCE verified all official upstream probes on original Stripe guarded dispatch, two independent OS processes and disposable PostgreSQL; no real provider claim\n');
 }finally{
+  for(const peer of peerProcesses){
+    if(peer.connected)peer.disconnect();
+    if(!peer.killed)peer.kill();
+  }
   if(server)await new Promise((resolve,reject)=>
     server.close(e=>e?reject(e):resolve()));
   if(opened)await closeIsolatedSchema();

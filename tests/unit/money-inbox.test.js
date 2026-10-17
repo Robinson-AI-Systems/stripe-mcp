@@ -26,7 +26,7 @@ const view=account=>({action:'view-money-requests',account,passphrase:env.ADMIN_
 describe('B-8c1 private owner money request inbox',()=>{
  it('exposes no account or request on GET, refuses forged owner requests',async()=>{
   const f=await setup();await f.db.requestMoneyApproval(record('acct_INBOXA','secret-key'));
-  expect(f.first.body).toContain('Privately view pending TEST requests');
+  expect(f.first.body).toContain('Privately view pending mode-specific requests');
   expect(f.first.body).not.toContain('secret-key');
   expect(f.first.body).not.toContain('acct_INBOXA');
   expect((await f.post(view('acct_INBOXA'),'https://evil.test')).statusCode).toBe(403);

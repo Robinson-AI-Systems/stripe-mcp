@@ -13,6 +13,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const attempts = [];
   const accountRows = new Map(accounts.map(a => [a.id, structuredClone(a)]));
   const encryptedTestKeys = new Map();
+  const encryptedLiveKeys = new Map();
   const oneTimeSecrets = new Map();
   const webhookSigningSecrets = new Map();
   const testWebhookReceipts = new Map();
@@ -181,6 +182,32 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         money_limit_cents:0,areas:areas===null?null:[...areas],for_hub:false,rate_limit_per_minute:120,
         expires_at:expiresAt.getTime(),revoked_at:null});return true;
     },
+    async createRtcPass({id,account,token,mode='test',profile='read_only',
+      areas,allowWrites=false,moneyLimitCents=0,forHub=false,
+      rateLimitPerMinute=120,expiresAt}){
+      const row=accountRows.get(account);
+      if(!row||mode==='test'&&!encryptedTestKeys.has(account)||
+        mode==='live'&&(!row.live_enabled||!encryptedLiveKeys.has(account)))return false;
+      if(!['test','live'].includes(mode)||!['read_only','everyday','full'].includes(profile)||
+        typeof allowWrites!=='boolean'||allowWrites&&profile==='read_only'||
+        !Number.isSafeInteger(moneyLimitCents)||moneyLimitCents<0||
+        moneyLimitCents>0&&!allowWrites||
+        !Number.isInteger(rateLimitPerMinute)||rateLimitPerMinute<1||
+        rateLimitPerMinute>600||
+        !Array.isArray(areas)||areas.length<1||areas.length>6||
+        areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))||
+        new Set(areas).size!==areas.length||
+        !(expiresAt instanceof Date)||expiresAt.getTime()<=clock()||
+        expiresAt.getTime()>clock()+(forHub?365:30)*86400000+60000)
+        throw new TypeError('Unsafe TEST owner pass policy');
+      tokens.set(hashToken(token),{token_hash:hashToken(token),client_id:id,
+        stripe_account:account,mode,profile,listing:'compact',kind:'pass',
+        result_scope:randomUUID(),allow_writes:allowWrites,
+        money_limit_cents:moneyLimitCents,areas:[...areas],for_hub:forHub,
+        rate_limit_per_minute:rateLimitPerMinute,
+        expires_at:expiresAt.getTime(),revoked_at:null});
+      return true;
+    },
     async getRtcPassStatus(token){
       const row=tokens.get(hashToken(token));
       return row?.kind==='pass'?structuredClone(row):null;
@@ -250,13 +277,17 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return structuredClone({ ...account, test_key_kind: saved?.kind || null,
         test_key_last4: saved?.last4 || null, key_permissions: saved?.permissions || {},
         money_limit_cents: account.money_limit_cents ?? 50000, test_connected: !!saved,
-        live_connected: !!account.live_connected });
+        live_connected: encryptedLiveKeys.has(id)||!!account.live_connected });
     },
     async saveTestKey({ account, label, ciphertext, kind, last4, permissions = {} }) {
       const before = accountRows.get(account) || { id: account, is_default: accountRows.size === 0,
         live_enabled: false };
       accountRows.set(account, { ...before, label });
       encryptedTestKeys.set(account, { ciphertext, kind, last4, permissions: structuredClone(permissions) });
+    },
+    async saveLiveKey({account,ciphertext,kind,last4}){
+      if(!accountRows.has(account))return false;
+      encryptedLiveKeys.set(account,{ciphertext,kind,last4});return true;
     },
     async updateKeyPermissions({account,permissions,expectedCiphertext}) {
       if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
@@ -270,10 +301,11 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       stored.permissions=structuredClone(permissions);
       return true;
     },
-    async getEncryptedKey({ account, mode }) {
-      if (mode !== 'test') return null;
-      const row = encryptedTestKeys.get(account);
-      return row ? { ciphertext: row.ciphertext } : null;
+    async getEncryptedKey({account,mode}) {
+      const row=mode==='test'?encryptedTestKeys.get(account):
+        mode==='live'&&accountRows.get(account)?.live_enabled===true?
+          encryptedLiveKeys.get(account):null;
+      return row?{ciphertext:row.ciphertext}:null;
     },
     async addOneTimeSecret({ id, account, mode, kind, ciphertext, expiresAt }) {
       oneTimeSecrets.set(id, { stripe_account: account, mode, kind, ciphertext,
@@ -438,10 +470,11 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       if (![account,idempotencyKey,tool,description].every(x=>typeof x==='string'&&x) ||
           !/^acct_[A-Za-z0-9]+$/.test(account) ||
           !Number.isSafeInteger(amountCents)||amountCents<=0||currency!=='usd'||
-          description.length>240||mode!=='test'||typeof target!=='string'||
+          description.length>240||!['test','live'].includes(mode)||typeof target!=='string'||
           (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(target)))
         throw new TypeError('Invalid provider money approval request');
-      if(!accountRows.has(account))return false;
+      if(!accountRows.has(account)||
+        (mode==='live'&&(!accountRows.get(account)?.live_enabled||!encryptedLiveKeys.has(account))))return false;
       let row=approvals.find(a=>a.account===account&&a.key===idempotencyKey);
       if(!row){
         row={account,key:idempotencyKey,tool,description,amountCents,currency,
@@ -454,11 +487,11 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         row.target===target&&row.mode===mode&&row.consumedAt===null&&
         row.expiresAt>clock();
     },
-    async listPendingMoneyApprovals({account,limit=10}){
+    async listPendingMoneyApprovals({account,mode='test',limit=10}){
       if(!/^acct_[A-Za-z0-9]+$/.test(account)||!Number.isInteger(limit)||
-          limit<1||limit>20)throw new TypeError('Invalid pending money filter');
+          limit<1||limit>20||!['test','live'].includes(mode))throw new TypeError('Invalid pending money filter');
       return structuredClone(approvals.filter(r=>r.account===account&&
-        r.target!==''&&r.mode==='test'&&r.consumedAt===null&&
+        r.target!==''&&r.mode===mode&&r.consumedAt===null&&
         r.expiresAt>clock()).slice().reverse().slice(0,limit)
         .map(r=>({request_key:r.key,tool:r.tool,target:r.target,
           description:r.description,amount_cents:r.amountCents,
@@ -476,8 +509,9 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         expiresAt.getTime()<=clock()||expiresAt.getTime()>clock()+600000)
         throw new TypeError('Valid owner decision required');
       const m=approvals.find(r=>r.account===account&&r.key===idempotencyKey&&
-        r.mode==='test'&&r.target!==''&&r.consumedAt===null&&r.expiresAt>clock());
-      if(!m||!encryptedTestKeys.has(account))return false;
+        ['test','live'].includes(r.mode)&&r.target!==''&&r.consumedAt===null&&r.expiresAt>clock());
+      if(!m||m.mode==='test'&&!encryptedTestKeys.has(account)||
+        m.mode==='live'&&(!accountRows.get(account)?.live_enabled||!encryptedLiveKeys.has(account)))return false;
       const usage=await this.getMoneyUsage({account,connection:'owner'});
       const eligible=kind==='approve'
         ? m.approvedAt===null||m.approvedAt<=clock()-600000
@@ -493,10 +527,12 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async getMoneyDecisionIntent(id){
       const i=decisionIntents.find(r=>r.id===id&&r.consumedAt===null&&
         r.expiresAt>clock()),m=i&&approvals.find(a=>a.account===i.account&&a.key===i.key);
-      if(!i||!m||!encryptedTestKeys.has(i.account)||m.consumedAt!==null||
+      if(!i||!m||m.mode==='test'&&!encryptedTestKeys.has(i.account)||
+        m.mode==='live'&&(!accountRows.get(i.account)?.live_enabled||!encryptedLiveKeys.has(i.account))||
+        m.consumedAt!==null||
         m.expiresAt<=clock()||m.expiresAt!==i.requestExpiresAt||
         !['tool','target','currency','mode'].every(k=>m[k]===i[k])||
-        m.amountCents!==i.amountCents||m.target===''||m.mode!=='test'||
+        m.amountCents!==i.amountCents||m.target===''||!['test','live'].includes(m.mode)||
         (i.kind==='approve' ? m.approvedAt!==null&&m.approvedAt>clock()-600000
           : m.approvedAt===null||m.approvedAt<=clock()-600000||m.allowOverLimit))
         return null;
@@ -522,7 +558,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         m.overrideApprovedAt=null;
       }
       row.consumedAt=clock();
-      audit.push({id:audit.length+1,stripe_account:row.account,mode:'test',
+      audit.push({id:audit.length+1,stripe_account:row.account,mode:row.mode,
         tool:row.kind==='override'?'owner_override_money_out':'owner_approve_money_out',
         target:row.target,amount_cents:row.amountCents,currency:'usd',
         idempotency_key:row.key,dry_run:false,at:new Date(clock())});
@@ -566,11 +602,25 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         existing.currency !== currency ? 'request_conflict' :
           existing.day !== day ? 'previous_day' : 'already_' + existing.state,
         used_cents, limit_cents };
+      const pass=[...tokens.values()].find(t=>t.result_scope===connection&&t.kind==='pass');
+      if(pass&&(pass.stripe_account!==account||!['test','live'].includes(pass.mode)||
+        pass.revoked_at||pass.expires_at<=clock()||!pass.allow_writes||
+        pass.profile==='read_only'||!Number.isSafeInteger(pass.money_limit_cents)||
+        pass.money_limit_cents<=0||pass.mode==='live'&&
+          (!row.live_enabled||!encryptedLiveKeys.has(account))))
+        return {decision:'delegated_pass_denied',used_cents,limit_cents};
+      if(pass){
+        const used=reservations.filter(x=>x.connection===connection&&x.day===day&&
+          x.state!=='rejected').reduce((n,x)=>n+x.amountCents,0);
+        if(used+amountCents>pass.money_limit_cents)
+          return {decision:'delegated_limit_exceeded',used_cents:used,
+            limit_cents:pass.money_limit_cents};
+      }
       const approval = approvals.find(a => a.account === account && a.key === idempotencyKey);
       if (!approval || approval.amountCents !== amountCents || approval.currency !== currency ||
           approval.approvedAt === null || approval.consumedAt !== null ||
           approval.expiresAt <= clock() || approval.approvedAt < clock() - 600000 ||
-          !approval.target || approval.mode!=='test') {
+          !approval.target || approval.mode!==(pass?.mode??'test')) {
         return { decision:'owner_approval_required', used_cents, limit_cents };
       }
       if (used_cents > limit_cents - amountCents &&
@@ -635,6 +685,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         .slice(offset,offset+limit).map(r=>({
           client_id:r.client_id,mode:r.mode,profile:r.profile,listing:r.listing,
           kind:r.kind,rate_limit_per_minute:r.rate_limit_per_minute??120,
+          allow_writes:r.allow_writes??false,money_limit_cents:r.money_limit_cents??0,
+          areas:r.areas??null,for_hub:r.for_hub??false,
           created_at:null,last_used_at:null,expires_at:new Date(r.expires_at),
           revoked_at:r.revoked_at?new Date(r.revoked_at):null
         })));

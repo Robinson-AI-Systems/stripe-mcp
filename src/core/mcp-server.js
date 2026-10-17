@@ -6,7 +6,7 @@ import { requireMcpToken } from './mcp-auth.js';
 import { allowBrowserProtocol } from './browser-cors.js';
 import { toStripeToolError } from '../tools/errors.js';
 import { shapeToolResult } from '../tools/util.js';
-import { isToolAllowed, publicToolInfo, listingForConnection, isGuardedTestWrite } from './profiles.js';
+import { isToolAllowed, publicToolInfo, listingForConnection, isGuardedTestWrite, isGuardedLiveWrite } from './profiles.js';
 import { randomBytes } from 'node:crypto';
 import { safePreparsedObject } from './http.js';
 import {readDetail,splitResult,resultPage} from '../tools/result-rules.js';
@@ -36,7 +36,8 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
     const slot=Object.getOwnPropertyDescriptor(registry.handlers,name);
     handler=slot&&Object.hasOwn(slot,'value')?slot.value:null;
   }catch{return {isError:true,content:[{type:'text',text:'Tool unavailable for this connection'}]};}
-  const guardedWrite=isGuardedTestWrite(item,fixedConnection);
+  const guardedWrite=isGuardedTestWrite(item,fixedConnection)||
+    isGuardedLiveWrite(item,fixedConnection);
   // A single guarded TEST write may be delegated only through the original
   // stripe_call meta tool. Arbitrary reads/batches and deeper calls cannot.
   const nestedWrite=depth>0&&item?.writes!==false;
@@ -51,6 +52,8 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
   }
   try {
     const raw=shapeToolResult(await handler(nativeReadArgs(item,fixedArgs),{connection:fixedConnection,connectionId:fixedConnection.resultScope,db,services,registry,
+      liveAccessGranted:fixedConnection?.rtcLiveOwnerApproved===true&&
+        fixedConnection?.mode==='live',
       runRead:(toolName,toolArgs)=>dispatchReadOnlyTool({registry,
         name:toolName,args:toolArgs,connection:fixedConnection,db,services},depth+1,name)}),
       {mode:fixedConnection.mode});

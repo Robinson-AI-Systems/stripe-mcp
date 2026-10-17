@@ -206,3 +206,24 @@ resumes. OS credential managers remain the desktop default. Neither option place
 in chats, prompts, Git or shared artifacts. Initial provider consent or an expired/revoked
 underlying authorization can still require a new owner sign-in. Source/tests are not
 proof that the new deployed workflow has been exercised against the real provider.
+
+## Owner-issued RTC agent passes — development branch PR #263, not deployed (October 17)
+
+After the R-1–R-3 branch is fully accepted and merged, the existing private
+`/api/stripe/setup` page offers **Create owner-delegated TEST agent pass**.
+Choose an enrolled TEST Stripe account, profile, 1–6 specific tool areas,
+write delegation, an independent delegated money ceiling, per-minute request
+budget and expiration. The default is TEST/read_only, 24 hours, 120 reads/minute,
+no writes and zero money. Passes up to 30 days are supported; a personally
+selected Hub pass may be up to 365 days. The owner must submit the original
+passphrase, same-origin CSRF and explicit scope checkbox; a generated bearer is
+shown once on a second private password-authenticated page, never through an
+AI tool, README, log or PR. Revoke only the specified selected account/client
+through the existing owner preview/confirm revoke form. The existing
+`stripe_list_connections` tool shows selected metadata, not credentials.
+
+A positive delegated money ceiling is **not permission to send a payment**:
+original operation-specific owner approval, idempotency, confirmation, Stripe
+amount lookup, account-wide $500/day policy and separate over-limit owner
+approval all remain required. Existing LIVE is OFF; this branch currently
+issues TEST passes only and is **not ready for use on deployed Production**.
