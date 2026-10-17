@@ -1,7 +1,7 @@
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
-// G-5c2: guarded TEST-only payment-method configuration preference changes.
+import {selectedAccountClient} from './account-mode.js';
+// G-5c2: selected-mode guarded payment-method preference changes; LIVE requires independent owner grant.
 import {defineWrite,gone} from './write.js';
-import {client,fullProfiles} from './billing-shared.js';
+import {fullProfiles} from './billing-shared.js';
 import {safeConfiguration} from './account-payment-settings.js';
 const bad=s=>{throw new TypeError(s);};
 const dashboardUrl='https://dashboard.stripe.com/test/settings/payment_methods';
@@ -22,17 +22,16 @@ function input(a){
     bad('Select exact TEST configuration, method and on/off preference');
 }
 async function own(ctx){
-  const s=await client(ctx),account=ctx?.connection?.stripeAccount;
-  if(!accountOk(account))bad('A selected TEST account is required');
-  await readVerifiedTestAccount(s,account);
-  return s;
+  const account=ctx?.connection?.stripeAccount;
+  if(!accountOk(account))bad('A selected account is required');
+  return selectedAccountClient(ctx);
 }
 async function current(a,ctx){
   input(a);
   const s=await own(ctx);
   const obj=await s.paymentMethodConfigurations.retrieve(a.configuration);
-  const projected=safeConfiguration(obj);
-  if(obj.livemode===true||projected.managedByConnect||!projected.active||
+  const projected=safeConfiguration(obj,ctx.connection.mode);
+  if(projected.managedByConnect||!projected.active||
     projected.methods[a.method]===null)
     bad('Only active own-account TEST direct configurations can be changed');
   return obj;
@@ -41,15 +40,15 @@ export function makeMethodPreferenceWrite(){
   const op=defineWrite({
     name:'account_update_payment_method_settings',
     read:current,
-    summarize:(before,a)=>{
+    summarize:(before,a,ctx)=>{
       input(a);
-      return 'TEST MODE. Request '+a.method+' '+a.preference+' for exact direct configuration '+
+      return ctx.connection.mode.toUpperCase()+' MODE. Request '+a.method+' '+a.preference+' for exact direct configuration '+
         before.id+'. Verify independently; this does not guarantee Checkout availability.';
     },
     apply:async(a,ctx,{idempotencyKey})=>{
       const s=await own(ctx);
       const before=await s.paymentMethodConfigurations.retrieve(a.configuration);
-      if(before.livemode===true||safeConfiguration(before).managedByConnect||
+      if(safeConfiguration(before,ctx.connection.mode).managedByConnect||
         before.active!==true||before[a.method]==null)
         bad('Configuration became unsuitable for TEST update');
       await s.paymentMethodConfigurations.update(a.configuration,
@@ -57,9 +56,10 @@ export function makeMethodPreferenceWrite(){
         {idempotencyKey});
     },
     readAfter:current,
-    verify:(before,after,a)=>{
-      const b=safeConfiguration(before),v=safeConfiguration(after);
-      return before.id===after.id&&!v.managedByConnect&&after.livemode!==true&&
+    verify:(before,after,a,ctx)=>{
+      const b=safeConfiguration(before,ctx.connection.mode),
+        v=safeConfiguration(after,ctx.connection.mode);
+      return before.id===after.id&&!v.managedByConnect&&
         b.active&&v.active&&v.methods[a.method]?.preference===a.preference&&
         v.methods[a.method]?.effective===a.preference;
     }
@@ -71,8 +71,9 @@ export function makeMethodPreferenceWrite(){
     try{result=JSON.parse(output.content[0].text);}catch{return output;}
     if(result.done===true)return output;
     return {...output,content:[{type:'text',text:JSON.stringify({...result,
-      manualSettingsUrl:dashboardUrl,
-      manualSteps:['Open TEST Dashboard > Settings > Payment methods.',
+      manualSettingsUrl:ctx.connection.mode==='live'?dashboardUrl.replace('/test/','/'):
+        dashboardUrl,
+      manualSteps:['Open your selected Stripe environment > Settings > Payment methods.',
         'Choose this direct configuration and edit the selected payment method.',
         'Save and call account_list_payment_method_settings to verify the provider state.'],
       verified:false,verifyWith:'account_list_payment_method_settings',
@@ -81,11 +82,11 @@ export function makeMethodPreferenceWrite(){
 }
 const op=makeMethodPreferenceWrite();
 export const tools=[{...op.tool,area:'account',profiles:fullProfiles,
-  description:'Guarded TEST payment-method preference update with independent readback and honest Dashboard fallback.',
+  description:'Guarded verified TEST/LIVE payment-method preference update with independent readback and honest Dashboard fallback.',
   inputSchema:{type:'object',properties:{...shape,
     dryRun:{type:'boolean'},confirm:{type:'boolean'},
     requestKey:{type:'string',minLength:1,maxLength:128}},
     required:['configuration','method','preference'],additionalProperties:false}}];
 export const handlers={account_update_payment_method_settings:(a,ctx)=>
-  ctx?.connection?.mode!=='test'?gone('Payment settings mutations require TEST mode'):
+  !['test','live'].includes(ctx?.connection?.mode)?gone('Selected Stripe account mode required'):
     makeMethodPreferenceWrite().handler(a,ctx)};
