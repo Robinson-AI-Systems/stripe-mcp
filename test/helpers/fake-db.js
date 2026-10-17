@@ -151,10 +151,13 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     },
     async getOAuthClient(id) { return structuredClone(clients.get(id) || null); },
     async createAuthCode({ code, clientId, redirectUri, codeChallenge, codeChallengeMethod = 'S256',
-      stripeAccount = null, mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 600 }) {
+      stripeAccount = null, mode = 'test', profile = 'everyday', listing = 'catalog',
+      liveWriteApproved = false, ttlSeconds = 600 }) {
       codes.set(hashToken(code), { client_id: clientId, redirect_uri: redirectUri,
         code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod,
-        stripe_account: stripeAccount, mode, profile, listing, expires_at: clock() + ttlSeconds * 1000 });
+        stripe_account: stripeAccount, mode, profile, listing,
+        live_write_approved:mode==='live'&&liveWriteApproved===true,
+        expires_at: clock() + ttlSeconds * 1000 });
     },
     async consumeAuthCode(code) {
       const key = hashToken(code);
@@ -164,10 +167,12 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         Object.entries(row).filter(([name]) => name !== 'expires_at'))) : null;
     },
     async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
-      mode = 'test', profile = 'everyday', listing = 'catalog', ttlSeconds = 3600 }) {
+      mode = 'test', profile = 'everyday', listing = 'catalog',
+      liveWriteApproved = false, ttlSeconds = 3600 }) {
       tokens.set(hashToken(accessToken), { result_scope:randomUUID(),token_hash: hashToken(accessToken),
         refresh_hash: refreshToken ? hashToken(refreshToken) : null, client_id: clientId,
         stripe_account: stripeAccount, mode, profile, listing, kind: 'connector',
+        allow_writes:mode==='live'&&liveWriteApproved===true,money_limit_cents:0,
         expires_at: clock() + ttlSeconds * 1000, revoked_at: null });
     },
     async createRtcReadOnlyPass({id,account,token,expiresAt,areas=null}){
@@ -228,7 +233,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const row = tokens.get(hashToken(accessToken));
       if (!row || row.revoked_at || row.expires_at <= clock()) return null;
       return { client_id: row.client_id, ...connectionSettings(row), kind: row.kind,
-        result_scope:row.result_scope,
+        result_scope:row.result_scope,allow_writes:row.allow_writes,
         expires_at: new Date(row.expires_at), revoked_at: null };
     },
     async getTokenByRefreshToken(refreshToken) {
@@ -241,7 +246,10 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       ttlSeconds = 3600 }) {
       const row = [...tokens.values()].find((item) => item.refresh_hash === hashToken(refreshToken) &&
         item.client_id === clientId && !item.revoked_at);
-      if (!row) return null;
+      if (!row||row.mode==='live'&&(
+        accountRows.get(row.stripe_account)?.live_enabled!==true||
+        !(encryptedLiveKeys.has(row.stripe_account)||
+          accountRows.get(row.stripe_account)?.live_connected===true))) return null;
       tokens.delete(row.token_hash);
       row.token_hash = hashToken(accessToken);
       row.refresh_hash = hashToken(newRefreshToken);

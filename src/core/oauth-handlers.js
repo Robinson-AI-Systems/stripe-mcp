@@ -4,7 +4,7 @@ import { publicOrigin, send, escapeHtml, paramsOf, only } from './http.js';
 
 const PROFILES = ['read_only', 'everyday', 'full'];
 const LISTINGS = ['catalog', 'compact'];
-const MODES = ['test']; // Explicit Batch B activation is required before live can be enabled.
+const MODES = ['test', 'live']; // LIVE is independently activated per account and owner-consented.
 const tokenResponse = (access, refresh) => ({
   access_token: access, token_type: 'Bearer', expires_in: 3600, refresh_token: refresh
 });
@@ -68,6 +68,13 @@ export function createOAuthHandlers({ db, env = process.env }) {
       (p.stripe_account === a.id ? ' selected' : '') + '>' + escapeHtml(a.label) + '</option>').join('') : '';
     const profileList = PROFILES.map(v => '<option value="' + v + '"' + (p.profile === v ? ' selected' : '') + '>' + v + '</option>').join('');
     const listingList = LISTINGS.map(v => '<option value="' + v + '"' + (p.listing === v ? ' selected' : '') + '>' + v + '</option>').join('');
+    const liveAvailable=env.VERCEL_ENV==='production'&&accounts.some(account=>
+      account.live_enabled===true&&account.live_connected===true);
+    const modeList='<option value="test"'+(p.mode!=='live'?' selected':'')+'>TEST (default)</option>'+
+      (liveAvailable?'<option value="live"'+(p.mode==='live'?' selected':'')+'>LIVE (real Stripe account)</option>':'');
+    const liveNotice=liveAvailable?'<p>LIVE access requires a separately activated Stripe account. A LIVE connection can affect real customer data. Choose the mode and permissions deliberately.</p>':'';
+    const writeConsent='<label><input type="checkbox" name="liveWriteConsent" value="confirm"'+
+      (p.liveWriteConsent==='confirm'?' checked':'')+'>I independently authorize this connection to execute confirmed LIVE writes within my selected profile. No payment is approved by this checkbox; money-out still needs its original separate approval.</label>';
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<title>Connect Robinson Stripe MCP</title><style>body{font:16px system-ui,sans-serif;max-width:410px;margin:6vh auto;padding:20px}form{display:grid;gap:14px}input,select,button{font:inherit;padding:10px}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
       '<h1>Connect Stripe MCP</h1>' + (error ? '<p role="alert">' + escapeHtml(error) + '</p>' : '') +
@@ -77,7 +84,8 @@ export function createOAuthHandlers({ db, env = process.env }) {
       '<label>Stripe account<select name="stripe_account" required>' + accountList + '</select></label>' +
       '<label>Profile<select name="profile">' + profileList + '</select></label>' +
       '<label>Tool listing<select name="listing">' + listingList + '</select></label>' +
-      '<input type="hidden" name="mode" value="test"><label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      liveNotice+'<label>Stripe environment<select name="mode">' + modeList + '</select></label>'+writeConsent+
+      '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
       '<button type="submit"' + (!accounts.length ? ' disabled' : '') + '>Authorize this connection</button></form></body></html>';
   }
   async function authorize(req, res) {
@@ -97,7 +105,8 @@ export function createOAuthHandlers({ db, env = process.env }) {
       // Claude's tool-search client defaults to catalog; other clients use
       // compact, with an explicit owner choice taking precedence.
       const listing=p.listing||(/claude/i.test(client.client_name||'')?'catalog':'compact');
-      return send(res,200,authorizePage({...p,listing},accounts),'text/html; charset=utf-8');
+      // Do not let an untrusted OAuth GET query silently preselect LIVE.
+      return send(res,200,authorizePage({...p,mode:'test',liveWriteConsent:undefined,listing},accounts),'text/html; charset=utf-8');
     }
     if (!env.ADMIN_PASSPHRASE) return bad(res, 503, 'server_not_configured', 'Admin passphrase is not configured');
     const verdict = await evaluateLogin({ ip: clientIp(req), supplied: p.passphrase,
@@ -108,13 +117,22 @@ export function createOAuthHandlers({ db, env = process.env }) {
     }
     if (verdict.status !== 'ok') return send(res, 401, authorizePage(p, accounts, 'Incorrect passphrase'), 'text/html; charset=utf-8');
     if (!MODES.includes(p.mode) || !PROFILES.includes(p.profile) || !LISTINGS.includes(p.listing) ||
-      !accounts.some(a => a.id === p.stripe_account)) {
+      !accounts.some(a => a.id === p.stripe_account) ||
+      (p.liveWriteConsent!==undefined&&p.liveWriteConsent!=='confirm')) {
       return send(res, 400, authorizePage(p, accounts, 'Invalid account, mode, or connection settings'), 'text/html; charset=utf-8');
     }
+    const wantsLiveWrite=p.liveWriteConsent==='confirm';
+    if (wantsLiveWrite&&(p.mode!=='live'||p.profile==='read_only') ||
+      p.mode==='live'&&(!liveReady(accounts.find(a=>a.id===p.stripe_account))||
+        env.VERCEL_ENV!=='production'))
+      return send(res,400,authorizePage(p,accounts,
+        'LIVE access requires a currently activated account, production service and explicit appropriate consent'),
+        'text/html; charset=utf-8');
     const code = randomToken(32);
     await db.createAuthCode({ code, clientId: p.client_id, redirectUri: p.redirect_uri,
       codeChallenge: p.code_challenge, codeChallengeMethod: 'S256', stripeAccount: p.stripe_account,
-      mode: p.mode, profile: p.profile, listing: p.listing });
+      mode: p.mode, profile: p.profile, listing: p.listing,
+      liveWriteApproved:p.mode==='live'&&wantsLiveWrite });
     const destination = new URL(p.redirect_uri);
     destination.searchParams.set('code', code);
     if (typeof p.state === 'string') destination.searchParams.set('state', p.state);
@@ -122,6 +140,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
     res.setHeader('Location', destination.toString());
     return res.status(302).end();
   }
+  const liveReady=account=>account?.live_enabled===true&&account?.live_connected===true;
   async function token(req, res) {
     if (!only(res, req, ['POST'])) return;
     let p;
@@ -167,9 +186,15 @@ export function createOAuthHandlers({ db, env = process.env }) {
         !verifyPkce(p.code_verifier, record.code_challenge, record.code_challenge_method)) {
         return bad(res, 400, 'invalid_grant', 'Code is expired, used, or failed PKCE');
       }
+      // A LIVE account disabled after consent but before redemption must not
+      // yield any usable token. Bearer checks independently repeat this check.
+      if(record.mode==='live'&&(env.VERCEL_ENV!=='production'||
+        !liveReady(await db.getStripeAccount(record.stripe_account))))
+        return bad(res,400,'invalid_grant','Selected LIVE account is no longer enabled');
       const accessToken = randomToken(32), refreshToken = randomToken(32);
       await db.createAccessToken({ accessToken, refreshToken, clientId: clientId,
-        stripeAccount: record.stripe_account, mode: record.mode, profile: record.profile, listing: record.listing });
+        stripeAccount: record.stripe_account, mode: record.mode, profile: record.profile,
+        listing: record.listing,liveWriteApproved:record.live_write_approved===true });
       return send(res, 200, tokenResponse(accessToken, refreshToken));
     }
     if (p.grant_type === 'refresh_token') {
