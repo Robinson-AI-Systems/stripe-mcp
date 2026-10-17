@@ -17,14 +17,14 @@ const pending=(account,key,target='ch_FAKE1234',amountCents=12345)=>({
  amountCents,currency:'usd',target,mode:'test'
 });
 describe('B-8c1 PG exact target binding and private queries',()=>{
- it('binds target and amount to request key and refuses collisions and live mode',async()=>{
+ it('binds target and amount to request key and refuses unactivated LIVE mode',async()=>{
   expect(await db.requestMoneyApproval(pending(account,'safe-key'))).toBe(true);
   expect(await db.requestMoneyApproval(pending(account,'safe-key','ch_OTHER123'))).toBe(false);
   expect(await db.requestMoneyApproval(pending(account,'safe-key','ch_FAKE1234',12346))).toBe(false);
   await expect(db.requestMoneyApproval(pending(account,'bad-target','untrusted')))
     .rejects.toThrow();
-  await expect(db.requestMoneyApproval({...pending(account,'live'),mode:'live'}))
-    .rejects.toThrow();
+  expect(await db.requestMoneyApproval({...pending(account,'live'),mode:'live'}))
+    .toBe(false);
  });
  it('keeps other accounts and legacy rows outside the owner inbox',async()=>{
   await db.requestMoneyApproval(pending(other,'other-key','ch_OTHER123'));
