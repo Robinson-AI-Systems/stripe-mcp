@@ -25,7 +25,13 @@ export function createStripeCoreDispatcher({core,registry,sourceDispatch}){
     const own=Object.getOwnPropertyDescriptor(registry.handlers,name);
     if(own&&Object.hasOwn(own,'value')&&typeof own.value==='function')
       handlers[name]=writes===false?
-        (args,ctx)=>own.value(nativeReadArgs(entry,args),ctx):own.value;
+        (args,ctx)=>own.value(nativeReadArgs(entry,args),ctx):
+        (args,ctx)=>own.value(args,{...ctx,
+          // The portable generic dispatcher cannot mint this authority: it
+          // receives only the durable OAuth/RTC connection and the original
+          // Stripe guard independently rechecks LIVE account activation.
+          liveAccessGranted:ctx?.connection?.mode==='live'&&
+            ctx?.connection?.rtcLiveOwnerApproved===true});
   }
   const service=core.createGuardedMcpDispatcher({
     registry:{tools,handlers},
