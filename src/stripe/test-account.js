@@ -20,3 +20,17 @@ export async function readVerifiedTestAccount(stripe,expected) {
     throw new TypeError('Independent Stripe TEST-mode evidence unavailable');
   return {...account,livemode:false};
 }
+
+// LIVE enrollment uses the same two independent provider facts as TEST setup,
+// but demands an affirmative LIVE balance. Never infer it from a key prefix.
+export async function readVerifiedLiveAccount(stripe,expected){
+  const account=await stripe.accounts.retrieve();
+  const id=expected===undefined?account?.id:expected;
+  if(!validId(id)||account?.object!=='account'||account.id!==id||
+    (account.livemode!==undefined&&account.livemode!==true))
+    throw new TypeError('Exact LIVE account identity unavailable');
+  const balance=await stripe.balance.retrieve();
+  if(balance?.object!=='balance'||balance.livemode!==true)
+    throw new TypeError('Independent Stripe LIVE-mode evidence unavailable');
+  return {...account,livemode:true};
+}
