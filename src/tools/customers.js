@@ -1,6 +1,7 @@
 // Stripe customer reads. No secret, payment-method token or raw provider object is returned.
 import {annotateAppRead} from './app-guard.js';
 import {denverLocalTime} from './util.js';
+import {customerClient,verifiedCustomerResource} from './customer-mode.js';
 const profiles=['read_only','everyday','full'];
 const schema=(props,required=[])=>({type:'object',properties:props,required,additionalProperties:false});
 const str={type:'string',minLength:1,maxLength:200},id={...str,maxLength:110};
@@ -9,21 +10,21 @@ const customerId={customerId:id};
 const read=(name,description,props,required=[])=>({name,description,profiles,
   writes:false,area:'customers',inputSchema:schema(props,required),annotations:{readOnlyHint:true}});
 export const tools=[
-  read('customer_list','List TEST customers with email/date filters and 20-item paging.',
+  read('customer_list','List selected TEST/LIVE customers with email/date filters and 20-item paging.',
     {...paging,email:{...str,maxLength:512},createdFrom:{type:'integer',minimum:0},
       createdTo:{type:'integer',minimum:0}}),
-  read('customer_get','Read a TEST customer, default payment-method ID and app ownership.',customerId,['customerId']),
-  read('customer_search','Search TEST customers with a bounded Stripe search expression.',
+  read('customer_get','Read a selected TEST/LIVE customer, default payment-method ID and app ownership.',customerId,['customerId']),
+  read('customer_search','Search selected TEST/LIVE customers with a bounded Stripe search expression.',
     {query:{...str,maxLength:400},limit:paging.limit,page:id},['query']),
-  read('customer_find','Find TEST customers by name, email, phone or app customer ID.',
+  read('customer_find','Find selected TEST/LIVE customers by name, email, phone or app customer ID.',
     {term:str,limit:paging.limit,page:id},['term']),
   read('customer_list_payment_methods','List a customer’s saved cards or banks, masked to brand and last four.',
     {...customerId,...paging,type:{type:'string',enum:['card','us_bank_account']}},['customerId']),
-  read('customer_get_payment_method','Retrieve a TEST customer’s masked saved payment method.',
+  read('customer_get_payment_method','Retrieve a selected TEST/LIVE customer’s masked saved payment method.',
     {...customerId,paymentMethodId:id},['customerId','paymentMethodId']),
   read('customer_list_balance_transactions','List customer credit/debit history as signed integer cents.',
     {...customerId,...paging},['customerId']),
-  read('customer_list_tax_ids','List a TEST customer’s saved tax IDs.',
+  read('customer_list_tax_ids','List a selected TEST/LIVE customer’s saved tax IDs.',
     {...customerId,...paging},['customerId'])
 ];
 const match=(v,r)=>typeof v==='string'&&r.test(v);
@@ -36,11 +37,7 @@ const page=args=>{
     throw new TypeError('Specify a page size 1 to 100 and a valid cursor');
   return {limit:n,...(args?.starting_after?{starting_after:args.starting_after}:{})};
 };
-const getStripe=ctx=>{
-  if(ctx?.connection?.mode!=='test'||typeof ctx.services?.stripeForConnection!=='function')
-    throw new Error('Server-side TEST Stripe access unavailable');
-  return ctx.services.stripeForConnection(ctx.connection);
-};
+const getStripe=ctx=>customerClient(ctx);
 const ok=v=>({content:[{type:'text',text:JSON.stringify(v)}]});
 const fail=v=>({isError:true,content:[{type:'text',text:v}]});
 const perform=async(ctx,fn)=>{
@@ -51,7 +48,7 @@ const safeAddress=address=>address?Object.fromEntries(
   ['line1','line2','city','state','postal_code','country']
     .filter(k=>typeof address[k]==='string').map(k=>[k,address[k]])):null;
 const safeCustomer=(v,ctx)=>annotateAppRead({
-  id:v.id,object:'customer',name:v.name??null,email:v.email??null,phone:v.phone??null,
+  id:verifiedCustomerResource(v,ctx).id,object:'customer',name:v.name??null,email:v.email??null,phone:v.phone??null,
   description:v.description??null,currency:v.currency??null,balance:v.balance??0,
   address:safeAddress(v.address),
   created_local:v.created?denverLocalTime(v.created):null,
@@ -59,7 +56,8 @@ const safeCustomer=(v,ctx)=>annotateAppRead({
     v.invoice_settings.default_payment_method:v.invoice_settings?.default_payment_method?.id??null,
   metadata:v.metadata??{}
 },{getCustomer:ctx.getCustomer});
-const safeMethod=m=>({id:m.id,object:'payment_method',type:m.type,
+const safeMethod=(m,ctx)=>({id:verifiedCustomerResource(m,ctx).id,
+  object:'payment_method',type:m.type,
   customer:typeof m.customer==='string'?m.customer:null,
   brand:m.card?.brand??null,last4:m.card?.last4??m.us_bank_account?.last4??null,
   expires:m.card?{month:m.card.exp_month,year:m.card.exp_year}:null,
@@ -93,11 +91,14 @@ export const handlers={
   customer_get:(a,c)=>perform(c,async s=>{
     if(!validCustomer(a?.customerId))throw new TypeError('Valid customer ID required');
     const v=await s.customers.retrieve(a.customerId);
-    if(v.deleted)return {id:v.id,deleted:true};
+    if(v.deleted){
+      verifiedCustomerResource(v,c,{tombstone:true});
+      return {id:v.id,deleted:true};
+    }
     const safe=await safeCustomer(v,c);
     if(validPm(safe.defaultPaymentMethod)){
       const method=await s.customers.retrievePaymentMethod(v.id,safe.defaultPaymentMethod);
-      if(method?.customer===v.id) safe.defaultPaymentMethodSummary=safeMethod(method);
+      if(method?.customer===v.id) safe.defaultPaymentMethodSummary=safeMethod(method,c);
       else safe.defaultPaymentMethodSummary={status:'unavailable'};
     }
     return safe;
@@ -115,6 +116,7 @@ export const handlers={
       throw new TypeError('Valid plain customer search required');
     if(validCustomer(v)){
       const item=await s.customers.retrieve(v);
+      if(item.deleted)verifiedCustomerResource(item,c,{tombstone:true});
       return {data:item.deleted?[]:[await safeCustomer(item,c)],has_more:false,next:null};
     }
     const escaped=escapeQuery(v);
@@ -130,24 +132,24 @@ export const handlers={
     if(a?.type!==undefined&&!['card','us_bank_account'].includes(a.type))
       throw new TypeError('Invalid saved payment method type');
     return list(await s.customers.listPaymentMethods(a.customerId,{
-      ...page(a),...(a?.type?{type:a.type}:{})}),safeMethod);
+      ...page(a),...(a?.type?{type:a.type}:{})}),m=>safeMethod(m,c));
   }),
   customer_get_payment_method:(a,c)=>perform(c,async s=>{
     if(!validCustomer(a?.customerId)||!validPm(a?.paymentMethodId))
       throw new TypeError('Valid customer and payment method IDs required');
-    return safeMethod(await s.customers.retrievePaymentMethod(a.customerId,a.paymentMethodId));
+    return safeMethod(await s.customers.retrievePaymentMethod(a.customerId,a.paymentMethodId),c);
   }),
   customer_list_balance_transactions:(a,c)=>perform(c,async s=>{
     if(!validCustomer(a?.customerId))throw new TypeError('Valid customer ID required');
     return list(await s.customers.listBalanceTransactions(a.customerId,page(a)),
-      v=>({id:v.id,object:'customer_balance_transaction',
+      v=>({id:verifiedCustomerResource(v,c).id,object:'customer_balance_transaction',
         amount:v.amount,currency:v.currency,type:v.type,description:v.description??null,
         created_local:v.created?denverLocalTime(v.created):null}));
   }),
   customer_list_tax_ids:(a,c)=>perform(c,async s=>{
     if(!validCustomer(a?.customerId))throw new TypeError('Valid customer ID required');
     return list(await s.customers.listTaxIds(a.customerId,page(a)),
-      v=>({id:v.id,object:'tax_id',type:v.type,value:v.value,
+      v=>({id:verifiedCustomerResource(v,c).id,object:'tax_id',type:v.type,value:v.value,
         verification:v.verification?.status??null}));
   })
 };

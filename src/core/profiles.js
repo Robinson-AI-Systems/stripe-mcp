@@ -20,7 +20,15 @@ export function profileCounts(registry,options={}) {
 const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer',
   'disputes','risk','identity','money','webhooks','account','branding','catalog','reports']);
 // Do not silently mark newly surfaced TEST-only operations as LIVE-ready.
-const guardedLiveAreas=new Set(['customers','payments','checkout','billing','developer','disputes','risk','identity']);
+const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity']);
+// Exact original customer lifecycle names whose LIVE provider-mode, app
+// ownership and independent readback guards have been reviewed. Monetary
+// balance credits/debits are NOT covered by this nonmoney authorization.
+const guardedLiveCustomerWrites=new Set([
+  'customer_create','customer_update','customer_delete',
+  'customer_remove_payment_method','customer_set_default_payment_method',
+  'customer_add_tax_id','customer_delete_tax_id','customer_remove_discount'
+]);
 // These account writes have reviewed LIVE account/balance and result-mode proof;
 // other legacy account writes remain TEST-only until separately implemented.
 const guardedLiveCatalogWrites=new Set([
@@ -63,6 +71,7 @@ export function isGuardedLiveWrite(tool,connection){
   return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
     tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
     (guardedLiveAreas.has(tool.area)||
+      (tool.area==='customers'&&guardedLiveCustomerWrites.has(tool.name))||
       (tool.area==='account'&&guardedLiveAccountWrites.has(tool.name))||
       (tool.area==='webhooks'&&guardedLiveWebhookWrites.has(tool.name))||
       (tool.area==='catalog'&&guardedLiveCatalogWrites.has(tool.name))||
