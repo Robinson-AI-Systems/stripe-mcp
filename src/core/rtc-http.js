@@ -3,7 +3,7 @@
 // provider money movement still needs its native independent owner gate.
 import {incomingBodyWithinLimit,safePreparsedObject,send} from './http.js';
 import {dispatchReadOnlyTool} from './mcp-server.js';
-import {publicToolInfo,isGuardedTestWrite} from './profiles.js';
+import {publicToolInfo,isGuardedTestWrite,isGuardedLiveWrite} from './profiles.js';
 import {projectFields} from '../tools/result-rules.js';
 
 // HTTP authentication scheme tokens are case-insensitive; pass bytes are not.
@@ -40,7 +40,7 @@ const allowedTool=(registry,name,connection)=>registry.tools.find(t=>{
   if(moneyTool(t)&&(!Number.isSafeInteger(connection?.moneyLimitCents)||
     connection.moneyLimitCents<=0))return false;
   return connection?.allowWrites===true&&
-    isGuardedTestWrite(t,connection);
+    (isGuardedTestWrite(t,connection)||isGuardedLiveWrite(t,connection));
 })??null;
 const metadata=(t,connection)=>{
   const info=publicToolInfo(t);
@@ -138,9 +138,9 @@ export function rtcManifest(registry,deployment={}){
     counts:{tools:exposed.length,writes:exposed.filter(t=>t.writes===true).length,
       money:exposed.filter(moneyTool).length},
     profiles:['read_only','everyday','full'],listingModes:['compact','catalog'],
-    modes:['test'],devTools:true,
+    modes:['test','live'],devTools:true,
     conformanceStatus:'pending_external_approval_and_conformance',
-    access:'owner_scoped_TEST_passes',
+    access:'owner_scoped_passes_with_independent_LIVE_activation',
     ...(sha&&ref&&environment?{deployment:{sha,ref,environment}}:{})};
 }
 export function rtcOpenApi(){
@@ -263,18 +263,21 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       return send(res,403,err('refused_by_guard',403).body);
     // Never coerce null/false/string claims into financial and rate limits.
     // PostgreSQL INTEGER/BOOLEAN columns return native numbers/booleans.
-    if(pass.mode!=='test'||!PASS_PROFILES.has(pass.profile)||
+    if(!['test','live'].includes(pass.mode)||!PASS_PROFILES.has(pass.profile)||
       typeof pass.allow_writes!=='boolean'||
       pass.allow_writes&&pass.profile==='read_only'||
       !Number.isSafeInteger(pass.money_limit_cents)||
       pass.money_limit_cents<0||
       pass.money_limit_cents>0&&!pass.allow_writes||
+      (pass.mode==='live'&&pass.money_limit_cents!==0)||
       !Number.isInteger(pass.rate_limit_per_minute)||
       pass.rate_limit_per_minute<1||pass.rate_limit_per_minute>600)
       return send(res,403,err('refused_by_guard',403).body);
     try{
       const owner=await db.getStripeAccount(pass.stripe_account);
-      if(!owner?.test_connected)
+      if(pass.mode==='test'&&!owner?.test_connected||
+        pass.mode==='live'&&(!owner?.live_connected||owner?.live_enabled!==true||
+          process.env.VERCEL_ENV!=='production'))
         return send(res,403,err('refused_by_guard',403).body);
       // Reserve each TEST request or every batch read atomically before dispatch.
       const calls=route==='batch'&&req.method==='POST'?req.body?.calls:null;
@@ -290,11 +293,12 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       pass.areas.some(a=>typeof a!=='string'||!/^[a-z][a-z_]{0,49}$/.test(a))))
       return send(res,403,err('outside_scope',403).body);
     const connection={clientId:pass.client_id,stripeAccount:pass.stripe_account,
-      mode:'test',profile:pass.profile,listing:'compact',
+      mode:pass.mode,profile:pass.profile,listing:'compact',
+      rtcLiveOwnerApproved:pass.mode==='live'&&pass.allow_writes===true,
       allowWrites:pass.allow_writes,moneyLimitCents:pass.money_limit_cents,
       resultScope:pass.result_scope,areas:pass.areas??null};
     const success=(result,handle)=>send(res,200,{
-      ok:true,result,...(handle?{handle,mode:'test'}:{mode:'test'})});
+      ok:true,result,...(handle?{handle,mode:pass.mode}:{mode:pass.mode})});
     const error=(code,status=400)=>send(res,status,err(CODE.has(code)?code:'service_error',status).body);
     // A provider/storage failure is not a permission refusal. Preserve the
     // machine-readable RTC reason and the matching HTTP status for all doors.
@@ -302,7 +306,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       code==='not_found'?404:code==='service_error'?503:403;
     if(route==='whoami'){
       if(req.method!=='GET')return error('invalid_args',405);
-      return success({account:pass.stripe_account,mode:'test',profile:pass.profile,
+      return success({account:pass.stripe_account,mode:pass.mode,profile:pass.profile,
         listing:connection.listing,allowWrites:pass.allow_writes,
         moneyLimitCents:pass.money_limit_cents,
         rateLimitPerMinute:pass.rate_limit_per_minute,
