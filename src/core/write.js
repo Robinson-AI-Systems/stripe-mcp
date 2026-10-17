@@ -132,10 +132,10 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
       return respond({ done: false, confirmed: false, idempotencyKey: key,
         warning: 'Provider outcome may have changed; could not finalize money reservation' }, true);
     }
-    let inverseOperation;
+    let inverseOperation, finalizedAuditId;
     try {
       inverseOperation = completed ? await inverse(before, observed, args, ctx) : null;
-      await ctx.db.recordChange({ account: connection.stripeAccount, mode: connection.mode,
+      finalizedAuditId = await ctx.db.recordChange({ account: connection.stripeAccount, mode: connection.mode,
         connection: ctx.connectionId ?? null, tool: name, summary: status === 'rejected' ? 'REJECTED: ' + summary : summary,
         before: null, after: null, dryRun: false, idempotencyKey: key,
         inverse: inverseOperation, amountCents: status === 'rejected' ? null : (prepared?.amountCents ?? null),
@@ -161,6 +161,8 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     }
     return respond({ done: completed, confirmed: completed, mode: connection.mode,
       idempotencyKey: key, summary,
+      ...(Number.isSafeInteger(finalizedAuditId)&&finalizedAuditId>0?
+        {logged:{id:finalizedAuditId}}:{}),
       ...(verifiedResourceId ? { resourceId: verifiedResourceId } : {}),
       ...(receiptWarning ? { warning: receiptWarning } : !completed ? { warning: status === 'rejected'
         ? 'Stripe definitively rejected the request; no money moved and the reservation was released'
