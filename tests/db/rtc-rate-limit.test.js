@@ -26,6 +26,29 @@ describe('atomic shared RTC pass rate ceiling',()=>{
     expect(results.filter(Boolean)).toHaveLength(120);
     expect(results.filter(x=>!x)).toHaveLength(30);
   });
+  it('never allocates an initial multi-read batch beyond the owner cap',async()=>{
+    const short='rtc_pass_'+randomBytes(32).toString('base64url');
+    expect(await db.createRtcPass({id:'rtc-agent-rate-unitcap',account,token:short,
+      profile:'read_only',areas:['server'],rateLimitPerMinute:5,
+      expiresAt:new Date(Date.now()+3600000)})).toBe(true);
+    expect(await db.consumeRtcPassRate({token:short,limit:5,units:10})).toBe(false);
+    expect(await db.consumeRtcPassRate({token:short,limit:5,units:5})).toBe(true);
+    expect(await peer.consumeRtcPassRate({token:short,limit:5,units:1})).toBe(false);
+    const rows=await rawQuery('SELECT count FROM rtc_pass_rates WHERE token_hash=$1',
+      [(await rawQuery('SELECT token_hash FROM oauth_tokens WHERE client_id=$1',
+        ['rtc-agent-rate-unitcap']))[0].token_hash]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].count).toBe(5);
+  });
+  it('sweeps expired rate-window rows without affecting current pass grants',async()=>{
+    const hash=(await rawQuery('SELECT token_hash FROM oauth_tokens WHERE client_id=$1',
+      ['rtc-agent-ratetests']))[0].token_hash;
+    await rawQuery("INSERT INTO rtc_pass_rates(token_hash,window_start,count) VALUES ($1,date_trunc('minute',now())-interval '2 hours',7)",
+      [hash]);
+    expect(await db.consumeRtcPassRate({token,limit:120})).toBe(false);
+    const stale=await rawQuery("SELECT count FROM rtc_pass_rates WHERE token_hash=$1 AND window_start<date_trunc('minute',now())-interval '1 hour'",[hash]);
+    expect(stale).toHaveLength(0);
+  });
   it('revokes a TEST RTC pass through the existing independent owner intent',async()=>{
     const id='B'.repeat(32);
     expect(await db.requestConnectionRevokeIntent({id,account,
