@@ -538,8 +538,8 @@ describe('all owner setup workflows — private UX, isolation and safe GET',()=>
     for(const action of actions){
       expect(html.split('name="action" value="'+action+'"')).toHaveLength(2);
     }
-    expect(html.match(/<details class="owner-group"/g)).toHaveLength(11);
-    expect(html.match(/<\/details>/g)).toHaveLength(11);
+    expect(html.match(/<details class="owner-group"/g)).toHaveLength(12);
+    expect(html.match(/<\/details>/g)).toHaveLength(12);
     expect(html).toContain('id="rtc-delegated-pass"');
     expect(html).toContain('id="webhook-tools"');
     expect(html).toContain('id="rtc-pass-tools"');
