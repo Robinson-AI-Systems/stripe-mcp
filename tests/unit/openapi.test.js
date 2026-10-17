@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
+import {readFileSync} from 'node:fs';
 import { loadPinnedOpenApi, searchOperations, PINNED_VERSION, SOURCE_GIT_BLOB, SOURCE_SHA256 } from '../../scripts/stripe-openapi.mjs';
 
 describe('immutable pinned Stripe API operation catalog', () => {
   const source = loadPinnedOpenApi();
+  it('packages all immutable OpenAPI source parts into Vercel serverless routes',()=>{
+    const config=JSON.parse(readFileSync('vercel.json','utf8'));
+    expect(config.functions?.['api/**/*.js']?.includeFiles)
+      .toBe('vendor/stripe-openapi/**');
+    expect(config.git.deploymentEnabled).toMatchObject({
+      main:false,live:true});
+  });
   it('reconstructs the exact published v2556 blob, with its pinned version', () => {
     expect(source.gitBlob).toBe(SOURCE_GIT_BLOB);
     expect(source.spec.info.version).toBe(PINNED_VERSION);

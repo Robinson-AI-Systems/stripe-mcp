@@ -1,3 +1,9 @@
+## U-1 universal API operations — owner TEST account controls, independently authorized execution
+
+The four `api_search`, `api_describe`, `api_read`, `api_write` tools use the checksum-verified immutable Stripe operation schema. Discovery classifies native/writes/unknown money risks and names preferred guarded native tools. Reads support actual authorized owner fields with recursive credential redaction; generic unknown body/path parameters are rejected. Selected TEST `full` `api_write` permits genuinely verified nonmoney operations such as tax rates, coupons, shipping rates and Terminal location configuration, with separate preview, confirmation, app-ownership selection, durable audit, original idempotency and exact provider readback. A protected deleted resource must return provider `deleted:true` plus definitive 404/410. Unknown fees or later financial effects are disclosed rather than invented as $0.
+
+The development agent's $0 autonomous spending and LIVE OFF are *not* permanent end-user capabilities. Every money-out operation still requires the original independently authenticated account/target/amount owner grant. Unclassified financial and unsafe operations remain clearly named implementation gaps pending owner-compatible provider-derived preflight/adapters, not categorical product decisions. Actual selected custom provider acceptance remains PENDING until checked READY source deployment and authorized disposable fixtures. No LIVE/real money action in this source delivery.
+
 ## W-9/W-10 final original Batch W operations — TEST source awaiting checked deployment
 
 The final two approved workflows reuse the exact original native tool registry and guarded writes; they do not connect to an unverified standard Stripe account or grant any LIVE access.

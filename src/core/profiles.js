@@ -30,7 +30,8 @@ export function isGuardedTestWrite(tool,connection){
     tool?.writeContract==='defineWrite-v1'&&
     (guardedTestAreas.has(tool.area)||
       (tool.area==='workflows'&&connection?.profile==='full'&&
-        fullOwnerWorkflowWrites.has(tool.name)))&&
+        fullOwnerWorkflowWrites.has(tool.name))||
+      (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
@@ -53,11 +54,12 @@ export function publicToolInfo(tool) {
   // Workflow readers intentionally have strict, task-specific inputs.
   // Do not advertise phantom detail/fields arguments that their original
   // validator rejects; keep universal controls on native readers only.
-  if(tool.writes===false&&!tool.name.startsWith('workflow_')){
+  if(tool.writes===false&&!tool.name.startsWith('workflow_')&&
+    !tool.name.startsWith('api_')){
     if(!Object.hasOwn(properties,'detail'))properties.detail={
-      type:'string',enum:['summary','full'],description:'Summary by default; full retains all safe fields'};
+      type:'string',enum:['summary','full'],description:'Safe summary or full'};
     if(!Object.hasOwn(properties,'fields'))properties.fields={
-      type:'string',maxLength:600,description:'Up to 12 comma-separated dotted field paths'};
+      type:'string',maxLength:600,description:'Max 12 dotted paths'};
   }
   return {...rest,inputSchema:{...schema,properties},
     annotations:{...rest.annotations,readOnlyHint:tool.writes===false,
