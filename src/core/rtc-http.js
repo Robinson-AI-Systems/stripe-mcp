@@ -1,5 +1,6 @@
-// RTC 1-compatible HTTPS read-only TEST slice. Passes never authenticate MCP.
-// This public door cannot execute writes, even through meta-tools or batch.
+// RTC 1 HTTPS pass door: owner-scoped TEST reads and explicitly guarded writes.
+// Passes never authenticate MCP, batch stays strictly read-only, and all
+// provider money movement still needs its native independent owner gate.
 import {incomingBodyWithinLimit,safePreparsedObject,send} from './http.js';
 import {dispatchReadOnlyTool} from './mcp-server.js';
 import {publicToolInfo,isGuardedTestWrite} from './profiles.js';
@@ -33,6 +34,10 @@ const allowedTool=(registry,name,connection)=>registry.tools.find(t=>{
   if(alias(t.name)!==name||!inScope(t,connection?.areas)||
     !t.profiles?.includes(connection?.profile))return false;
   if(t.writes===false)return !moneyTool(t)&&t.destructive!==true;
+  // Until the delegated pass ceiling is enforced against the provider-derived
+  // amount at the native reservation boundary, never expose money-out through
+  // this door. A general allowWrites flag is not a payment approval.
+  if(moneyTool(t))return false;
   return connection?.allowWrites===true&&
     isGuardedTestWrite(t,connection);
 })??null;
@@ -267,7 +272,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       const owner=await db.getStripeAccount(pass.stripe_account);
       if(!owner?.test_connected)
         return send(res,403,err('refused_by_guard',403).body);
-      // Reserve every TEST batch read atomically before the first handler.
+      // Reserve each TEST request or every batch read atomically before dispatch.
       const calls=route==='batch'&&req.method==='POST'?req.body?.calls:null;
       const units=Array.isArray(calls)&&calls.length>=1&&calls.length<=10?
         calls.length:1;
@@ -318,7 +323,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
         (!area||t.area===area)&&
         (!needle||alias(t.name).includes(needle)||
           t.description?.toLowerCase().includes(needle))&&
-        (!audience||metadata(t).audience.includes(audience)));
+        (!audience||metadata(t,connection).audience.includes(audience)));
       if((listing??'catalog')==='compact')
         tools=tools.filter(t=>['stripe_whoami','stripe_search_tools','stripe_describe_tool',
           'stripe_call','stripe_batch','stripe_get_result'].includes(t.name));
