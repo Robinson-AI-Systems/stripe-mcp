@@ -37,3 +37,73 @@ export function createReadOnlyTestPassIssuer({db,oneTimeStore,
       lifetimeHours:hours,areas:selectedAreas};
   };
 }
+
+
+// RTC 1 owner-configured passes. This issuer is invoked ONLY after the server's
+// private owner setup passphrase+CSRF gate; it never trusts a tool-supplied
+// "authenticated" boolean. The existing read-only issuer remains unchanged
+// for short-lived TEST Hub acceptance fixtures.
+const PROFILES=new Set(['read_only','everyday','full']);
+function passAreas(areas,available){
+  const items=typeof areas==='string'?areas.split(',').map(x=>x.trim()):areas;
+  if(!Array.isArray(items)||items.length<1||items.length>6||
+    items.some(x=>typeof x!=='string'||!/^[a-z][a-z_]{0,49}$/.test(x)||
+      !available.has(x))||new Set(items).size!==items.length)
+    throw new TypeError('Choose 1–6 distinct allowed service areas');
+  return items;
+}
+export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server'],
+  verifyOwner,now=()=>Date.now()}){
+  if(typeof db?.createRtcPass!=='function'||typeof db.getStripeAccount!=='function'||
+    typeof oneTimeStore?.issue!=='function'||typeof verifyOwner!=='function')
+    throw new TypeError('Protected owner pass dependencies unavailable');
+  const available=new Set(availableAreas);
+  return async function issueOwnerPass({account,mode='test',profile='read_only',
+    areas='server',allowWrites=false,moneyLimitCents=0,rateLimitPerMinute=120,
+    hours=24,forHub=false,confirm=false}={}){
+    // A submitted form value is never proof of the owner's identity.
+    if(await verifyOwner({account})!==true||confirm!==true)
+      throw new TypeError('Authenticated independent owner confirmation required');
+    if(typeof account!=='string'||!/^acct_[A-Za-z0-9]{2,100}$/.test(account)||
+      !PROFILES.has(profile)||typeof allowWrites!=='boolean'||
+      typeof forHub!=='boolean'||!Number.isInteger(hours)||hours<1||
+      hours>(forHub?365:30)*24||
+      !Number.isInteger(rateLimitPerMinute)||rateLimitPerMinute<1||
+      rateLimitPerMinute>600||
+      !Number.isSafeInteger(moneyLimitCents)||moneyLimitCents<0||
+      (allowWrites&&profile==='read_only')||
+      (moneyLimitCents>0&&!allowWrites))
+      throw new TypeError('Invalid owner-selected RTC scope/expiry/rate/financial policy');
+    // Production owner activation is a separate B-8 passphrase reauthentication
+    // step; the owner form cannot silently convert a TEST grant into LIVE.
+    if(mode!=='test')throw new TypeError('Owner LIVE pass requires separate activated account and reauthentication');
+    const selectedAreas=passAreas(areas,available);
+    const selected=await db.getStripeAccount(account);
+    if(!selected?.test_connected)
+      throw new TypeError('TEST account is not enrolled with a valid owner credential');
+    const id='rtc-agent-'+randomBytes(12).toString('hex');
+    const token='rtc_pass_'+randomBytes(32).toString('base64url');
+    if(!RTC_PASS_PATTERN.test(token))
+      throw new TypeError('Cryptographic RTC pass generation failed');
+    const expiresAt=new Date(now()+hours*3_600_000);
+    const grant={id,account,token,mode:'test',profile,areas:selectedAreas,
+      allowWrites,moneyLimitCents,forHub,rateLimitPerMinute,expiresAt};
+    if(await db.createRtcPass(grant)!==true)
+      throw new TypeError('Selected account cannot issue that RTC pass');
+    let issued;
+    try{
+      issued=await oneTimeStore.issue({account,mode:'test',kind:'rtc-pass',secret:token});
+      if(!/^\\/api\\/stripe\\/setup\\?show=[A-Za-z0-9_-]{32}$/.test(issued?.setupPath))
+        throw new TypeError('Private one-time reveal path unavailable');
+    }catch(error){
+      // No unusable bearer survives a failed private one-time handoff.
+      await db.revokeAccessToken(token).catch(()=>{});
+      throw error;
+    }
+    return {id,account,mode:'test',profile,areas:selectedAreas,
+      allowWrites,moneyLimitCents,forHub,rateLimitPerMinute,expiresAt,
+      lifetimeHours:hours,setupPath:issued.setupPath,
+      notice:moneyLimitCents>0?'This is a delegated ceiling, not an independent money-out approval.':
+        'No delegated money-out ceiling; any financial execution remains independently guarded.'};
+  };
+}
