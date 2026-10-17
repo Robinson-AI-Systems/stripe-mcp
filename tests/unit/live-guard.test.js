@@ -60,7 +60,8 @@ describe('B-2 server-owned LIVE write boundary (fake Stripe only)', () => {
     const result=parse(await op.handler({},ctx));
     expect(result.mode).toBe('LIVE');
     expect(result.done).toBe(false);
-    expect(calls.reads).toBe(0);
+    expect(result.needsConfirmation).toBe(true);
+    expect(calls.reads).toBe(1);
     expect(calls.writes).toBe(0);
   });
   it('runs only the isolated fake when all server-owned conditions are satisfied', async () => {
