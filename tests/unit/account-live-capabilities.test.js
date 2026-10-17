@@ -124,8 +124,10 @@ describe('G-5c/d authentic owner LIVE nonmoney account operations',()=>{
     expect(noGrant.events.updates).toBe(0);
     const disabled=fixture({accountEnabled:false});
     expect((await settingHandlers.account_list_payment_method_settings({},disabled.ctx)).isError).toBe(true);
-    await expect(addHandlers.account_add_apple_pay_domain({
-      domain,confirm:true},disabled.ctx)).rejects.toThrow();
+    const disabledAdd=await addHandlers.account_add_apple_pay_domain({
+      domain,confirm:true},disabled.ctx);
+    expect(disabledAdd.isError).toBe(true);
+    expect(parse(disabledAdd).done).toBe(false);
     expect(disabled.events.creates).toBe(0);
     const wrongMode=fixture({providerMode:'test'});
     expect((await domainHandlers.account_list_apple_pay_domains({},wrongMode.ctx)).isError).toBe(true);
