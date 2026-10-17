@@ -306,7 +306,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         mode==='live'&&accountRows.get(account)?.live_enabled===true?
           encryptedLiveKeys.get(account):null;
       return row?{ciphertext:row.ciphertext}:null;
-    }
+    },
     async addOneTimeSecret({ id, account, mode, kind, ciphertext, expiresAt }) {
       oneTimeSecrets.set(id, { stripe_account: account, mode, kind, ciphertext,
         expires_at: new Date(expiresAt).getTime() });
