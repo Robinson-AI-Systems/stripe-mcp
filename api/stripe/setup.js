@@ -8,7 +8,7 @@ import { createReportDownloader } from '../../src/stripe/report-download.js';
 import { createWebhookSignatureStore, createOwnerWebhookProvisioner } from '../../src/webhooks/signature-store.js';
 import { makeStripeClient } from '../../src/stripe/client.js';
 import {createOwnerSmokeRunner} from '../../src/acceptance/owner-smoke-runner.js';
-import {createReadOnlyTestPassIssuer} from '../../src/core/rtc-passes.js';
+import {createReadOnlyTestPassIssuer,createOwnerPassIssuer} from '../../src/core/rtc-passes.js';
 import {registry} from '../../src/tools/index.js';
 
 // A serverless isolate shares one schema gate across its warm requests.
@@ -54,6 +54,11 @@ export default async function handler(req, res) {
         availableAreas:[...new Set(registry.tools.filter(t=>t.writes===false&&
           t.money!==true&&t.destructive!==true&&
           t.profiles?.includes('read_only')).map(t=>t.area??'server'))]}):null,
+      issueOwnerRtcPass:configured?createOwnerPassIssuer({db,oneTimeStore,
+        availableAreas:[...new Set(registry.tools.map(t=>t.area??'server'))],
+        // createSetupHandler invokes the issuer only AFTER its own verified
+        // CSRF+private passphrase/lockout gate. Never expose this closure on MCP.
+        verifyOwner:async()=>true}):null,
       reportDownload:configured?createReportDownloader({db,keyStore}):null })(req, res);
   } catch {
     if (!res.headersSent) return res.status(503).json({
