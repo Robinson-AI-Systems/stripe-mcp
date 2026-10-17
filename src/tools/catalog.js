@@ -1,8 +1,9 @@
 // E-1: native TEST catalog. Prices are immutable financial terms, not editable amounts.
 // All writes use the original guarded/audited Stripe write lifecycle.
 import {defineWrite,gone} from './write.js';
-import {client,guarded,allProfiles,writeProfiles,fullProfiles,
-  paging,pageResult} from './billing-shared.js';
+import {allProfiles,writeProfiles,fullProfiles,paging,pageResult} from './billing-shared.js';
+import {catalogClient,guardedCatalog,catalogMode} from './catalog-mode.js';
+import {authorizeLiveWrite} from './live-guard.js';
 import {APP_METADATA_KEYS,findAppOwnership,annotateAppRead} from './app-guard.js';
 
 const string=(max=160)=>({type:'string',minLength:1,maxLength:max});
@@ -34,17 +35,17 @@ function checkMetadata(value,ctx){
   if(ctx?._catalogProfileKeys&&Object.keys(value).some(k=>
     ctx._catalogProfileKeys.includes(k)))err('A bound application owns this metadata marker');
 }
-const productSafe=v=>{
-  if(!matches(v?.id,'prod')||v.object!=='product'||v.livemode!==false)
-    err('Complete TEST product was not confirmed by Stripe');
+const productSafe=(v,mode='test')=>{
+  if(!matches(v?.id,'prod')||v.object!=='product'||v.livemode!==(mode==='live'))
+    err('Complete selected-mode product was not confirmed by Stripe');
   return {id:v.id,name:v.name??null,active:v.active===true,
     description:v.description??null,defaultPrice:typeof v.default_price==='string'?
       v.default_price:v.default_price?.id??null,
     metadata:v.metadata??{},created:v.created??null};
 };
-const priceSafe=v=>{
-  if(!matches(v?.id,'price')||v.object!=='price'||v.livemode!==false)
-    err('Complete TEST price was not confirmed by Stripe');
+const priceSafe=(v,mode='test')=>{
+  if(!matches(v?.id,'price')||v.object!=='price'||v.livemode!==(mode==='live'))
+    err('Complete selected-mode price was not confirmed by Stripe');
   const product=typeof v.product==='string'?v.product:v.product?.id;
   if(!matches(product,'prod'))err('Price has no verifiable product');
   return {id:v.id,product,active:v.active===true,
@@ -89,49 +90,51 @@ const read=(name,description,props,required=[])=>({
   name,description,area:'catalog',profiles:allProfiles,writes:false,
   annotations:{readOnlyHint:true},inputSchema:schema(props,required)});
 export const tools=[
-  read('product_list','List TEST products with bounded paging.',{...listArgs,active:yes}),
-  read('product_get','Read exact TEST product and app-owned metadata.',{productId},['productId']),
-  read('product_search','Search TEST products with a bounded provider query.',
+  read('product_list','List selected TEST/LIVE products with bounded paging.',{...listArgs,active:yes}),
+  read('product_get','Read exact selected TEST/LIVE product and app-owned metadata.',{productId},['productId']),
+  read('product_search','Search selected TEST/LIVE products with a bounded provider query.',
     {query:string(220),limit:listArgs.limit,page:string(110)},['query']),
-  read('price_list','List TEST prices for a product or exact lookup key.',
+  read('price_list','List selected TEST/LIVE prices for a product or exact lookup key.',
     {...listArgs,productId,lookupKey:string(100),active:yes}),
-  read('price_get','Read exact TEST price terms (immutable amount and cadence).',
+  read('price_get','Read exact selected TEST/LIVE price terms (immutable amount and cadence).',
     {priceId},['priceId']),
-  read('price_search','Search TEST prices with bounded provider query.',
+  read('price_search','Search selected TEST/LIVE prices with bounded provider query.',
     {query:string(220),limit:listArgs.limit,page:string(110)},['query'])
 ];
 const readOnly={
-  product_list:async(a,ctx)=>guarded(ctx,async s=>{
+  product_list:async(a,ctx)=>guardedCatalog(ctx,async s=>{
     checkArgs(a,['limit','starting_after','active']);
     if(a.active!==undefined&&typeof a.active!=='boolean')err('Invalid active filter');
     return pageResult(await s.products.list({...paging(a),
-      ...(a.active===undefined?{}:{active:a.active})}),productSafe);
+      ...(a.active===undefined?{}:{active:a.active})}),v=>productSafe(v,ctx.connection.mode));
   }),
-  product_get:async(a,ctx)=>guarded(ctx,async s=>{
+  product_get:async(a,ctx)=>guardedCatalog(ctx,async s=>{
     checkArgs(a,['productId'],['productId']);
-    return annotateAppRead(productSafe(await s.products.retrieve(a.productId)),ctx);
+    return annotateAppRead(productSafe(await s.products.retrieve(a.productId),
+      ctx.connection.mode),ctx);
   }),
-  product_search:async(a,ctx)=>guarded(ctx,async s=>{
+  product_search:async(a,ctx)=>guardedCatalog(ctx,async s=>{
     const p=await s.products.search(searchQuery(a));
-    const page=pageResult(p,productSafe);
+    const page=pageResult(p,v=>productSafe(v,ctx.connection.mode));
     return {...page,next:p.has_more?p.next_page??null:null};
   }),
-  price_list:async(a,ctx)=>guarded(ctx,async s=>{
+  price_list:async(a,ctx)=>guardedCatalog(ctx,async s=>{
     checkArgs(a,['limit','starting_after','productId','lookupKey','active']);
     if(a.lookupKey!==undefined&&!safeLookup(a.lookupKey))err('Invalid lookup key');
     if(a.active!==undefined&&typeof a.active!=='boolean')err('Invalid active filter');
     return pageResult(await s.prices.list({...paging(a),
       ...(a.productId?{product:a.productId}:{}),
       ...(a.lookupKey?{lookup_keys:[a.lookupKey]}:{}),
-      ...(a.active===undefined?{}:{active:a.active})}),priceSafe);
+      ...(a.active===undefined?{}:{active:a.active})}),v=>priceSafe(v,ctx.connection.mode));
   }),
-  price_get:async(a,ctx)=>guarded(ctx,async s=>{
+  price_get:async(a,ctx)=>guardedCatalog(ctx,async s=>{
     checkArgs(a,['priceId'],['priceId']);
-    return annotateAppRead(priceSafe(await s.prices.retrieve(a.priceId)),ctx);
+    return annotateAppRead(priceSafe(await s.prices.retrieve(a.priceId),
+      ctx.connection.mode),ctx);
   }),
-  price_search:async(a,ctx)=>guarded(ctx,async s=>{
+  price_search:async(a,ctx)=>guardedCatalog(ctx,async s=>{
     const p=await s.prices.search(searchQuery(a));
-    const page=pageResult(p,priceSafe);
+    const page=pageResult(p,v=>priceSafe(v,ctx.connection.mode));
     return {...page,next:p.has_more?p.next_page??null:null};
   })
 };
@@ -152,8 +155,8 @@ const specs=[
     props:{priceId,nickname:string(350),lookupKey:string(100),metadata,active:yes}}
 ];
 async function profileBoundary(ctx){
-  if(ctx?.connection?.mode!=='test'||!matches(ctx.connection.stripeAccount,'acct'))
-    err('Selected TEST account required for catalog');
+  if(!catalogMode(ctx)||!matches(ctx.connection.stripeAccount,'acct'))
+    err('Selected authenticated account required for catalog');
   if(!ctx.db?.listKnownAppsForAccount||!ctx.db?.getAppGuardScope)
     err('Account-scoped application ownership cannot be verified');
   let apps,scope;
@@ -169,8 +172,8 @@ async function profileBoundary(ctx){
   }
   return {keys:[...keys],apps,warning:apps.some(x=>x.profile?.owns_catalog===true)};
 }
-function mutableMatch(before,after,a,kind){
-  const value=kind==='price'?priceSafe(after):productSafe(after);
+function mutableMatch(before,after,a,kind,mode='test'){
+  const value=kind==='price'?priceSafe(after,mode):productSafe(after,mode);
   if(kind==='price'){
     if(before?.id&&value.id!==before.id)return false;
     if(a.lookupKey!==undefined&&value.lookupKey!==a.lookupKey)return false;
@@ -193,9 +196,9 @@ async function exactLookup(s,key){
     err('Could not resolve a unique complete price lookup key');
   return page.data[0]??null;
 }
-function priceMatches(p,a){
+function priceMatches(p,a,mode='test'){
   if(!p)return false;
-  const x=priceSafe(p);
+  const x=priceSafe(p,mode);
   return x.product===a.productId&&x.active&&x.currency===a.currency&&
     x.unitAmountCents===a.unitAmountCents&&x.lookupKey===a.lookupKey&&
     x.type===(a.interval?'recurring':'one_time')&&
@@ -208,6 +211,7 @@ function makeWrite(def){
   const n=def.name,price=n.startsWith('price_'),creation=n.endsWith('_create');
   const op=defineWrite({
     name:n,
+    modeGuard:(_a,ctx)=>authorizeLiveWrite({ctx}),
     resultId:(_before,after)=>after?.deleted?null:after?.id,
     read:async(a,ctx)=>{
       createdId=null;existingId=null;deletedReceipt=null;
@@ -220,15 +224,15 @@ function makeWrite(def){
       scope=await profileBoundary(ctx);
       if(a.metadata!==undefined&&Object.keys(a.metadata).some(k=>scope.keys.includes(k)))
         err('Application-owned marker is never writable from native catalog');
-      const s=await client(ctx);
+      const s=await catalogClient(ctx);
       if(n==='product_create')return {id:null,object:'product',metadata:{}};
       if(n==='price_create'){
         const product=await s.products.retrieve(a.productId);
-        productSafe(product);
+        productSafe(product,ctx.connection.mode);
         const owner=await findAppOwnership(product,ctx);
         if(owner?.unknown||owner)err('Price creation for app-owned or uncertain product denied');
         const existing=await exactLookup(s,a.lookupKey);
-        if(existing&&!priceMatches(existing,a))
+        if(existing&&!priceMatches(existing,a,ctx.connection.mode))
           err('Lookup key exists with different immutable product, amount or cadence');
         if(existing){
           const recordOwner=await findAppOwnership(existing,ctx);
@@ -239,12 +243,12 @@ function makeWrite(def){
       }
       const b=price?await s.prices.retrieve(a.priceId):
         await s.products.retrieve(a.productId);
-      (price?priceSafe:productSafe)(b);
+      (price?priceSafe:productSafe)(b,ctx.connection.mode);
       const owner=await findAppOwnership(b,ctx);
       if(owner?.unknown||owner)err('Application-owned or uncertain catalog record cannot be mutated');
       if(price){
         const parent=await s.products.retrieve(typeof b.product==='string'?b.product:b.product?.id);
-        productSafe(parent);
+        productSafe(parent,ctx.connection.mode);
         const parentOwner=await findAppOwnership(parent,ctx);
         if(parentOwner)err('Price parent product is app-owned or ownership is uncertain');
       }
@@ -257,11 +261,12 @@ function makeWrite(def){
       }
       return b;
     },
-    summarize:(b,a)=>'TEST MODE: '+n+' on '+(a.productId||a.priceId||'new product')+
+    summarize:(b,a,ctx)=>ctx.connection.mode.toUpperCase()+' MODE: '+n+' on '+(a.productId||a.priceId||'new product')+
       '. Exact preview/confirmation, stable retry key and provider readback required.'+
       (scope?.warning?' A bound app owns its own catalog; this independent record is not an app-owned record.':'')+
       (n==='product_delete'?' DESTRUCTIVE: no prices may exist.':'')+
-      (n==='price_create'&&existingId?' Existing exact lookup key will be reused; no second price.':''),
+      (n==='price_create'&&existingId?' Existing exact lookup key will be reused; no second price.':'')+
+      (ctx.connection.mode==='live'?' LIVE prices and product availability may affect real customer Checkout and future charges; review all financial terms.':''),
     targetGuard:async(a,ctx,b)=>{
       // Never allow an outsideApp override for catalog products or prices.
       if(a.outsideApp===true)return 'App-owned catalog override not permitted';
@@ -272,7 +277,7 @@ function makeWrite(def){
       return true;
     },
     apply:async(a,ctx,{idempotencyKey})=>{
-      const s=await client(ctx),opts={idempotencyKey};
+      const s=await catalogClient(ctx),opts={idempotencyKey};
       if(n==='product_create'){
         const product=await s.products.create({
           name:a.name,...(a.description?{description:a.description}:{}),
@@ -305,7 +310,7 @@ function makeWrite(def){
         ...(a.active!==undefined?{active:a.active}:{})},opts);
     },
     readAfter:async(a,ctx)=>{
-      const s=await client(ctx);
+      const s=await catalogClient(ctx);
       if(n==='product_delete'){
         try{return await s.products.retrieve(a.productId);}
         catch(e){
@@ -326,17 +331,17 @@ function makeWrite(def){
       }
       return s.prices.retrieve(a.priceId);
     },
-    verify:async(b,after,a)=>{
+    verify:async(b,after,a,ctx)=>{
       if(n==='product_delete')return after?.id===a.productId&&after.deleted===true;
       if(n==='product_archive'||n==='product_unarchive')
-        return productSafe(after).id===a.productId&&
+        return productSafe(after,ctx.connection.mode).id===a.productId&&
           after.active===(n==='product_unarchive');
       if(n==='product_create')
-        return after?.id===createdId&&mutableMatch(b,after,a,'product');
-      if(n==='product_update')return mutableMatch(b,after,a,'product');
+        return after?.id===createdId&&mutableMatch(b,after,a,'product',ctx.connection.mode);
+      if(n==='product_update')return mutableMatch(b,after,a,'product',ctx.connection.mode);
       if(n==='price_create')return after?.id===(existingId??createdId)&&
-        priceMatches(after,a);
-      if(n==='price_update')return mutableMatch(b,after,a,'price')&&
+        priceMatches(after,a,ctx.connection.mode);
+      if(n==='price_update')return mutableMatch(b,after,a,'price',ctx.connection.mode)&&
         after.unit_amount===b.unit_amount&&after.currency===b.currency&&
         JSON.stringify(after.recurring??null)===JSON.stringify(b.recurring??null)&&
         (typeof after.product==='string'?after.product:after.product?.id)===
@@ -344,14 +349,14 @@ function makeWrite(def){
       return false;
     }
   });
-  return {...op,handler:(a,ctx)=>ctx?.connection?.mode==='test'?
-    op.handler(a,ctx):gone('Native catalog mutation is TEST-only')};
+  return {...op,handler:(a,ctx)=>catalogMode(ctx)?
+    op.handler(a,ctx):gone('Selected Stripe account mode required')};
 }
 tools.push(...specs.map(def=>({...makeWrite(def).tool,area:'catalog',
   profiles:def.full?fullProfiles:writeProfiles,
   description:def.name==='price_update'?
     'Change only nickname, lookup key, metadata or active status; immutable amount/cadence are refused.':
-    'Guarded TEST catalog write with app ownership, confirmation and provider readback.',
+    'Guarded selected TEST/LIVE catalog write with app ownership, confirmation and provider readback.',
   ...(def.destructive?{annotations:{destructiveHint:true}}:{}),
   inputSchema:schema({...def.props,...flags},def.required)})));
 export const handlers={...readOnly,...Object.fromEntries(specs.map(d=>[
