@@ -81,7 +81,7 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const names=listingForConnection(registry,{mode:'test',profile:'full',
       listing:'catalog'}).map(t=>t.name);
     expect(names).toContain('webhook_add_events');
-    expect(names).toContain('account_update_payment_method_preference');
+    expect(names).toContain('account_update_payment_method_settings');
   });
   it('shows a guarded LIVE operation only after separate owner LIVE delegation',()=>{
     const tool=registry.tools.find(t=>t.name==='api_write');
