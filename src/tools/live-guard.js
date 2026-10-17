@@ -11,7 +11,7 @@ export function isRecentOwnerVerification({ confirmed, verifiedAt, now = Date.no
     now - verifiedAt <= LIVE_REAUTH_WINDOW_MS;
 }
 
-export async function authorizeLiveWrite({ args, ctx, env = process.env }) {
+export async function authorizeLiveWrite({ ctx, env = process.env }) {
   const connection = ctx?.connection;
   if (connection?.mode === 'test') return true;
   if (connection?.mode !== 'live' || !connection.stripeAccount ||
