@@ -82,7 +82,7 @@ export function createOwnerPassIssuer({db,oneTimeStore,availableAreas=['server']
     if(!['test','live'].includes(mode)||
       (mode==='live'&&(liveConfirm!==true||
         (allowWrites&&liveWriteConfirm!==true)||
-        (moneyLimitCents>0&&liveMoneyConfirm!==true)))
+        (moneyLimitCents>0&&liveMoneyConfirm!==true))))
       throw new TypeError('Separate owner LIVE consent and existing LIVE money safeguards required');
     const selectedAreas=passAreas(areas,available);
     const selected=await db.getStripeAccount(account);
