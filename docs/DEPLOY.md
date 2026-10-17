@@ -158,3 +158,58 @@ live key, activate this flag or run real money tests without separate approval.
 ### Canonical owner setup address across Vercel aliases (2026-10-13)
 
 Use `PUBLIC_BASE_URL` as the owner form and OAuth issuer origin, not an interchangeable alternate production alias. At this project's verified setup the canonical owner URL is `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app/api/stripe/setup`; the alternate `stripe-mcp-psi.vercel.app` hostname produced a 403 Origin check on POST. The setup page will redirect alternate-host GET to the canonical fixed destination after #199 reaches Production; no POST alias origins, OAuth issuers, key permissions or CSRF checks are relaxed. Do not alter `PUBLIC_BASE_URL` casually: changing the issuer needs an explicit deployment/connector migration plan. Do not interpret a successful redirect as a live OAuth or Stripe provider test.
+
+
+## RTC 1 owner-delegated passes and independent LIVE approval (Batch R source)
+
+The service is directly usable over native MCP and the standalone RTC HTTPS
+doors; the Hub is optional. The full TEST owner profile includes
+`stripe_create_pass`, `stripe_list_connections`, and
+`stripe_revoke_connection`. The first and last return a **prefilled private
+owner setup URL**, not a credential or completed mutation. Open that URL on
+your own browser; the page is untrusted until you independently sign in with
+your administrator passphrase, review account, mode, areas, profile, write
+grant, monetary cap, rate and expiry, and confirm. Revocation has a separate
+preview and one-use final confirmation. The minted bearer appears only on
+the protected, single-use reveal page and is otherwise stored as a hash.
+Never paste the passphrase or Stripe key into an agent chat. You can also
+create passes directly on the private setup page without first invoking a
+native tool.
+
+Default pass: **TEST, read_only, no writes, $0 delegated money ceiling,
+24 hours, 120 requests/minute**. The owner can select 1–6 areas and 1–600
+requests/minute. Expiry is at most 30 days, or 365 days only when explicitly
+marked for the Hub. A positive money ceiling is a daily pass-specific
+maximum and does **not** approve any payment or refund.
+
+To use LIVE, the **account owner** must, in the protected production owner
+page, independently enroll and verify the matching LIVE key and separately
+activate that account using the existing B-8 owner confirmation. Enrollment
+alone leaves LIVE **OFF**. `LIVE_MODE_OWNER_APPROVED` remains an explicit
+owner-managed deployment setting; the coding agent must not set it or
+activate LIVE without separate owner approval. A LIVE pass requires an
+independently entered owner password, the LIVE checkbox, and a second LIVE
+write checkbox if writes are delegated. A positive LIVE money ceiling
+also requires its **own third explicit owner checkbox**. LIVE requests
+require an activated account on each call; disabling the account instantly
+removes its LIVE authorization.
+
+Each TEST or LIVE **money-out transaction** still requires its own
+independent, password-authenticated owner approval of the provider-derived
+account, target, amount, mode and request key in the private
+**Review pending money-out requests** form. LIVE owner review requires
+an additional express LIVE-money checkbox both when previewing and when
+confirming. The request approval expires, cannot be reused, and does not
+override the chosen daily account ceiling or pass ceiling. Crossing the
+account limit requires a separate single-operation owner override.
+The backend uses a common account-row lock and a pass-specific bound in
+PostgreSQL, not an in-memory estimate; retrying an existing request does
+not create a second payment authorization.
+
+**Verification boundary:** A green CI with the disposable PostgreSQL and
+synthetic fake Stripe accounts proves source behavior, not that an actual
+LIVE account, external Hub relay, Stripe production operation, or Vercel
+deployment has been independently accepted. Complete the existing
+protected acceptance ledger on the applicable deployed revision without
+using owner real-world money as a CI fixture. Do not claim LIVE has been
+activated, keys enrolled or passes issued merely because this code exists.
