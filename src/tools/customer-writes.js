@@ -1,4 +1,5 @@
-// Customer TEST writes: all calls are through the shared owner-safe defineWrite contract.
+// Owner-selected customer operations use original guarded writes. Balance changes
+// remain a separately approved TEST financial operation until LIVE money proof.
 import {defineWrite,gone} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
 import {customerClient,selectedCustomerMode,verifiedCustomerResource} from './customer-mode.js';
@@ -22,10 +23,10 @@ const plans=[
   {name:'customer_remove_payment_method',description:'Detach a selected TEST/LIVE customer payment method after checking ownership.',
     props:{...common,paymentMethodId:{type:'string',pattern:'^pm_[A-Za-z0-9]{2,100}$'}},
     required:['customerId','paymentMethodId'],destructive:true},
-  {name:'customer_set_default_payment_method',description:'Set a saved TEST method as invoice default for one customer.',
+  {name:'customer_set_default_payment_method',description:'Set an authorized selected-mode saved method as invoice default for one customer.',
     props:{...common,paymentMethodId:{type:'string',pattern:'^pm_[A-Za-z0-9]{2,100}$'}},
     required:['customerId','paymentMethodId']},
-  {name:'customer_add_balance_credit',description:'Credit a selected TEST/LIVE customer balance with an independently owner-approved USD amount.',
+  {name:'customer_add_balance_credit',description:'Credit a TEST customer balance only with independently verified owner money approval; LIVE balance changes need separate monetary integration.',
     props:{...common,creditCents:balanceCents,debitCents:balanceCents,
       description:txt(150)},required:['customerId','description'],money:true},
   {name:'customer_add_tax_id',description:'Add a selected TEST/LIVE customer tax ID after reviewing its tax type.',
