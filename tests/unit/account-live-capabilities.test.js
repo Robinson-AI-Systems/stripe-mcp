@@ -73,8 +73,8 @@ describe('G-5c/d authentic owner LIVE nonmoney account operations',()=>{
     }
     const withheld=listed.filter(n=>n.startsWith('account_')&&
       registry.tools.find(t=>t.name===n)?.writes===true);
-    expect(withheld).toEqual(['account_update_payment_method_settings',
-      'account_add_apple_pay_domain']);
+    expect(withheld.sort()).toEqual(['account_add_apple_pay_domain',
+      'account_update_payment_method_settings']);
   });
   it('lists matched LIVE configuration and domain evidence through authenticated native tools',async()=>{
     const f=fixture({duplicate:true});
@@ -129,8 +129,8 @@ describe('G-5c/d authentic owner LIVE nonmoney account operations',()=>{
     expect(disabled.events.creates).toBe(0);
     const wrongMode=fixture({providerMode:'test'});
     expect((await domainHandlers.account_list_apple_pay_domains({},wrongMode.ctx)).isError).toBe(true);
-    expect((await prefHandlers.account_update_payment_method_settings(args,wrongMode.ctx)).isError)
-      .toBe(true);
+    await expect(prefHandlers.account_update_payment_method_settings(args,wrongMode.ctx))
+      .rejects.toThrow();
     expect(wrongMode.events.updates).toBe(0);
     const managed=fixture({managed:true});
     await expect(prefHandlers.account_update_payment_method_settings(args,managed.ctx)).rejects.toThrow();
