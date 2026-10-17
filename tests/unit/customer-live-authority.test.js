@@ -198,8 +198,9 @@ describe('D-1 owner selected LIVE nonfinancial customer operations',()=>{
       db:full.db,services:full.ctx.services});
     expect(denied.isError).toBe(true);
     vi.stubEnv('VERCEL_ENV','preview');
-    const staging=await full.confirm('customer_create',{name:'Not in preview'});
-    expect(staging.isError).toBe(true);
+    await expect(full.confirm('customer_create',{name:'Not in preview'}))
+      .rejects.toThrow(/LIVE account/i);
+    expect(full.calls).toHaveLength(0);
   });
   it('fails closed for application-owned records, opposite-mode readback and uncertain writes',async()=>{
     const owned=fixture({owned:true});
