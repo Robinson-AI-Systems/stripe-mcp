@@ -14,8 +14,8 @@ import {catalog} from '../../src/stripe/openapi-index.js';
 import {openIsolatedSchema,closeIsolatedSchema,neonShapedQuery,rawQuery}
   from '../../test/helpers/pg-neon-adapter.js';
 
-const account='acct_OAUTH_REAL_MCP';
-const otherAccount='acct_OTHER_REAL_MCP';
+const account='acct_OAUTHREALMCP';
+const otherAccount='acct_OTHERREALMCP';
 const publicOrigin='https://stripe-auth.example.test';
 const callback='http://localhost:34121/callback';
 const resource=publicOrigin+'/api/mcp';
