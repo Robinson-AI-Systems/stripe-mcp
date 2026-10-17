@@ -7,7 +7,8 @@ const acct='acct_LIVECUSTOMERS',cid='cus_LIVECUST1',pm='pm_LIVEMETHOD1',tid='txi
 const parse=r=>JSON.parse(r.content[0].text);
 afterEach(()=>vi.unstubAllEnvs());
 function fixture({consent=true,active=true,providerMode='live',owned=false,
-  stale=false,missingMode=false,profile='full'}={}){
+  stale=false,missingMode=false,profile='full',
+  taxDeleteGet404=false,invalidTaxReceipt=false}={}){
   vi.stubEnv('VERCEL_ENV','production');
   const db=createFakeDb({accounts:[{id:acct,label:'Synthetic LIVE',live_enabled:active,
     live_connected:true,money_limit_cents:50000}]});
@@ -61,10 +62,17 @@ function fixture({consent=true,active=true,providerMode='live',owned=false,
         mutation('customer_add_tax_id',opts);
         createdTax={...tax,id:'txi_CREATEDLIVE',...input};return {...createdTax};
       },
-      retrieveTaxId:async(_id,id)=>id===tid?{...tax}:{...createdTax},
+      retrieveTaxId:async(_id,id)=>{
+        if(id===tid&&taxDeleteGet404&&tax.deleted)
+          throw Object.assign(new Error('Provider says missing'),{
+            statusCode:404,code:'resource_missing',type:'StripeInvalidRequestError'});
+        return id===tid?{...tax}:{...createdTax};
+      },
       deleteTaxId:async(_id,id,_body,opts)=>{
         mutation('customer_delete_tax_id',opts);
-        if(!stale)tax={...tax,deleted:true};return {id,deleted:true};
+        if(!stale)tax={...tax,deleted:true};
+        return {id:invalidTaxReceipt?'txi_WRONGRECEIPT':id,
+          object:'tax_id',deleted:true};
       }
     },
     paymentMethods:{
@@ -166,6 +174,22 @@ describe('D-1 owner selected LIVE nonfinancial customer operations',()=>{
     const discount=parse(await f.confirm('customer_remove_discount',{customerId:cid}));
     expect(discount).toMatchObject({mode:'LIVE',done:true,confirmed:true});
     expect(f.tax().deleted).toBe(true);
+  });
+  it('reconciles deleted customer tax ID only from matching DELETE receipt and definitive provider 404',async()=>{
+    const authorized=fixture({taxDeleteGet404:true});
+    const args={customerId:cid,taxId:tid};
+    const result=parse(await authorized.confirm('customer_delete_tax_id',args));
+    expect(result).toMatchObject({mode:'LIVE',done:true,confirmed:true,
+      resourceId:cid});
+    expect(authorized.calls.map(c=>c.name)).toEqual(['customer_delete_tax_id']);
+
+    // The delete may have taken effect, but an untrusted/mismatched DELETE
+    // receipt can never convert a subsequent 404 into a verified success.
+    const mismatched=fixture({taxDeleteGet404:true,invalidTaxReceipt:true});
+    const uncertain=parse(await mismatched.confirm('customer_delete_tax_id',args));
+    expect(uncertain).toMatchObject({mode:'LIVE',done:false,confirmed:false});
+    expect(mismatched.calls).toHaveLength(1);
+    expect(uncertain.warning).toMatch(/uncertain/i);
   });
   it('deletes exactly the selected LIVE customer only after irreversible-action approval',async()=>{
     const f=fixture();
