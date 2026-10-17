@@ -50,7 +50,11 @@ export async function reserveMoneyBeforeWrite({ ctx, key, prepared, tool }) {
         ? 'Your explicit approval is required for this exact money-out transaction. No Stripe write was made.'
         : attempt?.decision === 'limit_exceeded_override_required'
           ? 'Shared account daily limit exceeded; a separate explicit owner override is required. No Stripe write was made.'
-          : 'Reservation refused (' + (attempt?.decision || 'unavailable') + '). No Stripe write was made.' };
+          : attempt?.decision === 'delegated_limit_exceeded'
+            ? 'Owner-selected delegated pass money ceiling exceeded. No Stripe write was made.'
+            : attempt?.decision === 'delegated_pass_denied'
+              ? 'The owner-issued pass is expired, revoked, or has no money-out authority. No Stripe write was made.'
+              : 'Reservation refused (' + (attempt?.decision || 'unavailable') + '). No Stripe write was made.' };
   }
   return { accepted: true };
 }
