@@ -34,17 +34,21 @@ export function isGuardedTestWrite(tool,connection){
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
-// Only owner-issued, independently activated LIVE RTC grants may expose a
-// curated original *non-money* native write. This never grants OAuth/MCP LIVE
-// access or waives defineWrite confirmation, readback or provider permission.
+// Only an independently activated LIVE pass with two-step owner write
+// consent may access original native defineWrite operations. Actual money-out
+// still needs positive owner-selected pass ceiling AND another one-time exact
+// transaction owner approval in the shared atomic SQL guard.
 export function isGuardedLiveWrite(tool,connection){
+  const financial=tool?.money===true||tool?.moneySpec==='provider-derived';
+  const funded=Number.isSafeInteger(connection?.moneyLimitCents)&&
+    connection.moneyLimitCents>0;
   return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
     tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
-    guardedTestAreas.has(tool.area)&&
-    (tool?.money!==true&&tool?.moneySpec!=='provider-derived'&&
-      tool?.safety!==String.fromCharCode(36)||
-      Number.isSafeInteger(connection?.moneyLimitCents)&&
-      connection.moneyLimitCents>0)&&
+    (guardedTestAreas.has(tool.area)||
+      (tool.area==='workflows'&&connection?.profile==='full'&&
+        fullOwnerWorkflowWrites.has(tool.name))||
+      (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
+    (!financial||funded)&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
