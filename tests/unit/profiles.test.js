@@ -74,8 +74,11 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
       for(const tool of wrapped){
         expect(isGuardedTestWrite(tool,{mode:'test',profile:'full'})).toBe(true);
         expect(isGuardedTestWrite(tool,{mode:'test',profile:'read_only'})).toBe(false);
+        const approved=area==='account'&&new Set([
+          'account_update_payment_method_settings','account_add_apple_pay_domain'
+        ]).has(tool.name);
         expect(isGuardedLiveWrite(tool,{mode:'live',profile:'full',
-          rtcLiveOwnerApproved:true,moneyLimitCents:10000})).toBe(false);
+          rtcLiveOwnerApproved:true,moneyLimitCents:10000})).toBe(approved);
       }
     }
     const names=listingForConnection(registry,{mode:'test',profile:'full',
