@@ -80,6 +80,41 @@ describe('R-1 explicit owner-selected TEST RTC delegation',()=>{
     }
     expect(await f.db.getRtcPassStatus('rtc_pass_not_an_issued_secret')).toBe(null);
   });
+  it('requires activated LIVE credentials and separate consent for read and write grants',async()=>{
+    const f=await setup();
+    await expect(f.issuer({account:A,mode:'live',confirm:true,liveConfirm:true}))
+      .rejects.toThrow(/enrolled and activated/);
+    await f.db.saveLiveKey({account:A,ciphertext:'v1.live-fake',kind:'restricted',last4:'FAKE'});
+    await expect(f.issuer({account:A,mode:'live',confirm:true,liveConfirm:true}))
+      .rejects.toThrow(/enrolled and activated/);
+    const enabled=createFakeDb({accounts:[{id:A,label:'LIVE TEST fixture',live_enabled:true}]});
+    await enabled.saveTestKey({account:A,label:'TEST',ciphertext:'v1.mock',kind:'restricted',last4:'FAKE'});
+    await enabled.saveLiveKey({account:A,ciphertext:'v1.live-fake',kind:'restricted',last4:'FAKE'});
+    const store=createOneTimeStore({db:enabled,encryptionKey:randomBytes(32)});
+    const issuer=createOwnerPassIssuer({db:enabled,oneTimeStore:store,
+      availableAreas:['server','payments'],verifyOwner:async()=>true});
+    await expect(issuer({account:A,mode:'live',confirm:true}))
+      .rejects.toThrow(/LIVE consent/);
+    await expect(issuer({account:A,mode:'live',confirm:true,liveConfirm:true,
+      profile:'full',allowWrites:true}))
+      .rejects.toThrow(/LIVE consent/);
+    await expect(issuer({account:A,mode:'live',confirm:true,liveConfirm:true,
+      liveWriteConfirm:true,profile:'full',allowWrites:true,moneyLimitCents:1}))
+      .rejects.toThrow(/LIVE/);
+    const read=await issuer({account:A,mode:'live',confirm:true,liveConfirm:true});
+    expect(read).toMatchObject({mode:'live',profile:'read_only',allowWrites:false,
+      moneyLimitCents:0});
+    expect(JSON.stringify(read)).not.toContain('rtc_pass_');
+    const write=await issuer({account:A,mode:'live',confirm:true,liveConfirm:true,
+      liveWriteConfirm:true,profile:'full',allowWrites:true,areas:'payments'});
+    expect(write).toMatchObject({mode:'live',profile:'full',allowWrites:true,
+      moneyLimitCents:0,areas:['payments']});
+    const bearer=await store.consume(new URL(write.setupPath,'https://example.test').searchParams.get('show'));
+    expect(RTC_PASS_PATTERN.test(bearer)).toBe(true);
+    expect(await enabled.getRtcPass(bearer)).toMatchObject({mode:'live',kind:'pass',
+      profile:'full',allow_writes:true,money_limit_cents:0});
+    expect(await store.consume(new URL(write.setupPath,'https://example.test').searchParams.get('show'))).toBe(null);
+  });
   it('revokes a stored pass if private one-time handoff fails',async()=>{
     const f=await setup();
     let revoked=false,created=null;
