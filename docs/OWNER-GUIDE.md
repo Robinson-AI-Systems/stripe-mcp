@@ -227,3 +227,10 @@ original operation-specific owner approval, idempotency, confirmation, Stripe
 amount lookup, account-wide $500/day policy and separate over-limit owner
 approval all remain required. Existing LIVE is OFF; this branch currently
 issues TEST passes only and is **not ready for use on deployed Production**.
+
+
+## Authorized end-user capability versus developer TEST rules — 2026-10-17
+
+Development restrictions never become restrictions on a properly entitled end user. The protected private setup page can issue individual RTC passes with owner-chosen account, TEST/LIVE mode, profile, areas, write permission, expiry, rate and daily delegated financial ceiling. LIVE requires separately enrolled matching LIVE credentials, independent account enablement and explicit LIVE pass/write consent. A money ceiling is not permission to move money: original individual owner-approved exact transactions, daily policy, idempotency and provider verification remain enforced.
+
+Native discovery now includes already-guarded TEST money, account, webhook, branding, catalog and report write tools. A full-profile LIVE RTC pass can invoke only the provider operations with complete LIVE-aware native protection; some existing specialist provider implementations still enforce TEST themselves. Pinned universal read and verified nonfinancial writes can use LIVE after independent account and production authorization. Standard MCP OAuth remains TEST-only pending a reviewed owner-delegation upgrade. Generic universal financial actions remain an implementation gap until operation-specific amounts, access and verifiable outcomes exist. These are not permanent owner-selected restrictions. Read-only passes still cannot mutate resources. No deployment or real Stripe acceptance is implied by the source change.

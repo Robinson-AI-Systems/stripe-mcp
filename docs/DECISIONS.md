@@ -187,3 +187,8 @@ minute-rate limits likewise stay SQL-atomic with bounded counters and old
 window cleanup. R-3 conformance uses isolated child OS processes sharing a
 disposable local PostgreSQL schema; CI must not turn a subset into a full-pass
 certificate. Draft PR #263 remains unmerged pending frozen acceptance.
+
+
+## 2026-10-17 — Runtime product authority remediation
+
+The developer's test-only, no-unapproved-spend and deployment rules are not restrictions on actual end users. The original IN-05 shared $500/account/day cap and independent money-out approvals were explicit owner policy decisions, not the developer's $0 budget. They remain effective for the current owner, with policy/delegation customization an independently tracked product gap. Owner-issued RTC passes support explicit account/mode/profile/area/write delegation, while the original authentication, approval, audit, replay and readback boundaries remain binding. The native TEST discovery area filter must recognize already wrapped tools; only providers actually equipped with mode-matched LIVE verification can be offered for LIVE execution. Ordinary MCP OAuth still hardcodes TEST and many native tools separately hardcode TEST; these are remaining implementation gaps, not decisions to deny end users. Universal financial operations without verified provider-derived amounts and outcome reconciliation remain unimplemented, rather than being falsely described as permanent policy or no-cost operations. Do not extrapolate a deployed/provider acceptance pass from source verification. Neither this decision nor the implementation work authorizes coding agents to activate or use LIVE, spend money, alter customer data or bypass the release gate.

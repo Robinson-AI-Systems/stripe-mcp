@@ -1,7 +1,7 @@
 import {registry} from '../../src/tools/index.js';
 import {describe,expect,it} from 'vitest';
 import {isToolAllowed,visibleTools,profileCounts,publicToolInfo,
-  isGuardedTestWrite,listingForConnection} from
+  isGuardedTestWrite,isGuardedLiveWrite,listingForConnection} from
   '../../src/core/profiles.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import home from '../../api/index.js';
@@ -63,6 +63,35 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     expect(isGuardedTestWrite({name:'workflow_unreviewed',
       area:'workflows',writes:true,writeContract:'defineWrite-v1',profiles:['full']},
       {mode:'test',profile:'full'})).toBe(false);
+  });
+
+  it('surfaces already-wrapped nonfinancial TEST families without delegating them to read-only or LIVE by accident',()=>{
+    const areas=['money','webhooks','account','branding','catalog','reports'];
+    for(const area of areas){
+      const wrapped=registry.tools.filter(t=>t.area===area&&t.writes===true&&
+        t.writeContract==='defineWrite-v1');
+      expect(wrapped.length).toBeGreaterThan(0);
+      for(const tool of wrapped){
+        expect(isGuardedTestWrite(tool,{mode:'test',profile:'full'})).toBe(true);
+        expect(isGuardedTestWrite(tool,{mode:'test',profile:'read_only'})).toBe(false);
+        expect(isGuardedLiveWrite(tool,{mode:'live',profile:'full',
+          rtcLiveOwnerApproved:true,moneyLimitCents:10000})).toBe(false);
+      }
+    }
+    const names=listingForConnection(registry,{mode:'test',profile:'full',
+      listing:'catalog'}).map(t=>t.name);
+    expect(names).toContain('webhook_add_events');
+    expect(names).toContain('account_update_payment_method_settings');
+  });
+  it('shows a guarded LIVE operation only after separate owner LIVE delegation',()=>{
+    const tool=registry.tools.find(t=>t.name==='api_write');
+    const permitted={mode:'live',profile:'full',rtcLiveOwnerApproved:true,
+      moneyLimitCents:0,listing:'catalog'};
+    expect(isGuardedLiveWrite(tool,permitted)).toBe(true);
+    expect(listingForConnection(registry,permitted).some(t=>t.name==='api_write')).toBe(true);
+    expect(isGuardedLiveWrite(tool,{...permitted,rtcLiveOwnerApproved:false})).toBe(false);
+    expect(listingForConnection(registry,{...permitted,rtcLiveOwnerApproved:false})
+      .some(t=>t.name==='api_write')).toBe(false);
   });
   it('never publishes internal capability metadata with listed tools',()=>{
     const tool={name:'read',writes:false,profiles:['read_only'],description:'safe'};

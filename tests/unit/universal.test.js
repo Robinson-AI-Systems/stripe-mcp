@@ -1,4 +1,5 @@
-import {describe,it,expect} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
+afterEach(()=>vi.unstubAllEnvs());
 import {catalog,getOperation,paramNames,checkedRequest,findOperations,requestSchema}
   from '../../src/stripe/openapi-index.js';
 import {financialDecision} from '../../src/stripe/money-operations.js';
@@ -71,7 +72,7 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
     expect(()=>checkedRequest(read.id,{pathParams:{[key]:P},
       body:{private_override:true}})).toThrow();
   });
-  it('executes a real provider-shaped selected TEST GET, strips raw metadata and denies LIVE',async()=>{
+  it('executes a selected TEST GET, redacts secrets, refuses mismatched LIVE data',async()=>{
     const f=fixture(),record=find('GET','/v1/products/{id}');
     const key=paramNames(record,'path')[0].name;
     const result=parse(await f.call('api_read',{op:record.id,pathParams:{[key]:P}}));
@@ -80,9 +81,10 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
     expect(result.provider).not.toHaveProperty('metadata');
     expect(f.calls).toHaveLength(1);
     f.ctx.connection.mode='live';
+    // Even a LIVE-selected connection may never receive TEST provider rows.
     expect((await f.call('api_read',{op:record.id,pathParams:{[key]:P}})).isError)
       .toBe(true);
-    expect(f.calls).toHaveLength(1);
+    expect(f.calls).toHaveLength(2);
   });
   it('keeps refunds/native financial ops and unreviewed creates behind original native authority',()=>{
     const refund=find('POST','/v1/refunds');
@@ -99,6 +101,69 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
     expect(isGuardedTestWrite(t,{mode:'live',profile:'full'})).toBe(false);
     expect(listingForConnection(registry,{mode:'test',profile:'full',
       listing:'catalog'}).some(x=>x.name==='api_write')).toBe(true);
+  });
+
+  it('reads only mode-consistent LIVE resources from an independently selected account',async()=>{
+    const f=fixture(),op=find('GET','/v1/products/{id}');
+    f.ctx.connection.mode='live';
+    f.ctx.services.stripeForConnection=async connection=>{
+      expect(connection).toMatchObject({mode:'live',stripeAccount:A});
+      return {rawRequest:async(method,path)=>{
+        expect(method).toBe('GET');
+        expect(path).toBe('/v1/products/'+P);
+        return {id:P,object:'product',livemode:true,metadata:{note:'live'}};
+      }};
+    };
+    const result=parse(await f.call('api_read',{op:op.id,pathParams:{id:P}}));
+    expect(result).toMatchObject({mode:'live',account:A,provider:{id:P}});
+  });
+  it('completes LIVE nonfinancial create only with original confirmation and provider readback',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=fixture(),calls=[],account=A,op=find('POST','/v1/tax_rates');
+    f.ctx.connection.mode='live';
+    f.ctx.liveAccessGranted=true;
+    f.ctx.db.getStripeAccount=async()=>({id:account,live_enabled:true,live_connected:true});
+    let created;
+    f.ctx.services.stripeForConnection=async connection=>{
+      expect(connection.mode).toBe('live');
+      return {rawRequest:async(method,path,params,options)=>{
+        calls.push({method,path,params,options});
+        if(method==='POST'&&path==='/v1/tax_rates'){
+          created={id:'txr_LIVE123',object:'tax_rate',livemode:true,
+            metadata:{},display_name:params.display_name,
+            percentage:params.percentage,inclusive:params.inclusive};
+          return {...created};
+        }
+        if(method==='GET'&&path==='/v1/tax_rates/txr_LIVE123')return {...created};
+        throw new Error('Unexpected fake LIVE provider operation');
+      }};
+    };
+    const params={op:op.id,body:{display_name:'Owner-approved LIVE tax',
+      percentage:5,inclusive:false}};
+    const preview=parse(await f.call('api_write',params));
+    expect(preview).toMatchObject({mode:'LIVE',done:false,needsConfirmation:true});
+    expect(calls.filter(x=>x.method==='POST')).toHaveLength(0);
+    const done=parse(await f.call('api_write',{...params,confirm:true,
+      requestKey:'owner-live-rate-create'}));
+    expect(done).toMatchObject({mode:'LIVE',done:true,confirmed:true,
+      resourceId:'txr_LIVE123'});
+    expect(calls.filter(x=>x.method==='POST')).toHaveLength(1);
+    expect(calls.some(x=>x.method==='GET'&&x.path==='/v1/tax_rates/txr_LIVE123')).toBe(true);
+  });
+  it('refuses forged LIVE owner flags before touching the provider',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=fixture(),op=find('POST','/v1/tax_rates');
+    f.ctx.connection.mode='live';
+    f.ctx.liveAccessGranted=false;
+    let calls=0;
+    f.ctx.services.stripeForConnection=async()=>({rawRequest:async()=>{
+      calls++;throw Error('Unauthenticated attempt reached provider');
+    }});
+    const result=parse(await f.call('api_write',{op:op.id,
+      body:{display_name:'No owner grant',percentage:3,inclusive:false},
+      confirm:true,requestKey:'unapproved-live-attempt'}));
+    expect(result.done).toBe(false);
+    expect(calls).toBe(0);
   });
   it('guarded raw nonmoney update previews, confirms with audited retry key and verifies original readback',async()=>{
     const f=fixture(),target=find('POST','/v1/tax_rates/{tax_rate}');
