@@ -17,7 +17,7 @@ const eventsInitial=['customer.updated','invoice.paid'];
 afterEach(()=>vi.unstubAllEnvs());
 function fixture({grant=true,enabled=true,mode='live',providerMode='live',
   appOwned=false,connect=false,stale=false,uncertain=false,missingSecret=false,
-  duplicate=false,uncertainCreate=false,readOnly=false}={}){
+  uncertainCreate=false,readOnly=false}={}){
   vi.stubEnv('VERCEL_ENV','production');
   const db=createFakeDb({accounts:[{id:acct,label:'Independent LIVE account',
     live_enabled:enabled,live_connected:true,money_limit_cents:50000}]});
