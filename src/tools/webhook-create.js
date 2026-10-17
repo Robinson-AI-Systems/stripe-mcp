@@ -3,7 +3,9 @@ import {createHash} from 'node:crypto';
 import {createOneTimeStore} from '../core/one-time-secrets.js';
 import {parseForwardUrl,resolveForwardTarget} from '../dev/forwarder-security.js';
 import {defineWrite,gone} from './write.js';
-import {client,fullProfiles,reply} from './billing-shared.js';
+import {fullProfiles,reply} from './billing-shared.js';
+import {webhookClient,isWebhookMode} from './webhook-mode.js';
+import {authorizeLiveWrite} from './live-guard.js';
 import {webhookSafe} from './webhooks-read.js';
 const reject=m=>{throw new TypeError(m);};
 const event=x=>typeof x==='string'&&x.length<=100&&
@@ -24,11 +26,11 @@ function config(a){
   const digest=createHash('sha256').update(JSON.stringify([target.url,events,description])).digest('hex');
   return {target,events,description,digest};
 }
-function provider(v,expected){
-  webhookSafe(v);
+function provider(v,expected,mode='test'){
+  webhookSafe(v,{mode});
   if(v.application!=null||v.connect===true||v.url!==expected.target.url||
     JSON.stringify([...v.enabled_events].sort())!==JSON.stringify(expected.events))
-    reject('Native webhook provider read-back did not match the selected TEST endpoint');
+    reject('Native webhook provider read-back did not match selected Stripe mode');
   return v;
 }
 function store(ctx){
@@ -37,41 +39,50 @@ function store(ctx){
     reject('Durable webhook creation ledger unavailable');
   return ctx.db;
 }
+// Preserve existing TEST retry keys. LIVE uses its own fixed-length key
+// namespace in the original durable intent table; unknown POSTs never replay.
+const scopedKey=(key,mode)=>mode==='live'?
+  'live_'+createHash('sha256').update(key).digest('hex'):key;
 export function makeWebhookCreate(){
   let newId=null,setupPath=null,issued=false;
   const op=defineWrite({
     name:'webhook_create',
+    modeGuard:(_a,ctx)=>authorizeLiveWrite({ctx}),
     read:async(a,ctx)=>{
-      if(ctx?.connection?.mode!=='test')reject('TEST account required');
+      if(!isWebhookMode(ctx))reject('Selected Stripe mode required');
       const c=config(a);store(ctx);
+      await webhookClient(ctx); // Verify selected LIVE provider before ledger access.
       const prior=await ctx.db.getWebhookCreate({accountId:ctx.connection.stripeAccount,
-        requestKey:a.requestKey,digest:c.digest});
+        requestKey:scopedKey(a.requestKey,ctx.connection.mode),digest:c.digest});
       if(!prior)await resolveForwardTarget(c.target.url,ctx.services?.webhookDnsLookup?
         {lookup:ctx.services.webhookDnsLookup}:{});
       return {...c,prior,origin:new URL(c.target.url).origin};
     },
-    summarize:p=>'TEST MODE. Register one native Stripe webhook at '+p.origin+
+    summarize:(p,_a,ctx)=>ctx.connection.mode.toUpperCase()+
+      ' MODE. Register one native Stripe webhook at '+p.origin+
       ' with '+p.events.length+' exact event subscriptions. The destination path and Stripe signing secret'+
       ' remain private. An owner password, same-origin browser and CSRF check are required for the'+
       ' one-time 10-minute signing-secret setup page. Same retry key never starts a second create.',
     apply:async(a,ctx,{before,idempotencyKey})=>{
       const db=store(ctx),accountId=ctx.connection.stripeAccount;
-      const p={accountId,requestKey:a.requestKey,digest:before.digest};
+      const p={accountId,requestKey:scopedKey(a.requestKey,ctx.connection.mode),
+        digest:before.digest};
       const reserved=await db.reserveWebhookCreate(p);
       if(!reserved.newlyReserved)return; // Could be an uncertain previous POST: fail closed.
-      const s=await client(ctx);
+      const s=await webhookClient(ctx);
       const created=await s.webhookEndpoints.create({
         url:before.target.url,enabled_events:before.events,
         ...(before.description?{description:before.description}:{})
       },{idempotencyKey});
       // Stripe only returns the signing secret on native creation. Never audit it.
-      if(created?.object!=='webhook_endpoint'||created.livemode!==false||
+      if(created?.object!=='webhook_endpoint'||
+        created.livemode!==(ctx.connection.mode==='live')||
         !/^we_[A-Za-z0-9]{2,100}$/.test(created.id??'')||
         typeof created.secret!=='string'||!/^whsec_[A-Za-z0-9_\-+=/]{12,256}$/.test(created.secret))
         reject('Native Stripe creation returned no verified signing-secret handoff');
-      provider(created,before);
+      provider(created,before,ctx.connection.mode);
       const once=ctx.services?.webhookOneTimeStore??createOneTimeStore({db});
-      const issuedLink=await once.issue({account:accountId,mode:'test',
+      const issuedLink=await once.issue({account:accountId,mode:ctx.connection.mode,
         kind:'native-webhook-signing-secret',secret:created.secret});
       if(!/^\/api\/stripe\/setup\?show=[A-Za-z0-9_-]{32}$/.test(issuedLink?.setupPath??''))
         reject('Owner-only setup URL could not be issued');
@@ -82,17 +93,18 @@ export function makeWebhookCreate(){
     readAfter:async(a,ctx)=>{
       const c=config(a);
       const result=await store(ctx).getWebhookCreate({
-        accountId:ctx.connection.stripeAccount,requestKey:a.requestKey,digest:c.digest});
+        accountId:ctx.connection.stripeAccount,
+        requestKey:scopedKey(a.requestKey,ctx.connection.mode),digest:c.digest});
       if(result?.state!=='confirmed'||!result.endpointId)return null;
-      return (await client(ctx)).webhookEndpoints.retrieve(result.endpointId);
+      return (await webhookClient(ctx)).webhookEndpoints.retrieve(result.endpointId);
     },
-    verify:(before,after)=>{
-      try{provider(after,before);return true;}catch{return false;}
+    verify:(before,after,_a,ctx)=>{
+      try{provider(after,before,ctx.connection.mode);return true;}catch{return false;}
     }
   });
   return {...op,async handler(a,ctx){
     newId=null;setupPath=null;issued=false;
-    if(ctx?.connection?.mode!=='test')return gone('Native webhook creation requires TEST mode');
+    if(!isWebhookMode(ctx))return gone('Selected Stripe mode required');
     const response=await op.handler(a,ctx);
     if(!issued||response?.isError||!setupPath)return response;
     const result=JSON.parse(response.content[0].text);
@@ -102,7 +114,7 @@ export function makeWebhookCreate(){
   }};
 }
 export const tools=[{...makeWebhookCreate().tool,area:'webhooks',profiles:fullProfiles,safety:'C',
-  description:'Create a guarded native TEST webhook; reveal its signing secret only on the independently authenticated one-time owner page.',
+  description:'Create a guarded owner-selected TEST/LIVE webhook; reveal its signing secret only on the independently authenticated one-time owner page.',
   inputSchema:{type:'object',properties:{
     url:{type:'string',minLength:1,maxLength:2048},
     events:{type:'array',minItems:1,maxItems:25,uniqueItems:true,

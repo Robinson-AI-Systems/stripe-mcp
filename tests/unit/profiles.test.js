@@ -74,9 +74,15 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
       for(const tool of wrapped){
         expect(isGuardedTestWrite(tool,{mode:'test',profile:'full'})).toBe(true);
         expect(isGuardedTestWrite(tool,{mode:'test',profile:'read_only'})).toBe(false);
-        const approved=area==='account'&&new Set([
+        const liveAccount=new Set([
           'account_update_payment_method_settings','account_add_apple_pay_domain'
-        ]).has(tool.name);
+        ]);
+        const liveWebhooks=new Set([
+          'webhook_create','webhook_add_events','webhook_remove_events',
+          'webhook_update','webhook_delete'
+        ]);
+        const approved=area==='account'&&liveAccount.has(tool.name)||
+          area==='webhooks'&&liveWebhooks.has(tool.name);
         expect(isGuardedLiveWrite(tool,{mode:'live',profile:'full',
           rtcLiveOwnerApproved:true,moneyLimitCents:10000})).toBe(approved);
       }
