@@ -1,5 +1,5 @@
 // CI-only portable K-3 boundary. Stripe retains all production SDK/SQL/guards.
-import {isToolAllowed,isGuardedTestWrite} from './profiles.js';
+import {isToolAllowed,isGuardedTestWrite,isGuardedLiveWrite} from './profiles.js';
 import {shapeToolResult} from '../tools/util.js';
 import {toStripeToolError} from '../tools/errors.js';
 import {readDetail,splitResult,resultPage} from '../tools/result-rules.js';
@@ -29,11 +29,16 @@ export function createStripeCoreDispatcher({core,registry,sourceDispatch}){
   }
   const service=core.createGuardedMcpDispatcher({
     registry:{tools,handlers},
-    authorizeTool:(tool,connection)=>
-      connection?.mode==='test'&&typeof connection.stripeAccount==='string'&&
-      !!connection.stripeAccount&&
-      isToolAllowed(tool,connection.profile,{
-        allowWrites:isGuardedTestWrite(tool,connection)}),
+    authorizeTool:(tool,connection)=>{
+      // Use complete source descriptor for financial and mode-specific guards.
+      const original=registry.tools.find(t=>t.name===tool?.name);
+      const canWrite=original&&(isGuardedTestWrite(original,connection)||
+        isGuardedLiveWrite(original,connection));
+      return ['test','live'].includes(connection?.mode)&&
+        typeof connection.stripeAccount==='string'&&
+        !!connection.stripeAccount&&
+        isToolAllowed(original,connection.profile,{allowWrites:canWrite===true});
+    },
     shapeResult:shapeToolResult,readDetail,splitResult,resultPage,
     formatError:toStripeToolError,
     skipDetailFor:name=>name==='stripe_get_result'
