@@ -659,6 +659,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         .slice(offset,offset+limit).map(r=>({
           client_id:r.client_id,mode:r.mode,profile:r.profile,listing:r.listing,
           kind:r.kind,rate_limit_per_minute:r.rate_limit_per_minute??120,
+          allow_writes:r.allow_writes??false,money_limit_cents:r.money_limit_cents??0,
+          areas:r.areas??null,for_hub:r.for_hub??false,
           created_at:null,last_used_at:null,expires_at:new Date(r.expires_at),
           revoked_at:r.revoked_at?new Date(r.revoked_at):null
         })));
