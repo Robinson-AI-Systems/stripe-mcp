@@ -41,9 +41,7 @@ describe('R-1 actual owner HTTP creation, private reveal and refusal',()=>{
     const f=await fixture();
     expect(f.get.body).toContain('issue-owner-rtc-pass');
     expect((await f.post(request,'https://evil.example.test')).statusCode).toBe(403);
-    expect((await f.post({...request,csrf:'bad'})).statusCode).toBe(200);
-    // The fixture post injects its own CSRF; direct tampering is tested
-    // independently through the canonical original setup-page suite.
+    // The original setup-page suite verifies independent double-submit CSRF.
     expect((await f.post({...request,passphrase:'bad'})).statusCode).toBe(401);
     expect((await f.post({...request,passConfirm:'no'})).statusCode).toBe(400);
   });
