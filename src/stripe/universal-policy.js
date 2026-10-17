@@ -5,7 +5,8 @@ import {catalog} from './openapi-index.js';
 const nonmoney=[
   /^\/v1\/tax_rates(?:\/\{[^}]+\})?$/,
   /^\/v1\/terminal\/locations(?:\/\{[^}]+\})?$/,
-  /^\/v1\/shipping_rates(?:\/\{[^}]+\})?$/
+  /^\/v1\/shipping_rates(?:\/\{[^}]+\})?$/,
+  /^\/v1\/coupons(?:\/\{[^}]+\})?$/
 ];
 const transfer=/(?:^|\/)(?:refunds|payouts|transfers|topups|treasury|issuing|credit_notes|credit_grants|payment_intents|charges|outbound_payments)(?:\/|$)/;
 export function companionGet(op){

@@ -5,7 +5,7 @@ import {compact} from './util.js';
 import {readDetail} from './result-rules.js';
 import {defineWrite,gone} from './write.js';
 import {findAppOwnership} from './app-guard.js';
-import {describeOperation,findOperations,checkedRequest}
+import {getOperation,describeOperation,findOperations,checkedRequest}
   from '../stripe/openapi-index.js';
 import {financialDecision,isSafeMetadataUpdate}
   from '../stripe/money-operations.js';
@@ -197,11 +197,20 @@ function makeWrite(){
 export const handlers={
   api_search:async a=>{try{
     exact(a,['query','limit'],['query']);
-    return reply({version:'2026-09-30.endive',results:findOperations(a.query,a.limit??15),
-      classification:'Non-GET operations need independent preview; financial unknowns fail closed'});
+    return reply({version:'2026-09-30.endive',
+      results:findOperations(a.query,a.limit??15).map(x=>{
+        const op=getOperation(x.operationId);
+        return {...x,classification:op.method==='GET'?'READ':
+          preferredNative(op)?'CURATED_NATIVE_WRITE':
+          financialDecision(op).financial?'MONEY_OR_UNCLASSIFIED':
+            'REQUIRES_GUARDED_CONFIRMATION'};
+      }),note:'Unknown money operations need a provider-derived exact amount and owner grant, never inferred $0.'});
   }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}},
   api_describe:async a=>{try{
-    exact(a,['op'],['op']);return reply(describeOperation(a.op));
+    exact(a,['op'],['op']);const op=getOperation(a.op);
+    return reply({...describeOperation(a.op),preferredNative:preferredNative(op)??null,
+      financialOrUnclassified:financialDecision(op).financial,
+      warnings:['Provider charges and irreversible effects may be unknown','Money out requires independent owner approval for exact provider-derived amount']});
   }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}},
   api_read:async(a,ctx)=>{try{return reply(await read(a,ctx));}
     catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}},

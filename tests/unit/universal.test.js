@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {catalog,getOperation,paramNames,checkedRequest,findOperations}
+import {catalog,getOperation,paramNames,checkedRequest,findOperations,requestSchema}
   from '../../src/stripe/openapi-index.js';
 import {financialDecision} from '../../src/stripe/money-operations.js';
 import {preferredNative} from '../../src/stripe/hand-built-map.js';
@@ -159,6 +159,54 @@ describe('U-1 original immutable Stripe operation coverage',()=>{
       charge:'ch_U1TEST',amount:300}});
     expect(denied.isError).toBe(true);
     expect(f.calls.filter(c=>c.method==='POST')).toHaveLength(0);
+  });
+  it('validates twenty-five different pinned GET operations using the original safe provider boundary',async()=>{
+    const f=fixture(),calls=[];
+    f.ctx.services.stripeForConnection=async()=>({rawRequest:async(method,path,params,opts)=>{
+      calls.push({method,path,params,opts});
+      return {object:'list',data:[],has_more:false,livemode:false};
+    }});
+    const sample=[...catalog().operations.values()].filter(x=>
+      x.method==='GET'&&!x.path.includes('{')&&
+      !/(?:secret|ephemeral_keys|tokens|person|bank_account|files|identity\/verification|issuing\/cardholders)/.test(x.path))
+      .sort((a,b)=>a.path.localeCompare(b.path)).slice(0,25);
+    expect(sample).toHaveLength(25);
+    for(const op of sample){
+      const result=parse(await f.call('api_read',{op:op.id}));
+      expect(result).toMatchObject({mode:'test',account:A,complete:true,
+        provider:{object:'list'}});
+    }
+    expect(calls).toHaveLength(25);
+    expect(calls.every(x=>x.method==='GET')).toBe(true);
+  });
+  it('verifies ten distinct guarded TEST metadata POST operation contracts and original readbacks',async()=>{
+    const f=fixture(),calls=[],state=new Map();
+    f.ctx.services.stripeForConnection=async()=>({rawRequest:async(method,path,params,opts)=>{
+      calls.push({method,path,params,opts});
+      const id=decodeURIComponent(path.split('/').at(-1));
+      let row=state.get(id)??{id,object:'generic',livemode:false,metadata:{}};
+      if(method==='POST'){row={...row,metadata:{...row.metadata,...params.metadata}};state.set(id,row);}
+      return {...row,metadata:{...row.metadata}};
+    }});
+    const sample=[...catalog().operations.values()].filter(x=>
+      x.method==='POST'&&x.path.endsWith('}')&&x.root.paths[x.path]?.get&&
+      !/(?:secret|ephemeral_keys|tokens|person|bank_account|files|identity\/verification|issuing\/cardholders)/.test(x.path)&&
+      !preferredNative(x)&&requestSchema(x)?.properties?.metadata&&
+      !requestSchema(x)?.required?.length)
+      .sort((a,b)=>a.path.localeCompare(b.path)).slice(0,10);
+    expect(sample).toHaveLength(10);
+    for(const [i,op] of sample.entries()){
+      const params=Object.fromEntries(paramNames(op,'path').map(z=>[z.name,'obj_U1TEST']));
+      const args={op:op.id,pathParams:params,body:{metadata:{note:'reviewed'}}};
+      const preview=parse(await f.call('api_write',args));
+      expect(preview).toMatchObject({done:false,needsConfirmation:true});
+      const result=parse(await f.call('api_write',{...args,confirm:true,
+        requestKey:'distinct-u1-post-'+i}));
+      expect(result).toMatchObject({done:true,confirmed:true});
+    }
+    expect(calls.filter(x=>x.method==='POST')).toHaveLength(10);
+    expect(calls.filter(x=>x.method==='POST').every(x=>
+      x.opts?.idempotencyKey?.startsWith('rmcp_'))).toBe(true);
   });
   it('refuses app-owned metadata, unknown fields and financial update without issuing a write',async()=>{
     const f=fixture(),target=find('POST','/v1/tax_rates/{tax_rate}');
