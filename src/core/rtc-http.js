@@ -34,10 +34,11 @@ const allowedTool=(registry,name,connection)=>registry.tools.find(t=>{
   if(alias(t.name)!==name||!inScope(t,connection?.areas)||
     !t.profiles?.includes(connection?.profile))return false;
   if(t.writes===false)return !moneyTool(t)&&t.destructive!==true;
-  // Until the delegated pass ceiling is enforced against the provider-derived
-  // amount at the native reservation boundary, never expose money-out through
-  // this door. A general allowWrites flag is not a payment approval.
-  if(moneyTool(t))return false;
+  // Money writers require both an owner-selected positive delegated ceiling
+  // and the original native per-request owner approval + atomic account ledger.
+  // Passing the ceiling never approves a payment or bypasses those guards.
+  if(moneyTool(t)&&(!Number.isSafeInteger(connection?.moneyLimitCents)||
+    connection.moneyLimitCents<=0))return false;
   return connection?.allowWrites===true&&
     isGuardedTestWrite(t,connection);
 })??null;
