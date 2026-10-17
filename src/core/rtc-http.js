@@ -269,7 +269,6 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
       !Number.isSafeInteger(pass.money_limit_cents)||
       pass.money_limit_cents<0||
       pass.money_limit_cents>0&&!pass.allow_writes||
-      (pass.mode==='live'&&pass.money_limit_cents!==0)||
       !Number.isInteger(pass.rate_limit_per_minute)||
       pass.rate_limit_per_minute<1||pass.rate_limit_per_minute>600)
       return send(res,403,err('refused_by_guard',403).body);
