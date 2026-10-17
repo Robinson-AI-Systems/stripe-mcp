@@ -96,13 +96,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
-      # This is the pinned upstream runner executed against the ACTUAL Stripe
-      # RTC HTTP service + disposable PostgreSQL, not just Hub's fake server.
-      # Full/write probes remain out-of-subset and are never certified.
+      # Pin the published full Hub RTC runner and execute every applicable
+      # probe against native Stripe handlers plus a disposable fake provider.
+      # Two separate OS processes share one isolated PostgreSQL test schema.
       - uses: actions/checkout@v4
         with:
           repository: Robinson-AI-Systems/robinsons-toolkit-hub
-          ref: f8e61dbca058c29ded572a660082429d5a3e6641
+          ref: 1f2fc4da4691a327b4c2632c709cad98df7c5c45
           path: rtc-reference
       - run: node scripts/ci-phase.mjs --budget-seconds 180 -- node scripts/rtc-service-subset.mjs
         env:
