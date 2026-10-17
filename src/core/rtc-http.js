@@ -1,4 +1,4 @@
-// RTC 1 HTTPS pass door: owner-scoped TEST reads and explicitly guarded writes.
+// RTC 1 HTTPS pass door: owner-scoped TEST/LIVE reads and guarded writes.
 // Passes never authenticate MCP, batch stays strictly read-only, and all
 // provider money movement still needs its native independent owner gate.
 import {incomingBodyWithinLimit,safePreparsedObject,send} from './http.js';
@@ -13,7 +13,7 @@ const CODE=new Set(['permission','pass_revoked','pass_expired','rate_limited',
   'invalid_args','not_found','refused_by_guard','outside_scope','service_error']);
 const err=(code,status,extra={})=>({status,body:{ok:false,error:{
   code,what:code.replaceAll('_',' '),cause:'Request could not be completed',
-  todo:'Check your TEST pass, permitted tool and arguments.',
+  todo:'Check your owner-issued pass, permitted tool and arguments.',
   technical:''}},headers:extra});
 const alias=name=>name.startsWith('stripe_')?name:'stripe_'+name;
 // All HTTPS TEST passes, including legacy unscoped rows, must use direct
@@ -155,19 +155,19 @@ export function rtcOpenApi(){
           name:{type:'string'},args:{type:'object'}}}}}}}}};
   const pathParam=name=>[{name,in:'path',required:true,schema:{type:'string'}}];
   return {openapi:'3.1.0',
-    info:{title:'Robinson Stripe MCP RTC scoped TEST API',version:'0.1.0'},
+    info:{title:'Robinson Stripe MCP RTC scoped TEST/LIVE API',version:'0.1.0'},
     // OpenAPI describes only the pass-authenticated HTTPS subset. OAuth/MCP
     // has separate authorization, including profiles this door must refuse.
     security:[{rtcTestPass:[]}],
     components:{securitySchemes:{rtcTestPass:{type:'http',scheme:'bearer',
-      bearerFormat:'RTC owner-issued TEST pass'}}},
+      bearerFormat:'RTC owner-issued account pass'}}},
     paths:{
-      '/api/contract':{get:{summary:'Public RTC TEST-only manifest',
+      '/api/contract':{get:{summary:'Public RTC scoped pass manifest',
         security:[],responses:success}},
       '/api/openapi.json':{get:{summary:'Public HTTPS read-only OpenAPI',
         security:[],responses:success}},
-      '/api/whoami':{get:{summary:'Read TEST pass identity',responses:success}},
-      '/api/tools':{get:{summary:'Search accessible TEST read metadata',
+      '/api/whoami':{get:{summary:'Read owner-issued pass identity',responses:success}},
+      '/api/tools':{get:{summary:'Search accessible pass-scoped tool metadata',
         parameters:[
           {name:'q',in:'query',schema:{type:'string',maxLength:100}},
           {name:'area',in:'query',schema:{type:'string',maxLength:50}},
@@ -181,9 +181,9 @@ export function rtcOpenApi(){
       '/api/tools/{name}':{
         get:{summary:'Describe permitted scoped tool',parameters:pathParam('name'),
           responses:success},
-        post:{summary:'Execute permitted TEST tool with original approval',parameters:pathParam('name'),
+        post:{summary:'Execute permitted pass-scoped tool with original approval',parameters:pathParam('name'),
           requestBody:readBody,responses:success}},
-      '/api/tools/_batch':{post:{summary:'Execute up to ten TEST reads',
+      '/api/tools/_batch':{post:{summary:'Execute up to ten pass-scoped reads',
         requestBody:batchBody,responses:success}},
       '/api/results/{handle}':{get:{summary:'Read own scoped result',
         parameters:[...pathParam('handle'),
@@ -221,7 +221,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     res.setHeader('X-Content-Type-Options','nosniff');
     const auth=AUTH.exec(String(req.headers?.authorization??''));
     if(!auth){
-      res.setHeader('WWW-Authenticate','Bearer realm="RTC TEST pass"');
+      res.setHeader('WWW-Authenticate','Bearer realm="RTC owner pass"');
       return send(res,401,err('permission',401).body);
     }
     // Reject and detach framework-parsed bodies before DB rate accounting,
@@ -240,7 +240,7 @@ export function createRtcReadOnlyHttpHandler({db,registry,services={}}){
     }
     const denied=(code)=>{
       res.setHeader('WWW-Authenticate',
-        'Bearer realm="RTC TEST pass", error="invalid_token"');
+        'Bearer realm="RTC owner pass", error="invalid_token"');
       return send(res,401,err(code,401).body);
     };
     if(!pass||pass.kind!=='pass')return denied('permission');
