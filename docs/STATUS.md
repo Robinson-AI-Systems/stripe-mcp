@@ -1,3 +1,7 @@
+### October 16 — U-1 source acceptance isolated from original protected provider deployment
+
+Source includes four checksum-pinned OpenAPI universal tools with guarded nonfinancial POST/DELETE and owner/app permission handling; real protected custom deployment awaits checked promotion. Original READY observed older revision. Recorded original U-1 pending provider acceptance separately, while preserving all 42 historical original tasks and nine genuine PASSED checks. Unclassified financial operations require individual provider-derived money safety adapters; user-facing capabilities are not permanently limited by developer-only zero-spend policies. No new Stripe provider mutations were performed by the developer.
+
 ### October 16 — checked READY acceptance-first, real original TEST observations before U-1 implementation
 
 Verified actual main/live/Vercel READY SHA `a39ffb87e0a7490098fcdd345a102e3faa706a93` deployment `dpl_8L5qCy7koLyad8uHcbGnGZzN7qib`, 0 open PRs. Original custom Stripe Cloud account `STRIPE MCP TEST` was authenticated in full TEST profile, LIVE OFF and $0 money moved. Native read-only product/price list/get/search, real multi-page workflow_find, failed-payments read, September monthly close and zero-project go-live checklist were exercised; matching rows include sanitized partial evidence. The complete real provider report type list was blocked by an authentic nullable default-column case; U-1 branch repairs it without inventing a private CSV URL. No protected acceptance was marked PASSED without all explicit provider/owner proof: **42 checks / 9 PASSED / 33 PENDING unchanged**. Real connected TEST owner approvals required for any disposable provider write/money action; no writes made. Re-evaluate individual rows after the next checked release.
@@ -831,6 +835,17 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Original TEST verified brand kit DB account, owner-authorized non-app disposable customer/one-time price and secure hosted return URLs; original brand_save_kit/brand_preview_checkout readbacks; Dashboard-only settings remain manual",
     "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
     "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+  },
+  {
+    "id": "STRIPE-U1-UNIVERSAL-API",
+    "priority": 40,
+    "status": "PENDING",
+    "requiredRevision": "add5a6769f7b61404c88ed7877f4e8d9761957b0",
+    "dependsOn": [],
+    "task": "Original custom selected-account U-1 pinned OpenAPI discovery, full safe GET and guarded TEST full-profile native/nonmoney POST/DELETE; real provider schema, owner app guard, verified create/update/delete readback, existing-money original native fallback",
+    "procedure": "docs/pr-cards/U-1.md; original custom deployed api_search/api_describe, api_read on selected safe real TEST fixtures, original provider owned disposable Terminal location/tax rate, separate original full owner consent for any TEST writes, readback and cleanup; original money-out independently owner approved",
+    "gates": "Only after normally checked READY source on live, original custom selected-account TEST grant, a dedicated disposable provider fixture and explicit independent per-write authorization; no money moved, LIVE enablement, owner policy change or broad direct provider mutation from development agent",
+    "lastEvidence": "2026-10-16 source U-1 pinned full operation index, guarded provider read/verified nonfinancial writes, 25/10 deterministic mock fixture contracts and Vercel includeFiles. Actual original provider U-1 invocation not yet deployed; separate credentialed TEST protected acceptance remains pending."
   }
 ]
 ```

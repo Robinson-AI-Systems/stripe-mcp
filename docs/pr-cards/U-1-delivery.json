@@ -16,7 +16,7 @@
         },
         {
           "criterion": "Every write validates vendored pinned operation ID and exact path/body/query allowlists and cross-door original full TEST profile, does original guarded preview-confirm/idempotency/audit/provider-readback and refuses hand-built covered operations, unclassified money-like operations, app-owned/unknown targets, LIVE and unverified ownership; money movement never unapproved.",
-          "evidence": "api_write full TEST whitelist only via original guarded defineWrite: exact OpenAPI names and POST, hand-built operations diverted by name, unclassified creation/money/irreversible/unknown target fail closed, native app-owned marker denial, original provider readback and audit plus provider idempotency; no money moved or LIVE authorized. Positive nonfinancial tax-rate metadata write and no-write on app-owned provider fixture exercised. Guarded original TEST full owner now supports real tax-rate, shipping-rate, Terminal-location and coupon resource configuration POST, create with exact original GET readback and provider-confirmed delete+404; future metered effect warned. Financial/unclassified routes remain guarded as operation-specific capability gaps rather than developer $0 spending policy."
+          "evidence": "api_write full TEST whitelist only via original guarded defineWrite: exact OpenAPI names and POST, hand-built operations diverted by name, unclassified creation/money/irreversible/unknown target fail closed, native app-owned marker denial, original provider readback and audit plus provider idempotency; no money moved or LIVE authorized. Positive nonfinancial tax-rate metadata write and no-write on app-owned provider fixture exercised. Guarded original TEST full owner now supports real tax-rate, shipping-rate, Terminal-location and coupon resource configuration POST, create with exact original GET readback and provider-confirmed delete+404; future metered effect warned. Financial/unclassified routes remain guarded as operation-specific capability gaps rather than developer $0 spending policy. Original provider cap is an explicit tracked capability gap for unclassified financial operations, not an end-user categorical spending/LIVE prohibition; this U-1 generic gateway does not assert money movement without separate secure original native approval."
         },
         {
           "criterion": "Provider-shaped positive read and protected nonmoney write/replay, summary search/describe Terminal and Issuing, negative unknown field, target/secret/money override, brand/current source checks and mandatory exact-head CI plus true review. Existing E/R safety boundaries unchanged.",
@@ -25,9 +25,9 @@
       ]
     }
   ],
-  "productionAdded": 424,
-  "productionRemoved": 7,
-  "planComparison": "One substantial original approved universal U-1 section, NOT four synthetic tool subsections. Exactly 424 source lines added plus 7 removed (431 changed), excluding tests/docs/generated; about 430 meaningful deployment/code lines with broad checked operation schema, financial/owner/full TEST constraints and runtime. Native-compatible financial/unsupported mutating operations explicitly refuse and instruct preferred tool, not misreported as executed. The strict provider source remains undeployed until checked release.",
+  "productionAdded": 497,
+  "productionRemoved": 8,
+  "planComparison": "Original approved whole U-1 checked against frozen plan and October 16 user-authority amendment, 497 meaningful source added, 8 removed; four registered tools and distinct tested GET/POST/DELETE, native financial preference, owner user TEST grant. Real deployed selected custom provider acceptance separate and queued. Broad unclassified generic money adapters remain explicit future product capability gaps, not developer-only no-spend policy or silently considered available.",
   "otherWork": "Live provider read-only acceptance partial rows documented in authoritative STATUS unchanged 9/33; independent R/E/X remaining. Annual money-out rule independent and LIVE OFF.",
   "decision": "ENGINEERING_COMPLETE_TEST_PROVIDER_ACCEPTANCE_PENDING"
 }

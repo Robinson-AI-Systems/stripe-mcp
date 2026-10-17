@@ -203,7 +203,7 @@ export const handlers={
         return {...x,classification:op.method==='GET'?'READ':
           preferredNative(op)?'CURATED_NATIVE_WRITE':
           financialDecision(op).financial?'MONEY_OR_UNCLASSIFIED':
-            'REQUIRES_GUARDED_CONFIRMATION'};
+            'REQUIRES_POLICY_EVALUATION'};
       }),note:'Unknown money operations need a provider-derived exact amount and owner grant, never inferred $0.'});
   }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}},
   api_describe:async a=>{try{
