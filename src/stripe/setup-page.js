@@ -550,7 +550,20 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
           moneyLimitCents:uint(p.moneyLimitCents??'0',2147483647),
           rateLimitPerMinute:uint(p.rateLimitPerMinute??'120',600),
           hours:uint(p.hours??'24',8760),confirm:p.passConfirm==='yes'});
-        if(!new RegExp('^/api/stripe/setup[?]show=[A-Za-z0-9_-]{32}
+        if(!/^\/api\/stripe\/setup\?show=[A-Za-z0-9_-]{32}$/.test(issued.setupPath))
+          throw new TypeError('Private one-time owner handoff is not verifiable');
+        return send(res,200,htmlPage({csrf:cookie,result:
+          'Owner RTC TEST pass created for '+issued.account+'. Selected profile '+issued.profile+
+          ', expiry '+issued.lifetimeHours+' hours, rate '+issued.rateLimitPerMinute+
+          '/minute, areas '+issued.areas.join(', ')+'. Delegated money ceiling: '+
+          issued.moneyLimitCents+' cents. This is NOT a money-out approval. '+
+          'To see the pass once, open the private reveal URL and reenter your administrator passphrase: '+
+          issued.setupPath}),'text/html; charset=utf-8');
+      }catch{return send(res,400,htmlPage({csrf:cookie,result:
+        'Owner RTC pass was refused; confirm account, permissions and delegation.'}),
+        'text/html; charset=utf-8');}
+    }
+    if (p.action === 'forget-webhook-secret'){
       if(typeof forgetWebhookSecret!=='function')return send(res,503,htmlPage({csrf:cookie,
         result:'Private credential removal is unavailable.'}),'text/html; charset=utf-8');
       try{
