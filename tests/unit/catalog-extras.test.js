@@ -7,7 +7,7 @@ import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import {APP_METADATA_KEYS} from '../../src/tools/app-guard.js';
 
 const account='acct_PROMOTEST123',json=r=>JSON.parse(r.content[0].text);
-function fixture({providerMode=mode,mode='test',profile='full',grant=false}={}){
+function fixture({mode='test',providerMode=mode,profile='full',grant=false}={}){
   if(mode==='live')vi.stubEnv('VERCEL_ENV','production');
   const coupon=(id,opts={})=>({id,object:'coupon',livemode:providerMode==='live',
     amount_off:null,percent_off:15,currency:null,duration:'once',
@@ -46,7 +46,8 @@ function fixture({providerMode=mode,mode='test',profile='full',grant=false}={}){
       retrieve:vi.fn(async id=>promos.get(id)),
       create:vi.fn(async(p,opts)=>{calls.push({name:'promotionCodes.create',p,opts});
         const v={id:'promo_NEW123',object:'promotion_code',
-          livemode:providerMode==='live',code:p.code,coupon:p.coupon,
+          livemode:providerMode==='live',code:p.code,
+          promotion:{type:'coupon',coupon:p.promotion.coupon},
           active:true,metadata:p.metadata??{},customer:p.customer??null,
           max_redemptions:p.max_redemptions??null,expires_at:p.expires_at??null};
         promos.set(v.id,v);return v;}),
