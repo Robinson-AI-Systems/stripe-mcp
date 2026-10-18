@@ -88,6 +88,21 @@ export function makeWebhookEventChange(kind){
     },
     readAfter:async(a,ctx)=>
       (await webhookClient(ctx)).webhookEndpoints.retrieve(a.endpointId),
+    inverse:async(before,after,a)=>{
+      const original=sorted(before.enabled_events),next=sorted(after.enabled_events);
+      if(original.length>30||next.length>30||original.includes('*')||
+        next.includes('*')||JSON.stringify(original)===JSON.stringify(next))return null;
+      const removed=original.filter(e=>!next.includes(e)),
+        added=next.filter(e=>!original.includes(e));
+      if((added.length>0&&removed.length>0)||
+        Math.max(added.length,removed.length)>8)return null;
+      const tool=added.length>0?'webhook_remove_events':'webhook_add_events';
+      return {version:1,tool,args:{endpointId:a.endpointId,
+        events:added.length>0?added:removed},readTool:'webhook_get',
+        readArgs:{endpointId:a.endpointId,detail:'full'},
+        expected:{enabledEvents:next,moreEnabledEvents:false},
+        restored:{enabledEvents:original,moreEnabledEvents:false}};
+    },
     verify:(before,after,a,ctx)=>{
       try{
         exact(after,a.endpointId,ctx.connection.mode);

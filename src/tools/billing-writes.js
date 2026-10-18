@@ -218,6 +218,32 @@ function build(def){
       }
       return s.subscriptions.retrieve(a.subscriptionId);
     },
+    inverse:async(b,after,a)=>{
+      const entry=(tool,args,expected,restored)=>({
+        version:1,tool,args,readTool:'billing_get_subscription',
+        readArgs:{subscriptionId:a.subscriptionId},expected,restored});
+      if(def.name==='billing_cancel_subscription'&&a.timing==='period_end'&&
+        b.cancel_at_period_end===false&&after.cancel_at_period_end===true)
+        return entry('billing_undo_cancel',{subscriptionId:a.subscriptionId},
+          {cancelAtPeriodEnd:true},{cancelAtPeriodEnd:false});
+      if(def.name==='billing_undo_cancel'&&b.cancel_at_period_end===true&&
+        after.cancel_at_period_end===false)
+        return entry('billing_cancel_subscription',
+          {subscriptionId:a.subscriptionId,timing:'period_end'},
+          {cancelAtPeriodEnd:false},{cancelAtPeriodEnd:true});
+      if(def.name==='billing_pause_collection'&&b.pause_collection==null&&
+        after.pause_collection)
+        return entry('billing_resume_collection',{subscriptionId:a.subscriptionId},
+          {pauseCollection:after.pause_collection.behavior},{pauseCollection:null});
+      if(def.name==='billing_resume_collection'&&b.pause_collection?.behavior&&
+        after.pause_collection==null)
+        return entry('billing_pause_collection',{subscriptionId:a.subscriptionId,
+          behavior:b.pause_collection.behavior,
+          ...(b.pause_collection.resumes_at?
+            {resumesAt:b.pause_collection.resumes_at}:{})},
+          {pauseCollection:null},{pauseCollection:b.pause_collection.behavior});
+      return null;
+    },
     verify:(b,after,a)=>{
       if(!after||!Array.isArray(after.items?.data))return false;
       switch(def.name){

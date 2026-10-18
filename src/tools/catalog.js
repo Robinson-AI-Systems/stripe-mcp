@@ -331,6 +331,32 @@ function makeWrite(def){
       }
       return s.prices.retrieve(a.priceId);
     },
+    inverse:async(before,after,a,ctx)=>{
+      const snapshot=(tool,writeArgs,readArgs,expected,restored)=>({
+        version:1,tool,args:writeArgs,readTool:tool.startsWith('price_')?'price_get':'product_get',
+        readArgs,expected,restored});
+      if(n==='product_archive'||n==='product_unarchive'){
+        if(typeof before.active!=='boolean'||typeof after.active!=='boolean'||
+          before.active===after.active)return null;
+        return snapshot(before.active?'product_unarchive':'product_archive',
+          {productId:a.productId},{productId:a.productId},
+          {active:after.active},{active:before.active});
+      }
+      if(n==='price_update'&&a.active!==undefined&&
+        before.active!==after.active&&
+        Object.keys(a).every(k=>['priceId','active','confirm','dryRun','requestKey'].includes(k))){
+        return snapshot('price_update',{priceId:a.priceId,active:before.active},
+          {priceId:a.priceId},{active:after.active},{active:before.active});
+      }
+      if(n==='product_update'&&a.metadata!==undefined&&
+        Object.keys(a).every(k=>['productId','metadata','confirm','dryRun','requestKey'].includes(k))&&
+        before.metadata&&after.metadata){
+        return snapshot('product_update',{productId:a.productId,
+          metadata:before.metadata},{productId:a.productId},
+          {metadata:after.metadata},{metadata:before.metadata});
+      }
+      return null;
+    },
     verify:async(b,after,a,ctx)=>{
       if(n==='product_delete')return after?.id===a.productId&&after.deleted===true;
       if(n==='product_archive'||n==='product_unarchive')

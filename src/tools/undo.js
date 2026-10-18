@@ -58,11 +58,12 @@ function validInverse(v){
     customer_update:['customerId','metadata','name','description','email','phone','address']};
   if(Object.keys(v.args).some(k=>!allowed[v.tool]?.includes(k))||
     Object.keys(v.readArgs).some(k=>!['productId','priceId','subscriptionId',
-      'endpointId','customerId'].includes(k)))
+      'endpointId','customerId','detail'].includes(k)))
     fail('Stored inverse contains an unapproved resource field');
   const inverseId=v.args.productId??v.args.priceId??v.args.subscriptionId??
     v.args.endpointId??v.args.customerId;
-  const readId=Object.values(v.readArgs)[0];
+  const readId=v.readArgs.productId??v.readArgs.priceId??
+    v.readArgs.subscriptionId??v.readArgs.endpointId??v.readArgs.customerId;
   if(typeof inverseId!=='string'||!inverseId||inverseId!==readId)
     fail('Stored inverse target does not match its readback target');
   return v;
