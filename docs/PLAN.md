@@ -1,5 +1,10 @@
 # PLAN — remaining scope and acceptance
 
+## 2026-10-17 — E-2 20 native tools, as-if-merged count
+
+After PR #273's exact-head checks and reviewed merge, source implementation reaches **53/57**, leaving E-3/E-4/X-1/X-2; 20 coupon/promo/feature/entitlement/manual tax original E-2 tools are newly implemented with provider-backfilled guards and distinct TEST/LIVE rights. Real provider/deployment acceptance is tracked separately (43 = **10 PASSED / 33 PENDING**, unchanged); no provider acceptance was inferred from mocks or source status. Previous 52/57 source summaries below are historical checkpoints.
+
+
 ## 2026-10-17 — reconciled implementation-only batch subsection register
 
 **Authoritative source implementation count: 52/57 original IDs MERGED, zero source-IN_PROGRESS and five APPROVED**: E-2, E-3, E-4, X-1 and X-2. V-3's actual native original TEST Event triggers, failed payment/dispute/invoice flows and hosted Checkout Session code/independent verification are implemented and CI merged through PR #271. G-6's original native safe TEST administration, security, fees, account readbacks and 40-setting guided Dashboard map are merged through #151. H-1's original brand kit, upload, Checkout integration and guarded branding/catalog source are merged in #243. Missing *real provider* proof never changes the source merge status of these three.

@@ -1,3 +1,7 @@
+## 2026-10-17 — E-2 candidate source handoff (as-if-merged; external acceptance separate)
+
+PR #273 contains original E-2 native 20-tool coupon/promotion/entitlement/manual tax-rate implementation, with Stripe SDK, selected account mode, LIVE consent, app ownership, guarded confirmation and Stripe readback. Its completed CI/review/merge is required to move source ledger from 52/57 to **53/57 MERGED**; next source IDs **E-3/E-4/X-1/X-2**, no partial credit. Independently, protected acceptance stays **10 passed / 33 pending**, pending real account/deployed verification. Earlier totals below are historical snapshots.
+
 ## 2026-10-17 — implementation and acceptance are independent ledgers (owner correction)
 
 **Implementation/source index:** **52 of 57 original predefined batch subsections implemented, CI verified and merged; 5 still await implementation: E-2, E-3, E-4, X-1, X-2**. No original subsection source-IN_PROGRESS. Actual source completion of **V-3** (all originally implemented native TEST Event/Checkout/verification code through #271), **G-6** (native TEST admin/40-setting Dashboard guided mapping through #151), and **H-1** (brand/Checkout source #243) was incorrectly counted as implementation IN_PROGRESS because external provider/browser/Dashboard acceptance remains. That conflation is corrected in the [new evidence-backed two-ledger audit](audits/2026-10-17-implementation-acceptance-separation.md); this explicit owner correction supersedes the historical eight-open audit and PR #270's former classification.

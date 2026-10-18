@@ -83,7 +83,10 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
         ]);
         const liveCatalog=new Set([
           'product_create','product_update','product_archive','product_unarchive',
-          'product_delete','price_create','price_update'
+          'product_delete','price_create','price_update',
+          'coupon_create','coupon_update','coupon_delete','promo_create','promo_update',
+          'feature_create','feature_attach_to_product','feature_detach_from_product',
+          'taxrate_create','taxrate_update'
         ]);
         const approved=area==='account'&&liveAccount.has(tool.name)||
           area==='webhooks'&&liveWebhooks.has(tool.name)||
@@ -132,7 +135,7 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const res={setHeader:()=>{},status:(code)=>{expect(code).toBe(200);return res;},
       json:value=>{body=value;return res;}};
     home({},res);
-    expect(body.profileToolCounts).toEqual({read_only:129,everyday:130,full:141});
-    expect(body.tools).toBe(264);
+    expect(body.profileToolCounts).toEqual({read_only:139,everyday:140,full:151});
+    expect(body.tools).toBe(284);
   });
 });

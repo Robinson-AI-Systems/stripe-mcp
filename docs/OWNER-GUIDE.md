@@ -1,3 +1,7 @@
+## E-2 original catalog capabilities — source checkpoint, 2026-10-17
+
+PR [#273](https://github.com/Robinson-AI-Systems/stripe-mcp/pull/273) adds all 20 provider-native coupon, promotion code, entitlement feature and manually configured tax-rate tools. Once reviewed and exact-head CI-green, source totals move to **53 of 57**, with **E-3/E-4/X-1/X-2** remaining. This is not deployment or owner-visible Stripe acceptance: the 43 protected criteria remain last observed **10 PASSED / 33 PENDING**. Read-only consumers may inspect, while user-selected profiles, account credentials, permissions and separate LIVE consent govern guarded changes. Owner-specific development no-spend/no-live restrictions do not permanently limit other end users.
+
 ## Implementation versus real-world acceptance — 2026-10-17 clarification
 
 The original batch roadmap tracks **source implementation only**: 52 of 57 original subsections are implemented/tested/merged; the remaining five awaiting implementation are E-2, E-3, E-4, X-1 and X-2. The original V-3 TEST Event/Checkout tools, G-6 safe owner Dashboard administration guide, and H-1 branding kit/hosted Checkout integration are already built and merged. **This does not mean they passed live-provider, owner Dashboard or browser acceptance.**

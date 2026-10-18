@@ -33,7 +33,11 @@ const guardedLiveCustomerWrites=new Set([
 // other legacy account writes remain TEST-only until separately implemented.
 const guardedLiveCatalogWrites=new Set([
   'product_create','product_update','product_archive','product_unarchive',
-  'product_delete','price_create','price_update'
+  'product_delete','price_create','price_update',
+  // E-2 writes have selected-owner Stripe mode, app guard and readback proof.
+  'coupon_create','coupon_update','coupon_delete','promo_create','promo_update',
+  'feature_create','feature_attach_to_product','feature_detach_from_product',
+  'taxrate_create','taxrate_update'
 ]);
 const guardedLiveWebhookWrites=new Set([
   'webhook_create','webhook_add_events','webhook_remove_events',
@@ -96,7 +100,8 @@ export function listingForConnection(registry,connection,override){
     t.name==='api_search'||t.name.startsWith('workflow_')):available;
 }
 export function publicToolInfo(tool) {
-  const {writes:_writes,profiles:_profiles,area:_area,...rest}=tool;
+  const {writes:_writes,profiles:_profiles,area:_area,
+    detailFieldsSupported:_detailFieldsSupported,...rest}=tool;
   const schema=rest.inputSchema||{type:'object',properties:{},additionalProperties:false};
   const properties={...schema.properties};
   // Keep legacy specialist shapes unchanged. Generic read tools gain the
@@ -104,7 +109,8 @@ export function publicToolInfo(tool) {
   // Workflow readers intentionally have strict, task-specific inputs.
   // Do not advertise phantom detail/fields arguments that their original
   // validator rejects; keep universal controls on native readers only.
-  if(tool.writes===false&&!tool.name.startsWith('workflow_')&&
+  if(tool.writes===false&&tool.detailFieldsSupported!==false&&
+    !tool.name.startsWith('workflow_')&&
     !tool.name.startsWith('api_')){
     if(!Object.hasOwn(properties,'detail'))properties.detail={
       type:'string',enum:['summary','full'],description:'Safe summary or full'};
