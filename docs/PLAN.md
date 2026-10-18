@@ -1,3 +1,9 @@
+## 2026-10-18 — original E-4/X-1/X-2 engineering complete as-if-merged, PR #276
+
+**E-4, X-1 and X-2 implementation source complete as-if-merged in PR #276, not yet deployed.** After exact-head reviewed merge, the original engineering ledger becomes **57/57 MERGED** (currently main has 54/57). Protected real-provider acceptance is independent and remains **43 criteria: 10 PASSED / 33 PENDING**. Serving READY live is still E-2 at `0a9577f25eb6ff307192a03694c448d8a9c3c64e`; E-3 on main and this new branch have not been verified live.
+
+Frozen acceptance in `pr-cards/E-4.md`: 12 Stripe Tax and 8 Quote operations; original audited undo with durable SQL claim and refusal; date-stamped 166-read inventory and real provider fixture gaps. Mandatory exact-head check, unit, local PostgreSQL, Stripe mock, RTC, private-core adoption, code review and reviewed merge are release gates. The audit is NOT an external provider PASS; production and owner actions stay unperformed.
+
 ## 2026-10-18 — E-3 complete engineering source (as-if-merged #274)
 
 All original sixteen native Billing usage meters, events, alerts and credit grant/void tools authored, with persistent account-wide event deduplication and separate exact owner financial approvals. Exact-head CI/review and safe merge remain required; actual provider/deployed acceptance must be independently observed. E-4, X-1 and X-2 follow. Current protected ledger: 43 tasks, 10 passed, 33 pending.
