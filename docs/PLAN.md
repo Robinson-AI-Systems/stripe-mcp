@@ -1,5 +1,12 @@
 # PLAN — remaining scope and acceptance
 
+## Reconciled 2026-10-17 original subsection register
+
+The authoritative **original batch subsection** count is in [the work index](pr-cards/work-index.json) and its [evidence audit](audits/2026-10-17-original-subsection-reconciliation.md): **50/57 source-MERGED**, **2 IN_PROGRESS** (V-3 genuine native Stripe TEST event/Checkout provider proof and G-6 authenticated owner Dashboard administration), and **5 still APPROVED** (E-2, E-3, E-4, X-1, X-2). This leaves **seven original section closures**, not fourteen. Old task/checklist lines below are historical acceptance details and may remain unchecked even when source implementation is MERGED; they must never be summed as original subsection counts. Seven newly reconciled source statuses H-1, P-1/P-2/P-3 and R-1/R-2/R-3 were already merged under PRs #243/#244/#245/#263; their real provider/app/Hub/branding owner acceptance remains independently pending. No retroactive new bundle/subsection credit.
+
+**Project completion remains broader than this original-ID count**: 10/43 external acceptance tasks last PASSED, 33 PENDING; existing code corrections #264–#269 require an independently authorized checked READY live promotion and real connected acceptance. Previously merged TEST-only specialist payment/billing/branding/report and financial user-policy/source gaps remain to be remedied before declaring unrestricted user-authorized product parity. Preserve exact independent owner approvals and developer no-production/no-spend/release gates. See [STATUS](STATUS.md) and [END-USER-AUTHORITY](END-USER-AUTHORITY.md). This record update changes no API scope, configuration, owner approval or deployment.
+
+
 Written 2026-10-10 for an empty repository. Order is in [MASTER-ROADMAP](MASTER-ROADMAP.md); current head and blockers in
 [STATUS](STATUS.md). AGENTS owns workflow rules. This file owns acceptance; designs own semantic decisions; cards own the
 next bounded implementation.
