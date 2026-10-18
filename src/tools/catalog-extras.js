@@ -23,7 +23,7 @@ const schema=(properties,required=[])=>({type:'object',properties,
 const error=msg=>{throw new TypeError(msg);};
 const keys=new Set(APP_METADATA_KEYS);
 const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-const code=v=>typeof v==='string'&&/^[A-Za-z0-9]{3,100}$/.test(v);
+const code=v=>typeof v==='string'&&/^[A-Za-z0-9-]{1,100}$/.test(v);
 const coupon=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{2,100}$/.test(v);
 const lookup=v=>typeof v==='string'&&/^[a-z0-9][a-z0-9_-]{2,99}$/.test(v);
 const mode=ctx=>ctx.connection.mode==='live';
@@ -91,7 +91,7 @@ function argsOk(a,fields,required=[]){
     if(['name','displayName','description','jurisdiction'].includes(k)&&
       (typeof v!=='string'||v.length>200||v.length<1||/[\x00-\x1f]/.test(v)))
       error('Invalid '+k);
-    if(k==='code'&&!code(v))error('Promotion code must be alphanumeric');
+    if(k==='code'&&!code(v))error('Promotion code must use letters, numbers or dashes');
     if(k==='lookupKey'&&!lookup(v))error('Invalid entitlement lookup key');
     if(k==='currency'&&!/^[a-z]{3}$/.test(v))error('Invalid currency');
     if(k==='duration'&&!['once','forever','repeating'].includes(v))

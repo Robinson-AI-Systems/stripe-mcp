@@ -161,6 +161,9 @@ describe('E-2 native discount, entitlement and manual tax capabilities',()=>{
     const result=json(await f.confirm('promo_create',{couponId:'welcome22',code:'SAVE15'}));
     expect(result.confirmed).toBe(true);
     expect(f.calls.filter(x=>x.name==='promotionCodes.create')).toHaveLength(1);
+    // Stripe explicitly supports hyphens and short case-insensitive codes.
+    expect(json(await f.confirm('promo_create',{couponId:'welcome22',code:'A-1'}))
+      .confirmed).toBe(true);
   });
   it('attaches, lists and detaches only verified owner-independent product features',async()=>{
     const f=fixture(),a={productId:'prod_ABC123',featureId:'feat_ABC123'};
