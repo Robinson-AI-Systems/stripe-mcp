@@ -286,4 +286,5 @@ function makeWrite(name){
     catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   };
 }
-for(const name of writeNames)handlers[name]=makeWrite(name);
+// Local per-invocation provider identity, never a closure shared by requests.
+for(const name of writeNames)handlers[name]=(args,ctx)=>makeWrite(name)(args,ctx);

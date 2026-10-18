@@ -351,8 +351,13 @@ function makeWrite(def){
       if(n==='product_update'&&a.metadata!==undefined&&
         Object.keys(a).every(k=>['productId','metadata','confirm','dryRun','requestKey'].includes(k))&&
         before.metadata&&after.metadata){
+        // Stripe metadata updates merge keys. Empty values delete keys added
+        // by the original change; simply writing the old map leaves them.
+        const restoreMetadata={...before.metadata};
+        for(const key of Object.keys(after.metadata))if(!Object.hasOwn(before.metadata,key))
+          restoreMetadata[key]='';
         return snapshot('product_update',{productId:a.productId,
-          metadata:before.metadata},{productId:a.productId},
+          metadata:restoreMetadata},{productId:a.productId},
           {metadata:after.metadata},{metadata:before.metadata});
       }
       return null;

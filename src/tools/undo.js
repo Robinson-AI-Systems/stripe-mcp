@@ -1,6 +1,7 @@
 // X-1: a stored verified inverse is a proposal, NEVER permission to bypass
 // the original guarded handler, account mode, profile, app or money policies.
 import {defineWrite,gone} from './write.js';
+import {createHash} from 'node:crypto';
 import {isGuardedTestWrite,isGuardedLiveWrite} from '../core/profiles.js';
 
 const schema={type:'object',properties:{
@@ -113,6 +114,11 @@ function action(){
       // An atomic account+mode row claim prevents duplicate / concurrent undo,
       // even if the underlying Stripe retry key expires. Failures remain claimed
       // for manual reconciliation rather than risking a second provider mutation.
+      // Derive a bounded nested key before reserving the permanent claim.
+      // The source is also checked by the outer guarded write, but do not
+      // allow requestKey length to strand the claim permanently.
+      const nestedKey='undo-'+args.changeId+'-'+createHash('sha256').update(
+        args.requestKey??'original','utf8').digest('hex').slice(0,32);
       const accepted=await ctx.db.claimUndoCandidate({
         account:ctx.connection.stripeAccount,mode:ctx.connection.mode,id:args.changeId});
       if(accepted!==true)fail('Change already claimed or undone; inspect before retrying');
@@ -121,7 +127,7 @@ function action(){
       // dispatch boundary, and the original defineWrite does ALL safety checks.
       const reply=await ctx.runRead(inverse.tool,{
         ...inverse.args,confirm:true,dryRun:false,
-        requestKey:'undo-'+args.changeId+'-'+(args.requestKey??'original')});
+        requestKey:nestedKey});
       innerReceipt=parsed(reply);
       if(innerReceipt.done!==true||innerReceipt.confirmed!==true||
         !Number.isSafeInteger(Number(innerReceipt.logged?.id)))

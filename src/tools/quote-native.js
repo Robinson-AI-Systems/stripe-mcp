@@ -256,4 +256,6 @@ function makeWrite(name){
     }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   };
 }
-for(const name of writes)handlers[name]=makeWrite(name);
+// Create the operation for EACH request: its provider ID and verification state
+// must never be shared between concurrent MCP calls.
+for(const name of writes)handlers[name]=(args,ctx)=>makeWrite(name)(args,ctx);

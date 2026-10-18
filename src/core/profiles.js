@@ -122,15 +122,12 @@ export function publicToolInfo(tool) {
     !tool.name.startsWith('workflow_')&&
     !tool.name.startsWith('api_')){
     if(!Object.hasOwn(properties,'detail'))properties.detail={
-      type:'string',enum:['summary','full'],description:'Safe summary or full'};
+      type:'string',enum:['summary','full']};
     if(!Object.hasOwn(properties,'fields'))properties.fields={
-      type:'string',maxLength:600,description:'Max 12 dotted paths'};
+      type:'string',maxLength:600};
   }
-  const {destructiveHint:_ignored,...otherAnnotations}=rest.annotations??{};
   return {...rest,inputSchema:{...schema,properties},
-    annotations:{...otherAnnotations,readOnlyHint:tool.writes===false,
-      // A read-only tool cannot destroy anything. Omit the redundant false
-      // hint, retaining both readOnlyHint and accurate write-destructive hints.
-      ...(tool.writes===true?{destructiveHint:rest.annotations?.destructiveHint!==false}:{}),
+    annotations:{...rest.annotations,readOnlyHint:tool.writes===false,
+      destructiveHint:tool.writes===true ? rest.annotations?.destructiveHint!==false : false,
       idempotentHint:tool.writes===false}};
 }

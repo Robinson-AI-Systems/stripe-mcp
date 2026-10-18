@@ -119,8 +119,7 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
   it('never publishes internal capability metadata with listed tools',()=>{
     const tool={name:'read',writes:false,profiles:['read_only'],description:'safe'};
     expect(publicToolInfo(tool)).toMatchObject({name:'read',description:'safe',
-      annotations:{readOnlyHint:true,idempotentHint:true}});
-    expect(publicToolInfo(tool)).not.toHaveProperty('annotations.destructiveHint');
+      annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true}});
     expect(publicToolInfo(tool)).not.toHaveProperty('writes');
     expect(tool.writes).toBe(false);
   });
