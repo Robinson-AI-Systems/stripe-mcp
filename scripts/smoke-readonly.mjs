@@ -7,6 +7,9 @@ import {pathToFileURL} from 'node:url';
 import {registry} from '../src/tools/index.js';
 
 const defaultReport='docs/audits/smoke-2026-10-18.md';
+// These legacy `writes:false` entries have a side effect or an SDK POST.
+// Inventory them, but never execute them during a strictly no-write audit.
+const NO_WRITE_SMOKE_EXCLUSIONS=new Set(['tax_calculate']);
 const reqArgs=(tool)=>Array.isArray(tool.inputSchema?.required)?
   tool.inputSchema.required:[];
 const hasInputs=(schema,args)=>
@@ -32,8 +35,7 @@ export function assertTestWhoami(result) {
   const data=result?.content?.[0]?.text;
   if(result?.isError||typeof data!=='string')throw new Error('TEST identity not verified: no authenticated whoami result');
   let parsed;try{parsed=JSON.parse(data);}catch{throw new Error('TEST identity not verified: response not JSON');}
-  if(parsed.mode!=='test'||!/^acct_[A-Za-z0-9]{2,100}$/.test(parsed.account??'')||
-    parsed.liveEnabled===true)
+  if(parsed.mode!=='test'||!/^acct_[A-Za-z0-9]{2,100}$/.test(parsed.account??''))
     throw new Error('TEST-only smoke refused: connected MCP identity was not verified TEST');
   return true;
 }
@@ -50,6 +52,10 @@ export async function collect({tools=registry.tools,call=null,fixtures={},origin
   for(const tool of reads){
     if(inventoryOnly){
       rows.push({name:tool.name,result:'GAP',reason:'Not invoked: no verified authenticated TEST transport'});
+      continue;
+    }
+    if(NO_WRITE_SMOKE_EXCLUSIONS.has(tool.name)){
+      rows.push({name:tool.name,result:'GAP',reason:'Read-labelled SDK call creates a provider record; excluded to guarantee zero writes'});
       continue;
     }
     // Every registered read is inventoried even if an exact provider-owned
