@@ -42,9 +42,11 @@ function safe(value,kind,ctx) {
         amountOff:v.amount_off??null,currency:v.currency??null,duration:v.duration,
         valid:v.valid===true,redeemBy:v.redeem_by??null,metadata:v.metadata??{}};
     case 'promotion_code':{
-      const couponRef=typeof v.coupon==='string'?v.coupon:v.coupon?.id;
+      if(v.promotion&&v.promotion.type!=='coupon')error('Unsupported promotion type');
+      const original=v.promotion?.coupon??v.coupon;
+      const couponRef=typeof original==='string'?original:original?.id;
       if(!coupon(couponRef)||!code(v.code))error('Promotion code facts unavailable');
-      if(obj(v.coupon))safe(v.coupon,'coupon',ctx);
+      if(obj(original))safe(original,'coupon',ctx);
       return {id:v.id,code:v.code,coupon:couponRef,active:v.active===true,
         customer:typeof v.customer==='string'?v.customer:v.customer?.id??null,
         maxRedemptions:v.max_redemptions??null,expiresAt:v.expires_at??null,
@@ -334,9 +336,10 @@ function makeWrite(spec){
         v=await s.coupons.del(a.couponId,undefined,o);
         deleted=v?.deleted===true&&v?.id===a.couponId;
       }
-      if(n==='promo_create')v=await s.promotionCodes.create(pick(a,{
-        couponId:'coupon',code:'code',customerId:'customer',
-        maxRedemptions:'max_redemptions',expiresAt:'expires_at',metadata:'metadata'}),o);
+      if(n==='promo_create')v=await s.promotionCodes.create({
+        ...pick(a,{code:'code',customerId:'customer',maxRedemptions:'max_redemptions',
+          expiresAt:'expires_at',metadata:'metadata'}),
+        promotion:{type:'coupon',coupon:a.couponId}},o);
       if(n==='promo_update')v=await s.promotionCodes.update(a.promoId,
         pick(a,{active:'active',metadata:'metadata'}),o);
       if(n==='feature_create')v=await s.entitlements.features.create(
@@ -344,7 +347,7 @@ function makeWrite(spec){
       if(n==='feature_attach_to_product')v=await s.products.createFeature(
         a.productId,{entitlement_feature:a.featureId},o);
       if(n==='feature_detach_from_product'){
-        v=await s.products.deleteFeature(a.productId,linkBefore.id,o);
+        v=await s.products.deleteFeature(a.productId,linkBefore.id,{},o);
         deleted=v?.deleted===true&&v?.id===linkBefore.id;
       }
       if(n==='taxrate_create')v=await s.taxRates.create(pick(a,{
