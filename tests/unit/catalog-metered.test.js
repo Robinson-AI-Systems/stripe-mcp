@@ -211,6 +211,17 @@ describe('E-3 real Stripe Billing meter, usage, alert and credit-grant surfaces'
     expect(f.sdk.billing.meterEvents.create).toHaveBeenCalledOnce();
     expect(f.db.confirmMeterUsageEvent).not.toHaveBeenCalled();
   });
+  it('refuses changing alerts scoped to a profiled application customer',async()=>{
+    const f=fixture({appOwned:true});
+    f.alerts.get('alrt_ABC123').usage_threshold.filters=[
+      {type:'customer',customer:'cus_ABC123'}];
+    await expect(f.confirm('alert_deactivate',{alertId:'alrt_ABC123'}))
+      .rejects.toThrow(/Application-owned/);
+    await expect(f.confirm('alert_create',{meterId:'mtr_ABC123',
+      title:'App restricted',threshold:10,customerId:'cus_ABC123'}))
+      .rejects.toThrow(/Application-owned/);
+    expect(f.calls).toHaveLength(0);
+  });
   it('refuses financial void without independently authenticated approval',async()=>{
     const f=fixture();
     f.db.consumeApprovedMoneyChange.mockResolvedValueOnce(false);

@@ -1,4 +1,4 @@
-## 2026-10-18 — E-3 native Stripe metered billing (source under review)
+## 2026-10-18 — E-3 native Stripe metered billing (source complete as-if-merged; not yet deployed)
 
 The original sixteen `meter_*`, `alert_*` and `credit_*` names in the Usage billing section now have native guarded implementation in `src/tools/catalog-metered.js`, with source, tests and review tracked in E-3 and PR #274. Meter usage receipt confirms ingestion acknowledgment, NOT finalized billing; owner-confirmed monetary credit grants use the original audited financial reserve. This documentation does not claim deployment, provider acceptance or complete source CI. Original protected queue remains 10 PASSED / 33 PENDING.
 

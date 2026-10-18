@@ -1,3 +1,7 @@
+## 2026-10-18 — E-3 financial and usage engineering interpretation
+
+Original end-user authority and developer-only restrictions remain distinct. Meter event ingestion is asynchronously acknowledged, so retry protection is permanent per account/event identifier rather than relying on provider 24-hour caches. Promotional/paid credit *creation* is financial money-out for existing independent owner authorization; *voiding* a grant is a financial clawback with its own exact independent authenticated approval but **not** a cash payout. This applies existing owner safety principles without inventing an end-user permanent $0 prohibition. No LIVE provider mutations or owner policy changes authorized by this documentation.
+
 # Decisions (dated)
 
 One entry per design decision, newest last. Reasons live here; current rules live in AGENTS and the designs.

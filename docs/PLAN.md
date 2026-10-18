@@ -1,3 +1,7 @@
+## 2026-10-18 — E-3 complete engineering source (as-if-merged #274)
+
+All original sixteen native Billing usage meters, events, alerts and credit grant/void tools authored, with persistent account-wide event deduplication and separate exact owner financial approvals. Exact-head CI/review and safe merge remain required; actual provider/deployed acceptance must be independently observed. E-4, X-1 and X-2 follow. Current protected ledger: 43 tasks, 10 passed, 33 pending.
+
 # PLAN — remaining scope and acceptance
 
 ### 2026-10-18 — E-3 exact-head reviewed engineering and acceptance separation
