@@ -778,7 +778,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
       "STRIPE-E1-CATALOG-READS"
     ],
     "status": "PENDING",
-    "lastEvidence": "2026-10-15 only unit+stripe-mock source proof. Real provider writes/readback, denial, replay and cleanup not yet performed; release and protected native grant required."
+    "lastEvidence": "2026-10-18 genuine deployed selected TEST/full native product and zero-cost USD lookup price creation: original preview then confirmed guarded write, exact independent product/price GET, one-key replay returning original price without duplicate, separate guarded price deactivation and product archive with independent inactive GET checks. Strict source/fixture app-owned refusal could not be authentically exercised: selected TEST account has no app-owned product and its sole known app profile is unbound. Foreign selected-account fixture is also missing. PENDING, not full acceptance. All disposable created resources were independently observed inactive; original audit retains exact IDs. No LIVE, payments, or spending."
   },
   {
     "id": "STRIPE-P4-DRAFT-PROFILE",
@@ -924,7 +924,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Independently demonstrate original custom selected TEST workflow_set_up_catalog two protected native product/price confirmations, real immutable lookup key replay, exact app-owned refusal and no duplicate/automatic uncertain retry",
     "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Original custom full/everyday TEST app ownership registry and owner-approved disposable independent product/price, exact native product_create then price_create confirmed readback",
     "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
-    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+    "lastEvidence": "2026-10-18 original deployed selected TEST/full staged catalog workflow: product and zero-cost lookup price were independently previewed and confirmed in distinct stages with exact fresh fingerprint checks; native product/price GET verified both, repeated immutable lookup returned reusedExisting/noProviderWrite and altered immutable price terms denied without write. Separate guarded cleanup deactivated the price and archived the product; independent GET confirmed both inactive. An approved isolated app-owned provider fixture needed for the real refusal test is unavailable, so original criterion stays PENDING. Exact resource IDs are retained privately in native audit, not copied to docs. No LIVE, money, or app-owned modifications."
   },
   {
     "id": "STRIPE-W9-FIND",
