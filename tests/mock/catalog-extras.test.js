@@ -17,7 +17,8 @@ describe('E-2 pinned Stripe SDK provider request contracts (no real account)',()
     expect((await s.promotionCodes.list({limit:2,code:'SUMMER'})).object).toBe('list');
     expect((await s.promotionCodes.retrieve('promo_FAKE123')).object)
       .toBe('promotion_code');
-    expect((await s.promotionCodes.create({coupon:'TESTCOUPON',code:'SUMMER'},options))
+    expect((await s.promotionCodes.create({promotion:{type:'coupon',coupon:'TESTCOUPON'},
+      code:'SUMMER'},options))
       .object).toBe('promotion_code');
     expect((await s.promotionCodes.update('promo_FAKE123',{active:false},options))
       .object).toBe('promotion_code');
@@ -41,7 +42,7 @@ describe('E-2 pinned Stripe SDK provider request contracts (no real account)',()
       .toBe('list');
     expect((await s.products.createFeature('prod_FAKE123',{
       entitlement_feature:'feat_FAKE123'},options)).object).toBe('product_feature');
-    expect((await s.products.deleteFeature('prod_FAKE123','feat_FAKE123',options))
+    expect((await s.products.deleteFeature('prod_FAKE123','feat_FAKE123',{},options))
       .deleted).toBe(true);
     expect((await s.entitlements.activeEntitlements.list({
       customer:'cus_FAKE123',limit:2})).object).toBe('list');
