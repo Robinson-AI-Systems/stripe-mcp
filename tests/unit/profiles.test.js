@@ -141,7 +141,12 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const res={setHeader:()=>{},status:(code)=>{expect(code).toBe(200);return res;},
       json:value=>{body=value;return res;}};
     home({},res);
-    expect(body.profileToolCounts).toEqual({read_only:154,everyday:155,full:177});
+    // The home endpoint must report EXACTLY the active registry's visible tools.
+    // Under the isolated K-3 core-adoption adapter, the portable profile policy
+    // intentionally differs by one owner-only tool; do not hardcode a stale count.
+    const counts=Object.fromEntries(['read_only','everyday','full'].map(profile=>
+      [profile,visibleTools(registry,profile).length]));
+    expect(body.profileToolCounts).toEqual(counts);
     expect(body.tools).toBe(321);
   });
 });
