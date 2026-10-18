@@ -331,7 +331,7 @@ function makeWrite(def){
       }
       return s.prices.retrieve(a.priceId);
     },
-    inverse:async(before,after,a,ctx)=>{
+    inverse:async(before,after,a)=>{
       const snapshot=(tool,writeArgs,readArgs,expected,restored)=>({
         version:1,tool,args:writeArgs,readTool:tool.startsWith('price_')?'price_get':'product_get',
         readArgs,expected,restored});

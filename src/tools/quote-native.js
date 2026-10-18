@@ -11,6 +11,7 @@ const bool={type:'boolean'},timer={type:'integer',minimum:946684800,maximum:4102
 const params={dryRun:bool,confirm:bool,requestKey:txt(128)};
 const pg={limit:{type:'integer',minimum:1,maximum:100},starting_after:txt(110)};
 const object=(properties,required=[])=>({type:'object',properties,required,additionalProperties:false});
+const metadata={type:'object',additionalProperties:{type:'string'}};
 const lineItems={type:'array',minItems:1,maxItems:20,items:object({
   priceId:id('price'),quantity:{type:'integer',minimum:1,maximum:100000}},['priceId','quantity'])};
 const args={

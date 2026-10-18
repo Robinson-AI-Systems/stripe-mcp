@@ -20,7 +20,7 @@ describe('X-2 authentic and read-only whole registry smoke',()=>{
     const tools=[{name:'stripe_whoami',writes:false,profiles:['read_only'],inputSchema:{
       type:'object',properties:{}}},{name:'the_secret',writes:false,
       profiles:['read_only'],inputSchema:{type:'object',properties:{}}}];
-    const call=vi.fn(async name=>resp({account,mode:'live',liveEnabled:true}));
+    const call=vi.fn(async _name=>resp({account,mode:'live',liveEnabled:true}));
     await expect(collect({tools,call})).rejects.toThrow(/TEST-only smoke refused/);
     expect(call).toHaveBeenCalledTimes(1);
     expect(call.mock.calls[0][0]).toBe('stripe_whoami');
