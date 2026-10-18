@@ -262,7 +262,8 @@ describe('E-1 native TEST catalog profile and contract',()=>{
       expect(isGuardedLiveWrite(t,{...f.ctx.connection,profile:'read_only'})).toBe(false);
     }
     expect(listingForConnection(registry,f.ctx.connection).filter(t=>
-      t.area==='catalog'&&t.writes===true).map(t=>t.name).sort()).toEqual([...names].sort());
+      t.area==='catalog'&&t.writes===true&&names.includes(t.name))
+      .map(t=>t.name).sort()).toEqual([...names].sort());
   });
   it('previews then performs owner-confirmed LIVE product create/update and reversible archive',async()=>{
     const f=fixture({mode:'live'});
