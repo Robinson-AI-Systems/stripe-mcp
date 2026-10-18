@@ -80,6 +80,10 @@ function fixture({mode='test',providerMode=mode,grant=true,enabled=true,profile=
 describe('E-1 native TEST catalog profile and contract',()=>{
   it('X-1 restores an added Stripe metadata key using empty-value deletion semantics',async()=>{
     const f=fixture();
+    // Separate GET payload instances as the real Stripe HTTP SDK does. Reusing
+    // a mutable test map object erases the immutable original pre-state.
+    f.sdk.products.retrieve.mockImplementation(async id=>
+      structuredClone(f.products.get(id)));
     f.sdk.products.update.mockImplementation(async(id,args)=>{
       const p=f.products.get(id);
       if(args.metadata){
