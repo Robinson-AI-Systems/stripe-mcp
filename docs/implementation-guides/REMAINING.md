@@ -1,3 +1,5 @@
+> **2026-10-17 reviewed source/status audit:** This is historical implementation guidance, **not** the remaining-ID ledger. `docs/pr-cards/work-index.json` now records **8** unfinished original IDs: V-3, G-6, H-1, E-2, E-3, E-4, X-1, X-2. Six source-merged IDs P-1/P-2/P-3/R-1/R-2/R-3 have corrected index statuses backed by #244/#245/#263. H-1 source #243 has also merged but stays IN_PROGRESS under its explicit outstanding real-branding and owner Dashboard completion gates; do not rebuild it just because the original subsection is still open. This corrected estimate supersedes the frozen audit plan's initial seven. Independently verify owner/provider and LIVE capability acceptance even for previously merged code; those are not additional countable original IDs. See `docs/audits/2026-10-17-original-subsection-reconciliation.md`.
+
 # Remaining approved work — routes for JIT packets
 
 Baseline #93; this is **guidance**, not a reordered queue or executable future cards. Reconcile against STATUS,

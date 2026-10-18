@@ -1,5 +1,11 @@
 # PLAN — remaining scope and acceptance
 
+## Reconciled 2026-10-17 original subsection register
+
+The [authoritative work index](pr-cards/work-index.json) and [evidence-backed review](audits/2026-10-17-original-subsection-reconciliation.md) now record **49/57 source-MERGED**, **3 IN_PROGRESS** (V-3 real native TEST Events/Checkout acceptance; G-6 signed-in owner Dashboard verification; H-1 real hosted branding/owner provider acceptance with merged code #243), and **5 APPROVED** (E-2/E-3/E-4/X-1/X-2). This leaves **eight original subsection closures**, down from 14 outdated open index entries. Six entries were corrected from stale statuses after checking actual merged source/CI PRs: P-1/P-2 (#244), P-3 (#245), R-1/R-2/R-3 (#263). The initial audit plan projected seven closures; review identified H-1's explicit unfulfilled real acceptance gate, so H-1 intentionally remains open even though its source #243 merged. This is a documented plan variance, not new original subsection credit.
+
+Old checkbox details below are acceptance lines, not separately countable subsection IDs. The protected real-world queue remains **43 total / 10 PASSED / 33 PENDING** until independently verified on the actual READY serving source. Later source PRs #264–#269 still need approved deployment and provider-backed acceptance. Further historically MERGED payment/billing/branding/report/financial policy user-authority engineering remains outside this eight-ID count. Developer TEST/no-spend/no-unscheduled-release gates are not end-user product prohibitions. This audit did not grant permissions, change a Stripe account or move money.
+
 Written 2026-10-10 for an empty repository. Order is in [MASTER-ROADMAP](MASTER-ROADMAP.md); current head and blockers in
 [STATUS](STATUS.md). AGENTS owns workflow rules. This file owns acceptance; designs own semantic decisions; cards own the
 next bounded implementation.
