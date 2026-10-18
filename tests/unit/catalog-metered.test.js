@@ -90,6 +90,14 @@ function fixture({mode='test',providerMode=mode,profile='full',grant=false,appOw
   db.requestMoneyApproval=vi.fn(async()=>true);
   db.reserveMoneyOut=vi.fn(async()=>({decision:'reserved'}));
   db.settleMoneyReservation=vi.fn(async()=>true);
+  const claims=new Set();
+  db.claimMeterUsageEvent=vi.fn(async args=>{
+    const identity=args.account+'|'+args.identifier;
+    if(claims.has(identity))return false;
+    claims.add(identity);return true;
+  });
+  db.confirmMeterUsageEvent=vi.fn(async()=>true);
+  db.consumeApprovedMoneyChange=vi.fn(async()=>true);
   const connection={stripeAccount:account,mode,profile,rtcLiveOwnerApproved:grant,
     moneyLimitCents:grant?50000:0};
   const ctx={db,connection,connectionId:'E3-test-owner',
@@ -150,6 +158,8 @@ describe('E-3 real Stripe Billing meter, usage, alert and credit-grant surfaces'
     await expect(f.confirm('meter_record_usage',{...a,identifier:'bad'}))
       .rejects.toThrow(/stable unique/);
     expect(f.calls.filter(x=>x.name==='event.create')).toHaveLength(1);
+    expect(f.db.claimMeterUsageEvent).toHaveBeenCalledOnce();
+    expect(f.db.confirmMeterUsageEvent).toHaveBeenCalledOnce();
     f.meters.get('mtr_ABC123').status='inactive';
     await expect(f.confirm('meter_record_usage',a)).rejects.toThrow(/Inactive/);
   });
@@ -180,6 +190,7 @@ describe('E-3 real Stripe Billing meter, usage, alert and credit-grant surfaces'
       .toEqual({type:'monetary',monetary:{currency:'usd',value:5000}});
     expect(record(await f.confirm('credit_void_grant',{grantId:'credgr_NEW123'}))
       .confirmed).toBe(true);
+    expect(f.db.consumeApprovedMoneyChange).toHaveBeenCalledOnce();
     await expect(f.confirm('credit_void_grant',{grantId:'credgr_NEW123'}))
       .rejects.toThrow(/already voided/);
   });
@@ -190,6 +201,22 @@ describe('E-3 real Stripe Billing meter, usage, alert and credit-grant surfaces'
     const denial=record(await f.confirm('credit_create_grant',a));
     expect(denial.done).toBe(false);
     expect(f.calls).toHaveLength(0);
+  });
+  it('leaves uncertain usage claims permanently reserved instead of resending',async()=>{
+    const f=fixture(),a={meterId:'mtr_ABC123',customerId:'cus_ABC123',
+      units:2,identifier:'uncertain-usage-001'};
+    f.sdk.billing.meterEvents.create.mockRejectedValueOnce(new Error('network uncertain'));
+    expect(record(await f.confirm('meter_record_usage',a)).done).toBe(false);
+    expect(record(await f.confirm('meter_record_usage',a)).done).toBe(false);
+    expect(f.sdk.billing.meterEvents.create).toHaveBeenCalledOnce();
+    expect(f.db.confirmMeterUsageEvent).not.toHaveBeenCalled();
+  });
+  it('refuses financial void without independently authenticated approval',async()=>{
+    const f=fixture();
+    f.db.consumeApprovedMoneyChange.mockResolvedValueOnce(false);
+    const denied=record(await f.confirm('credit_void_grant',{grantId:'credgr_ABC123'}));
+    expect(denied.done).toBe(false);
+    expect(f.sdk.billing.creditGrants.voidGrant).not.toHaveBeenCalled();
   });
   it('rejects mixed provider mode and disallows LIVE writes without owner grant',async()=>{
     const mismatch=fixture({mode:'test',providerMode:'live'});

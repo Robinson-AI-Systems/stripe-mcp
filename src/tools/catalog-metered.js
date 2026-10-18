@@ -144,7 +144,9 @@ function alert(v,ctx){
   checkId(mid,'mtr');
   return {id:v.id,title:v.title,status:v.status,meterId:mid,
     threshold:v.usage_threshold.gte,recurrence:v.usage_threshold.recurrence,
-    customerId:v.usage_threshold.filters?.[0]?.customer??null};
+    customerId:typeof v.usage_threshold.filters?.[0]?.customer==='string'?
+      v.usage_threshold.filters[0].customer:
+      v.usage_threshold.filters?.[0]?.customer?.id??null};
 }
 function credit(v,ctx){
   if(v?.object!=='billing.credit_grant'||v.livemode!==mode(ctx)||
@@ -247,6 +249,7 @@ function writeHandler(name,def){
       if(name.startsWith('alert_')){
         const v=await bill(s).alerts.retrieve(a.alertId),al=alert(v,ctx);
         await noApp(v,ctx);
+        if(al.customerId){const c=await customer(s,al.customerId,ctx);await noApp(c,ctx);}
         if(name==='alert_activate'&&al.status!=='inactive'||
           name!=='alert_activate'&&al.status!=='active')
           error('Alert not in expected prior lifecycle state');
@@ -279,6 +282,19 @@ function writeHandler(name,def){
         targetId:target,description:name+' for selected customer '+target};
     }:undefined,
     targetGuard:async()=>true,
+    beforeApply:name==='credit_void_grant'?async({ctx,key,prepared,tool})=>{
+      if(typeof ctx.db?.requestMoneyApproval!=='function'||
+        typeof ctx.db?.consumeApprovedMoneyChange!=='function')
+        return {accepted:false,reason:'Independent credit-void approval unavailable'};
+      const exact={account:ctx.connection.stripeAccount,idempotencyKey:key,
+        tool,description:prepared.description,target:prepared.targetId,
+        mode:ctx.connection.mode,amountCents:prepared.amountCents,currency:prepared.currency};
+      if(await ctx.db.requestMoneyApproval(exact)!==true)
+        return {accepted:false,reason:'Exact credit-void request unavailable'};
+      const approved=await ctx.db.consumeApprovedMoneyChange(exact);
+      return {accepted:approved,reason:approved?undefined:
+        'Independent owner approval is required for this exact credit void'};
+    }:undefined,
     apply:async(a,ctx,{idempotencyKey})=>{
       const s=await catalogClient(ctx),opts={idempotencyKey},b=bill(s);
       if(name==='meter_create')result=await b.meters.create({
@@ -292,10 +308,26 @@ function writeHandler(name,def){
       if(name==='meter_reactivate')result=await b.meters.reactivate(a.meterId,{},opts);
       if(name==='meter_record_usage'){
         const m=previous;
+        if(typeof ctx.db?.claimMeterUsageEvent!=='function'||
+          typeof ctx.db?.confirmMeterUsageEvent!=='function')
+          error('Durable meter event ledger unavailable');
+        const claim={account:ctx.connection.stripeAccount,meterId:a.meterId,
+          customerId:a.customerId,eventName:m.eventName,
+          identifier:a.identifier,units:a.units,requestKey:idempotencyKey,
+          mode:ctx.connection.mode};
+        if(await ctx.db.claimMeterUsageEvent(claim)!==true)
+          error('Meter event identifier is already reserved; reconcile an uncertain original, never replay');
         result=await b.meterEvents.create({event_name:m.eventName,
           identifier:a.identifier,
           ...(a.timestamp?{timestamp:a.timestamp}:{}),
           payload:{[m.customerKey]:a.customerId,[m.valueKey]:String(a.units)}},opts);
+        if(result?.object!=='billing.meter_event'||result.livemode!==mode(ctx)||
+          result.identifier!==a.identifier||result.event_name!==m.eventName||
+          result.payload?.[m.customerKey]!==a.customerId||
+          result.payload?.[m.valueKey]!==String(a.units))
+          error('Original usage provider acknowledgment uncertain; identifier remains reserved');
+        if(await ctx.db.confirmMeterUsageEvent(claim)!==true)
+          error('Durable usage acknowledgement uncertain; identifier remains reserved');
       }
       if(name==='alert_create')result=await b.alerts.create({
         alert_type:'usage_threshold',title:a.title,
