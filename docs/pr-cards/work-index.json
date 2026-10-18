@@ -1004,13 +1004,13 @@
         "E-3"
       ],
       "card": "docs/pr-cards/E-4.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 450,
       "units": [
         "E-4"
       ],
-      "readiness": "FROZEN_PLAN_COMMITTED",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -1022,13 +1022,13 @@
         "E-4"
       ],
       "card": "docs/pr-cards/X-1.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 350,
       "units": [
         "X-1"
       ],
-      "readiness": "FROZEN_PLAN_COMMITTED",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -1040,13 +1040,13 @@
         "X-1"
       ],
       "card": "docs/pr-cards/X-2.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 250,
       "units": [
         "X-2"
       ],
-      "readiness": "FROZEN_PLAN_COMMITTED",
+      "readiness": "MERGED",
       "ownerInputs": []
     }
   ],
