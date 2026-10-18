@@ -157,8 +157,14 @@ export const tools=[{
   annotations:{destructiveHint:true}
 }];
 export const handlers={
-  stripe_undo_change:(args,ctx)=>{
+  stripe_undo_change:async(args,ctx)=>{
     if(!['test','live'].includes(ctx?.connection?.mode))return gone('Selected TEST/LIVE connection required');
-    return action().handler(args,ctx);
+    try{return await action().handler(args,ctx);}
+    catch(e){
+      // A stale source state or forbidden inverse is a reviewable refusal,
+      // not an uncaught server error. Never make a Stripe write on refusal.
+      if(e instanceof TypeError)return gone(e.message);
+      throw e;
+    }
   }
 };
