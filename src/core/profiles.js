@@ -69,7 +69,9 @@ export function isGuardedLiveWrite(tool,connection){
   const funded=Number.isSafeInteger(connection?.moneyLimitCents)&&
     connection.moneyLimitCents>0;
   return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
-    tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
+    // Original provider-generated synthetic TEST Event recovery has no
+    // legitimate LIVE equivalent: never advertise it via the generic door.
+    tool?.name!=='dev_reconcile_original_event'&&tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
     (guardedLiveAreas.has(tool.area)||
       (tool.area==='customers'&&guardedLiveCustomerWrites.has(tool.name))||
       (tool.area==='account'&&guardedLiveAccountWrites.has(tool.name))||
