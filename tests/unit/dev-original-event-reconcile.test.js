@@ -53,6 +53,11 @@ describe('V-3 original Stripe Event ledger recovery (never a Stripe writer)',()=
     expect(tools[0].writeContract).toBe('defineWrite-v1');
     expect(tools[0].profiles).toEqual(['everyday','full']);
     expect(registry.tools.find(x=>x.name===tools[0].name)?.writes).toBe(true);
+    const selected={mode:'live',profile:'full',listing:'catalog',
+      rtcLiveOwnerApproved:true,moneyLimitCents:50000};
+    expect(isGuardedLiveWrite(tools[0],selected)).toBe(false);
+    expect(listingForConnection(registry,selected)
+      .some(x=>x.name===tools[0].name)).toBe(false);
   });
   it('previews without SQL/Stripe mutations and explicitly confirms only actual Event',async()=>{
     const f=fixture();
