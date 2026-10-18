@@ -16,7 +16,8 @@ const couponId=text(100),promoId=sid('promo'),featureId=sid('feat');
 const productId=sid('prod'),customerId=sid('cus'),taxrateId=sid('txr');
 const page={limit:{type:'integer',minimum:1,maximum:100},starting_after:text(110)};
 const flags={dryRun:bool,confirm:bool,requestKey:text(128)};
-const schema=(properties,required=[])=>({type:'object',properties,required,additionalProperties:false});
+const schema=(properties,required=[])=>({type:'object',properties,
+  ...(required.length?{required}:{}),additionalProperties:false});
 const error=msg=>{throw new TypeError(msg);};
 const keys=new Set(APP_METADATA_KEYS);
 const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
@@ -120,7 +121,7 @@ export const tools=specsRead.map(([name,props,required=[]])=>({
   name,area:'catalog',profiles:allProfiles,writes:false,
   // These strict native readers accept their typed fields, not phantom detail/fields controls.
   detailFieldsSupported:false,
-  annotations:{readOnlyHint:true},description:'Read Stripe '+name.replaceAll('_',' ')+' for the selected account.',
+  annotations:{readOnlyHint:true},description:'Read '+name.replaceAll('_',' ')+'.',
   inputSchema:schema(props,required)
 }));
 async function product(s,id,ctx){
@@ -421,7 +422,7 @@ for(const s of specsWrite){
   const write=defineWrite({name:s.name,read:async()=>({}),summarize:()=>s.name,
     apply:async()=>{},readAfter:async()=>({}),verify:async()=>false});
   tools.push({...write.tool,area:'catalog',profiles:s.full?fullProfiles:writeProfiles,
-    description:'Guarded '+s.name.replaceAll('_',' ')+'; confirm and verify.',
+    description:s.name.replaceAll('_',' ')+' (guarded).',
     ...(s.destructive?{annotations:{destructiveHint:true}}:{}),
     inputSchema:schema({...s.props,...flags},s.required)});
   handlers[s.name]=(a,ctx)=>makeWrite(s)(a,ctx);
