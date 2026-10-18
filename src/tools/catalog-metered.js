@@ -377,7 +377,7 @@ for(const [name,def] of writeDefs){
   const write=defineWrite({name,read:async()=>({}),summarize:()=>name,
     apply:async()=>{},readAfter:async()=>({}),verify:async()=>false});
   tools.push({...write.tool,area:'catalog',
-    profiles:name.startsWith('credit_')?fullProfiles:writeProfiles,
+    profiles:name==='meter_record_usage'?writeProfiles:fullProfiles,
     description:name.replaceAll('_',' '),
     ...(name==='alert_archive'||name==='credit_void_grant'?
       {annotations:{destructiveHint:true}}:{}),
