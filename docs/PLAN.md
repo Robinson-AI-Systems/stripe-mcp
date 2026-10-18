@@ -1,3 +1,7 @@
+## 2026-10-18 — E-3 standalone selected-account metered billing engineering
+
+E-3 native meter, usage event, alert and credit-grant source is in progress on its original approved scope. This is not a real-provider PASS: asynchronous usage-event acceptance is not the same as published summaries or final customer billing; a grant can affect future financial obligations and requires the existing durable owner money consent. The checked daily release promoted E-2 #273, and the 43 protected TEST acceptance rows stay **10 PASSED / 33 PENDING**. E-4/X-1/X-2 follow only after E-3 verification.
+
 # PLAN — remaining scope and acceptance
 
 ## 2026-10-17 — E-2 20 native tools, as-if-merged count
