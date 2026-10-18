@@ -42,6 +42,22 @@ describe('E-3 original money and usage database invariants',()=>{
       [account,base.identifier]);
     expect(row).toEqual([{state:'provider_acknowledged',units:'5'}]);
   });
+  it('isolates the same permanent event identifier by TEST versus LIVE mode',async()=>{
+    const cross={...base,identifier:'mode-separated-usage-001',
+      requestKey:'rmcp_e3_cross_mode_001'};
+    expect(await db.claimMeterUsageEvent(cross)).toBe(true);
+    expect(await db.claimMeterUsageEvent({...cross,mode:'live'})).toBe(true);
+    expect(await db.claimMeterUsageEvent({...cross,meterId:'mtr_OTHER'})).toBe(false);
+    expect(await db.claimMeterUsageEvent({...cross,mode:'live',requestKey:'rmcp_e3_new'})).toBe(false);
+    expect(await db.confirmMeterUsageEvent({...cross,mode:'live',
+      requestKey:'rmcp_different_key'})).toBe(false);
+    expect(await db.confirmMeterUsageEvent(cross)).toBe(true);
+    expect(await db.confirmMeterUsageEvent({...cross,mode:'live'})).toBe(true);
+    const rows=await rawQuery('SELECT mode,state FROM meter_usage_claims WHERE stripe_account=$1 AND identifier=$2 ORDER BY mode',
+      [account,cross.identifier]);
+    expect(rows).toEqual([{mode:'live',state:'provider_acknowledged'},
+      {mode:'test',state:'provider_acknowledged'}]);
+  });
   it('retains uncertain reservations against old-key retries and account confusion',async()=>{
     const attempt={...base,identifier:'uncertain-usage-event-2',
       requestKey:'rmcp_e3_uncertain'};

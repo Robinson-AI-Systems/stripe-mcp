@@ -92,7 +92,7 @@ function fixture({mode='test',providerMode=mode,profile='full',grant=false,appOw
   db.settleMoneyReservation=vi.fn(async()=>true);
   const claims=new Set();
   db.claimMeterUsageEvent=vi.fn(async args=>{
-    const identity=args.account+'|'+args.identifier;
+    const identity=args.account+'|'+args.mode+'|'+args.identifier;
     if(claims.has(identity))return false;
     claims.add(identity);return true;
   });
