@@ -376,16 +376,10 @@ function writeHandler(name,def){
 for(const [name,def] of writeDefs){
   const write=defineWrite({name,read:async()=>({}),summarize:()=>name,
     apply:async()=>{},readAfter:async()=>({}),verify:async()=>false});
+  // The actual handler enforces durable money reservation; discovery must
+  // identify the same credit grants as financial before LIVE delegation.
   tools.push({...write.tool,
-    ...(name.startsWith('credit_')?{moneySpec:'provider-derived',safety:'
-    profiles:name==='meter_record_usage'?writeProfiles:fullProfiles,
-    description:name.replaceAll('_',' '),
-    ...(name==='alert_archive'||name==='credit_void_grant'?
-      {annotations:{destructiveHint:true}}:{}),
-    inputSchema:schema({...def.props,...flags},def.required)});
-  handlers[name]=(a,ctx)=>writeHandler(name,def)(a,ctx);
-}
-}:{}),
+    ...(name.startsWith('credit_')?{moneySpec:'provider-derived',safety:'$'}:{}),
     area:'catalog',
     profiles:name==='meter_record_usage'?writeProfiles:fullProfiles,
     description:name.replaceAll('_',' '),
