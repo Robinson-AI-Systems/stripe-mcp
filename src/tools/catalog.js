@@ -186,7 +186,7 @@ function mutableMatch(before,after,a,kind,mode='test'){
     if(a.name!==undefined&&value.name!==a.name)return false;
     if(a.description!==undefined&&value.description!==a.description)return false;
     if(a.metadata!==undefined&&Object.entries(a.metadata).some(([k,v])=>
-      value.metadata[k]!==v))return false;
+      v==='' ? Object.hasOwn(value.metadata,k) : value.metadata[k]!==v))return false;
   }
   return true;
 }
