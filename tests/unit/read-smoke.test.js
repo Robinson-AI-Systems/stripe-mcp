@@ -13,6 +13,7 @@ describe('X-2 authentic and read-only whole registry smoke',()=>{
     expect(reads.map(x=>x.name)).not.toContain('quote_accept');
     expect(reads.map(x=>x.name)).not.toContain('stripe_undo_change');
     expect(reads.map(x=>x.name)).not.toContain('meter_record_usage');
+    console.log('X2_SMOKE_INVENTORY_START\n'+reads.map(x=>x.name).join('\n')+\n      '\nX2_SMOKE_INVENTORY_END');
     expect(reads.length+registry.tools.filter(x=>x.writes===true).length)
       .toBe(registry.tools.length);
   });
