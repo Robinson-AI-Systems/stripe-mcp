@@ -968,13 +968,13 @@
         "E-1"
       ],
       "card": "docs/pr-cards/E-2.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 450,
       "units": [
         "E-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
