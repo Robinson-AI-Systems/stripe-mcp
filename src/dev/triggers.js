@@ -213,7 +213,8 @@ export async function findGeneratedEvent(s,plan,account,target){
       bad('Stripe TEST event listing failed validation');
     for(const event of listed.data)if(matchingEvent(event,plan,account,target)){
       const reloaded=await s.events.retrieve(event.id);
-      if(!matchingEvent(reloaded,plan,account,target))
+      if(!id(event.id,'evt')||reloaded?.id!==event.id||
+        !matchingEvent(reloaded,plan,account,target))
         bad('Stripe event read-back changed identity or ownership');
       return event.id;
     }
@@ -475,7 +476,8 @@ export async function executeTrigger({plan,run,stripe:s,db,account,rootKey}){
   let eventId;
   if(old){
     const previous=await s.events.retrieve(old.object_id);
-    if(!matchingEvent(previous,plan,account,signature))
+    if(previous?.id!==old.object_id||
+      !matchingEvent(previous,plan,account,signature))
       bad('Previously tracked TEST event no longer verifies');
     eventId=old.object_id;
   }else eventId=await findGeneratedEvent(s,plan,account,signature);
@@ -533,7 +535,8 @@ export async function inspectIncompleteOriginalEvent({plan,rows,account,stripe:s
     let eventId;
     if(eventRow){
       const event=await s.events.retrieve(eventRow.object_id);
-      if(!matchingEvent(event,plan,account,source))
+      if(event?.id!==eventRow.object_id||
+        !matchingEvent(event,plan,account,source))
         return unknown('original_event_mismatch');
       eventId=eventRow.object_id;
     }else eventId=await findGeneratedEvent(s,plan,account,source);
@@ -599,7 +602,8 @@ export async function verifyRecordedTriggerRun(a,ctx,s){
     ...(isSubscriptionEvent(plan.type)?{
       price:byStep.get('price_1')?.object_id}:{})};
   const event=await s.events.retrieve(eventRow.object_id);
-  if(!matchingEvent(event,plan,account,signature))
+  if(event?.id!==eventRow.object_id||
+    !matchingEvent(event,plan,account,signature))
     bad('Independent Stripe Event retrieval did not match exact TEST provenance');
   return {runId:run.id,mode:'test',type:plan.type,providerVerified:true,
     eventId:eventRow.object_id,sourceType:targetStep.type,
