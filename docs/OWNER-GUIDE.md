@@ -1,3 +1,7 @@
+## E-1 independent TEST catalog verification — 2026-10-18
+
+Existing disposable TEST native products/prices were independently re-read and found archived with one unique price per stable lookup, despite two same-lookup confirmed original log entries. Preview and app-marker/foreign/invalid denials did not create resources; the original E-1 protected provider acceptance moved to PASSED. No live-mode Stripe write, payment or customer contact occurred. One error wording for invalid catalog input still generically advises checking server setup; this is a separate follow-up UX issue. All 30 other protected checks remain pending with their actual owner, fixture, Hub or external acceptance prerequisites. This already-deployed TEST acceptance is **not** proof newer E-3/E-4/X capabilities are deployed.
+
 ## Current original Stripe TEST acceptance — 2026-10-18
 
 **12 of 43** original protected real-provider checks are now passed; **31 remain pending**. The only new passes are a verified read-only inspection of four earlier incomplete TEST trigger fixtures and truthful finite diagnostic indicators. The events themselves were **not** completed; the old durable runs still say `running`. The next release is needed to test newer source additions, but previously deployed safe reads and separately approved TEST fixtures can be examined before that release. Original engineering is merged 57/57; this is not production readiness. The queue and exact evidence are in `docs/STATUS.md` and the V-3 completion card.
