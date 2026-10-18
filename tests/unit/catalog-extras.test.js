@@ -2,6 +2,7 @@ import {describe,it,expect,vi} from 'vitest';
 import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
+import {APP_METADATA_KEYS} from '../../src/tools/app-guard.js';
 
 const account='acct_PROMOTEST123',json=r=>JSON.parse(r.content[0].text);
 function fixture({providerMode='test',mode='test',profile='full',grant=false}={}){
@@ -183,6 +184,53 @@ describe('E-2 native discount, entitlement and manual tax capabilities',()=>{
     expect((await f.call('coupon_get',{couponId:'welcome22'})).isError).toBe(true);
     await expect(f.call('coupon_update',{couponId:'welcome22',
       name:'Denied',dryRun:true})).rejects.toThrow(/selected-mode/);
+    expect(f.calls).toHaveLength(0);
+  });
+
+  it('preserves provider continuation on two-page active entitlement results',async()=>{
+    const f=fixture();
+    f.sdk.entitlements.activeEntitlements.list.mockResolvedValue({
+      data:[{id:'ent_ABC123',object:'entitlements.active_entitlement',
+        livemode:false,feature:'feat_ABC123',lookup_key:'premium-access'}],
+      has_more:true});
+    const page=json(await f.call('entitlement_list_active',{customerId:'cus_ABC123',limit:1}));
+    expect(page.has_more).toBe(true);
+    expect(page.next).toBe('ent_ABC123');
+    expect(f.calls).toHaveLength(0);
+  });
+  it('denies mutations on app-marked products and metadata',async()=>{
+    const f=fixture();
+    f.sdk.products.retrieve.mockResolvedValue({
+      id:'prod_ABC123',object:'product',livemode:false,
+      metadata:{[APP_METADATA_KEYS[0]]:'app-owned'}});
+    await expect(f.confirm('feature_attach_to_product',
+      {productId:'prod_ABC123',featureId:'feat_ABC123'}))
+      .rejects.toThrow(/App|app/);
+    await expect(f.confirm('taxrate_create',{displayName:'Sales',percentage:7.5,
+      inclusive:false,metadata:{[APP_METADATA_KEYS[0]]:'bad'}}))
+      .rejects.toThrow(/app|App/);
+    expect(f.calls).toHaveLength(0);
+  });
+  it('rejects ambiguous promotion reuse and invalid feature keys without mutation',async()=>{
+    const f=fixture();
+    f.promos.set('promo_ABC123',{id:'promo_ABC123',
+      object:'promotion_code',livemode:false,active:true,
+      code:'SAVE15',coupon:'welcome22',customer:'cus_OTHER22',
+      max_redemptions:null,expires_at:null,metadata:{}});
+    await expect(f.confirm('promo_create',{couponId:'welcome22',code:'SAVE15'}))
+      .rejects.toThrow(/different immutable/);
+    await expect(f.confirm('feature_create',{name:'Premium',lookupKey:'NOT LOWERCASE'}))
+      .rejects.toThrow(/lookup key/);
+    expect(f.calls).toHaveLength(0);
+  });
+  it('does not silently confirm a write whose provider readback changed modes',async()=>{
+    const f=fixture();
+    f.sdk.taxRates.retrieve.mockImplementation(async()=>({
+      ...f.taxes.get('txr_ABC123'),livemode:true
+    }));
+    const result=json(await f.confirm('taxrate_update',{taxrateId:'txr_ABC123',
+      active:false}).catch(e=>({content:[{text:JSON.stringify({error:e.message})}]})));
+    expect(result.done).not.toBe(true);
     expect(f.calls).toHaveLength(0);
   });
 });
