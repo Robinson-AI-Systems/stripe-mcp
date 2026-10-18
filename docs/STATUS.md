@@ -1,3 +1,7 @@
+### 2026-10-18 — two genuine deployed V-3 TEST inspection criteria newly accepted
+
+Protected original provider acceptance: **12 PASSED / 31 PENDING of 43**, up from 10/33. Only `STRIPE-V3-UNFINISHED-4` and `STRIPE-V3-FAILURE-INDICATORS` changed disposition, backed by independently authenticated original TEST/full provider snapshots and a second original four-run verifier against Vercel READY E-2 `live=0a9577f25eb6ff307192a03694c448d8a9c3c64e`. The 11 exact recorded source steps and cleanup states were read and compared, with original safe negative invoice/PaymentIntent indicators and subscription latest-invoice linkage; the absent dispute source remained unknown. All four original V-3 runs remain incomplete and only one has a separately provider-verified original Event, with its durable event ledger still incomplete. Neither genuine failed Event nor signed webhook, hosted Checkout or LIVE acceptance is inferred. No provider write, source mutation, release or money action. **Original engineering remains 57/57 MERGED** on main `57ecd5aa116c6e8b063f7a59b62cd7f7d0542f48`, not yet deployed. Frozen completion plan: `docs/pr-cards/V-3.md` at `38cb5c5eb22b83096fff4af599b85ae31419be52`; no original source subsection recounted. Full evidence resides in the two existing task rows below.
+
 ### 2026-10-18 — E-4/X-1/X-2 final engineering source candidate, PR #276
 
 **E-4, X-1 and X-2 implementation source complete as-if-merged in PR #276, not yet deployed.** After exact-head reviewed merge, the original engineering ledger becomes **57/57 MERGED** (currently main has 54/57). Protected real-provider acceptance is independent and remains **43 criteria: 10 PASSED / 33 PENDING**. Serving READY live is still E-2 at `0a9577f25eb6ff307192a03694c448d8a9c3c64e`; E-3 on main and this new branch have not been verified live.
@@ -553,8 +557,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [
       "STRIPE-V3-RUN-INSPECTION"
     ],
-    "status": "PENDING",
-    "lastEvidence": "2026-10-14 source-only enhancement adds finite provider-verified state indicators and five dedicated unit regressions for four incomplete native TEST event families. No CI, checked release or real original-provider invocation is claimed by this new PR."
+    "status": "PASSED",
+    "lastEvidence": "2026-10-18 real original selected TEST/full Stripe MCP; Vercel READY live 0a9577f25eb6ff307192a03694c448d8a9c3c64e includes requiredRevision f2af8dde3. Native dev_inspect_incomplete_runs of the exact four original unfinished fixture rows returned finite independently verified #228 provider diagnostics: invoice.payment_failed source invoice open, paymentAttempted=no, attemptCount=0, zeroAmountPaid=yes, positiveAmountRemaining=yes, automaticCollection=yes; payment_intent.payment_failed source canceled with zeroAmountReceived=yes and declineObserved=no; subscription.deleted original source canceled, initialInvoice=linked, zero-amount paid invoice with no positive remaining; dispute fixture had only a provider-confirmed cleaned customer and omitted any disputed flag because source charge was missing. No raw Stripe errors, decline descriptions, source IDs, amounts, customer PII or secrets returned. All run ledgers remain running, subscription Event independently retrieved but ledger still incomplete, three other Events unverified. PASSED narrowly verifies bounded provider indicator exposure, NOT actual failure Event, webhook, signed delivery, retries or cleanup. No provider mutation."
   },
   {
     "id": "STRIPE-V3-INCOMPLETE-ORIGINAL-EVENT",
@@ -593,8 +597,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [
       "STRIPE-V3-RUN-INSPECTION"
     ],
-    "status": "PENDING",
-    "lastEvidence": "2026-10-14 customer.subscription.deleted, payment_intent.payment_failed, charge.dispute.created and invoice.payment_failed attempted once each but remained RUNNING, no original Event claimed. Guarded exact-run cleanup reported all eligible mutable objects cleaned after safe retries, retaining immutable invoice/item evidence. Independent unfinished-run provider snapshots await new deployed read tool."
+    "status": "PASSED",
+    "lastEvidence": "2026-10-18 real original connected TEST/full Stripe MCP against independently READY E-2 production live 0a9577f25eb6ff307192a03694c448d8a9c3c64e (dpl_GJUYY8oEWhaTBh69hYb7pM6aWkEK); original requiredRevision 8848d0cb9 is in live ancestry. Native dev_inspect_incomplete_runs(includeOriginalEvent:true) retrieved four exact original immutable interrupted V-3 run-owned TEST records, inspectedCount=4/unavailableCount=0. Eleven independent provider-verified source rows: 8 cleanup ledger true with matching current provider states, 3 invoice/invoice-item evidence-retention rows with cleanup ledger false and matching provider state. The original four source run statuses remain running with event_1 missing; separately retrieved original customer.subscription.deleted Event provider_verified, other three Events unverified. Independent dev_verify_trigger_runs(includeIncomplete:true,includeCleanup:true) returned 4 incompleteInspected, 0 completed/Event-verified, 0 cleanup operations. PASSED refers ONLY to actual independent #224 source-state inspection and safe cleanup reconciliation; actual failed event, dispute, webhook, payment, Checkout, source cleanup actions and ledger completion remain pending. No Stripe writes/LIVE/money actions."
   },
   {
     "id": "STRIPE-V3-REMAINING",
