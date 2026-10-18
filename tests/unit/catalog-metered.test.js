@@ -191,6 +191,10 @@ describe('E-3 real Stripe Billing meter, usage, alert and credit-grant surfaces'
     expect(record(await f.confirm('credit_void_grant',{grantId:'credgr_NEW123'}))
       .confirmed).toBe(true);
     expect(f.db.consumeApprovedMoneyChange).toHaveBeenCalledOnce();
+    const exactVoid=f.db.requestMoneyApproval.mock.calls.at(-1)[0];
+    expect(exactVoid.target).toBe('credgr_NEW123');
+    expect(exactVoid.description).toContain('credgr_NEW123');
+    expect(f.db.consumeApprovedMoneyChange.mock.calls[0][0].target).toBe('credgr_NEW123');
     await expect(f.confirm('credit_void_grant',{grantId:'credgr_NEW123'}))
       .rejects.toThrow(/already voided/);
   });

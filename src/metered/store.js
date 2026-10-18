@@ -41,7 +41,7 @@ export function createMeteredBillingStore(sql){
       amountCents,currency}){
       if(!/^acct_[A-Za-z0-9]{2,100}$/.test(account??'')||
         typeof idempotencyKey!=='string'||!idempotencyKey.startsWith('rmcp_')||
-        tool!=='credit_void_grant'||!/^cus_[A-Za-z0-9]{2,100}$/.test(target??'')||
+        tool!=='credit_void_grant'||!/^credgr_[A-Za-z0-9]{2,100}$/.test(target??'')||
         !['test','live'].includes(mode)||currency!=='usd'||
         !Number.isSafeInteger(amountCents)||amountCents<1)
         throw new TypeError('Exact approved financial change required');

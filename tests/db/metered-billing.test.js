@@ -56,13 +56,15 @@ describe('E-3 original money and usage database invariants',()=>{
     expect(rows[0].state).toBe('pending');
   });
   it('requires separately signed-in single-use void approval without consuming money-out budget',async()=>{
-    const key='rmcp_e3_credit_void_001',customer='cus_E3A',amount=900;
+    const key='rmcp_e3_credit_void_001',grant='credgr_E3A',amount=900;
     const exact={account,idempotencyKey:key,tool:'credit_void_grant',
-      target:customer,mode:'test',amountCents:amount,currency:'usd'};
+      target:grant,mode:'test',amountCents:amount,currency:'usd'};
     expect(await db.requestMoneyApproval({...exact,description:'Credit void exact terms'}))
       .toBe(true);
     expect(await db.consumeApprovedMoneyChange(exact)).toBe(false);
     expect(await db.approveMoneyRequest({account,idempotencyKey:key})).toBe(true);
+    expect(await db.consumeApprovedMoneyChange({...exact,target:'credgr_E3B'}))
+      .toBe(false);
     expect(await db.consumeApprovedMoneyChange({...exact,amountCents:901}))
       .toBe(false);
     expect(await db.consumeApprovedMoneyChange({...exact,account:other}))

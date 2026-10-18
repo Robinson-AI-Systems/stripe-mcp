@@ -276,10 +276,11 @@ function writeHandler(name,def){
       (name==='alert_archive'?' Archive is irreversible.':''),
     money:creditAction?async(a,_ctx,b)=>{
       const value=name==='credit_create_grant'?a.amountCents:credit(b,_ctx).amountCents;
-      const target=name==='credit_create_grant'?a.customerId:credit(b,_ctx).customerId;
+      const target=name==='credit_create_grant'?a.customerId:a.grantId;
       const currency=name==='credit_create_grant'?a.currency:credit(b,_ctx).currency;
       return {amountCents:value,currency,direction:name==='credit_create_grant'?'out':'change',
-        targetId:target,description:name+' for selected customer '+target};
+        targetId:target,description:name+' for '+
+          (name==='credit_create_grant'?'selected customer ':'exact credit grant ')+target};
     }:undefined,
     targetGuard:async()=>true,
     beforeApply:name==='credit_void_grant'?async({ctx,key,prepared,tool})=>{

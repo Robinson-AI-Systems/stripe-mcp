@@ -511,7 +511,7 @@ export function createDb(sql = getProductionSql()) {
           !Number.isSafeInteger(amountCents) || amountCents<=0 ||
           currency!=='usd' || !['test','live'].includes(mode) ||
           typeof target!=='string' ||
-          (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(target))) {
+          (target!=='' && !/^(?:ch|py|po|tr|re|pi|in|cus|credgr|acct|ba|src|pm|sub|txn|bt|du)_[A-Za-z0-9]{2,100}$/.test(target))) {
         throw new TypeError('A safe, provider-derived money identity and mode are required');
       }
       // Empty targets preserve old unapproved test fixtures, but can NEVER
