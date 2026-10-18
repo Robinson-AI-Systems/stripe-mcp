@@ -1,3 +1,9 @@
+# PLAN — remaining scope and acceptance
+
+### 2026-10-18 — E-3 exact-head reviewed engineering and acceptance separation
+
+**E-3 source complete as-if-merged (#274):** all sixteen native selected-account Stripe meter, asynchronous usage, billing alert and credit grant tools are implemented, registered and covered by unit tests, pinned Stripe mock, disposable PostgreSQL, RTC service/reference and private-core adopter CI on head `85c8eb07ab97777dd4509a3e2aed6c85e7477b5d`. Independent review identified and prompted repair of three real safety issues: owner-authorized single-use credit void, permanent account-scoped event identifier reservation before Stripe ingestion (including concurrent and retry checks), and filtered alert customer ownership. Exact-head `ci` and `PR target policy` were green on that revision. Safe reviewed merge still required; E-3 only becomes source-MERGED upon merge, yielding **54/57 original source subsections; E-4, X-1, X-2 remain**. The protected **43 independent real provider acceptance checks remain 10 PASSED / 33 PENDING**: no Stripe LIVE action, charge, real customer mutation, money-out, or manual release. Next scheduled checked promotion is distinct from source merge.
+
 ## 2026-10-18 — E-3 standalone selected-account metered billing engineering
 
 E-3 native meter, usage event, alert and credit-grant source is in progress on its original approved scope. This is not a real-provider PASS: asynchronous usage-event acceptance is not the same as published summaries or final customer billing; a grant can affect future financial obligations and requires the existing durable owner money consent. The checked daily release promoted E-2 #273, and the 43 protected TEST acceptance rows stay **10 PASSED / 33 PENDING**. E-4/X-1/X-2 follow only after E-3 verification.
