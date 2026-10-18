@@ -1,11 +1,14 @@
-import {describe,it,expect,vi} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
+import {isGuardedLiveWrite,listingForConnection} from '../../src/core/profiles.js';
+afterEach(()=>vi.unstubAllEnvs());
 import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import {APP_METADATA_KEYS} from '../../src/tools/app-guard.js';
 
 const account='acct_PROMOTEST123',json=r=>JSON.parse(r.content[0].text);
-function fixture({providerMode='test',mode='test',profile='full',grant=false}={}){
+function fixture({providerMode=mode,mode='test',profile='full',grant=false}={}){
+  if(mode==='live')vi.stubEnv('VERCEL_ENV','production');
   const coupon=(id,opts={})=>({id,object:'coupon',livemode:providerMode==='live',
     amount_off:null,percent_off:15,currency:null,duration:'once',
     name:null,metadata:{},valid:true,...opts});
@@ -87,7 +90,8 @@ function fixture({providerMode='test',mode='test',profile='full',grant=false}={}
   };
   const db=createFakeDb({accounts:[{id:account,label:'E-2',live_enabled:true,
     live_connected:true}]});
-  const connection={stripeAccount:account,mode,profile,moneyLimitCents:0};
+  const connection={stripeAccount:account,mode,profile,moneyLimitCents:0,
+    rtcLiveOwnerApproved:grant};
   const ctx={db,connection,connectionId:'E2-owner-TEST',
     liveAccessGranted:grant,services:{stripeForConnection:async()=>sdk}};
   return {ctx,sdk,calls,coupons,promos,features,taxes,links,db,
@@ -236,5 +240,40 @@ describe('E-2 native discount, entitlement and manual tax capabilities',()=>{
       active:false}).catch(e=>({content:[{text:JSON.stringify({error:e.message})}]})));
     expect(result.done).not.toBe(true);
     expect(f.calls).toHaveLength(0);
+  });
+
+  it('allows independently owner-consented LIVE catalog reads and guarded tax writes',async()=>{
+    const f=fixture({mode:'live',grant:true});
+    const read=await f.call('taxrate_get',{taxrateId:'txr_ABC123'});
+    expect(read.isError).not.toBe(true);
+    expect(json(read).percentage).toBe(7.5);
+    const written=json(await f.confirm('taxrate_update',{taxrateId:'txr_ABC123',active:false}));
+    expect(written).toMatchObject({done:true,confirmed:true,mode:'LIVE'});
+    expect(f.sdk.accounts.retrieve).toHaveBeenCalled();
+    expect(f.sdk.balance.retrieve).toHaveBeenCalled();
+    const native=registry.tools.find(x=>x.name==='coupon_create');
+    expect(isGuardedLiveWrite(native,f.ctx.connection)).toBe(true);
+    expect(listingForConnection(registry,{...f.ctx.connection,listing:'catalog'})
+      .map(t=>t.name)).toContain('coupon_create');
+    expect(isGuardedLiveWrite(native,{...f.ctx.connection,
+      rtcLiveOwnerApproved:false})).toBe(false);
+  });
+  it('rejects disabled or unconsented LIVE mutation before dispatch to Stripe',async()=>{
+    for(const grant of [false,true]){
+      const f=fixture({mode:'live',grant});
+      if(grant)f.db.getStripeAccount=async()=>({
+        id:account,live_enabled:false,live_connected:true});
+      const out=await f.call('coupon_create',{duration:'once',percentOff:12,
+        confirm:true,requestKey:'refused-e2'});
+      expect(out.isError).toBe(true);
+      expect(f.calls).toHaveLength(0);
+    }
+  });
+  it('does not advertise phantom projection fields for strict E-2 readers',()=>{
+    const r=registry.tools.find(t=>t.name==='coupon_list');
+    expect(r.detailFieldsSupported).toBe(false);
+    const publicReader=listingForConnection(registry,{
+      mode:'test',profile:'read_only',listing:'catalog'}).find(x=>x.name==='coupon_list');
+    expect(publicReader.name).toBe('coupon_list');
   });
 });
