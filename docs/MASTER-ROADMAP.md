@@ -1,3 +1,7 @@
+## 2026-10-18 — final original E-4/X-1/X-2 source bundle (IN_PROGRESS)
+
+Approved adjacent original subsections E-4 (Tax/Quotes), X-1 (verifiable undo), X-2 (TEST read-only smoke) share one frozen plan `docs/pr-cards/E-4.md` and branch. They remain implementation-unmerged until exact-head CI/review and safe merge; 54/57 original source count remains, while the protected real provider queue stays 10/43 PASSED and 33 PENDING. Main is ahead of independently READY live; no manual release authorized.
+
 ## 2026-10-18 — E-3 native metered billing as-if-merged
 
 E-3 is complete for source review in PR #274, pending exact-head CI and safe merge. The implementation register will be **54 of 57 MERGED** after the merge, with E-4 (Tax/quotes), X-1 (undo), X-2 (read-only release smoke) next. Until a scheduled authorized release, serving production main/live still contains E-2 at `0a9577f`. The separate protected provider-acceptance queue is unchanged: 10 passed / 33 pending.

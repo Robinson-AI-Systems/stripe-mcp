@@ -6,7 +6,7 @@ describe('tool registry', () => {
   it('registers only the intended safe metadata/audit readers', () => {
     expect(registry.tools.map(t => t.name)).toEqual([
       'stripe_whoami', 'stripe_list_accounts', 'stripe_check_key_permissions', 'stripe_recent_changes',
-      'stripe_list_connections', 'stripe_create_pass', 'stripe_revoke_connection', 'stripe_get_result', 'stripe_where_is_setting',
+      'stripe_list_connections', 'stripe_undo_change', 'stripe_create_pass', 'stripe_revoke_connection', 'stripe_get_result', 'stripe_where_is_setting',
       'stripe_search_tools', 'stripe_describe_tool', 'stripe_call', 'stripe_batch',
       'customer_list','customer_get','customer_search','customer_find',
       'customer_list_payment_methods','customer_get_payment_method',
@@ -89,6 +89,12 @@ describe('tool registry', () => {
       'meter_create','meter_update','meter_deactivate','meter_reactivate','meter_record_usage',
       'alert_create','alert_activate','alert_deactivate','alert_archive',
       'credit_create_grant','credit_void_grant',
+      'tax_get_settings','tax_calculate','tax_list_registrations','tax_list_transactions',
+      'tax_get_transaction','tax_list_codes','tax_get_code',
+      'tax_update_settings','tax_add_registration','tax_end_registration',
+      'tax_record_transaction','tax_reverse_transaction',
+      'quote_list','quote_get','quote_get_pdf_link','quote_create','quote_update',
+      'quote_finalize','quote_accept','quote_cancel',
       'project_draft_profile','project_portal_create','workflow_project_setup',
       'workflow_money_snapshot','workflow_failed_payments','workflow_customer_overview',
       'workflow_refund_customer','workflow_cancel_customer','workflow_change_plan',
@@ -98,7 +104,7 @@ describe('tool registry', () => {
       'workflow_set_up_catalog','workflow_brand_business',
       'api_search','api_describe','api_read','api_write'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(144);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(155);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

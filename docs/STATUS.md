@@ -1,3 +1,7 @@
+### 2026-10-18 — original E-4/X-1/X-2 final implementation bundle in progress (NOT yet merged)
+
+Plan frozen on `ai/gpt6/e4-x1-x2-final-roadmap-20261018` at `973c43cdaba688e1c4d38404e1f443a403c218ab` with all 3 original IDs and their independent acceptance contracts. Baseline main `171e5f8dca2f6131c1aec2d49f1b55095b64fce0`; live/READY `0a9577f25eb6ff307192a03694c448d8a9c3c64e`. No provider LIVE changes or manual release. Source remains 54/57 MERGED until required new native Tax/Quotes, guarded undo, read-only smoke tests, exact-head CI/review and merge. Protected provider acceptance separately remains 10/43 PASSED, 33 PENDING; authenticated four-run TEST inspection rechecked no new pass.
+
 ### 2026-10-18 — E-3 whole-subsection source complete as-if-merged (#274)
 
 **After exact-head CI, review and safe merge, source status is 54/57 original subsections MERGED; only E-4, X-1, X-2 remain.** This is pre-merge documentation, not a claim that #274 is already merged or deployed. E-3 implements all 16 native meter, usage, alert and credit tools, durable PostgreSQL account/identifier uniqueness with permanent uncertain reservations, separate signed-in owner authorization for voids, and ordinary account-wide money-out reservations for grants. Unit, pinned Stripe-mock, disposable PostgreSQL concurrency/permission, catalog context-budget and RTC checks are the required publication gates. P1/P1/P2 review findings were addressed. No real Stripe financial/customer writes performed.
