@@ -123,7 +123,7 @@ export const tools=specsRead.map(([name,props,required=[]])=>({
   name,area:'catalog',profiles:allProfiles,writes:false,
   // These strict native readers accept their typed fields, not phantom detail/fields controls.
   detailFieldsSupported:false,
-  annotations:{readOnlyHint:true},description:'Read '+name.replaceAll('_',' ')+'.',
+  annotations:{readOnlyHint:true},description:name.replaceAll('_',' '),
   inputSchema:schema(props,required)
 }));
 async function product(s,id,ctx){
@@ -424,7 +424,7 @@ for(const s of specsWrite){
   const write=defineWrite({name:s.name,read:async()=>({}),summarize:()=>s.name,
     apply:async()=>{},readAfter:async()=>({}),verify:async()=>false});
   tools.push({...write.tool,area:'catalog',profiles:s.full?fullProfiles:writeProfiles,
-    description:s.name.replaceAll('_',' ')+' (guarded).',
+    description:s.name.replaceAll('_',' '),
     ...(s.destructive?{annotations:{destructiveHint:true}}:{}),
     inputSchema:schema({...s.props,...flags},s.required)});
   handlers[s.name]=(a,ctx)=>makeWrite(s)(a,ctx);
