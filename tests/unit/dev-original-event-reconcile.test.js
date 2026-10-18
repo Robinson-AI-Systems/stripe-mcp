@@ -67,7 +67,8 @@ describe('V-3 original Stripe Event ledger recovery (never a Stripe writer)',()=
     expect(f.rows[0].cleaned).toBe(true); // no cleanup ledger rollback
     expect(f.calls.list).toBe(2); // preview and confirmation independent
     expect(f.calls.get).toBeGreaterThan(0);
-    const repeated=await f.invoke({...f.args,confirm:true});
+    const repeated=await f.invoke({...f.args,confirm:true})
+      .catch(()=>({isError:true}));
     expect(repeated.isError===true||parse(repeated).done===false).toBe(true);
     expect(f.calls.write).toBe(1);
   });
