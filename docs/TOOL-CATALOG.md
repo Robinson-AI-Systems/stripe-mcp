@@ -1,3 +1,7 @@
+## 2026-10-18 — E-3 native Stripe metered billing (source under review)
+
+The original sixteen `meter_*`, `alert_*` and `credit_*` names in the Usage billing section now have native guarded implementation in `src/tools/catalog-metered.js`, with source, tests and review tracked in E-3 and PR #274. Meter usage receipt confirms ingestion acknowledgment, NOT finalized billing; owner-confirmed monetary credit grants use the original audited financial reserve. This documentation does not claim deployment, provider acceptance or complete source CI. Original protected queue remains 10 PASSED / 33 PENDING.
+
 ## U-1 universal API operations — owner TEST account controls, independently authorized execution
 
 The four `api_search`, `api_describe`, `api_read`, `api_write` tools use the checksum-verified immutable Stripe operation schema. Discovery classifies native/writes/unknown money risks and names preferred guarded native tools. Reads support actual authorized owner fields with recursive credential redaction; generic unknown body/path parameters are rejected. Selected TEST `full` `api_write` permits genuinely verified nonmoney operations such as tax rates, coupons, shipping rates and Terminal location configuration, with separate preview, confirmation, app-ownership selection, durable audit, original idempotency and exact provider readback. A protected deleted resource must return provider `deleted:true` plus definitive 404/410. Unknown fees or later financial effects are disclosed rather than invented as $0.
