@@ -102,7 +102,8 @@ describe('E-4 native Tax and Quote provider boundary',()=>{
     expect(sdk.quotes.finalizeQuote).toHaveBeenCalledTimes(1);
     const location=body(await registry.handlers.quote_get_pdf_link({quoteId:'qt_ABC123'},ctx));
     expect(location.publicPdfUrl).toBeNull();
-    expect(location.dashboardUrl).toContain('qt_ABC123');
+    expect(location.authenticatedPdfApiUrl).toBe(
+      'https://files.stripe.com/v1/quotes/qt_ABC123/pdf');
   });
   it('isolates concurrent quote creation IDs across separate confirmed requests',async()=>{
     const {ctx,sdk,quote}=fixture();

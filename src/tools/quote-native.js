@@ -3,7 +3,7 @@
 import {defineWrite,gone} from './write.js';
 import {allProfiles,fullProfiles,paging,pageResult,reply,fail,ref} from './billing-shared.js';
 import {catalogClient,catalogMode} from './catalog-mode.js';
-import {findAppOwnership} from './app-guard.js';
+import {findAppOwnership,APP_METADATA_KEYS} from './app-guard.js';
 
 const txt=(max=180)=>({type:'string',minLength:1,maxLength:max});
 const id=p=>({type:'string',pattern:'^'+p+'_[A-Za-z0-9]{2,100}$'});
@@ -68,7 +68,8 @@ function assert(a,name){
       err('Quote expiration must be a future timestamp');
     if(key==='metadata'&&(!isObj(value)||Object.keys(value).length>20||
       Object.entries(value).some(([k,v])=>!/^[A-Za-z0-9_-]{1,40}$/.test(k)||
-        typeof v!=='string'||v.length>250||['__proto__','constructor','prototype'].includes(k))))
+        typeof v!=='string'||v.length>250||APP_METADATA_KEYS.includes(k)||
+        ['__proto__','constructor','prototype'].includes(k))))
       err('Invalid or unsafe quote metadata');
     if(key==='lineItems'&&(!Array.isArray(value)||value.length<1||
       value.length>20||value.some(item=>!isObj(item)||
@@ -139,11 +140,12 @@ const reads={
     const q=safe(await s.quotes.retrieve(a.quoteId),ctx);
     if(!['open','accepted'].includes(q.status))
       err('Quote must be finalized before authenticated PDF retrieval');
-    // Stripe's PDF endpoint returns a private binary stream, not a shareable URL.
-    const path=(live(ctx)?'':'test/')+'quotes/'+encodeURIComponent(q.id);
+    // Exact pinned SDK route: GET files.stripe.com/v1/quotes/{id}/pdf,
+    // with account-authorized Authorization header. Never present a public
+    // URL or copy a secret key into an address/query string.
     return {quoteId:q.id,status:q.status,
-      dashboardUrl:'https://dashboard.stripe.com/'+path,
-      download:'Stripe-authorized Dashboard PDF download required',
+      authenticatedPdfApiUrl:'https://files.stripe.com/v1/quotes/'+encodeURIComponent(q.id)+'/pdf',
+      download:'Stripe account-authorized GET required; never attach API credentials to the URL',
       publicPdfUrl:null,verifiedProvider:true};
   }
 };
