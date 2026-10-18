@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-10-15",
+  "updated": "2026-10-17",
   "order": [
     "A",
     "B",
@@ -16,7 +16,7 @@
     "E",
     "X"
   ],
-  "process": "Just-in-time cards from approved designs; each card runs the drift protocol and updates this index as if merged. Session execution and queued deployed acceptance follow docs/SESSION-START.md. Owner-approved execution: adjacent small roadmap slices are grouped into cohesive outcome-sized PRs; session PR count comes only from the current owner prompt. See docs/SESSION-START.md. Owner clarification 2026-10-14: PR workload accounting counts whole predefined batch subsections in the authoritative roadmap/design, never a function, UI hookup, guard, helper or execution-packet subtask. Partial subsections count zero completed batch subsections; count each subsection once with full eligible engineering and pre-merge evidence. Group related subsections into substantial PRs; use focused checks during work and full required gates on the coherent PR. Existing acceptance and safety gates remain.",
+  "process": "Just-in-time cards from approved designs; each card runs the drift protocol and updates this index as if merged. Session execution and queued deployed acceptance follow docs/SESSION-START.md. Owner-approved execution: adjacent small roadmap slices are grouped into cohesive outcome-sized PRs; session PR count comes only from the current owner prompt. See docs/SESSION-START.md. Owner clarification 2026-10-14: PR workload accounting counts whole predefined batch subsections in the authoritative roadmap/design, never a function, UI hookup, guard, helper or execution-packet subtask. Partial subsections count zero completed batch subsections; count each subsection once with full eligible engineering and pre-merge evidence. Group related subsections into substantial PRs; use focused checks during work and full required gates on the coherent PR. Existing acceptance and safety gates remain. 2026-10-17 owner-requested source-status audit: seven original source cards H-1/P-1/P-2/P-3/R-1/R-2/R-3 have independently merged PRs and matching code/tests; status MERGED means source integration only, never external owner/provider acceptance or a LIVE release. V-3/G-6 retain IN_PROGRESS original external acceptance. E-2/E-3/E-4/X-1/X-2 retain APPROVED unimplemented. See docs/audits/2026-10-17-original-subsection-reconciliation.md.",
   "cards": [
     {
       "id": "A-1",
@@ -608,13 +608,13 @@
         "G-6"
       ],
       "card": "docs/pr-cards/H-1.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "brand_kits",
       "budget": 500,
       "units": [
         "H-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -626,13 +626,13 @@
         "H-1"
       ],
       "card": "docs/pr-cards/P-1.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "known_apps",
       "budget": 400,
       "units": [
         "P-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -644,13 +644,13 @@
         "P-1"
       ],
       "card": "docs/pr-cards/P-2.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 150,
       "units": [
         "P-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -662,13 +662,13 @@
         "P-2"
       ],
       "card": "docs/pr-cards/P-3.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 500,
       "units": [
         "P-3"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -896,13 +896,13 @@
         "U-1"
       ],
       "card": "docs/pr-cards/R-1.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "pass_columns",
       "budget": 350,
       "units": [
         "R-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -914,13 +914,13 @@
         "R-1"
       ],
       "card": "docs/pr-cards/R-2.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 400,
       "units": [
         "R-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
@@ -932,13 +932,13 @@
         "R-2"
       ],
       "card": "docs/pr-cards/R-3.md",
-      "status": "APPROVED",
+      "status": "MERGED",
       "migration": "none",
       "budget": 100,
       "units": [
         "R-3"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
