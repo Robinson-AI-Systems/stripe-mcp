@@ -1,3 +1,5 @@
+> **2026-10-17 source/status audit:** This file is historical implementation **guidance**, not an authoritative list of original unmerged subsections. Original `work-index.json` now accurately records **7** original sections not yet closed: V-3, G-6, E-2, E-3, E-4, X-1, X-2. H-1/P-1/P-2/P-3/R-1/R-2/R-3 source was already merged under #243/#244/#245/#263; a guide mentioning their former proposed work is not evidence it must be reimplemented. External real Stripe/app/Hub acceptance still applies to those source-merged features; further specialist LIVE money/permissions remediation inside earlier merged sections is additional real product work, not new subsection credit. Full evidence: `docs/audits/2026-10-17-original-subsection-reconciliation.md`.
+
 # Remaining approved work — routes for JIT packets
 
 Baseline #93; this is **guidance**, not a reordered queue or executable future cards. Reconcile against STATUS,
