@@ -141,6 +141,37 @@ export function createDevRunStore(sql){
         RETURNING o.object_id`;
       return rows.length===1&&rows[0].object_id===objectId;
     },
+    // V-3 original-provider Event repair: one PostgreSQL statement atomically
+    // links an existing exact TEST Event and finalizes its immutable run.
+    // No Stripe mutation, cleanup edit, or partial SQL receipt is possible.
+    async reconcileVerifiedTriggerEvent({account,id,scenario:kind,
+      planDigest,expectedSteps,eventId}){
+      if(!accountId(account)||!runId(id)||!scenario(kind)||!digest(planDigest)||
+        !Number.isInteger(expectedSteps)||expectedSteps<2||expectedSteps>12||
+        typeof eventId!=='string'||!/^evt_[A-Za-z0-9]{2,100}$/.test(eventId))
+        throw new TypeError('Valid immutable original TEST Event identity required');
+      const sourceCount=expectedSteps-1;
+      const rows=await sql`WITH eligible AS (
+        SELECT r.id FROM dev_runs r WHERE r.id=${id} AND
+          r.stripe_account=${account} AND r.status='running' AND
+          r.scenario=${kind} AND r.size=1 AND r.plan_digest=${planDigest} AND
+          NOT EXISTS (SELECT 1 FROM dev_run_objects existing
+            WHERE existing.run_id=r.id AND existing.step_name='event_1') AND
+          (SELECT count(*)::integer FROM dev_run_objects sources
+            WHERE sources.run_id=r.id)=${sourceCount}
+      ), recorded AS (
+        INSERT INTO dev_run_objects(run_id,step_name,object_type,object_id,cleaned)
+        SELECT id,'event_1','event',${eventId},FALSE FROM eligible
+        ON CONFLICT DO NOTHING RETURNING run_id
+      ), finalized AS (
+        UPDATE dev_runs r SET status='completed',completed_at=now()
+        FROM recorded event WHERE r.id=event.run_id
+          AND r.stripe_account=${account} AND r.status='running'
+        RETURNING r.id
+      )
+      SELECT id FROM finalized`;
+      return rows.length===1&&rows[0].id===id;
+    },
     async completeDevRun({account,id,expectedSteps}){
       if(!accountId(account)||!runId(id)||!Number.isInteger(expectedSteps)||
         expectedSteps<1||expectedSteps>50)

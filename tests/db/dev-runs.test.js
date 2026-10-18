@@ -1,6 +1,7 @@
 // V-1a disposable-local-PostgreSQL developer run and exact object ledger.
 import {beforeAll,afterAll,describe,it,expect} from 'vitest';
 import {createDb,SCHEMA_TABLES} from '../../src/db.js';
+import {planTrigger} from '../../src/dev/triggers.js';
 import {openIsolatedSchema,closeIsolatedSchema,rawQuery,neonShapedQuery}
   from '../../test/helpers/pg-neon-adapter.js';
 let db;
@@ -120,5 +121,66 @@ describe('V-2a account-scoped provider cleanup ledger marking',()=>{
     expect(await db.markDevRunObjectCleaned(args)).toBe(true);
     expect(await db.markDevRunObjectCleaned(args)).toBe(true);
     expect((await db.getDevRunObjects({account,id}))[0].cleaned).toBe(true);
+  });
+});
+
+describe('V-3 recovery — atomic original verified Stripe Event evidence',()=>{
+  it('accepts only matching immutable account+plan with fully recorded source, one of two concurrent inserts',async()=>{
+    const plan=planTrigger({type:'customer.created',
+      requestKey:'reconcile-duplicate-atomic'},account);
+    const p={id:plan.runId,account,connection:'fixture',
+      requestKey:'reconcile-duplicate-atomic',scenario:plan.scenario,
+      size:1,planDigest:plan.planDigest};
+    await db.ensureDevRun(p);
+    const e={account,id:plan.runId,scenario:plan.scenario,
+      planDigest:plan.planDigest,expectedSteps:plan.expectedSteps,
+      eventId:'evt_VERIFIEDATOM123'};
+    expect(await db.reconcileVerifiedTriggerEvent(e)).toBe(false);
+    expect(await db.getDevRunObjects({account,id:plan.runId})).toEqual([]);
+    expect(await db.recordDevRunObject({account,id:plan.runId,
+      stepName:'customer_1',objectType:'customer',
+      objectId:'cus_VERIFIEDATOM123'})).toBe(true);
+    expect(await db.markDevRunObjectCleaned({account,id:plan.runId,
+      stepName:'customer_1',objectType:'customer',
+      objectId:'cus_VERIFIEDATOM123'})).toBe(true);
+    expect(await db.reconcileVerifiedTriggerEvent({...e,account:other})).toBe(false);
+    expect(await db.reconcileVerifiedTriggerEvent({...e,
+      planDigest:'f'.repeat(64)})).toBe(false);
+    expect(await db.reconcileVerifiedTriggerEvent({...e,
+      scenario:'event-customer-updated'})).toBe(false);
+    expect(await db.reconcileVerifiedTriggerEvent({...e,
+      expectedSteps:3})).toBe(false);
+    const [one,two]=await Promise.all([
+      db.reconcileVerifiedTriggerEvent(e),db.reconcileVerifiedTriggerEvent(e)]);
+    expect([one,two].sort()).toEqual([false,true]);
+    const run=await db.getDevRunById({account,id:plan.runId});
+    expect(run.status).toBe('completed');
+    const objs=await db.getDevRunObjects({account,id:plan.runId});
+    expect(objs).toHaveLength(2);
+    expect(objs.find(x=>x.step_name==='event_1')).toMatchObject({
+      object_type:'event',object_id:e.eventId,cleaned:false});
+    expect(objs.find(x=>x.step_name==='customer_1').cleaned).toBe(true);
+    expect(await db.reconcileVerifiedTriggerEvent(e)).toBe(false);
+    const receipts=await rawQuery(
+      "SELECT count(*)::integer AS n FROM dev_run_objects WHERE run_id=$1 AND step_name='event_1'",
+      [plan.runId]);
+    expect(receipts[0].n).toBe(1);
+  });
+  it('fails closed for forged, malformed, or incomplete original evidence',async()=>{
+    const plan=planTrigger({type:'customer.updated',
+      requestKey:'reconcile-missing-source'},account);
+    const p={id:plan.runId,account,connection:null,
+      requestKey:'reconcile-missing-source',scenario:plan.scenario,
+      size:1,planDigest:plan.planDigest};
+    await db.ensureDevRun(p);
+    const evidence={account,id:plan.runId,scenario:plan.scenario,
+      planDigest:plan.planDigest,expectedSteps:plan.expectedSteps,
+      eventId:'evt_NOFAKE123'};
+    expect(await db.reconcileVerifiedTriggerEvent(evidence)).toBe(false);
+    await expect(db.reconcileVerifiedTriggerEvent({...evidence,eventId:'not-an-event'}))
+      .rejects.toThrow(/Valid immutable/);
+    const r=await db.getDevRunById({account,id:plan.runId});
+    expect(r.status).toBe('running');
+    expect(await db.getDevRunObjects({account,id:plan.runId})).toEqual([]);
   });
 });
