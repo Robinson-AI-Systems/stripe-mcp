@@ -3,6 +3,7 @@ import {planTrigger} from '../../src/dev/triggers.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {handlers,tools} from '../../src/tools/dev-original-event-reconcile.js';
 import {registry} from '../../src/tools/index.js';
+import {isGuardedLiveWrite,listingForConnection} from '../../src/core/profiles.js';
 const account='acct_RECONCILE123',key='original-confirmed-event',eventId='evt_ORIGINAL123';
 const parse=r=>JSON.parse(r.content[0].text);
 function fixture({mode='test',profile='full',missingEvent=false,foreign=false,
