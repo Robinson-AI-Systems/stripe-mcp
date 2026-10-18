@@ -169,14 +169,14 @@ const reads={
     if(typeof ctx.db?.listTaxTransactionIndex!=='function')
       err('Local indexed Tax transaction ledger unavailable; Stripe does not offer a general transaction list');
     const rows=await ctx.db.listTaxTransactionIndex({account:ctx.connection.stripeAccount,
-      mode:ctx.connection.mode,limit:a.limit??20});
+      mode:ctx.connection.mode,limit:a.limit??20,startingAfter:a.starting_after??null});
     if(!Array.isArray(rows))err('Tax transaction index unavailable');
     const verified=[];
-    for(const row of rows){
+    for(const row of rows.slice(0,a.limit??20)){
       const v=await s.tax.transactions.retrieve(row.transaction_id);
       verified.push(safe(v,'tax.transaction',ctx));
     }
-    return {data:verified,has_more:false,scope:'only_verified_connector_recorded',
+    return {data:verified,has_more:rows.length>(a.limit??20),next:rows.length>(a.limit??20)?rows[(a.limit??20)-1].transaction_id:null,scope:'only_verified_connector_recorded',
       note:'Stripe has no Tax transactions list endpoint. Other transactions require tax_get_transaction with an exact ID.'};
   },
   tax_get_transaction:async(a,s,ctx)=>safe(
@@ -256,11 +256,11 @@ function makeWrite(name){
       const kind=name==='tax_update_settings'?'tax.settings':
         name.includes('registration')?'tax.registration':'tax.transaction';
       safe(after,kind,ctx);
-      if(name==='tax_update_settings')return
-        (a.taxBehavior===undefined||after.defaults?.tax_behavior===a.taxBehavior)&&
+      if(name==='tax_update_settings')return (
+        a.taxBehavior===undefined||after.defaults?.tax_behavior===a.taxBehavior)&&
         (a.taxCode===undefined||after.defaults?.tax_code===a.taxCode)&&
         (a.headOffice===undefined||Object.entries(addr(a.headOffice)).every(
-          ([k,v])=>after.head_office?.address?.[k]===v));
+          ([k,v])=>after.head_office?.address?.[k]===v)));
       if(name==='tax_add_registration')return after.id===createdId&&
         after.country===a.country.toUpperCase();
       if(name==='tax_end_registration')return after.id===a.registrationId&&
@@ -270,6 +270,14 @@ function makeWrite(name){
       return after.id===createdId&&after.reference===a.reference&&
         after.type==='reversal'&&
         after.reversal?.original_transaction===a.transactionId;
+    },
+    afterApply:async({ctx,args,status})=>{
+      if(status==='confirmed'&&['tax_record_transaction','tax_reverse_transaction'].includes(name)){
+        if(typeof ctx.db?.recordTaxTransactionIndex!=='function'||
+          await ctx.db.recordTaxTransactionIndex({account:ctx.connection.stripeAccount,
+            mode:ctx.connection.mode,transactionId:createdId,reference:args.reference})!==true)
+          err('Verified Tax transaction cannot be indexed; manual reconciliation required');
+      }
     },
     // Stripe tax posted transactions are not money-out; reserve no payout.
   });

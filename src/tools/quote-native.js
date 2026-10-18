@@ -196,13 +196,20 @@ function makeWrite(name){
       if(name==='quote_update')result=await s.quotes.update(a.quoteId,payload(),opts);
       if(name==='quote_finalize')result=await s.quotes.finalizeQuote(a.quoteId,
         ...(a.expiresAt?[{expires_at:a.expiresAt},opts]:[{},opts]));
-      if(name==='quote_accept')result=await s.quotes.acceptQuote(a.quoteId,{},opts);
+      if(name==='quote_accept')result=await s.quotes.accept(a.quoteId,{},opts);
       if(name==='quote_cancel')result=await s.quotes.cancel(a.quoteId,{},opts);
       createdId=result?.id??null;
     },
     readAfter:async(a,ctx)=>{
       const s=await catalogClient(ctx);
-      return s.quotes.retrieve(name==='quote_create'?createdId:a.quoteId);
+      const quoteId=name==='quote_create'?createdId:a.quoteId;
+      if(!valid(quoteId,'qt'))return null;
+      const q=await s.quotes.retrieve(quoteId);
+      if(['quote_create','quote_update'].includes(name)&&a.lineItems){
+        const lines=await s.quotes.listLineItems(quoteId,{limit:100});
+        return {...q,line_items:lines};
+      }
+      return q;
     },
     verify:async(before,after,a,ctx)=>{
       const q=safe(after,ctx);

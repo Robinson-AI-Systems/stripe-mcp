@@ -41,7 +41,10 @@ const guardedLiveCatalogWrites=new Set([
   // E-3 uses original owner-mode, credit money, event and provider verification guards.
   'meter_create','meter_update','meter_deactivate','meter_reactivate',
   'meter_record_usage','alert_create','alert_activate','alert_deactivate',
-  'alert_archive','credit_create_grant','credit_void_grant'
+  'alert_archive','credit_create_grant','credit_void_grant',
+  'tax_update_settings','tax_add_registration','tax_end_registration',
+  'tax_record_transaction','tax_reverse_transaction',
+  'quote_create','quote_update','quote_finalize','quote_accept','quote_cancel'
 ]);
 const guardedLiveWebhookWrites=new Set([
   'webhook_create','webhook_add_events','webhook_remove_events',
@@ -63,6 +66,7 @@ export function isGuardedTestWrite(tool,connection){
   return connection?.mode==='test'&&tool?.writes===true&&
     tool?.writeContract==='defineWrite-v1'&&
     (guardedTestAreas.has(tool.area)||
+      (tool.area==='server'&&tool.name==='stripe_undo_change')||
       (tool.area==='workflows'&&connection?.profile==='full'&&
         fullOwnerWorkflowWrites.has(tool.name))||
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
@@ -81,6 +85,7 @@ export function isGuardedLiveWrite(tool,connection){
     // legitimate LIVE equivalent: never advertise it via the generic door.
     tool?.name!=='dev_reconcile_original_event'&&tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
     (guardedLiveAreas.has(tool.area)||
+      (tool.area==='server'&&tool.name==='stripe_undo_change')||
       (tool.area==='customers'&&guardedLiveCustomerWrites.has(tool.name))||
       (tool.area==='account'&&guardedLiveAccountWrites.has(tool.name))||
       (tool.area==='webhooks'&&guardedLiveWebhookWrites.has(tool.name))||

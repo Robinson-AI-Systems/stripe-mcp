@@ -41,7 +41,7 @@ export async function dispatchReadOnlyTool({ registry, name, args, connection, d
   // Delegation admits one original guarded TEST or owner-activated LIVE write
   // through stripe_call, not arbitrary nested reads or batch writers.
   const nestedWrite=depth>0&&item?.writes!==false;
-  const explicitlyGuarded=nestedWrite&&depth===1&&parent==='stripe_call'&&
+  const explicitlyGuarded=nestedWrite&&depth===1&&['stripe_call','stripe_undo_change'].includes(parent)&&
     guardedWrite===true;
   if(!isToolAllowed(item,fixedConnection.profile,{allowWrites:guardedWrite})||
     nestedWrite&&!explicitlyGuarded){
