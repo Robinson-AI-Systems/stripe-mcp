@@ -1,3 +1,7 @@
+## 2026-10-18 — authenticated original V-3 deployed TEST inspection accepted
+
+The original source engineering remains **57/57 MERGED** on main `57ecd5aa116c6e8b063f7a59b62cd7f7d0542f48`, still newer than independently READY live `0a9577f25eb6ff307192a03694c448d8a9c3c64e`. Against that existing deployed revision, native selected-account TEST/full provider inspection closed two existing narrow original acceptance tasks: `STRIPE-V3-UNFINISHED-4` (four run-owned source/cleanup-state readbacks) and `STRIPE-V3-FAILURE-INDICATORS` (#228 finite safe failed-event diagnostic indicators). Original protected provider acceptance is now **12/43 PASSED, 31/43 PENDING**. No genuine missing failed original Event, run completion, signed webhook or owner browser test has been claimed. All other pending work remains separately tracked in `docs/STATUS.md`.
+
 ## 2026-10-18 — original last E-4/X-1/X-2 source implementation as-if-merged
 
 **E-4, X-1 and X-2 implementation source complete as-if-merged in PR #276, not yet deployed.** After exact-head reviewed merge, the original engineering ledger becomes **57/57 MERGED** (currently main has 54/57). Protected real-provider acceptance is independent and remains **43 criteria: 10 PASSED / 33 PENDING**. Serving READY live is still E-2 at `0a9577f25eb6ff307192a03694c448d8a9c3c64e`; E-3 on main and this new branch have not been verified live.
