@@ -21,15 +21,16 @@ export function createMeteredBillingStore(sql){
         ON CONFLICT DO NOTHING RETURNING identifier`;
       return rows.length===1;
     },
-    async confirmMeterUsageEvent({account,meterId,identifier,requestKey}){
+    async confirmMeterUsageEvent({account,meterId,identifier,requestKey,mode}){
       if(!/^acct_[A-Za-z0-9]{2,100}$/.test(account??'')||
         !/^mtr_[A-Za-z0-9]{2,100}$/.test(meterId??'')||
         !/^[A-Za-z0-9][A-Za-z0-9_-]{7,99}$/.test(identifier??'')||
-        typeof requestKey!=='string'||!requestKey.startsWith('rmcp_'))
+        typeof requestKey!=='string'||!requestKey.startsWith('rmcp_')||
+        !['test','live'].includes(mode))
         throw new TypeError('Exact meter acknowledgment required');
       const rows=await sql`UPDATE meter_usage_claims
         SET state='provider_acknowledged',acknowledged_at=now()
-        WHERE stripe_account=${account} AND meter_id=${meterId}
+        WHERE stripe_account=${account} AND meter_id=${meterId} AND mode=${mode}
           AND identifier=${identifier} AND request_key=${requestKey}
           AND state='pending' RETURNING identifier`;
       return rows.length===1;
@@ -70,7 +71,7 @@ export async function initMeteredBillingTables(sql){
       CHECK (state IN ('pending','provider_acknowledged')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     acknowledged_at TIMESTAMPTZ,
-    PRIMARY KEY (stripe_account,identifier)
+    PRIMARY KEY (stripe_account,mode,identifier)
   )`;
   await sql`CREATE INDEX IF NOT EXISTS meter_usage_claims_pending_idx
     ON meter_usage_claims (stripe_account,created_at)
