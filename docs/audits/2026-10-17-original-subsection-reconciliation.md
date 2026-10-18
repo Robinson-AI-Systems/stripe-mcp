@@ -1,5 +1,7 @@
 # Documentation-to-source audit: original Stripe batch subsection count — 2026-10-17
 
+> **Review-corrected outcome (supersedes the frozen plan's estimate, not its original acceptance requirements): 57 original IDs = 49 MERGED, 3 IN_PROGRESS, 5 APPROVED, leaving 8 open.** The frozen pre-code audit anticipated seven source-status closures. Review verified only six could close; H-1's source merged under #243, but its original explicit real-branding/owner-acceptance gate keeps H-1 IN_PROGRESS. Read the review variance below before relying on the historical plan numbers.
+
 ## Scope and frozen acceptance (documentation reconciliation only)
 
 This owner-requested record repair is **maintenance, zero original product bundles**, and must not alter provider source, scopes, permissions, releases, acceptance results, or production data. Start at independently verified `main` `c24999315a2230b1e01b31e1281aff1fe7c9ac07`. Review authoritative `docs/pr-cards/work-index.json`, `docs/PLAN.md`, `docs/MASTER-ROADMAP.md`, current cards/status, original merged PRs, present source modules and regression suites.
@@ -18,6 +20,12 @@ This owner-requested record repair is **maintenance, zero original product bundl
 
 **Baseline math:** `57` original indexed subsections, `43` marked MERGED, `2` IN_PROGRESS and `12` APPROVED at the starting SHA, giving `14` stale/open. Upon evidence-backed repair of seven source statuses, expect `50` source-MERGED, `2` IN_PROGRESS and `5` APPROVED; **7 remaining original subsections**. This does not mean seven PRs, seven bundles, or that only seven acceptance tasks remain.
 
+## Verified variance from the frozen plan and CI review
+
+The original plan above intentionally remains unchanged as the evidence of what was proposed before review. Its seven-status forecast was **corrected, not silently retconned**: Codex review flagged that H-1's original card unambiguously keeps the subsection open until genuine owner-account branded Checkout and G-6 Dashboard acceptance. Although [H-1 source #243](https://github.com/Robinson-AI-Systems/stripe-mcp/pull/243) is merged, the index now properly retains H-1 as `IN_PROGRESS` with its existing card. We converted only **six** genuinely stale source statuses (P-1/P-2/P-3/R-1/R-2/R-3) from approved to merged. Reviewer also identified the shared R-1–R-3 card validator boundary: the index now points R-2 and R-3 at the original `docs/pr-cards/R-1.md` rather than nonexistent separate files. No new subsection IDs or artificial cards were created.
+
+**Result:** 57 original IDs = 49 source-MERGED + 3 IN_PROGRESS (V-3/G-6/H-1) + 5 APPROVED (E-2/E-3/E-4/X-1/X-2). **8 remain** for full original closure. This correction is not another product bundle; neither a merged source nor this audit passes any real-world acceptance task.
+
 ## Evidence-backed source/CI register (one row per original ID)
 
 All merged SHA values below come from the existing PR merge records, **not** inferred solely from file presence. Source files and tests named here were confirmed in the actual current `main` GitHub tree. The required source execution was reviewed and merged at the time; this document does not rerun, replace or rewrite their original proof. Existing original external acceptance tasks remain separate.
@@ -32,7 +40,7 @@ All merged SHA values below come from the existing PR merge records, **not** inf
 | R-2 | [#263](https://github.com/Robinson-AI-Systems/stripe-mcp/pull/263), `9f9a4590fb510f99fafd21136d01ae3f74521dc7` | `src/core/rtc-http.js`, `src/core/rtc-route.js`, `tests/db/rtc-dual-http.test.js`, `tests/db/rtc-delegated-money.test.js` | Real connected source-versus-deployed authorized owner pass/HTTP operations |
 | R-3 | [#263](https://github.com/Robinson-AI-Systems/stripe-mcp/pull/263), `9f9a4590fb510f99fafd21136d01ae3f74521dc7` | Source-pinned original RTC 1 Hub conformance CI and original shared Postgres/SDK fixtures | Externally accepted Hub direct/relay/Sandbox connection; fake-provider CI is not live-service acceptance |
 
-**Do not reopen these seven as brand new approved roadmap engineering** solely because the old card header says IN PROGRESS. Follow the original card's remaining external acceptance queue, and any separately approved LIVE product-capability remediation, without double-counting old code. As always, if a later test finds genuine missing functionality, restore and fix that specific original acceptance line with honest source evidence.
+**Do not rebuild the already-merged source for these seven IDs as brand new approved roadmap engineering** solely because their historical cards show incomplete implementation. H-1 stays in the original open acceptance queue by explicit exception; the other six source statuses are closed. Follow the original card's remaining external acceptance queue, and any separately approved LIVE product-capability remediation, without double-counting old code. As always, if a later test finds genuine missing functionality, restore and fix that specific original acceptance line with honest source evidence.
 
 ## Still-open original subsections and correct next dependency
 
@@ -40,23 +48,24 @@ All merged SHA values below come from the existing PR merge records, **not** inf
 | --- | --- | --- | --- |
 | V-3 | Developer | IN_PROGRESS | Complete actual run-owned TEST failed payment/invoice/dispute provider Events and real Stripe-hosted Checkout payment/browser return; exact original Event independent retrieval and cleanup |
 | G-6 | Owner/admin | IN_PROGRESS | Actual owner-signed-in Dashboard verification and crosschecked safe native TEST admin/readback, including settings not readable via API |
+| H-1 | Branding | IN_PROGRESS | Source #243 merged and verified, but real branded owner-account Checkout/kit effects, G-6 Dashboard dependency and checked serving provider acceptance still incomplete |
 | E-2 | Catalog | APPROVED | Complete coupons/promotions/entitlements/feature/tax-rate original provider family, API-by-API user authorization |
 | E-3 | Usage | APPROVED | Complete meters, usage, alerts, billing credit grants with actual provider schemas and separate financial entitlement |
 | E-4 | Tax/quotes | APPROVED | Complete Stripe Tax and quotes original scope and guarded effects |
 | X-1 | Undo | APPROVED | Implement safe verifiable inverse support where provider allows, without fake reversals |
 | X-2 | Smoke | APPROVED | Final real read-only smoke suite and production verification gates |
 
-**Original mathematical reconciliation:** 57 fixed IDs in index = 50 source-MERGED + 2 IN_PROGRESS + 5 APPROVED. Thus `57 - 50 = 7` not source-closed, and previously `57 - 43 = 14` was an **outdated index label** rather than seven missing feature families. V-3/G-6 are already substantially coded but lack full independently observed original acceptance. E-2/E-3/E-4/X-1/X-2 may reuse universal/provider infrastructure, but are *not* completed simply because some underlying Stripe operations exist. Count only their entire approved original scope once verified.
+**Original mathematical reconciliation after review:** 57 fixed IDs in index = 49 source-MERGED + 3 IN_PROGRESS + 5 APPROVED. Thus `57 - 49 = 8` not finally closed, versus the earlier `57 - 43 = 14` which overstated remaining work because of six stale merged-code labels. V-3/G-6/H-1 are already substantially coded but lack full independently observed original acceptance. E-2/E-3/E-4/X-1/X-2 may reuse universal/provider infrastructure, but are *not* completed simply because some underlying Stripe operations exist. Count only their entire approved original scope once verified.
 
 ## Additional remaining work outside this subsection arithmetic
 
 - **Real acceptance:** last protected ledger 43 total; 10 PASSED and 33 PENDING. Evidence must be gathered on actual source serving revision, with owner permissions and externally available provider/browser prerequisites. No connected provider acceptance status changed in this audit.
 - **Release:** previous checked Vercel READY live revision `5e9a7fa7b2540f943995efc18ba307f0990dcbf5`; latest code on `main` already included #264–#269 at `c24999315a2230b1e01b31e1281aff1fe7c9ac07`. A documentation-only merge is not permission to promote production or use LIVE Stripe.
-- **Product authority:** the owner requires actual user-authorized Stripe capabilities, not accidental developer-agent TEST/$0 caps. Earlier MERGED original sections still have specialist payment/billing/branding/report and financial user-specific-policy deficits, even after #264–#269 source fixes. These are genuine additional engineering obligations but **not another original approved subsection count**. The 7-ID count is not an estimate of the number of remaining PRs or complete product bundles.
+- **Product authority:** the owner requires actual user-authorized Stripe capabilities, not accidental developer-agent TEST/$0 caps. Earlier MERGED original sections still have specialist payment/billing/branding/report and financial user-specific-policy deficits, even after #264–#269 source fixes. These are genuine additional engineering obligations but **not another original approved subsection count**. The 8-ID count is not an estimate of the number of remaining PRs or complete product bundles.
 - **No unwanted side effects:** index/card/status/text only. No new source logic, migration, provider/API write, Stripe secret, spending, release, customer email or external system mutation.
 
 ## Maintenance delivery and reviewer checklist
 
-- Review the exact seven changed index IDs and unchanged **seven** remaining IDs; do not infer source completion from raw `MERGED` labels alone.
+- Review the six changed source-MERGED index IDs, shared original R card paths and H-1's deliberately open acceptance status; verify **eight** remaining IDs without inferring provider acceptance from raw `MERGED` labels.
 - Run repository `check` including index/doc consistency, plus entire required CI matrix and pinned private-core adopter on one exact PR head. Read all findings, correct only proven record issues and merge only under repo gates.
 - Post final original counts, completed CI/review, live/main identity, pending external acceptance and next accepted original work on the merged PR. This audit **counts zero new production lines and zero new product bundles**.
