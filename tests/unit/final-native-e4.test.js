@@ -49,7 +49,8 @@ function fixture({providerLive=false}={}){
   };
   const db=createFakeDb({accounts:[{id:account,label:'Safe E4'}]});
   const ctx={db,connection:{stripeAccount:account,mode:'test',profile:'full'},
-    connectionId:'e4-safe',services:{stripeForConnection:async()=>sdk}};
+    connectionId:'e4-safe',getCustomer:id=>sdk.customers.retrieve(id),
+    services:{stripeForConnection:async()=>sdk}};
   return {ctx,sdk,quote};
 }
 describe('E-4 native Tax and Quote provider boundary',()=>{

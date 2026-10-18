@@ -89,7 +89,10 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
           'taxrate_create','taxrate_update',
           'meter_create','meter_update','meter_deactivate','meter_reactivate',
           'meter_record_usage','alert_create','alert_activate','alert_deactivate',
-          'alert_archive','credit_create_grant','credit_void_grant'
+          'alert_archive','credit_create_grant','credit_void_grant',
+          'tax_update_settings','tax_add_registration','tax_end_registration',
+          'tax_record_transaction','tax_reverse_transaction',
+          'quote_create','quote_update','quote_finalize','quote_accept','quote_cancel'
         ]);
         const approved=area==='account'&&liveAccount.has(tool.name)||
           area==='webhooks'&&liveWebhooks.has(tool.name)||
@@ -116,7 +119,8 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
   it('never publishes internal capability metadata with listed tools',()=>{
     const tool={name:'read',writes:false,profiles:['read_only'],description:'safe'};
     expect(publicToolInfo(tool)).toMatchObject({name:'read',description:'safe',
-      annotations:{readOnlyHint:true,destructiveHint:false,idempotentHint:true}});
+      annotations:{readOnlyHint:true,idempotentHint:true}});
+    expect(publicToolInfo(tool)).not.toHaveProperty('annotations.destructiveHint');
     expect(publicToolInfo(tool)).not.toHaveProperty('writes');
     expect(tool.writes).toBe(false);
   });
@@ -138,7 +142,7 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const res={setHeader:()=>{},status:(code)=>{expect(code).toBe(200);return res;},
       json:value=>{body=value;return res;}};
     home({},res);
-    expect(body.profileToolCounts).toEqual({read_only:144,everyday:145,full:156});
-    expect(body.tools).toBe(300);
+    expect(body.profileToolCounts).toEqual({read_only:154,everyday:155,full:177});
+    expect(body.tools).toBe(321);
   });
 });

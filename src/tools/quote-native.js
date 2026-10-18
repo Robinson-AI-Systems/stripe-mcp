@@ -108,8 +108,11 @@ async function scope(ctx,source){
     ctx.db.getAppGuardScope(ctx.connection.stripeAccount)]);
   if(!Array.isArray(apps)||!['legacy','scoped'].includes(status))
     err('Application ownership scope unavailable');
-  if(source&&await findAppOwnership(source,ctx))
-    err('Application-owned or uncertain quote cannot be changed');
+  if(source){
+    const s=await catalogClient(ctx);
+    if(await findAppOwnership(source,{...ctx,getCustomer:id=>s.customers.retrieve(id)}))
+      err('Application-owned or uncertain quote cannot be changed');
+  }
 }
 async function checkedLines(a,s,ctx){
   if(!a.lineItems)return;
@@ -175,9 +178,15 @@ function makeWrite(name){
         err('Only finalized open quotes can be accepted');
       else if(name==='quote_cancel'&&!['draft','open'].includes(q.status))
         err('Only draft/open quotes can be canceled');
+      if(name==='quote_accept'&&(!Number.isSafeInteger(q.amount_total)||
+        q.amount_total<0||typeof q.currency!=='string'||
+        !/^[a-z]{3}$/.test(q.currency)))
+        err('Quote acceptance requires exact provider totals and currency');
       return q;
     },
     summarize:(before,a,ctx)=>ctx.connection.mode.toUpperCase()+' MODE: '+name+
+      '. Provider quote total '+(Number.isSafeInteger(before.amount_total)?
+        before.amount_total+' minor units '+before.currency:'not yet finalized')+
       '. Quote total, tax and payment terms can change.'+
       (name==='quote_accept'?' Acceptance can create an invoice or subscription and initiate INCOMING collection.':'')+
       ' Verify exact quote/customer, preview with confirm:true and stable requestKey.'+
@@ -217,8 +226,9 @@ function makeWrite(name){
         q.status!=='draft'))return false;
       if(name!=='quote_create'&&q.id!==a.quoteId)return false;
       if(name==='quote_finalize'&&q.status!=='open'||name==='quote_accept'&&
-        q.status!=='accepted'||name==='quote_cancel'&&q.status!=='canceled')
-        return false;
+        (q.status!=='accepted'||q.amountTotal!==before.amount_total||
+          q.currency!==before.currency||q.customer!==ref(before.customer))||
+        name==='quote_cancel'&&q.status!=='canceled')return false;
       if(['quote_create','quote_update'].includes(name)){
         if(a.description!==undefined&&q.description!==a.description||
           a.expiresAt!==undefined&&q.expiresAt!==a.expiresAt||
