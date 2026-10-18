@@ -13,7 +13,6 @@ const pg={limit:{type:'integer',minimum:1,maximum:100},starting_after:txt(110)};
 const object=(properties,required=[])=>({type:'object',properties,required,additionalProperties:false});
 const lineItems={type:'array',minItems:1,maxItems:20,items:object({
   priceId:id('price'),quantity:{type:'integer',minimum:1,maximum:100000}},['priceId','quantity'])};
-const metadata={type:'object',additionalProperties:{type:'string'}};
 const args={
   quote_list:{...pg,customerId:id('cus'),status:{type:'string',enum:['draft','open','accepted','canceled']}},
   quote_get:{quoteId:id('qt')},
@@ -151,11 +150,11 @@ export const handlers=Object.fromEntries(Object.keys(reads).map(name=>[name,
     }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   }]));
 function makeWrite(name){
-  let createdId=null,prior=null;
+  let createdId=null;
   const op=defineWrite({
     name,resultId:(_b,v)=>v?.id??null,
     read:async(a,ctx)=>{
-      createdId=null;prior=null;assert(a,name);
+      createdId=null;assert(a,name);
       await scope(ctx);
       const s=await catalogClient(ctx);
       if(name==='quote_create'){
@@ -175,7 +174,7 @@ function makeWrite(name){
         err('Only finalized open quotes can be accepted');
       else if(name==='quote_cancel'&&!['draft','open'].includes(q.status))
         err('Only draft/open quotes can be canceled');
-      prior=q;return q;
+      return q;
     },
     summarize:(before,a,ctx)=>ctx.connection.mode.toUpperCase()+' MODE: '+name+
       '. Quote total, tax and payment terms can change.'+

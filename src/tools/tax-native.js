@@ -3,7 +3,7 @@
 import {defineWrite,gone} from './write.js';
 import {allProfiles,fullProfiles,paging,pageResult,reply,fail} from './billing-shared.js';
 import {catalogClient,catalogMode} from './catalog-mode.js';
-import {findAppOwnership,APP_METADATA_KEYS} from './app-guard.js';
+import {findAppOwnership} from './app-guard.js';
 
 const text=(n=140)=>({type:'string',minLength:1,maxLength:n});
 const ident=p=>({type:'string',pattern:'^'+p+'_[A-Za-z0-9]{2,100}$'});
@@ -256,8 +256,7 @@ function makeWrite(name){
       const kind=name==='tax_update_settings'?'tax.settings':
         name.includes('registration')?'tax.registration':'tax.transaction';
       safe(after,kind,ctx);
-      if(name==='tax_update_settings')return (
-        a.taxBehavior===undefined||after.defaults?.tax_behavior===a.taxBehavior)&&
+      if(name==='tax_update_settings')return ((a.taxBehavior===undefined||after.defaults?.tax_behavior===a.taxBehavior)&&
         (a.taxCode===undefined||after.defaults?.tax_code===a.taxCode)&&
         (a.headOffice===undefined||Object.entries(addr(a.headOffice)).every(
           ([k,v])=>after.head_office?.address?.[k]===v)));

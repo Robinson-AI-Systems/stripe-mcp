@@ -75,12 +75,12 @@ async function view(v,ctx){
   return read;
 }
 function action(){
-  let inverse=null,innerReceipt=null,claimMade=false,original=null;
+  let inverse=null,innerReceipt=null,claimMade=false;
   return defineWrite({
     name:'stripe_undo_change',
     resultId:null,
     read:async(args,ctx)=>{
-      inverse=null;innerReceipt=null;claimMade=false;original=null;
+      inverse=null;innerReceipt=null;claimMade=false;
       if(!Number.isSafeInteger(args?.changeId)||args.changeId<1||
         Object.keys(args).some(k=>!['changeId','dryRun','confirm','requestKey'].includes(k)))
         fail('A positive exact changeId and supported confirmation controls are required');
@@ -94,7 +94,7 @@ function action(){
         row.amount_cents!==null&&row.amount_cents!==undefined||
         row.direction==='out'||row.direction==='in')
         fail('No reversible change found for this exact account and mode. For money, finalized invoices, deletions or submitted evidence, use a separate authorized corrective workflow');
-      inverse=validInverse(row.inverse);original=row;
+      inverse=validInverse(row.inverse);
       const tool=ctx.registry?.tools?.find(t=>t.name===inverse.tool);
       const permitted=isGuardedTestWrite(tool,ctx.connection)||
         isGuardedLiveWrite(tool,ctx.connection);
