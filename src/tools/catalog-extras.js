@@ -5,7 +5,9 @@ import {allProfiles,writeProfiles,fullProfiles,paging,pageResult,reply,fail,vali
 import {catalogClient,catalogMode} from './catalog-mode.js';
 import {findAppOwnership,APP_METADATA_KEYS} from './app-guard.js';
 
-const text=(max=160)=>({type:'string',minLength:1,maxLength:max});
+// Runtime validator also enforces nonblank required strings; omit duplicate
+// per-field schema minLength in the broad catalog listing token budget.
+const text=(max=160)=>({type:'string',maxLength:max});
 const bool={type:'boolean'};
 const number={type:'number',minimum:0,maximum:100};
 const integer={type:'integer',minimum:1,maximum:100000000};
