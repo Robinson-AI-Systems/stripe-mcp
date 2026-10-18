@@ -913,7 +913,7 @@
       "dependencies": [
         "R-1"
       ],
-      "card": "docs/pr-cards/R-2.md",
+      "card": "docs/pr-cards/R-1.md",
       "status": "MERGED",
       "migration": "none",
       "budget": 400,
@@ -931,7 +931,7 @@
       "dependencies": [
         "R-2"
       ],
-      "card": "docs/pr-cards/R-3.md",
+      "card": "docs/pr-cards/R-1.md",
       "status": "MERGED",
       "migration": "none",
       "budget": 100,
