@@ -23,7 +23,11 @@ function fixture({providerMode='test',mode='test',profile='full',grant=false}={}
     accounts:{retrieve:vi.fn(async()=>({object:'account',id:account}))},
     balance:{retrieve:vi.fn(async()=>({object:'balance',livemode:providerMode==='live'}))},
     coupons:{
-      list:vi.fn(list(coupons)),retrieve:vi.fn(async id=>coupons.get(id)),
+      list:vi.fn(list(coupons)),retrieve:vi.fn(async id=>{
+        if(coupons.has(id))return coupons.get(id);
+        throw Object.assign(new Error('Stripe coupon missing'),{
+          statusCode:404,code:'resource_missing',type:'StripeInvalidRequestError'});
+      }),
       create:vi.fn(async(p,opts)=>{calls.push({name:'coupons.create',p,opts});
         const v=coupon(p.id??'coupon_NEW123',{percent_off:p.percent_off??null,
           amount_off:p.amount_off??null,currency:p.currency??null,duration:p.duration,
