@@ -1,3 +1,9 @@
+### 2026-10-18 — independently verified original E-1 guarded TEST catalog acceptance, no release required
+
+Protected real-provider ledger: **13 PASSED / 30 PENDING of 43** (up from 12/31). Only newly passed ID: `STRIPE-E1-CATALOG-WRITES`. Original E-1 source commit `cad4841c857c22ef6df5a114126af3541d07f4f8` already exists in independently Vercel READY E-2 `live=0a9577f25eb6ff307192a03694c448d8a9c3c64e`, with selected genuine standalone TEST/full owner account. Two real disposable catalog series confirmed original guarded product/price writes and archived both resources; one exact native lookup had two confirmed original price-create journal rows but Stripe exposes one unique Price, no duplicate. New independent post-plan product+price readbacks and denial/preview/no-write checks confirmed stable cleanup and ownership boundaries. One masked input error wrongly says "Could not read account details", an unresolved message-quality defect, not an actual successful write or provider acceptance of app ownership. Full sanitized evidence is in the E-1 queue row and `docs/pr-cards/E-1.md`. W9 workflow staged exact confirmation and app-owned actual record remain pending.
+
+**Release categorization:** checked 22 unique original revision ancestry comparisons for all 31 PENDING at entry; all were direct ancestors of currently READY E-2. Thus none of these **original** acceptance task source pins needs the E-3/E-4/X release to be callable. Actual blockers are individual TEST fixtures/owner/browser/federation and complete original criteria. Independent E-3/E-4/X-1/X-2 **new feature** deployed smoke/acceptance does require a separately checked promotion of merged `main=84e188a17c3c05d215491df2e5c8143fb2c0ac4e`. Do not infer the latest main is deployed or label the whole project accepted. No manual release, LIVE, spending, financial write or app-owned production change.
+
 ### 2026-10-18 — two genuine deployed V-3 TEST inspection criteria newly accepted
 
 Protected original provider acceptance: **12 PASSED / 31 PENDING of 43**, up from 10/33. Only `STRIPE-V3-UNFINISHED-4` and `STRIPE-V3-FAILURE-INDICATORS` changed disposition, backed by independently authenticated original TEST/full provider snapshots and a second original four-run verifier against Vercel READY E-2 `live=0a9577f25eb6ff307192a03694c448d8a9c3c64e`. The 11 exact recorded source steps and cleanup states were read and compared, with original safe negative invoice/PaymentIntent indicators and subscription latest-invoice linkage; the absent dispute source remained unknown. All four original V-3 runs remain incomplete and only one has a separately provider-verified original Event, with its durable event ledger still incomplete. Neither genuine failed Event nor signed webhook, hosted Checkout or LIVE acceptance is inferred. No provider write, source mutation, release or money action. **Original engineering remains 57/57 MERGED** on main `57ecd5aa116c6e8b063f7a59b62cd7f7d0542f48`, not yet deployed. Frozen completion plan: `docs/pr-cards/V-3.md` at `38cb5c5eb22b83096fff4af599b85ae31419be52`; no original source subsection recounted. Full evidence resides in the two existing task rows below.
@@ -642,7 +648,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Owner-issued short-lived read_only pass, working upstream Hub and authentic route evidence",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "No genuine direct/relay/Sandbox authenticated Hub route acceptance recorded in this session."
+    "lastEvidence": "No genuine direct/relay/Sandbox authenticated Hub route acceptance recorded in this session. 2026-10-18 actual connected Hub TEST/full whoami succeeded but health reports contractVersion:0, federation:not_configured, providerCallsEnabled:false, accessibleUpstreams:0; namespaces reports only Hub-owned metadata, upstreamEnabled:false, authorizedTargets:0. Genuine direct/relay/Sandbox Stripe TEST RTC acceptance is impossible through this deployed Hub until a reviewed Hub release and owner-scoped upstream pass; PENDING."
   },
   {
     "id": "STRIPE-G6-OWNER",
@@ -777,8 +783,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "dependsOn": [
       "STRIPE-E1-CATALOG-READS"
     ],
-    "status": "PENDING",
-    "lastEvidence": "2026-10-15 only unit+stripe-mock source proof. Real provider writes/readback, denial, replay and cleanup not yet performed; release and protected native grant required."
+    "status": "PASSED",
+    "lastEvidence": "2026-10-18 original selected Stripe MCP TEST/full on independently verified Vercel READY live 0a9577f25eb6ff307192a03694c448d8a9c3c64e, native E-1 reviewed source cad4841c in deployed ancestry. Actual account-scoped change_log shows two distinct disposable TEST catalog series (Native 01 and Workflow 01): independent product_create and price_create guarded dry_run previews plus confirmed writes; native series has two confirmed same-lookup price_create records, Stripe price_list for exact native lookup returns precisely ONE unique item (no duplicate), and separate workflow lookup also exactly one. After source-owned confirmation, real price_update/archival and product_archive preview and confirmation journal rows persist. Independent product_get and price_get now each return matching original product/price with active:false and correct exact lookup/product relation for both disposable series. Negative actual TEST product_create with app-reserved agreementId marker was rejected before any new resource; foreign nonexistent product_archive returned specific resource_missing; immutable price_update argument and conflicting price_create were rejected; no new provider write from refusals. A safe product_create dryRun returned done:false/needsConfirmation:true and only a dry-run journal row (id 136). Before/after product_list remains exactly 8 resources; newest confirmed audit remains id 135 at 18:19:29Z. Some input refusals misleadingly render generic account-details error instead of precise input/app marker diagnosis: separate UX defect, no bypass/write occurred. Original APP-NEEDS catalog protected unit and pinned Stripe mock tests already passed, but only these original real provider observations justify this PASSED. No app-owned actual record, LIVE, charge, payout, money or customer messaging was changed; W9 staged flow remains separate and PENDING."
   },
   {
     "id": "STRIPE-P4-DRAFT-PROFILE",
@@ -789,7 +795,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Reviewed merged P-4 source, checked READY deployment, authenticated selected TEST original service, owner-confirmed project facts and disposable unique project ID",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "October 15 P-4 source/unit/isolated-PostgreSQL fixtures assembled. No deployed original TEST handler call performed; owner-reviewed project facts and service grant required. No LIVE or money out."
+    "lastEvidence": "October 15 P-4 source/unit/isolated-PostgreSQL fixtures assembled. No deployed original TEST handler call performed; owner-reviewed project facts and service grant required. No LIVE or money out. 2026-10-18 native TEST/full project_list_profiles returned one active appliance-desk saved profile boundToSelected:false. Draft-only source can run but exact owner-confirmed code findings and independent disposable new app ID have not been supplied; cannot claim real owner project review or account binding, PENDING. No app-owned resource touched."
   },
   {
     "id": "STRIPE-P4-PROVIDER-SETUP",
@@ -814,7 +820,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Prove original custom TEST workflow_money_snapshot exact Denver money flows, active/trialing discounted fixed MRR, multi-currency and honest partial pagination on real selected Stripe account",
     "procedure": "docs/pr-cards/W-1.md; original custom MCP workflow_money_snapshot; compare native provider records and no write",
     "gates": "Checked READY source ancestry, original selected TEST read grant, owner-safe fixture data, all pages observed; no LIVE, spending or raw Stripe secrets",
-    "lastEvidence": "2026-10-15 W-1 source and unit/mock protection at PR #254; no original deployed custom TEST workflow invocation, provider totals or cleanup claimed."
+    "lastEvidence": "2026-10-15 W-1 source and unit/mock protection at PR #254; no original deployed custom TEST workflow invocation, provider totals or cleanup claimed. 2026-10-18 real selected TEST/full workflow_money_snapshot for Colorado Oct 1–17 returned complete/moneyFlowsComplete/mrrComplete true, one balance page and one subscriptions page, but zero balance transactions and zero active/trialing subscriptions. No positive discount, trial, fee or multicurrency fixture exists to prove full original scenario. Remains PENDING, no provider write."
   },
   {
     "id": "STRIPE-W2-FAILED-PAYMENTS",
@@ -825,7 +831,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Prove original custom TEST workflow_failed_payments returns actual provider decline codes, next retry/hosted link only when set and honest complete/partial scopes",
     "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_failed_payments plus independent native TEST invoice and PaymentIntent read",
     "gates": "Checked READY source ancestry, original TEST read grant, approved original fixtures with no retry, payment action, customer PII disclosure or money-out",
-    "lastEvidence": "2026-10-15 W-2 source/fixture unit evidence PR #254; actual custom provider read/retry existence and delivery are not verified. 2026-10-16 READY a39ffb87 selected original custom TEST: real workflow_failed_payments returned one genuine original requires_payment_method PI in 3600 USD minor units without a verified decline code, no invoice retry or write; positive provider decline/retry code fixture absent, remains PENDING."
+    "lastEvidence": "2026-10-15 W-2 source/fixture unit evidence PR #254; actual custom provider read/retry existence and delivery are not verified. 2026-10-16 READY a39ffb87 selected original custom TEST: real workflow_failed_payments returned one genuine original requires_payment_method PI in 3600 USD minor units without a verified decline code, no invoice retry or write; positive provider decline/retry code fixture absent, remains PENDING. 2026-10-18 real selected TEST/full workflow_failed_payments returned complete:true, one original requires_payment_method PaymentIntent (USD 36 minor dollars, count=1) with no verified decline code, zero attempted unpaid invoices; did not retry, send email or change Stripe. Full verified decline/retry positive provider fixture absent, PENDING."
   },
   {
     "id": "STRIPE-W2-CUSTOMER-OVERVIEW",
@@ -836,7 +842,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Prove original custom TEST workflow_customer_overview exact customer ownership, app record links, verified invoices/payments/subscriptions and multi-page bounded completeness",
     "procedure": "docs/pr-cards/W-2.md; original custom MCP workflow_customer_overview with exact owner-approved disposable TEST customer",
     "gates": "Checked READY source ancestry, original selected TEST read grant, correct application ownership, no provider writes or synthetic records counted as acceptance",
-    "lastEvidence": "2026-10-15 W-2 original custom TEST not deployed; source/unit projections and safe owner link only, provider evidence deferred."
+    "lastEvidence": "2026-10-15 W-2 original custom TEST not deployed; source/unit projections and safe owner link only, provider evidence deferred. 2026-10-18 native selected TEST/full customer_list(limit:20) independently returned data:[], has_more:false, so no live TEST customer fixture exists for exact original customer overview, billing/app record positive acceptance. No synthetic customer created; PENDING."
   },
   {
     "id": "STRIPE-W3-REFUND-CUSTOMER",
@@ -902,7 +908,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Prove original custom selected TEST multi-project workflow_go_live_checklist runs all 21 guarded P-3 readiness checks for each active bound project, preserves unreadable/needs-owner/owner decision, keeps LIVE unqueried and never copies app-owned catalog",
     "procedure": "docs/pr-cards/W-8.md; original custom selected-account TEST profile list, workflow_app_readiness P-3 per bound app, original live mode sentinel confirming no LIVE provider query, no catalog write; separate owner Dashboard LIVE parity acceptance deferred",
     "gates": "Checked READY source/live ancestry, original custom TEST read grant with selected bound app fixture; LIVE switch disabled, owner production consent absent, no inferred copy/production credential/parity, catalog ownership enforced",
-    "lastEvidence": "2026-10-15 source-only original 21-row readiness delegation, no-LIVE sentinel and catalog ownership classification plus TEST fixtures. Original connected all-project read and owner-controlled LIVE parity remain PENDING. 2026-10-16 READY a39ffb87 original custom TEST returned projects:[] and readyToGoLive:false, LIVE not queried, no catalog copy/write; no active bound project to run 21 original P3 tests, remains PENDING."
+    "lastEvidence": "2026-10-15 source-only original 21-row readiness delegation, no-LIVE sentinel and catalog ownership classification plus TEST fixtures. Original connected all-project read and owner-controlled LIVE parity remain PENDING. 2026-10-16 READY a39ffb87 original custom TEST returned projects:[] and readyToGoLive:false, LIVE not queried, no catalog copy/write; no active bound project to run 21 original P3 tests, remains PENDING. 2026-10-18 selected original TEST/full workflow_go_live_checklist read returned complete:true, projects:[], projectCount:0, readyToGoLive:false, liveParity:not_verified and liveProviderQueried:false. No bound project for 21 real P-3 requirements. No LIVE activation or copy; PENDING."
   },
   {
     "id": "STRIPE-W9-MONTH-END",
@@ -913,7 +919,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Independently prove original custom selected TEST workflow_month_end_close money/fees/net per currency, Denver month boundaries, guarded report_run creation/pending/succeeded/readbacks and owner-authenticated private file handoff; never return raw CSV/signed URL",
     "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Existing native workflow_money_snapshot, report_list_types, report_run and report_get_result_file on exact disposable TEST report; original owner approves report creation, no public export URL",
     "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
-    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained. 2026-10-16 READY a39ffb87 selected original custom TEST: real September 2026 Colorado close returned complete:true, 0 balance transactions and 0 current MRR, no fabricated currency totals. Genuine provider report_list_types returned Invalid report type columns, separately triaged and code fix underway in U-1. No owner-approved report write, private file/browser handoff, multcurrency positive fixture; PENDING."
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained. 2026-10-16 READY a39ffb87 selected original custom TEST: real September 2026 Colorado close returned complete:true, 0 balance transactions and 0 current MRR, no fabricated currency totals. Genuine provider report_list_types returned Invalid report type columns, separately triaged and code fix underway in U-1. No owner-approved report write, private file/browser handoff, multcurrency positive fixture; PENDING. 2026-10-18 real selected TEST/full workflow_month_end_close({month:2026-09}) returned complete true, zero TEST transactions, zero actual MRR, no report job/provider CSV, recurringAsOf read time rather than historical. Full positive fees/multicurrency owner report fixture absent; PENDING."
   },
   {
     "id": "STRIPE-W9-CATALOG-SETUP",
@@ -924,7 +930,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "task": "Independently demonstrate original custom selected TEST workflow_set_up_catalog two protected native product/price confirmations, real immutable lookup key replay, exact app-owned refusal and no duplicate/automatic uncertain retry",
     "procedure": "docs/pr-cards/W-9.md and docs/pr-cards/W-10.md: Original custom full/everyday TEST app ownership registry and owner-approved disposable independent product/price, exact native product_create then price_create confirmed readback",
     "gates": "After normally checked READY source deployment, original custom selected TEST owner/app provider grants, disposable fixture and manual owner steps where required; no LIVE, account money-out, private financial URL sharing, hidden app-catalog changes or unauthorized spend",
-    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained."
+    "lastEvidence": "2026-10-15 source+synthetic provider fixtures committed; checked provider protected original live invocation and owner-specific manual evidence not yet run. All earlier 9 PASSED retained. 2026-10-18 real selected TEST/full original 2 disposable catalog series include Native and Workflow, independently provider-verified exactly one archived product and price per lookup, zero duplicates, with dry_run and confirmed native product/price audit rows for each. The exact workflow_set_up_catalog multi-stage previewToken confirmation sequence and a genuine app-owned target denial were not independently shown; source-only proof or generic metadata refusal is not a substitute. PENDING, no new write in this review."
   },
   {
     "id": "STRIPE-W9-FIND",
@@ -959,8 +965,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Only after normally checked READY source on live, original custom selected-account TEST grant, a dedicated disposable provider fixture and explicit independent per-write authorization; no money moved, LIVE enablement, owner policy change or broad direct provider mutation from development agent",
     "lastEvidence": "2026-10-16 source U-1 pinned full operation index, guarded provider read/verified nonfinancial writes, 25/10 deterministic mock fixture contracts and Vercel includeFiles. Actual original provider U-1 invocation not yet deployed; separate credentialed TEST protected acceptance remains pending."
   }
-]
-```
+]```
 <!-- release-acceptance:end -->
 
 <!-- Current repair also records no-change daily receipts: backups cannot publish later same-day development after a successful no-op. -->
