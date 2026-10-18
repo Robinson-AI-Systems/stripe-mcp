@@ -132,7 +132,7 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const res={setHeader:()=>{},status:(code)=>{expect(code).toBe(200);return res;},
       json:value=>{body=value;return res;}};
     home({},res);
-    expect(body.profileToolCounts).toEqual({read_only:129,everyday:130,full:141});
-    expect(body.tools).toBe(264);
+    expect(body.profileToolCounts).toEqual({read_only:139,everyday:140,full:151});
+    expect(body.tools).toBe(284);
   });
 });
