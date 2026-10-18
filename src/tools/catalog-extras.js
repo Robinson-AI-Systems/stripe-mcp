@@ -91,7 +91,7 @@ function argsOk(a,fields,required=[]){
     if(k==='currency'&&!/^[a-z]{3}$/.test(v))error('Invalid currency');
     if(k==='duration'&&!['once','forever','repeating'].includes(v))
       error('Invalid discount duration');
-    if(['amountOff','maxRedemptions'].includes(k)&&
+    if(['amountOff','maxRedemptions','durationInMonths'].includes(k)&&
       (!Number.isSafeInteger(v)||v<1||v>100000000))error('Invalid '+k);
     if(['percentOff','percentage'].includes(k)&&
       (typeof v!=='number'||!Number.isFinite(v)||v<=0||v>100))error('Invalid '+k);
@@ -192,7 +192,7 @@ export const handlers=Object.fromEntries(specsRead.map(([name,props,required=[]]
 const specsWrite=[
   {name:'coupon_create',required:['duration'],props:{couponId,percentOff:number,
     amountOff:integer,currency:text(3),duration:{type:'string',enum:['once','forever','repeating']},
-    name:text(200),redeemBy:date,metadata}},
+    name:text(200),redeemBy:date,durationInMonths:{type:'integer',minimum:1,maximum:36},metadata}},
   {name:'coupon_update',required:['couponId'],props:{couponId,name:text(200),metadata}},
   {name:'coupon_delete',required:['couponId'],props:{couponId},destructive:true},
   {name:'promo_create',required:['couponId','code'],props:{
@@ -218,7 +218,10 @@ function validateBusiness(n,a){
       error('Choose exactly one percentOff or amountOff coupon form');
     if((a.amountOff!==undefined)!==(a.currency!==undefined))
       error('Fixed amount coupons require the matching currency');
-    if(a.duration==='repeating')error('Deprecated repeating coupons require separate explicit design');
+    if(a.duration==='repeating'&&a.durationInMonths===undefined)
+      error('Repeating duration requires explicit durationInMonths');
+    if(a.duration!=='repeating'&&a.durationInMonths!==undefined)
+      error('Only repeating coupons accept durationInMonths');
   }
   if(n==='promo_create'&&a.code!==undefined&&!code(a.code))
     error('Invalid promotion code');
@@ -229,8 +232,6 @@ function validateBusiness(n,a){
 function makeWrite(spec){
   const n=spec.name;
   let created=null,deleted=false,duplicate=null,linkBefore=null;
-  const create=n.endsWith('_create')||n==='feature_create'||n==='feature_attach_to_product'||
-    n==='coupon_create'||n==='promo_create'||n==='taxrate_create';
   const operation=defineWrite({
     name:n,
     resultId:(_before,after)=>after?.deleted?null:after?.id??null,
@@ -250,7 +251,8 @@ function makeWrite(spec){
             const match=existing.duration===a.duration&&
               existing.percent_off===(a.percentOff??null)&&
               existing.amount_off===(a.amountOff??null)&&
-              existing.currency===(a.currency??null);
+              existing.currency===(a.currency??null)&&
+              (existing.duration_in_months??null)===(a.durationInMonths??null);
             if(!match)error('Coupon ID already exists with different immutable discount terms');
             duplicate=existing.id;return existing;
           }catch(e){if(e?.statusCode!==404||e?.code!=='resource_missing')throw e;}
@@ -264,8 +266,11 @@ function makeWrite(spec){
         const matches=await s.promotionCodes.list({code:a.code,limit:100});
         const p=simplePage(matches,'promotion_code',ctx);
         if(p.has_more||p.data.some(x=>x.code.toLowerCase()===a.code.toLowerCase()&&
-          x.active&&x.coupon!==a.couponId))
-          error('Active promotion code is already assigned or ambiguous');
+          x.active&&(x.coupon!==a.couponId||
+            x.customer!==(a.customerId??null)||
+            x.maxRedemptions!==(a.maxRedemptions??null)||
+            x.expiresAt!==(a.expiresAt??null))))
+          error('Active promotion code already exists with different immutable restrictions');
         const existing=p.data.find(x=>x.code.toLowerCase()===a.code.toLowerCase()&&x.active);
         if(existing)duplicate=existing.id;
         return {object:'promotion_code',id:null,metadata:{},coupon:c.id};
@@ -317,7 +322,7 @@ function makeWrite(spec){
       if(n==='coupon_create')v=await s.coupons.create({
         ...pick(a,{couponId:'id',percentOff:'percent_off',amountOff:'amount_off',
           currency:'currency',duration:'duration',name:'name',
-          redeemBy:'redeem_by',metadata:'metadata'})},o);
+          redeemBy:'redeem_by',durationInMonths:'duration_in_months',metadata:'metadata'})},o);
       if(n==='coupon_update')v=await s.coupons.update(a.couponId,
         pick(a,{name:'name',metadata:'metadata'}),o);
       if(n==='coupon_delete'){
@@ -335,7 +340,7 @@ function makeWrite(spec){
         a.productId,{entitlement_feature:a.featureId},o);
       if(n==='feature_detach_from_product'){
         v=await s.products.deleteFeature(a.productId,linkBefore.id,o);
-        deleted=v?.deleted===true;
+        deleted=v?.deleted===true&&v?.id===linkBefore.id;
       }
       if(n==='taxrate_create')v=await s.taxRates.create(pick(a,{
         displayName:'display_name',percentage:'percentage',inclusive:'inclusive',
