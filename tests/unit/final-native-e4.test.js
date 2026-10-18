@@ -104,4 +104,53 @@ describe('E-4 native Tax and Quote provider boundary',()=>{
     expect(location.publicPdfUrl).toBeNull();
     expect(location.dashboardUrl).toContain('qt_ABC123');
   });
+  it('isolates concurrent quote creation IDs across separate confirmed requests',async()=>{
+    const {ctx,sdk,quote}=fixture();
+    let count=0;
+    const created=new Map();
+    sdk.quotes.create.mockImplementation(async payload=>{
+      const id='qt_THREAD'+(++count);
+      const q={...quote,id,customer:payload.customer,
+        line_items:{data:[{price:'price_ABC123',quantity:2}],has_more:false}};
+      created.set(id,q);
+      // Both requests can overlap without sharing a module closure.
+      await Promise.resolve();
+      return q;
+    });
+    sdk.quotes.retrieve.mockImplementation(async id=>created.get(id));
+    sdk.quotes.listLineItems.mockImplementation(async id=>created.get(id)?.line_items);
+    const lineItems=[{priceId:'price_ABC123',quantity:2}];
+    const [first,second]=await Promise.all([
+      registry.handlers.quote_create({customerId:'cus_THREADONE',
+        lineItems,confirm:true,requestKey:'thread-one'},ctx),
+      registry.handlers.quote_create({customerId:'cus_THREADTWO',
+        lineItems,confirm:true,requestKey:'thread-two'},ctx)
+    ]);
+    expect(body(first)).toMatchObject({done:true,resourceId:'qt_THREAD1'});
+    expect(body(second)).toMatchObject({done:true,resourceId:'qt_THREAD2'});
+    expect(sdk.quotes.create).toHaveBeenCalledTimes(2);
+  });
+  it('isolates concurrent Tax registration creation IDs and selected-mode readback',async()=>{
+    const {ctx,sdk}=fixture();
+    let count=0;
+    const rows=new Map();
+    sdk.tax.registrations.create=vi.fn(async data=>{
+      const id='taxreg_THREAD'+(++count);
+      const value={object:'tax.registration',livemode:false,id,
+        country:data.country,status:'active'};
+      rows.set(id,value);
+      await Promise.resolve();
+      return value;
+    });
+    sdk.tax.registrations.retrieve.mockImplementation(async id=>rows.get(id));
+    const args={country:'US',countryOptions:{us:{type:'standard'}},
+      activeFrom:'now',confirm:true};
+    const [a,b]=await Promise.all([
+      registry.handlers.tax_add_registration({...args,requestKey:'first-reg'},ctx),
+      registry.handlers.tax_add_registration({...args,requestKey:'second-reg'},ctx)
+    ]);
+    expect(body(a)).toMatchObject({done:true,resourceId:'taxreg_THREAD1'});
+    expect(body(b)).toMatchObject({done:true,resourceId:'taxreg_THREAD2'});
+  });
+
 });
