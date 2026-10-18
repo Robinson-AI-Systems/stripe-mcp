@@ -85,6 +85,10 @@ describe('tool registry', () => {
       'taxrate_list','taxrate_get','coupon_create','coupon_update','coupon_delete',
       'promo_create','promo_update','feature_create','feature_attach_to_product',
       'feature_detach_from_product','taxrate_create','taxrate_update',
+      'meter_list','meter_get','meter_list_usage_summaries','alert_list','credit_list_grants',
+      'meter_create','meter_update','meter_deactivate','meter_reactivate','meter_record_usage',
+      'alert_create','alert_activate','alert_deactivate','alert_archive',
+      'credit_create_grant','credit_void_grant',
       'project_draft_profile','project_portal_create','workflow_project_setup',
       'workflow_money_snapshot','workflow_failed_payments','workflow_customer_overview',
       'workflow_refund_customer','workflow_cancel_customer','workflow_change_plan',
@@ -94,7 +98,7 @@ describe('tool registry', () => {
       'workflow_set_up_catalog','workflow_brand_business',
       'api_search','api_describe','api_read','api_write'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(133);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(144);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

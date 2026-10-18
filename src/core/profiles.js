@@ -37,7 +37,11 @@ const guardedLiveCatalogWrites=new Set([
   // E-2 writes have selected-owner Stripe mode, app guard and readback proof.
   'coupon_create','coupon_update','coupon_delete','promo_create','promo_update',
   'feature_create','feature_attach_to_product','feature_detach_from_product',
-  'taxrate_create','taxrate_update'
+  'taxrate_create','taxrate_update',
+  // E-3 uses original owner-mode, credit money, event and provider verification guards.
+  'meter_create','meter_update','meter_deactivate','meter_reactivate',
+  'meter_record_usage','alert_create','alert_activate','alert_deactivate',
+  'alert_archive','credit_create_grant','credit_void_grant'
 ]);
 const guardedLiveWebhookWrites=new Set([
   'webhook_create','webhook_add_events','webhook_remove_events',
@@ -120,6 +124,5 @@ export function publicToolInfo(tool) {
   return {...rest,inputSchema:{...schema,properties},
     annotations:{...rest.annotations,readOnlyHint:tool.writes===false,
       destructiveHint:tool.writes===true ? rest.annotations?.destructiveHint!==false : false,
-      idempotentHint:tool.writes===false,
-      openWorldHint:true}};
+      idempotentHint:tool.writes===false}};
 }

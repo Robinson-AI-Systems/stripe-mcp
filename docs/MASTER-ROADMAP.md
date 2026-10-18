@@ -1,3 +1,11 @@
+## 2026-10-18 — E-3 native metered billing as-if-merged
+
+E-3 is complete for source review in PR #274, pending exact-head CI and safe merge. The implementation register will be **54 of 57 MERGED** after the merge, with E-4 (Tax/quotes), X-1 (undo), X-2 (read-only release smoke) next. Until a scheduled authorized release, serving production main/live still contains E-2 at `0a9577f`. The separate protected provider-acceptance queue is unchanged: 10 passed / 33 pending.
+
+## 2026-10-18 — checked release and active E-3 engineering
+
+Main/live/READY at `0a9577f25eb6ff307192a03694c448d8a9c3c64e` after the October 18 scheduled release. All 53 source-MERGED original subsections through E-2 are now deployed. E-3 (native metering, usage alerts and billing credit grants) is IN_PROGRESS on its frozen full-scope card; E-4, X-1, X-2 are the three succeeding approved original engineering subsections. The protected 43 original external acceptance tasks are 10 PASSED and 33 PENDING and remain independently tracked. Check CI and review before source closure.
+
 ## 2026-10-17 — E-2 candidate source handoff (as-if-merged; external acceptance separate)
 
 PR #273 contains original E-2 native 20-tool coupon/promotion/entitlement/manual tax-rate implementation, with Stripe SDK, selected account mode, LIVE consent, app ownership, guarded confirmation and Stripe readback. Its completed CI/review/merge is required to move source ledger from 52/57 to **53/57 MERGED**; next source IDs **E-3/E-4/X-1/X-2**, no partial credit. Independently, protected acceptance stays **10 passed / 33 pending**, pending real account/deployed verification. Earlier totals below are historical snapshots.

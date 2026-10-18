@@ -54,7 +54,10 @@ describe('C-1 compact safe provider summaries and fields',()=>{
   it('publishes consistent read annotations and safely conservative write hints',()=>{
     const read=publicToolInfo(registry.tools.find(x=>x.name==='stripe_whoami'));
     expect(read.annotations).toMatchObject({readOnlyHint:true,destructiveHint:false,
-      idempotentHint:true,openWorldHint:true});
+      idempotentHint:true});
+    // MCP defaults openWorldHint to true when omitted; its absence is an
+    // intentional lossless token-budget optimization, never a closed-world claim.
+    expect(read.annotations.openWorldHint??true).toBe(true);
     expect(read.inputSchema.properties.detail.enum).toEqual(['summary','full']);
     expect(read.inputSchema.properties.fields.type).toBe('string');
     const write=publicToolInfo({name:'danger',writes:true,profiles:['full'],annotations:{},

@@ -41,7 +41,11 @@ export function defineWrite(spec) {
        if (value === null && spec.allowZeroPreview === true) return null;
        return prepareMoney(value, ctx?.connection?.mode);
      })() : null,
-    beforeApply: spec?.money ? reserveMoneyBeforeWrite : null,
+    beforeApply: spec?.money ? async params=>{
+      const decision=await reserveMoneyBeforeWrite(params);
+      if(decision?.accepted!==true)return decision;
+      return spec.beforeApply ? spec.beforeApply(params) : decision;
+    } : spec?.beforeApply??null,
     afterApply: spec?.money ? settleMoneyAfterWrite : null });
   const declaredTool = Object.freeze({...guarded.tool,
     safety: spec.money ? '$' : 'P',

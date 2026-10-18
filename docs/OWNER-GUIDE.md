@@ -1,3 +1,7 @@
+## Usage metering and credit grants (E-3, after checked deployment)
+
+Use a stable unique identifier for each real usage event and require preview/confirmation. Stripe's response proves initial ingestion acceptance, not an updated customer invoice or final usage sum. Never automatically retry an uncertain event identifier; the service retains it in a durable owner/account ledger to avoid duplicate charges. Creating a credit grant needs a separate signed-in owner approval for the exact selected Stripe account, customer and financial amount. Voiding it needs its own signed-in owner approval, but does not count as money paid out. An AI request/confirmation cannot approve either action on the owner's behalf; product permissions ultimately follow the connected owner's chosen policy and Stripe requirements.
+
 ## E-2 original catalog capabilities — source checkpoint, 2026-10-17
 
 PR [#273](https://github.com/Robinson-AI-Systems/stripe-mcp/pull/273) adds all 20 provider-native coupon, promotion code, entitlement feature and manually configured tax-rate tools. Once reviewed and exact-head CI-green, source totals move to **53 of 57**, with **E-3/E-4/X-1/X-2** remaining. This is not deployment or owner-visible Stripe acceptance: the 43 protected criteria remain last observed **10 PASSED / 33 PENDING**. Read-only consumers may inspect, while user-selected profiles, account credentials, permissions and separate LIVE consent govern guarded changes. Owner-specific development no-spend/no-live restrictions do not permanently limit other end users.

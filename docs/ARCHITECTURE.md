@@ -1,3 +1,7 @@
+## E-3 durable metered billing (2026-10-18)
+
+An additive `meter_usage_claims` table in `src/metered/store.js` enforces a permanent `(stripe_account, identifier)` uniqueness key before original Stripe meter event emission. Uncertain claims never auto-expire or resend after Stripe's 24-hour temporary idempotency window. The acknowledged state verifies the provider SDK ingestion receipt **only**, never final aggregated usage/invoice totals. Actual billing credit creation uses the separately authenticated account-wide money-out approval and atomic reservation. Credit voids consume another exact signed-in owner approval through `money_approvals`, without miscounting voids as dollars paid out. Disposable local PostgreSQL tests enforce races, replays and owner/account isolation. Schema initialization never performs a Stripe provider write.
+
 # ARCHITECTURE — runtime facts, as built
 
 This file describes what **exists**, and is updated in the same PR that ships it (DRIFT-PROTOCOL checklist B). What the
