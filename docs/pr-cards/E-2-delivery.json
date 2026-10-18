@@ -1,0 +1,42 @@
+{
+  "workKind": "ENGINEERING",
+  "baseRevision": "651adc2daa59d7885004ce6155c534bdf2af4ee9",
+  "subsections": [
+    {
+      "id": "E-2",
+      "remainingEngineering": [],
+      "criteria": [
+        {
+          "criterion": "All 20 original catalog E-2 coupon, promo, entitlement feature and taxrate tools are registered with public typed schema and the original profile/read-versus-write protections.",
+          "evidence": "Twenty complete native `catalog-extras.js` registered names, 10 reads and 10 defineWrite-wrapped mutations under original profiles. Public source registry tests assert order and write contract; E-2 input schemas and provider mode guards remain enforced."
+        },
+        {
+          "criterion": "Coupons and promotion codes support exact safe list/get/find and guarded create/update/delete with verified provider facts, mutually exclusive discount forms, distinct code handling, strict mutable fields and no duplicate creation on replay.",
+          "evidence": "Coupon and code replay preflight checks exact immutable discount and restrictions; provider-owned original IDs are read back with selected mode. Synthetic tests cover conflicting amount forms, missing currency, code duplicate mismatch, no-create preview and replay, and independent delete receipt."
+        },
+        {
+          "criterion": "Feature list/create, product attachment/detachment/list and customer active entitlements support verified multi-page reads and forbid application-owned or mode-mismatched product mutations.",
+          "evidence": "Feature reads, attached product features and active customer entitlements are provider-checked. Fake-provider tests cover two-page continuation, wrong provider mode, app-owned product and metadata denial, attach/readback/detach and immutable feature lookup key."
+        },
+        {
+          "criterion": "Manual tax rates support list/get/create/update, immutable effective percentage/inclusive identity, explicit catalog-owner boundary, safe preview, confirmation, idempotency, actual provider readback and no fabricated tax totals.",
+          "evidence": "Tax-rate list/get/create/update use current pinned Stripe SDK paths with original selected account and app guard; guarded creation demands exact percentage and inclusive values, update refuses immutable fields and verifies independent provider facts."
+        },
+        {
+          "criterion": "All writes and negative guards use original defineWrite, TEST/LIVE account provider mode, no automatic money-out, no unapproved live usage, strict metadata and ownership guards, bounded result projections, focused tests and mandatory full exact-head CI/review.",
+          "evidence": "Existing write, secret, profile and LIVE owner checks are preserved. New unit tests cover owner-consented synthetic LIVE, revoked/unconsented LIVE, read_only, app ownership, fake provider and pinned stripe-mock request shapes. Exact-head CI, review and external provider acceptance remain independent gates."
+        }
+      ]
+    }
+  ],
+  "productionAdded": 445,
+  "productionRemoved": 4,
+  "planComparison": "Frozen one-ID plan targeted approximately 650 production lines; measured PR source diff is 445 added and 4 removed. Complete E-2 now supplies 20 independent native tools instead of inflating the diff with mechanically unnecessary LOC; this is a substantial single original subsection rather than crediting incomplete E-3/E-4.",
+  "newEngineering": "Native guarded Stripe discount/promotion/feature/entitlement/manual tax catalog, selected-owner TEST/LIVE provider verification, stable replay, readbacks and app scope, pinned mocked Stripe API requests and targeted profile/inventory regression tests.",
+  "relatedWorkDecision": "Meter usage, credit grants, Stripe Tax registration/transaction postings and quotes are related billing domains but require new provider-specific money classification and lifecycle tests, so E-3 and E-4 are explicitly left pending without partial source credit.",
+  "decision": "SUBSTANTIAL_EXCEPTION",
+  "exceptionEvidence": [
+    "Twenty user-visible production tools with provider-specific Stripe SDK contracts and app/owner/selected-mode guards form one complete original subsection rather than a stub-sized PR.",
+    "Measured 449 changed non-test/docs production lines and new unit/mock plus inventory tests meet the meaningful single-subsection exception, with no fabricated E-3/E-4 source completion."
+  ]
+}
