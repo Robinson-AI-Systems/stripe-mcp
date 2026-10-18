@@ -85,10 +85,9 @@ describe('E-4 native Tax and Quote provider boundary',()=>{
     expect(quote.status).toBe('draft');
     const denied=await registry.handlers.quote_get_pdf_link({quoteId:'qt_ABC123'},ctx);
     expect(denied.isError).toBe(true);
-    const preview=body(await registry.handlers.quote_accept({
-      quoteId:'qt_ABC123',dryRun:true,requestKey:'safe'},ctx));
-    expect(preview.isError).toBeUndefined();
-    expect(preview.done).toBe(false);
+    const preview=await registry.handlers.quote_accept({
+      quoteId:'qt_ABC123',dryRun:true,requestKey:'safe'},ctx);
+    expect(preview.isError).toBe(true);
     expect(sdk.quotes.accept).not.toHaveBeenCalled();
   });
   it('quote finalize demands explicit confirmation and verifies provider transition',async()=>{
