@@ -195,7 +195,6 @@ export const handlers=Object.fromEntries(readDefs.map(([name,def])=>[name,
 function writeHandler(name,def){
   let result=null,previous=null,archived=false;
   const creditAction=name.startsWith('credit_');
-  const create=name.endsWith('_create')||name==='credit_create_grant';
   const op=defineWrite({
     name,
     resultId:(_b,v)=>v?.id??null,
