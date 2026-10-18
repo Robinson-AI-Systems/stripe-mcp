@@ -20,7 +20,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs'
 ]);
 
 let productionSql;
@@ -744,6 +744,70 @@ export function createDb(sql = getProductionSql()) {
           AND expires_at>now()`;
       return rows[0]||null;
     },
+    async getUndoCandidate({ account, mode, id }) {
+      if (!/^acct_[A-Za-z0-9]{2,100}$/.test(account??'') ||
+        !['test','live'].includes(mode) || !Number.isSafeInteger(id) || id<1)
+        throw new TypeError('Exact account, mode and change ID required');
+      const rows=await sql`SELECT id, tool, inverse, undone_by, dry_run, amount_cents, direction
+        FROM change_log WHERE id=${id} AND stripe_account=${account}
+        AND mode=${mode} AND dry_run=FALSE`;
+      return rows[0]??null;
+    },
+    async claimUndoCandidate({ account, mode, id }) {
+      if (!/^acct_[A-Za-z0-9]{2,100}$/.test(account??'')||
+        !['test','live'].includes(mode)||!Number.isSafeInteger(id)||id<1)
+        throw new TypeError('Exact undo claim identity required');
+      const rows=await sql`UPDATE change_log SET undone_by=-id WHERE id=${id}
+        AND stripe_account=${account} AND mode=${mode}
+        AND dry_run=FALSE AND undone_by IS NULL AND inverse IS NOT NULL
+        AND amount_cents IS NULL AND direction IS DISTINCT FROM 'out'
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async finishUndoCandidate({ account, mode, id, undoId }) {
+      if (!/^acct_[A-Za-z0-9]{2,100}$/.test(account??'')||
+        !['test','live'].includes(mode)||
+        !Number.isSafeInteger(id)||id<1||
+        !Number.isSafeInteger(undoId)||undoId<1||undoId===id)
+        throw new TypeError('Exact verified undo link required');
+      const rows=await sql`UPDATE change_log SET undone_by=${undoId}
+        WHERE id=${id} AND stripe_account=${account} AND mode=${mode}
+          AND undone_by=-id AND EXISTS (
+            SELECT 1 FROM change_log reversed WHERE reversed.id=${undoId}
+              AND reversed.stripe_account=${account} AND reversed.mode=${mode}
+              AND reversed.dry_run=FALSE AND reversed.tool<>'stripe_undo_change'
+          ) RETURNING id`;
+      return rows.length===1;
+    },
+    async recordTaxTransactionIndex({account,mode,transactionId,reference}) {
+      if (!/^acct_[A-Za-z0-9]{2,100}$/.test(account??'')||
+        !['test','live'].includes(mode)||
+        !/^tax_[A-Za-z0-9]{2,100}$/.test(transactionId??'')||
+        typeof reference!=='string'||reference.length<1||reference.length>160)
+        throw new TypeError('Exact tax transaction identity required');
+      const rows=await sql`INSERT INTO tax_transaction_index
+        (stripe_account,mode,transaction_id,reference)
+        VALUES (${account},${mode},${transactionId},${reference})
+        ON CONFLICT (stripe_account,mode,transaction_id)
+        DO UPDATE SET reference=EXCLUDED.reference
+          WHERE tax_transaction_index.reference=EXCLUDED.reference
+        RETURNING transaction_id`;
+      return rows.length===1;
+    },
+    async listTaxTransactionIndex({account,mode,limit=20,startingAfter=null}) {
+      if (!/^acct_[A-Za-z0-9]{2,100}$/.test(account??'')||
+        !['test','live'].includes(mode)||
+        !Number.isInteger(limit)||limit<1||limit>100||
+        (startingAfter!==null&&!/^tax_[A-Za-z0-9]{2,100}$/.test(startingAfter)))
+        throw new TypeError('Exact indexed tax transaction page required');
+      return await sql`SELECT transaction_id,reference FROM tax_transaction_index
+        WHERE stripe_account=${account} AND mode=${mode}
+          AND (${startingAfter}::text IS NULL OR first_seen_at <
+            (SELECT first_seen_at FROM tax_transaction_index
+              WHERE stripe_account=${account} AND mode=${mode}
+              AND transaction_id=${startingAfter}))
+        ORDER BY first_seen_at DESC, transaction_id DESC LIMIT ${limit+1}`;
+    },
     async listRecentChanges({ account, mode = null, limit = 20, offset = 0 }) {
       if (typeof account !== 'string' || !account ||
           (mode !== null && !['test','live'].includes(mode)) ||
@@ -865,6 +929,13 @@ export function createDb(sql = getProductionSql()) {
         ip TEXT NOT NULL,
         attempted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         success BOOLEAN NOT NULL
+      )`;
+      await sql`CREATE TABLE IF NOT EXISTS tax_transaction_index (
+        stripe_account TEXT NOT NULL, mode TEXT NOT NULL,
+        transaction_id TEXT NOT NULL, reference TEXT NOT NULL,
+        first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (stripe_account,mode,transaction_id),
+        UNIQUE (stripe_account,mode,reference)
       )`;
       await sql`CREATE TABLE IF NOT EXISTS change_log (
         id BIGSERIAL PRIMARY KEY,

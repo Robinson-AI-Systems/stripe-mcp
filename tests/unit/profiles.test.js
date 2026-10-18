@@ -89,7 +89,10 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
           'taxrate_create','taxrate_update',
           'meter_create','meter_update','meter_deactivate','meter_reactivate',
           'meter_record_usage','alert_create','alert_activate','alert_deactivate',
-          'alert_archive','credit_create_grant','credit_void_grant'
+          'alert_archive','credit_create_grant','credit_void_grant',
+          'tax_update_settings','tax_add_registration','tax_end_registration',
+          'tax_record_transaction','tax_reverse_transaction',
+          'quote_create','quote_update','quote_finalize','quote_accept','quote_cancel'
         ]);
         const approved=area==='account'&&liveAccount.has(tool.name)||
           area==='webhooks'&&liveWebhooks.has(tool.name)||
@@ -138,7 +141,12 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const res={setHeader:()=>{},status:(code)=>{expect(code).toBe(200);return res;},
       json:value=>{body=value;return res;}};
     home({},res);
-    expect(body.profileToolCounts).toEqual({read_only:144,everyday:145,full:156});
-    expect(body.tools).toBe(300);
+    // The home endpoint must report EXACTLY the active registry's visible tools.
+    // Under the isolated K-3 core-adoption adapter, the portable profile policy
+    // intentionally differs by one owner-only tool; do not hardcode a stale count.
+    const counts=Object.fromEntries(['read_only','everyday','full'].map(profile=>
+      [profile,visibleTools(registry,profile).length]));
+    expect(body.profileToolCounts).toEqual(counts);
+    expect(body.tools).toBe(321);
   });
 });

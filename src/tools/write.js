@@ -46,7 +46,10 @@ export function defineWrite(spec) {
       if(decision?.accepted!==true)return decision;
       return spec.beforeApply ? spec.beforeApply(params) : decision;
     } : spec?.beforeApply??null,
-    afterApply: spec?.money ? settleMoneyAfterWrite : null });
+    afterApply: spec?.money ? async params=>{
+      await settleMoneyAfterWrite(params);
+      if(spec.afterApply)await spec.afterApply(params);
+    } : spec?.afterApply??null });
   const declaredTool = Object.freeze({...guarded.tool,
     safety: spec.money ? '$' : 'P',
     moneySpec: spec.money ? 'provider-derived' : null});

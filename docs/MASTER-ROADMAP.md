@@ -1,3 +1,13 @@
+## 2026-10-18 — original last E-4/X-1/X-2 source implementation as-if-merged
+
+**E-4, X-1 and X-2 implementation source complete as-if-merged in PR #276, not yet deployed.** After exact-head reviewed merge, the original engineering ledger becomes **57/57 MERGED** (currently main has 54/57). Protected real-provider acceptance is independent and remains **43 criteria: 10 PASSED / 33 PENDING**. Serving READY live is still E-2 at `0a9577f25eb6ff307192a03694c448d8a9c3c64e`; E-3 on main and this new branch have not been verified live.
+
+[PR #276](https://github.com/Robinson-AI-Systems/stripe-mcp/pull/276) covers all three original IDs with one frozen plan (`docs/pr-cards/E-4.md`), full Tax/Quote native operations, single-use guarded undo and TEST-read-only smoke inventory. The dated audit has 166 read-labelled tools, no real TEST provider passes, and all explicit gaps. No new original implementation IDs remain after an approved green review/merge, but production acceptance and deployment remain outstanding.
+
+## 2026-10-18 — final original E-4/X-1/X-2 source bundle (IN_PROGRESS)
+
+Approved adjacent original subsections E-4 (Tax/Quotes), X-1 (verifiable undo), X-2 (TEST read-only smoke) share one frozen plan `docs/pr-cards/E-4.md` and branch. They remain implementation-unmerged until exact-head CI/review and safe merge; 54/57 original source count remains, while the protected real provider queue stays 10/43 PASSED and 33 PENDING. Main is ahead of independently READY live; no manual release authorized.
+
 ## 2026-10-18 — E-3 native metered billing as-if-merged
 
 E-3 is complete for source review in PR #274, pending exact-head CI and safe merge. The implementation register will be **54 of 57 MERGED** after the merge, with E-4 (Tax/quotes), X-1 (undo), X-2 (read-only release smoke) next. Until a scheduled authorized release, serving production main/live still contains E-2 at `0a9577f`. The separate protected provider-acceptance queue is unchanged: 10 passed / 33 pending.

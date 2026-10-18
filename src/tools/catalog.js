@@ -180,13 +180,13 @@ function mutableMatch(before,after,a,kind,mode='test'){
     if(a.nickname!==undefined&&value.nickname!==a.nickname)return false;
     if(a.active!==undefined&&value.active!==a.active)return false;
     if(a.metadata!==undefined&&Object.entries(a.metadata).some(([k,v])=>
-      value.metadata[k]!==v))return false;
+      v==='' ? Object.hasOwn(value.metadata,k) : value.metadata[k]!==v))return false;
   }else{
     if(before?.id&&value.id!==before.id)return false;
     if(a.name!==undefined&&value.name!==a.name)return false;
     if(a.description!==undefined&&value.description!==a.description)return false;
     if(a.metadata!==undefined&&Object.entries(a.metadata).some(([k,v])=>
-      value.metadata[k]!==v))return false;
+      v==='' ? Object.hasOwn(value.metadata,k) : value.metadata[k]!==v))return false;
   }
   return true;
 }
@@ -330,6 +330,37 @@ function makeWrite(def){
         return result&&result.id===(existingId??createdId)?result:null;
       }
       return s.prices.retrieve(a.priceId);
+    },
+    inverse:async(before,after,a)=>{
+      const snapshot=(tool,writeArgs,readArgs,expected,restored)=>({
+        version:1,tool,args:writeArgs,readTool:tool.startsWith('price_')?'price_get':'product_get',
+        readArgs,expected,restored});
+      if(n==='product_archive'||n==='product_unarchive'){
+        if(typeof before.active!=='boolean'||typeof after.active!=='boolean'||
+          before.active===after.active)return null;
+        return snapshot(before.active?'product_unarchive':'product_archive',
+          {productId:a.productId},{productId:a.productId},
+          {active:after.active},{active:before.active});
+      }
+      if(n==='price_update'&&a.active!==undefined&&
+        before.active!==after.active&&
+        Object.keys(a).every(k=>['priceId','active','confirm','dryRun','requestKey'].includes(k))){
+        return snapshot('price_update',{priceId:a.priceId,active:before.active},
+          {priceId:a.priceId},{active:after.active},{active:before.active});
+      }
+      if(n==='product_update'&&a.metadata!==undefined&&
+        Object.keys(a).every(k=>['productId','metadata','confirm','dryRun','requestKey'].includes(k))&&
+        before.metadata&&after.metadata){
+        // Stripe metadata updates merge keys. Empty values delete keys added
+        // by the original change; simply writing the old map leaves them.
+        const restoreMetadata={...before.metadata};
+        for(const key of Object.keys(after.metadata))if(!Object.hasOwn(before.metadata,key))
+          restoreMetadata[key]='';
+        return snapshot('product_update',{productId:a.productId,
+          metadata:restoreMetadata},{productId:a.productId},
+          {metadata:after.metadata},{metadata:before.metadata});
+      }
+      return null;
     },
     verify:async(b,after,a,ctx)=>{
       if(n==='product_delete')return after?.id===a.productId&&after.deleted===true;

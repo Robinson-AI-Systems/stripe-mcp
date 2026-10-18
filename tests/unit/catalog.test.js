@@ -78,6 +78,40 @@ function fixture({mode='test',providerMode=mode,grant=true,enabled=true,profile=
   return {ctx,db,sdk,products,prices,calls,call,confirm,mkPrice};
 }
 describe('E-1 native TEST catalog profile and contract',()=>{
+  it('X-1 restores an added Stripe metadata key using empty-value deletion semantics',async()=>{
+    const f=fixture();
+    // Separate GET payload instances as the real Stripe HTTP SDK does. Reusing
+    // a mutable test map object erases the immutable original pre-state.
+    f.sdk.products.retrieve.mockImplementation(async id=>
+      structuredClone(f.products.get(id)));
+    f.sdk.products.update.mockImplementation(async(id,args)=>{
+      const p=f.products.get(id);
+      if(args.metadata){
+        for(const [key,value] of Object.entries(args.metadata)){
+          if(value==='')delete p.metadata[key];
+          else p.metadata[key]=value;
+        }
+      }
+      return p;
+    });
+    const updated=parse(await f.call('product_update',{
+      productId:'prod_BASE123',metadata:{operatorNote:'added-by-test'},
+      confirm:true,requestKey:'add-key-once'}));
+    expect(updated.done).toBe(true);
+    expect(f.products.get('prod_BASE123').metadata).toEqual({
+      operatorNote:'added-by-test'});
+    const row=(await f.db.listAuditForTest()).filter(x=>
+      x.tool==='product_update'&&x.dry_run===false).at(-1);
+    expect(row.inverse).toMatchObject({
+      version:1,tool:'product_update',readTool:'product_get',
+      expected:{metadata:{operatorNote:'added-by-test'}},restored:{metadata:{}},
+      args:{productId:'prod_BASE123',metadata:{operatorNote:''}}});
+    const restored=parse(await f.call(row.inverse.tool,{
+      ...row.inverse.args,confirm:true,requestKey:'undo-key-once'}));
+    expect(restored).toMatchObject({done:true,confirmed:true});
+    expect(f.products.get('prod_BASE123').metadata).toEqual({});
+  });
+
   it('exports all six reads and seven guarded writes under separate profiles',async()=>{
     const names=['product_list','product_get','product_search','price_list',
       'price_get','price_search','product_create','product_update','product_archive',
