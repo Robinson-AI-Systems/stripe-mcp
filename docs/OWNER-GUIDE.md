@@ -1,3 +1,11 @@
+## Implementation versus real-world acceptance — 2026-10-17 clarification
+
+The original batch roadmap tracks **source implementation only**: 52 of 57 original subsections are implemented/tested/merged; the remaining five awaiting implementation are E-2, E-3, E-4, X-1 and X-2. The original V-3 TEST Event/Checkout tools, G-6 safe owner Dashboard administration guide, and H-1 branding kit/hosted Checkout integration are already built and merged. **This does not mean they passed live-provider, owner Dashboard or browser acceptance.**
+
+The independent protected acceptance queue currently has 43 checks, last verified **10 passed / 33 pending**. The TEST failed-payment/dispute/invoice Event and browser Checkout proof, signed-in owner Dashboard review, and actual saved TEST brand kit/hosted appearance proof stay pending. The main branch can be newer than the serving READY live deployment; reconnecting or waiting for a verified release may be required before using newly implemented native tools. No sign-in, branding selection, money approval, payment or LIVE activation is inferred from a source-merged status. Additional specialist provider LIVE financial/billing/admin parity remains real engineering outside the five original unimplemented roadmap IDs.
+
+See `docs/audits/2026-10-17-implementation-acceptance-separation.md`, `docs/pr-cards/work-index.json` and `docs/STATUS.md` for the two ledgers and exact evidence.
+
 # Owner guide — what you can ask for
 
 Plain-English things to say to Claude once each part is built. Each line names the batch that delivers it; until then
