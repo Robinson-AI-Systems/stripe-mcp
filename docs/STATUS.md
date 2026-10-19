@@ -1,3 +1,9 @@
+### 2026-10-19 — Hub route acceptance is historical and NONBLOCKING for Stripe completion
+
+Owner delegated Hub discovery and real direct/relay/Sandbox validation to Hub. Historical `STRIPE-HUB-ROUTES` remains PENDING with `completionGate: HUB_OWNED_OPTIONAL` to retain evidence and avoid false passes. Actual Stripe RTC1 provider-side contract conformance, independent direct MCP, consent/security/refusals and ordinary Stripe TEST/LIVE acceptance remain required. Historical original queue: **43 total / 13 genuine PASSED / 30 historically PENDING**, of which **29 are Stripe-owned** and one is optional Hub-owned. This is a scope-owner change, NOT provider-verified route acceptance.
+
+Checked October 19 main/live/READY Vercel `f38dfac2deed9fac204a619afaf0facc58726908`; connected Stripe cloud adapter reports upstream_request_failed / expired previous session when attempting the newly deployed TEST caller, therefore no fresh real-provider PASS is claimed. Source remediation PR will add an actual `offset/nextOffset` continuation for `stripe_search_tools`; cannot claim that new feature deployed until reviewed CI and checked promotion. Frozen shared Hub reference remains RTC1, with latest reviewed Hub main `3cc7f4ad4332155d639125b23e8a5c4c13804a3d`.
+
 ### 2026-10-18 — independently verified original E-1 guarded TEST catalog acceptance, no release required
 
 Protected real-provider ledger: **13 PASSED / 30 PENDING of 43** (up from 12/31). Only newly passed ID: `STRIPE-E1-CATALOG-WRITES`. Original E-1 source commit `cad4841c857c22ef6df5a114126af3541d07f4f8` already exists in independently Vercel READY E-2 `live=0a9577f25eb6ff307192a03694c448d8a9c3c64e`, with selected genuine standalone TEST/full owner account. Two real disposable catalog series confirmed original guarded product/price writes and archived both resources; one exact native lookup had two confirmed original price-create journal rows but Stripe exposes one unique Price, no duplicate. New independent post-plan product+price readbacks and denial/preview/no-write checks confirmed stable cleanup and ownership boundaries. One masked input error wrongly says "Could not read account details", an unresolved message-quality defect, not an actual successful write or provider acceptance of app ownership. Full sanitized evidence is in the E-1 queue row and `docs/pr-cards/E-1.md`. W9 workflow staged exact confirmation and app-owned actual record remain pending.
@@ -648,7 +654,8 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "gates": "Owner-issued short-lived read_only pass, working upstream Hub and authentic route evidence",
     "dependsOn": [],
     "status": "PENDING",
-    "lastEvidence": "No genuine direct/relay/Sandbox authenticated Hub route acceptance recorded in this session."
+    "lastEvidence": "2026-10-19 owner removed real Hub direct/relay/Sandbox discovery/connection from Stripe MCP completion; Hub owns those calls. Preserve historical PENDING for Hub-side validation, but classify nonblocking. Stripe must still prove its own RTC1 manifest, stable bounded search continuation, permissioned MCP tools, consent/denial/revocation and standalone operation. No actual Hub route proof claimed; the new source correction awaits CI and checked release.",
+    "completionGate": "HUB_OWNED_OPTIONAL"
   },
   {
     "id": "STRIPE-G6-OWNER",

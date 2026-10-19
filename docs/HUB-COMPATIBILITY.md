@@ -15,7 +15,7 @@
 3. **Lazy, bounded tool access.** Serve the standard RTC meta-tool search/describe/call family under the *provider's own* authorization and risk checks. A Hub query returns a **small bounded search page** and fetches an individual schema only on demand. Preserve actual page/offset/cursor fields and exact denial codes. No eager full catalog into the agent context.
 4. **Provider-owned consent.** Support the provider's independent RTC credential verification and, where implemented, standard OAuth protected-resource/issuer discovery, S256 PKCE, resource-bound consent, token refresh and revocation. The Hub never creates or widens provider scopes. A protected whoami identity that does not attest complete mode/profile/area grants is only enough for the Hub's **read-only** fallback; source must not claim full/write authorization from a successful OAuth callback.
 5. **Accurate results.** Keep outputs bounded, protect large pages and handles from cross-account/caller reuse, and reject expired, revoked or narrowed permissions. Unexpected provider POST results must not be retried without a safety guarantee.
-6. **Proof separate from code.** Before marking this server Hub-compatible for production, check the actual deployed RTC manifest, a genuinely authorized read via Hub, denied access, revoked/expired grant, credential renewal if provided, provider audit and direct standalone access. Historical TEST fixtures are not current LIVE acceptance.
+6. **Provider proof separate from optional Hub proof.** Stripe completion requires checked deployed RTC manifest, provider-owned consent, account-scoped permission denial/revocation, bounded meta discovery and independent direct standalone MCP operation. Hub-side actual OAuth connection, discovery, direct/relay/Sandbox reads and caller-family routing are HUB-owned optional follow-up, **not** a Stripe completion gate. Historical Hub route evidence stays PENDING/nonblocking. Never claim real Hub onboarding without proof or equate source tests with current LIVE acceptance.
 
 ## Current adoption status
 
@@ -55,3 +55,15 @@ Status: PLAN FROZEN, source and review pending. Owner removed external Hub disco
 ```
 <!-- bundle-plan:end -->
 
+
+## 2026-10-19 source review matrix and owner completion boundary
+
+| Area | Stripe-owned code and review evidence | Gate owner/status |
+|---|---|---|
+| RTC1 public manifest, HTTPS/MCP direct doors, tool prefix/count/areas/profiles | `api/contract.js`, `src/core/rtc-http.js`, pinned RTC conformance tests | Stripe; existing source, independently READY revision checked |
+| Bounded lazy meta discovery with real continuation | `src/tools/meta.js` and profile guard; focused `tests/unit/meta.test.js` now checks `offset/nextOffset`, stable ranking and denial | Stripe; new source pending exact-head CI and next checked release |
+| Delegated permissions, OAuth/RTC pass, revocation and original guard | Original native `stripe_describe_tool`, `stripe_call`, service-owned bearer and test suites | Stripe; provider read/owner consent still separate real acceptance |
+| Hub D-4 direct/relay/Sandbox and optional Hub-issued OAuth installation | Historical queue `STRIPE-HUB-ROUTES` | **HUB_OWNED_OPTIONAL** — PENDING, not Stripe completion |
+| Prevent eager full catalogs or outbound Hub adapters | Existing independent single service connection and 20-result discovery cap | Stripe; source implementation does not call Hub |
+
+Frozen RTC1 baseline retained; Hub main conformance specification reviewed at `3cc7f4ad4332155d639125b23e8a5c4c13804a3d`. New code does not claim deployed or live-tested acceptance.
