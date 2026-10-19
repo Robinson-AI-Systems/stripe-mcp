@@ -25,3 +25,16 @@ test('unknown provenance/history and optional external prerequisites cannot fabr
  assert.equal(planReleaseAlert([row('UNKNOWN',next)],obs,unknown).status,'NO_CONFIRMED_RELEASE_BLOCK');
  assert.equal(planReleaseAlert([row('PROVIDER',old,'RECHECK_EXTERNAL_GATE')],obs,ancestor).status,'NO_CONFIRMED_RELEASE_BLOCK');
 });
+
+test('Hub-owned optional rows never trigger release or deployment alerts after rollback',()=>{
+ const optional={...row('HUB-ROUTES',next),completionGate:'HUB_OWNED_OPTIONAL'};
+ const alert=planReleaseAlert([optional],obs,ancestor);
+ assert.equal(alert.status,'NO_CONFIRMED_RELEASE_BLOCK');
+ assert.deepEqual(alert.releaseTasks,[]);
+ const stale=planReleaseAlert([{...optional,disposition:'RECHECK_AFTER_ROLLBACK'}],obs,ancestor);
+ assert.equal(stale.status,'NO_CONFIRMED_RELEASE_BLOCK');
+ assert.deepEqual(stale.releaseTasks,[]);
+ assert.deepEqual(stale.deploymentTasks,[]);
+ const mandatory=planReleaseAlert([row('STRIPE-OWNED',next),optional],obs,ancestor);
+ assert.deepEqual(mandatory.releaseTasks.map(x=>x.id),['STRIPE-OWNED']);
+});

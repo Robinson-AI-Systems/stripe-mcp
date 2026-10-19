@@ -7,6 +7,9 @@ export function planReleaseAlert(plan, observation, isAncestor) {
     return {status:'VERIFY_DEPLOYMENT_FIRST',releaseTasks:[],deploymentTasks:[]};
   const releaseTasks=[],deploymentTasks=[];
   for(const row of plan){
+    // Historical Hub-operated acceptance never justifies a Stripe release,
+    // regardless of a rollback or a stale planner snapshot.
+    if(row.completionGate==='HUB_OWNED_OPTIONAL')continue;
     if(!['WAIT_RELEASE_OR_FETCH_HISTORY','RECHECK_AFTER_ROLLBACK'].includes(row.disposition) ||
         isAncestor(row.requiredRevision,main)!==true || isAncestor(row.requiredRevision,deployed)!==false)continue;
     const inLive=isAncestor(row.requiredRevision,live);

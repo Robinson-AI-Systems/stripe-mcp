@@ -12,7 +12,8 @@ export const tools=[
     inputSchema:{...shape,properties:{
       query:{type:'string',minLength:1,maxLength:100},
       area:{type:'string',maxLength:50},
-      limit:{type:'integer',minimum:1,maximum:20}
+      limit:{type:'integer',minimum:1,maximum:20},
+      offset:{type:'integer',minimum:0,maximum:100000}
     },required:['query']}},
   {name:'stripe_describe_tool',area:'server',writes:false,profiles,
     description:'Describe one available Stripe tool, including arguments and safety.',
@@ -43,8 +44,9 @@ export const handlers={
   async stripe_search_tools(args,{registry,connection}){
     if(typeof args?.query!=='string'||!args.query.trim()||args.query.length>100||
       (args.area!==undefined&&(typeof args.area!=='string'||args.area.length>50))||
-      (args.limit!==undefined&&(!Number.isInteger(args.limit)||args.limit<1||args.limit>20)))
-      return deny('Provide a bounded tool search query, area and limit');
+      (args.limit!==undefined&&(!Number.isSafeInteger(args.limit)||args.limit<1||args.limit>20))||
+      (args.offset!==undefined&&(!Number.isSafeInteger(args.offset)||args.offset<0||args.offset>100000)))
+      return deny('Provide a bounded tool search query, area, limit and offset');
     const words=args.query.toLowerCase().trim().split(/\s+/).slice(0,10);
     const filtered=visibleTools(registry,connection.profile,
       {allowWrites:connection.mode==='test'||connection.rtcLiveOwnerApproved===true})
@@ -53,10 +55,12 @@ export const handlers={
       .map(t=>({tool:t,score:words.reduce((n,w)=>
         n+((t.name+' '+t.description).toLowerCase().includes(w)?1:0),0)}))
       .filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.tool.name.localeCompare(b.tool.name));
-    return okay({matches:filtered.slice(0,args.limit??10).map(({tool})=>({
+    const offset=args.offset??0,limit=args.limit??10;
+    const next=offset+limit<filtered.length?offset+limit:null;
+    return okay({matches:filtered.slice(offset,offset+limit).map(({tool})=>({
       name:tool.name,description:tool.description,
       safety:tool.writes===false?'READ ONLY':'GUARDED '+connection.mode.toUpperCase()+' WRITE'})),
-      total:filtered.length,hasMore:filtered.length>(args.limit??10)});
+      total:filtered.length,hasMore:next!==null,nextOffset:next});
   },
   async stripe_describe_tool(args,{registry,connection}){
     if(typeof args?.name!=='string'||args.name.length>120)
