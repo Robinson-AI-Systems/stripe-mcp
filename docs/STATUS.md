@@ -481,7 +481,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "id": "STRIPE-TEST",
     "priority": 1,
     "requiredRevision": "143040662933e3c9158dbc00b69cef1d4af518ad",
-    "task": "Finish remaining connected TEST/OAuth/webhook/owner/Hub acceptance boundaries; released subsets are recorded separately",
+    "task": "Finish remaining standalone selected-account TEST/OAuth/webhook/owner acceptance boundaries; Hub-side connection validation is optional and separately tracked",
     "procedure": "docs/acceptance/STRIPE-TEST-MILESTONE.md",
     "gates": "Original selected TEST account, exact deployment provenance and independent owner consent for money-out; LIVE disabled",
     "dependsOn": [],
@@ -973,6 +973,7 @@ open obligations, original fixture ownership, approvals and deployment provenanc
     "lastEvidence": "2026-10-16 source U-1 pinned full operation index, guarded provider read/verified nonfinancial writes, 25/10 deterministic mock fixture contracts and Vercel includeFiles. Actual original provider U-1 invocation not yet deployed; separate credentialed TEST protected acceptance remains pending."
   }
 ]
+
 ```
 <!-- release-acceptance:end -->
 
