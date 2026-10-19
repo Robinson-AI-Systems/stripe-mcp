@@ -38,6 +38,40 @@ describe('C-2 progressive tool disclosure and wrapped execution',()=>{
     expect(batch.count).toBe(2);
     expect(batch.results.every(x=>!x.result.isError)).toBe(true);
   });
+  it('pages Hub-compatible protected meta discovery with actual stable continuation and denial',async()=>{
+    const result=async(query,c=connection)=>{
+      const out=await call('stripe_search_tools',query,registry,c);
+      expect(out.isError).not.toBe(true);
+      return parse(out);
+    };
+    const first=await result({query:'a',limit:10,offset:0});
+    expect(first.total).toBeGreaterThan(20);
+    expect(first.hasMore).toBe(true);
+    expect(first.nextOffset).toBe(10);
+    const second=await result({query:'a',limit:10,offset:first.nextOffset});
+    expect(second.total).toBe(first.total);
+    expect(second.nextOffset).toBe(20);
+    expect(new Set([...first.matches,...second.matches].map(x=>x.name)).size).toBe(20);
+    const last=await result({query:'a',limit:20,offset:first.total-1});
+    expect(last.matches).toHaveLength(1);
+    expect(last.hasMore).toBe(false);
+    expect(last.nextOffset).toBeNull();
+    const beyond=await result({query:'a',limit:10,offset:100000});
+    expect(beyond.matches).toHaveLength(0);
+    expect(beyond.hasMore).toBe(false);
+    expect(beyond.nextOffset).toBeNull();
+    for(const invalid of [null,'0',-1,0.5,100001,{},[],true]){
+      const refusal=await call('stripe_search_tools',{query:'a',offset:invalid});
+      expect(refusal.isError).toBe(true);
+    }
+    const denied=await result({query:'quote',limit:20},connection);
+    expect(denied.matches.some(x=>x.name==='quote_accept')).toBe(false);
+    const full=await result({query:'quote',limit:20},{...connection,profile:'full'});
+    expect(full.matches.some(x=>x.name==='quote_accept')).toBe(true);
+    const filtered=await result({query:'tax',area:'catalog',limit:10,offset:0});
+    expect(filtered.matches.every(x=>registry.tools.find(t=>t.name===x.name)?.area==='catalog')).toBe(true);
+    expect((await call('stripe_describe_tool',{name:'quote_accept'})).isError).toBe(true);
+  });
   it('rejects guessed hidden tools, direct writes, nested meta calls and mixed write batches',async()=>{
     let touched=0;
     const fake={tools:[...registry.tools,{name:'owner_delete',writes:true,

@@ -57,6 +57,31 @@ test('invalid, duplicate, missing, unknown and cyclic queue entries are refused'
   for (const text of ['none', block([]) + block([]), block([row(), row()]), block([{ ...row(), requiredRevision: 'main' }]), block([{ ...row(), dependsOn: ['MISSING'] }]), block([{ ...row(), dependsOn: ['READ'] }]), block([{ ...row(), procedure: '' }])]) assert.throws(() => readQueue(text));
   assert.deepEqual(readQueue(block([])), []);
 });
+test('Hub-owned optional route evidence stays pending but cannot block standalone acceptance accounting', () => {
+  const rows=[row('CORE'),{...row('HUB'),completionGate:'HUB_OWNED_OPTIONAL',
+    task:'Hub client independently discovers and connects the provider'}];
+  const original=JSON.stringify(rows);
+  assert.equal(readQueue(block(rows))[1].completionGate,'HUB_OWNED_OPTIONAL');
+  const plan=planQueue(rows,obs,ancestor);
+  assert.equal(plan.find(x=>x.id==='CORE').disposition,'DEPLOYED_CANDIDATE_CHECK_GATES');
+  assert.equal(plan.find(x=>x.id==='HUB').disposition,'HUB_OWNED_OPTIONAL');
+  const text=acceptanceSummary(plan,10).join('\n');
+  assert.match(text,/1 Hub-owned optional tasks/);
+  assert.match(text,/HUB-OWNED OPTIONAL VERIFICATION/);
+  const report={snapshot:acceptanceSnapshot(plan),deployed:b,deploymentState:'READY',
+    tasks:[{id:'CORE',requiredRevision:a,disposition:'DEPLOYED_CANDIDATE_CHECK_GATES',
+      outcome:'DEFERRED',evidence:'Owner-selected TEST fixture currently unavailable',
+      prerequisite:'Original signed provider fixture',remedy:'Checked deployment and original account',
+      nextAction:'Verify ordinary standalone acceptance with proper credentials'}]};
+  assert.match(reviewAcceptance(plan,obs,report),/accounting checked/);
+  assert.equal(JSON.stringify(rows),original);
+  assert.throws(()=>readQueue(block([{...row('HUB'),completionGate:'IGNORE_ALL'}])));
+  assert.throws(()=>reviewAcceptance(plan,obs,{...report,tasks:[
+    {id:'HUB',requiredRevision:a,disposition:'HUB_OWNED_OPTIONAL',
+      outcome:'PERFORMED',result:'PASS',evidence:'Unverified routed test was fabricated'}]}));
+  assert.equal(plan.find(x=>x.id==='HUB').status,'PENDING');
+});
+
 test('PR count is informational and cannot dictate a session boundary', () => {
   assert.doesNotMatch(run.toString(), /Next session boundary/);
 });

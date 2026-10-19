@@ -24,6 +24,7 @@ export function readQueue(text) {
   for (const row of rows) {
     if (!row || !/^[A-Z0-9][A-Z0-9-]{0,63}$/.test(row.id) || ids.has(row.id)) throw new Error('Invalid or duplicate acceptance ID.');
     ids.add(row.id);
+    if (row.completionGate !== undefined && row.completionGate !== 'HUB_OWNED_OPTIONAL') throw new Error(`Unknown optional completion owner: ${row.id}`);
     if (!SHA.test(row.requiredRevision) || !states.has(row.status)) throw new Error(`Invalid revision/status: ${row.id}`);
     if (!Number.isSafeInteger(row.priority) || row.priority < 1) throw new Error(`Invalid priority: ${row.id}`);
     for (const key of ['task', 'procedure', 'gates', 'lastEvidence']) {
@@ -65,6 +66,7 @@ export function planQueue(rows, observation, isAncestor) {
     if (!ready) disposition = 'VERIFY_DEPLOYMENT';
     else if (!included(row)) disposition = row.status === 'PASSED' ? 'RECHECK_AFTER_ROLLBACK' : 'WAIT_RELEASE_OR_FETCH_HISTORY';
     else if (row.status === 'PASSED') disposition = 'RECORDED_PASS';
+    else if (row.completionGate === 'HUB_OWNED_OPTIONAL') disposition = 'HUB_OWNED_OPTIONAL';
     else if (row.status === 'BLOCKED') disposition = 'RECHECK_EXTERNAL_GATE';
     else if (row.dependsOn.some(id => { const dep = rows.find(x => x.id === id); return dep.status !== 'PASSED' || !included(dep); })) disposition = 'WAIT_ACCEPTANCE_DEPENDENCY';
     else disposition = 'DEPLOYED_CANDIDATE_CHECK_GATES';
@@ -124,12 +126,13 @@ export function acceptanceSnapshot(plan) {
 /** Actionable acceptance is displayed before waiting work, independently of main lag. */
 export function acceptanceSummary(plan, limit = 10) {
   const action = plan.filter(row => ['DEPLOYED_CANDIDATE_CHECK_GATES', 'RECHECK_EXTERNAL_GATE'].includes(row.disposition));
-  const waiting = plan.filter(row => !['DEPLOYED_CANDIDATE_CHECK_GATES', 'RECHECK_EXTERNAL_GATE', 'RECORDED_PASS'].includes(row.disposition));
-  const passed = plan.length - action.length - waiting.length;
-  const lines = [`Acceptance first: ${action.length} deployed tasks to act on/recheck; ${waiting.length} waiting/verification tasks; ${passed} usable deployed passes.`,
+  const optional = plan.filter(row => row.disposition === 'HUB_OWNED_OPTIONAL');
+  const waiting = plan.filter(row => !['DEPLOYED_CANDIDATE_CHECK_GATES', 'RECHECK_EXTERNAL_GATE', 'RECORDED_PASS', 'HUB_OWNED_OPTIONAL'].includes(row.disposition));
+  const passed = plan.length - action.length - waiting.length - optional.length;
+  const lines = [`Acceptance first: ${action.length} deployed tasks to act on/recheck; ${waiting.length} waiting/verification tasks; ${passed} usable deployed passes; ${optional.length} Hub-owned optional tasks (not standalone completion gates).`,
     'Main ahead of live does not defer included checks. Listing a task is NOT executing it.',
     'Acceptance snapshot: ' + acceptanceSnapshot(plan)];
-  for (const [label, rows] of [['ACT OR RECHECK GATES NOW', action], ['WAITING OR VERIFY SPECIFIC PREREQUISITE', waiting]]) {
+  for (const [label, rows] of [['ACT OR RECHECK GATES NOW', action], ['WAITING OR VERIFY SPECIFIC PREREQUISITE', waiting], ['HUB-OWNED OPTIONAL VERIFICATION — NOT A STRIPE COMPLETION GATE', optional]]) {
     lines.push(label + ':');
     for (const row of rows.slice(0, limit)) lines.push(`${row.priority}. ${row.id} ${row.disposition}: ${row.task}`,
       `   Procedure: ${row.procedure}; gates: ${row.gates}`, `   Last evidence: ${row.lastEvidence}`);
@@ -165,7 +168,7 @@ export function reviewAcceptance(plan, observation, report, isAncestor = () => n
       throw new Error('Acceptance review outcome must be PERFORMED, DEFERRED or a recorded REUSED pass.');
     }
   }
-  const missing = plan.filter(row => row.disposition !== 'RECORDED_PASS' && !seen.has(row.id));
+  const missing = plan.filter(row => !['RECORDED_PASS','HUB_OWNED_OPTIONAL'].includes(row.disposition) && !seen.has(row.id));
   if (missing.length) throw new Error('Unreviewed acceptance tasks: ' + missing.map(row => row.id).join(', '));
   return 'Acceptance accounting checked for this snapshot; evidence truth, authorization and required workflow remain independently reviewed.';
 }
