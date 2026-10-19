@@ -4,9 +4,9 @@
 
 ## Governing shared specification
 
-- [Frozen RTC 1 contract](https://github.com/Robinson-AI-Systems/robinsons-toolkit-hub/blob/main/docs/CONTRACT.md) is the cross-repository baseline.
+- [Frozen RTC 1 contract](https://github.com/Robinson-AI-Systems/robinsons-toolkit-hub/blob/43eed4658527f32c9fca9666b0d31ecf8894b22d/docs/CONTRACT.md) is the cross-repository baseline.
 - [Hub connection compatibility specification and per-server checklist](https://github.com/Robinson-AI-Systems/robinsons-toolkit-hub/blob/main/docs/HUB-CONNECTION-SPEC.md) explains optional standards-based OAuth, independently delegated identity, bounded RTC meta-tool search/describe/call, pagination and result/refusal rules.
-- Work from the **latest reviewed Hub main specification**; record the exact Hub commit and the selected provider's exact source and deployed commits whenever demonstrating compatibility. Treat a future breaking contract change as a separate versioned design decision, **never** a silent per-server wire-protocol tweak.
+- The immutable baseline above is pinned to Hub commit `43eed4658527f32c9fca9666b0d31ecf8894b22d`. Update the pin only by a separately reviewed protocol compatibility change. Work from the **latest reviewed Hub main implementation guidance**; record the exact Hub commit and the selected provider's exact source and deployed commits whenever demonstrating compatibility. Treat a future breaking contract change as a separate versioned design decision, **never** a silent per-server wire-protocol tweak.
 
 ## Required integration boundaries
 
