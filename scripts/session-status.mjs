@@ -63,10 +63,10 @@ export function planQueue(rows, observation, isAncestor) {
   const included = row => ready && isAncestor(row.requiredRevision, deployed) === true;
   return [...rows].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id)).map(row => {
     let disposition;
-    if (!ready) disposition = 'VERIFY_DEPLOYMENT';
+    if (row.completionGate === 'HUB_OWNED_OPTIONAL' && row.status !== 'PASSED') disposition = 'HUB_OWNED_OPTIONAL';
+    else if (!ready) disposition = 'VERIFY_DEPLOYMENT';
     else if (!included(row)) disposition = row.status === 'PASSED' ? 'RECHECK_AFTER_ROLLBACK' : 'WAIT_RELEASE_OR_FETCH_HISTORY';
     else if (row.status === 'PASSED') disposition = 'RECORDED_PASS';
-    else if (row.completionGate === 'HUB_OWNED_OPTIONAL') disposition = 'HUB_OWNED_OPTIONAL';
     else if (row.status === 'BLOCKED') disposition = 'RECHECK_EXTERNAL_GATE';
     else if (row.dependsOn.some(id => { const dep = rows.find(x => x.id === id); return dep.status !== 'PASSED' || !included(dep); })) disposition = 'WAIT_ACCEPTANCE_DEPENDENCY';
     else disposition = 'DEPLOYED_CANDIDATE_CHECK_GATES';

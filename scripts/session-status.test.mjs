@@ -80,6 +80,12 @@ test('Hub-owned optional route evidence stays pending but cannot block standalon
     {id:'HUB',requiredRevision:a,disposition:'HUB_OWNED_OPTIONAL',
       outcome:'PERFORMED',result:'PASS',evidence:'Unverified routed test was fabricated'}]}));
   assert.equal(plan.find(x=>x.id==='HUB').status,'PENDING');
+  const unreleased=planQueue([{...row('HUB',c),completionGate:'HUB_OWNED_OPTIONAL'}],obs,ancestor);
+  assert.equal(unreleased[0].disposition,'HUB_OWNED_OPTIONAL');
+  const rollback=planQueue([{...row('HUB',c),completionGate:'HUB_OWNED_OPTIONAL'}],{...obs,deployed:a},ancestor);
+  assert.equal(rollback[0].disposition,'HUB_OWNED_OPTIONAL');
+  const unknown=planQueue([{...row('HUB',c),completionGate:'HUB_OWNED_OPTIONAL'}],{...obs,deploymentState:'BUILDING'},ancestor);
+  assert.equal(unknown[0].disposition,'HUB_OWNED_OPTIONAL');
 });
 
 test('PR count is informational and cannot dictate a session boundary', () => {
