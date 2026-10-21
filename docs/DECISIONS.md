@@ -1,3 +1,12 @@
+## 2026-10-21 — approved maximum-authority expansion
+
+Owner requested adapting the completed GitHub planning job to all active custom MCPs.
+Approve [MAXIMUM-AUTHORITY](designs/MAXIMUM-AUTHORITY.md), indexed CAP-1..CAP-5,
+with provider-specific interfaces, credential types, guardrails and open acceptance.
+No artificial God-Mode-only tools or percentage coverage from catalog counts.
+Existing user-selected policy/provider isolation and developer spending/release gates
+remain binding. This document is not implementation or live verification.
+
 ## 2026-10-19 — owner decision: Hub initiates discovery; Stripe only needs standards compliance
 
 The Hub has responsibility for discovering, authorizing and connecting to independently usable MCP providers, including Stripe. The Stripe server's own verified RTC 1/MCP contract, paged search, direct standalone access, account/mode-specific consent, revocation and original guarded tools remain mandatory. Do not build outbound Hub callbacks, Hub-side router logic or an eager tool catalog here. Reclassify historical `STRIPE-HUB-ROUTES` PENDING as `HUB_OWNED_OPTIONAL` in the existing protected queue; it is not a Stripe product completion gate, and no Hub direct/relay/Sandbox pass is asserted. Original R-3 remains counted only once, source corrections follow normal exact-head CI/review/release, all developer financial/LIVE rules remain binding while end users may use actual delegated provider authority.

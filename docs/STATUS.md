@@ -1,3 +1,17 @@
+## 2026-10-21 — owner-requested maximum-authority planning (source only)
+
+Inspected main `7ff1c10f074ef72f397ebed36314abecee95110a` and existing open work before editing. Added
+[MAXIMUM-AUTHORITY](designs/MAXIMUM-AUTHORITY.md) and indexed CAP-1..CAP-5 as
+APPROVED / NOT IMPLEMENTED. Existing provider acceptance evidence is unchanged;
+no new live pass, deployment, paid action, credential, grant or production effect.
+This is explicitly requested planning maintenance: zero production lines and zero
+completed implementation subsections. Ordinary supported authorization gets every
+operation it can perform; God Mode only simplifies genuinely necessary additional
+authority. Separate developer/operator/customer contexts explicitly. Existing original
+unfinished cards keep ownership; no work is counted twice. Next: existing eligible
+acceptance/implementation first, then CAP-1 inventory and its dependency-ordered work.
+Exact-head checks/self-review and any existing reviews remain mandatory before merge.
+
 ### 2026-10-19 — Hub route acceptance is historical and NONBLOCKING for Stripe completion
 
 Owner delegated Hub discovery and real direct/relay/Sandbox validation to Hub. Historical `STRIPE-HUB-ROUTES` remains PENDING with `completionGate: HUB_OWNED_OPTIONAL` to retain evidence and avoid false passes. Actual Stripe RTC1 provider-side contract conformance, independent direct MCP, consent/security/refusals and ordinary Stripe TEST/LIVE acceptance remain required. Historical original queue: **43 total / 13 genuine PASSED / 30 historically PENDING**, of which **29 are Stripe-owned** and one is optional Hub-owned. This is a scope-owner change, NOT provider-verified route acceptance.

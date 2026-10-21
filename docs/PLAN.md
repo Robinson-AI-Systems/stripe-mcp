@@ -1,5 +1,14 @@
 ## 2026-10-19 Stripe completion versus optional Hub-operated connection proof
 
+## Maximum legitimate authority — owner-approved 2026-10-21
+
+[MAXIMUM-AUTHORITY](designs/MAXIMUM-AUTHORITY.md) adds five indexed APPROVED,
+NOT IMPLEMENTED units CAP-1..CAP-5: operation inventory; ordinary fullest authority;
+secure additional credential lifecycle; advanced functional gaps; independent proof.
+Existing acceptance and unfinished original cards retain priority. Named-tool counts
+do not establish provider API coverage. No runtime grant or release change is implied.
+
+
 The owner explicitly assigned discovery, OAuth onboarding and actual direct/relay/Sandbox routing to the Hub. Only provider-side standalone RTC1 conformance, an accurate public contract, real bounded authorized `stripe_search_tools` continuation, scoped credentials, permissioned `describe/call`, original financial/owner protections and direct MCP operation are Stripe completion gates. The historical `STRIPE-HUB-ROUTES` criterion remains PENDING and recorded as `HUB_OWNED_OPTIONAL`, but is **not** an obligation blocking Stripe completion. The top-level `STRIPE-TEST` aggregate refers only to standalone TEST/OAuth/webhook/owner verification. These are owner-approved boundary corrections, not accepted Hub route results or permission to perform live/financial operations.
 
 Checked main/live/READY Vercel baseline `f38dfac2deed9fac204a619afaf0facc58726908`, 13 of 43 original checks PASSED, 29 mandatory Stripe-owned PENDING and one Hub-owned optional PENDING. Authentic custom Stripe Cloud adapter could not deliver a new provider call (`upstream_request_failed`), so none of those 29 were passed solely on this source correction.
@@ -150,3 +159,11 @@ next bounded implementation.
 
 ## Batch X — Undo and smoke test (`designs/BATCH-X.md`)
 - [ ] Undo for every clean opposite; read-only smoke report on test mode. No toolkit compatibility or retirement decision.
+
+## Maximum-authority acceptance (all open)
+
+- [ ] **CAP-1:** Operation and credential coverage inventory; full criteria in MAXIMUM-AUTHORITY.
+- [ ] **CAP-2:** Standard fullest authorization and effective-access recovery; full criteria in MAXIMUM-AUTHORITY.
+- [ ] **CAP-3:** Guided additional authority lifecycle; full criteria in MAXIMUM-AUTHORITY.
+- [ ] **CAP-4:** Advanced functional workflow gap closure; full criteria in MAXIMUM-AUTHORITY.
+- [ ] **CAP-5:** Independent authority acceptance and coverage reporting; full criteria in MAXIMUM-AUTHORITY.
