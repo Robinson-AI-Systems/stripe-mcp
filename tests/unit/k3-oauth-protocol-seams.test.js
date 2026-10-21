@@ -26,7 +26,7 @@ describe('K-3 portable OAuth protocol / original Stripe identity',()=>{
     }};
     const source={createOAuthHandlers(){
       sourceCalled++;return {register(){return 'register'},
-        authorize(){return 'authorize'},metadata(){},resourceMetadata(){}};
+        authorize(){return 'authorize'},metadata(){},resourceMetadata(){},revoke(){return 'source-revoke'}};
     }};
     const db=Object.fromEntries(['getOAuthClient','rotateRefreshToken',
       'createAccessToken','consumeAuthCode','createOAuthClient'].map(k=>[k,async()=>null]));
@@ -37,6 +37,7 @@ describe('K-3 portable OAuth protocol / original Stripe identity',()=>{
     expect(typeof res.setHeader).toBe('function');
     expect(adapter.register()).toBe('register');
     expect(adapter.authorize()).toBe('authorize');
+    expect(adapter.revoke()).toBe('source-revoke');
     const safe={client_id:'client',mode:'test',stripe_account:'acct_One_2',
       profile:'read_only',listing:'compact'};
     expect(builder.buildAccessRow({accessToken:'access',refreshToken:'refresh',
