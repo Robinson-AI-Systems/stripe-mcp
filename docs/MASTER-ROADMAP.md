@@ -1,5 +1,14 @@
 ## 2026-10-18 — E-1 genuine deployed guarded TEST catalog acceptance
 
+## Maximum legitimate authority — owner-approved 2026-10-21
+
+[MAXIMUM-AUTHORITY](designs/MAXIMUM-AUTHORITY.md) adds five indexed APPROVED,
+NOT IMPLEMENTED units CAP-1..CAP-5: operation inventory; ordinary fullest authority;
+secure additional credential lifecycle; advanced functional gaps; independent proof.
+Existing acceptance and unfinished original cards retain priority. Named-tool counts
+do not establish provider API coverage. No runtime grant or release change is implied.
+
+
 Already-deployed original native catalog has now passed original `STRIPE-E1-CATALOG-WRITES` real provider acceptance (native guarded confirmations, unique lookup reuse, exact archived source/provider resource readbacks, negative app marker/foreign/immutable refusals, no extra write). The independent protected queue reaches **13 PASSED / 30 PENDING (43)**. Verified READY live remains `0a9577f25eb6ff307192a03694c448d8a9c3c64e` and original engineering main `84e188a17c3c05d215491df2e5c8143fb2c0ac4e` is ahead, 57/57 implemented. This does **not** certify W9 staged workflow, 17 original Events, actual Hub federation, owner Dashboard or future release of E-3/E-4/X features. Existing 31 original pending task revision pins are already in live ancestry; actual missing TEST fixtures/owner/Hub are separate from the release dependency of recently merged unexercised features. One masked input denial requires later source message correction.
 
 ## 2026-10-18 — authenticated original V-3 deployed TEST inspection accepted

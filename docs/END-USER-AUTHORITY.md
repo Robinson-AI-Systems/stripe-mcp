@@ -21,3 +21,12 @@
 Tests must separately prove: (1) developer/CI actors cannot spend or mutate real/live resources outside their approvals; (2) properly entitled end users and their agents can execute provider-supported actions after the user-configured authorization and accurate warnings, including operations prohibited to our developer agents; (3) out-of-scope, revoked and improperly delegated actions are still blocked; and (4) financial/irreversible effects are journaled without unsafe retries.
 
 This decision applies across **GitHub MCP, Stripe MCP, Vercel MCP, Neon MCP, Google Workspace MCP, Robinson's Toolkit Hub**, and applicable user-facing projects. Service-specific authority boundaries, including the distinction between tenant/customer/owner/admin roles, remain real and enforceable. This documentation update does **not** certify that runtime remediation or live acceptance has completed.
+
+## Maximum legitimate authority — 2026-10-21
+
+[MAXIMUM-AUTHORITY](designs/MAXIMUM-AUTHORITY.md) and CAP-1..CAP-5 are the approved
+inventory, setup, additional-grant and coverage work. Standard includes the fullest
+ordinary supported authorization; God Mode is optional enrollment, never a provider
+or tenant bypass. Robinson AI Systems may act as developer/operator/customer in
+separately authorized contexts; company identity alone decides none of those roles.
+Provider-specific explicit approval rules remain as stated in the design.
