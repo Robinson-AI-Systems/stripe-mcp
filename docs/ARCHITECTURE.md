@@ -1,3 +1,15 @@
+## 2026-10-21 source: client-owned OAuth disconnect
+
+The native issuer exposes POST /api/oauth/revoke in source and advertises it through issuer
+metadata. core/oauth-revocation.js validates the registered client authentication method and
+atomically revokes only that client's matching connector row via revokeOAuthToken. It searches
+access and refresh hashes, ignores advisory type hints and returns an empty 200 for known,
+unknown, foreign or already-revoked values. Expired access can still stop its current refresh.
+No provider credential, RTC pass, sibling connection, production setting or grant is changed.
+Revocation addresses the current token row; obsolete tokens replaced by rotation are already
+invalid and do not locate subsequent descendants. This is not an independently verified live
+client disconnect or proof of full multi-user customer enrollment. See STATUS and the A-3 card.
+
 ## Native E-4 Tax/Quote, X-1 undo and X-2 smoke architecture — 2026-10-18
 
 PR #276 uses Stripe SDK 23 for selected-account native Tax/Quote operations under original `defineWrite` preview, confirmation, app-ownership, authorized mode and independent readback guards. Each write invocation has its own provider receipt closure, avoiding cross-request resource mixups. Additive `tax_transaction_index` stores only transactions verified and recorded by this connector, never a fabricated global Stripe transaction index. Private Quote PDF download follows the authenticated Stripe files endpoint, never a public link. Tax calculation creates a provider calculation and cannot run in a zero-write audit.

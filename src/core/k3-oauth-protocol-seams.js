@@ -90,6 +90,9 @@ export function createStripeOAuthProtocolAdapter({core,source,db,env}){
   return Object.freeze({
     register:original.register,authorize:original.authorize,
     token,metadata:original.metadata,
-    resourceMetadata:original.resourceMetadata
+    resourceMetadata:original.resourceMetadata,
+    // Optional portable token exchange must not remove the service-owned
+    // disconnect endpoint advertised by the original issuer.
+    ...(typeof original.revoke==='function'?{revoke:original.revoke}:{})
   });
 }
