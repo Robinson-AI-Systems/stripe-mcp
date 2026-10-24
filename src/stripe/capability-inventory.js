@@ -3,6 +3,7 @@
 import { catalog, apiVersion } from './openapi-index.js';
 import { preferredNative } from './hand-built-map.js';
 import { financialDecision } from './money-operations.js';
+import { documentedCredentialRequirements } from './credential-context.js';
 import { registry } from '../tools/index.js';
 import { SOURCE_GIT_BLOB, SOURCE_SHA256 } from '../../scripts/stripe-openapi.mjs';
 
@@ -26,18 +27,15 @@ const familyFor = path => path.split('/').filter(Boolean)[1] || 'unclassified';
 const lexical = (a,b) => a.localeCompare(b,'en');
 const compareRows = (a,b) => lexical(a.path,b.path) || lexical(a.method,b.method);
 const invalid = message => { throw new TypeError('Capability inventory: ' + message); };
-const credentialKinds = () => Object.fromEntries(CREDENTIAL_KINDS.map(kind => [kind, {
-  disposition: 'unknown',
-  note: 'Operation-specific grant, Stripe product/country entitlement and connected-account scope require reviewed provider evidence.'
-}]));
-function sourceStatus(record, names) {
+function sourceStatus(record, names, handlers) {
+  const bound = name => names.has(name) && typeof handlers?.[name] === 'function';
   const claimed = preferredNative(record);
-  if (claimed && names.has(claimed)) return { disposition: 'mapped-native-candidate',
+  if (claimed && bound(claimed)) return { disposition: 'mapped-native-candidate',
     nativeTool: claimed, registeredHandler: true, providerVerified: false };
   // Universal execution checks request schema, profile, account, ownership, secrets,
   // money and provider readback at invocation time. GET eligibility is only a candidate.
   if (record.method === 'GET' && record.path.startsWith('/v1/') &&
-      !SENSITIVE.test(record.path) && names.has('api_read'))
+      !SENSITIVE.test(record.path) && bound('api_read'))
     return { disposition: 'guarded-universal-read-candidate',
       nativeTool: null, registeredHandler: true, providerVerified: false };
   // Do not claim unreviewed POST/DELETE support based on an OpenAPI schema or generic dispatcher.
@@ -45,7 +43,7 @@ function sourceStatus(record, names) {
     registeredHandler: false, providerVerified: false };
 }
 export function buildCapabilityInventory({
-  api = catalog(), tools = registry.tools, pinnedSha = SOURCE_SHA256
+  api = catalog(), tools = registry.tools, handlers = registry.handlers, pinnedSha = SOURCE_SHA256
 } = {}) {
   if (!api || !(api.operations instanceof Map) || api.operations.size === 0 ||
       !Array.isArray(tools) || typeof pinnedSha !== 'string' || !pinnedSha)
@@ -55,6 +53,7 @@ export function buildCapabilityInventory({
     if (typeof tool?.name !== 'string' || !tool.name || names.has(tool.name))
       invalid('tool registry has an invalid or duplicate name');
     names.add(tool.name);
+    if (typeof handlers?.[tool.name] !== 'function') invalid('tool has no registered runtime handler');
   }
   const operations = [...api.operations.values()].map(record => {
     if (!record || typeof record.id !== 'string' || !record.id ||
@@ -68,12 +67,12 @@ export function buildCapabilityInventory({
       summary: String(record.summary || '').slice(0,180),
       effect: record.method === 'GET' ? 'read' :
         financial.financial ? 'conservatively-financial-or-irreversible' : 'unclassified-mutation',
-      credentials: credentialKinds(),
+      credentials: documentedCredentialRequirements(record),
       providerPermission: 'unknown',
       requiredAccountRole: 'unknown',
       productCountryEntitlement: 'unknown',
       selectedTenantAndResource: 'server-verification-required',
-      source: sourceStatus(record,names),
+      source: sourceStatus(record,names,handlers),
       tests: { unit: [], mock: [], database: [], realProvider: [] },
       liveAcceptance: { disposition: 'not-linked-to-independent-ledger', deployedSource: null },
       note: 'Code-path candidate is not provider execution or permission evidence.'
@@ -90,7 +89,7 @@ export function buildCapabilityInventory({
   }
   const registeredTools = tools.map(tool => ({
     name:tool.name, area:tool.area || 'unclassified',
-    writes:tool.writes === true,
+    writes:tool.writes === true, handlerRegistered:true,
     mappedPinnedOperations:[...(nativeMap.get(tool.name) || [])].sort(lexical),
     evidence:nativeMap.has(tool.name) ? 'source-native-name-mapping-only'
       : 'not-mapped-to-pinned-operation'
@@ -118,7 +117,7 @@ export function buildCapabilityInventory({
   };
 }
 export function validateCapabilityInventory(inventory, {
-  api = catalog(), tools = registry.tools, pinnedSha = SOURCE_SHA256
+  api = catalog(), tools = registry.tools, handlers = registry.handlers, pinnedSha = SOURCE_SHA256
 } = {}) {
   if (inventory?.schemaVersion !== CAPABILITY_SCHEMA_VERSION ||
       inventory?.source?.sha256 !== pinnedSha ||
@@ -149,7 +148,7 @@ export function validateCapabilityInventory(inventory, {
   if (new Set(inventory.operations.map(r=>r.key)).size !== expected.size ||
       inventory.operations.some((r,i) => i && compareRows(inventory.operations[i-1],r) > 0))
     invalid('missing or unsorted pinned operation');
-  const regen = buildCapabilityInventory({api,tools,pinnedSha});
+  const regen = buildCapabilityInventory({api,tools,handlers,pinnedSha});
   if (JSON.stringify(inventory) !== JSON.stringify(regen))
     invalid('source registry, family counts or schema-derived report drift');
   return {operationCount:inventory.operations.length,familyCount:inventory.families.length,

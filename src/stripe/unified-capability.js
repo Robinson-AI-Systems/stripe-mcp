@@ -1,12 +1,9 @@
 // Source reconciliation only. An OpenAPI descriptor is neither a credential
 // grant nor proof of tool execution, including on a verified deployed revision.
 import { loadUnifiedSource,validateUnifiedSource,UNIFIED_BLOB_SHA } from './unified-source.js';
-import { buildCapabilityInventory, CREDENTIAL_KINDS } from './capability-inventory.js';
+import { buildCapabilityInventory } from './capability-inventory.js';
+import { documentedCredentialRequirements } from './credential-context.js';
 
-const evidence = () => Object.fromEntries(CREDENTIAL_KINDS.map(k=>[k,{
-  disposition:'unknown',
-  note:'Requires official operation-specific OAuth/secret/restricted/organization context and actual account entitlement proof.'
-}]));
 const sort=(a,b)=>a.family.localeCompare(b.family,'en');
 export function buildUnifiedReconciliation({
   unified=loadUnifiedSource(), legacy=buildCapabilityInventory()
@@ -32,7 +29,7 @@ export function buildUnifiedReconciliation({
       sdkPinnedV1OperationId:old?.operationId??null,
       sourceStatus:status,
       nativeTool:status==='mapped-native-source-candidate'?old.source.nativeTool:null,
-      credentials:evidence(),permission:'unknown',entitlement:'unknown',
+      credentials:documentedCredentialRequirements(op),permission:'unknown',entitlement:'unknown',
       verifiedProviderExecution:false,
       exactOperationTest:'not-linked',independentLiveAcceptance:'not-linked'
     };

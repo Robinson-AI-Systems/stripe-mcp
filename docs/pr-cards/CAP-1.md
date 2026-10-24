@@ -83,3 +83,7 @@ source/doc change requires its own CI before merge.
 ## Continuation work packet (2026-10-23)
 
 [Unified v1/v2 source and credential coverage stage](CAP-1-unified.md) is continuation work inside original CAP-1. Same ID, no artificial subsection credit; source official specification SHA and actual provider permission proof remain separate.
+
+## Continued reviewed credential/context evidence — 2026-10-23
+
+[Credential type and context requirements work packet](CAP-1-grant-context.md) is additional source engineering **within the existing CAP-1** after #284/#285, without adding a subsection or crediting full CAP-1 as complete. Real provider permission proof, issuer and role verification, and independent deployed acceptance remain open.
