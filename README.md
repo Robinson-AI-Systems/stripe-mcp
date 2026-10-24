@@ -14,6 +14,7 @@ Keep actual LIVE account activation, financial owner approvals, provider grants
 and CI/release gates distinct.
 
 - [Start here](docs/START-HERE.md) and [current status](docs/STATUS.md).
+- [CAP-1 reviewed credential/account-context matrix](docs/pr-cards/CAP-1-grant-context.md) now distinguishes exact own-account, installed app, Connect and organization contexts. Metadata classification never authorizes Stripe calls.
 - [CAP-1 offline operation/gap inventory](docs/pr-cards/CAP-1.md):
   `npm run check:capabilities`, `node scripts/capability-report.mjs --gaps`
   or `--json`. Output is **source-only candidates**, not actual Stripe access.
