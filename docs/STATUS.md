@@ -1,3 +1,44 @@
+## 2026-10-23 — second CAP-1 PR #285 first-CI correction checkpoint
+
+At source candidate `780e3473f1844450893891c1e1e0dbdff1518849`, all seven CI prerequisite jobs ran:
+unit, disposable PostgreSQL, Stripe mock, RTC service/reference and core
+adoption returned SUCCESS. `check` failed lint because
+`src/stripe/unified-source.js` accidentally imported unused
+`fileURLToPath`. Corrected the import in the follow-up revision;
+**new exact-head checks are required** and not inferred from older green
+jobs. Original CAP-1 remains IN_PROGRESS. No OAuth host/DNS change.
+
+## 2026-10-23 — second CAP-1 source stage (candidate, not provider acceptance)
+
+Captured immutable GA-public Stripe OpenAPI `2026-09-30.endive` from
+upstream `stripe/openapi` at commit
+`af2d19d63ea42049abecf784482898c654ab42d5`,
+official source blob `9da296dc459321ad8cd04c68c41d32af8ca436dd`.
+Compact operation snapshot records **644 published GA operations: 612 v1
+and 32 v2**, independently SHA-1 blob pinned and validated. Runtime
+`src/stripe/unified-source.js` and `src/stripe/unified-capability.js`
+compare the SDK v1 catalog/registered tools against this reviewed
+non-executable GA source, while keeping unknown provider/entitlement
+and credential requirements explicit. `npm run check:capabilities`
+validates both inventories offline. No Stripe API calls or credentials
+are used and no parity percentage or real acceptance is asserted.
+Unpublished/preview operations and reviewed credential matrices remain
+original CAP-1 engineering, not complete.
+
+## 2026-10-23 — publisher branding and custom hostname approved (not yet activated)
+
+Owner selected the Robinson AI Systems corporate branding for all Stripe connection,
+account-management, God Mode and error screens, using the approved company's actual
+R logo and emerald/teal/charcoal design. Proposed standalone service origin is
+`https://stripe.robinsonaisystems.com`; MCP endpoint `/api/mcp`, product name
+**Stripe by Robinson AI Systems**. See [branding and domain gates](
+designs/STRIPE-BRAND-DOMAIN.md). Corporate `robinson-ai-systems/docs/DOMAINS.md`
+already lists this host as intended Stripe MCP responsibility; an independent
+Vercel lookup found it **not currently attached** to the Stripe project.
+Keep current `PUBLIC_BASE_URL` and existing clients intact until DNS, TLS,
+OAuth issuer/resource, callback and exact READY release evidence pass.
+No new DNS, app publication, LIVE activation or deployment has occurred.
+
 ## 2026-10-23 — approved Stripe App login, management and optional God Mode
 
 The owner approved the [GitHub-derived, Stripe-specific direct connection

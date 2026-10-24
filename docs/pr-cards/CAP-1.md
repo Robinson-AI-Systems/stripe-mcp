@@ -79,3 +79,7 @@ These requirements remain on the **same CAP-1** unit, not a new subsection
 and not an external acceptance queue. The code compiles and first exact-head
 CI passed at `c2e4217295bd392da0980bfd26d9ee7b6003ab07`; this later
 source/doc change requires its own CI before merge.
+
+## Continuation work packet (2026-10-23)
+
+[Unified v1/v2 source and credential coverage stage](CAP-1-unified.md) is continuation work inside original CAP-1. Same ID, no artificial subsection credit; source official specification SHA and actual provider permission proof remain separate.

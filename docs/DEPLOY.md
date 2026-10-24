@@ -1,3 +1,17 @@
+## 2026-10-23 — publisher branding and custom hostname approved (not yet activated)
+
+Owner selected the Robinson AI Systems corporate branding for all Stripe connection,
+account-management, God Mode and error screens, using the approved company's actual
+R logo and emerald/teal/charcoal design. Proposed standalone service origin is
+`https://stripe.robinsonaisystems.com`; MCP endpoint `/api/mcp`, product name
+**Stripe by Robinson AI Systems**. See [branding and domain gates](
+designs/STRIPE-BRAND-DOMAIN.md). Corporate `robinson-ai-systems/docs/DOMAINS.md`
+already lists this host as intended Stripe MCP responsibility; an independent
+Vercel lookup found it **not currently attached** to the Stripe project.
+Keep current `PUBLIC_BASE_URL` and existing clients intact until DNS, TLS,
+OAuth issuer/resource, callback and exact READY release evidence pass.
+No new DNS, app publication, LIVE activation or deployment has occurred.
+
 # Deploy Robinson Stripe MCP — owner checklist
 
 **Status (verified 2026-10-11 Colorado):** `stripe-mcp` Vercel Production build is READY; dedicated Neon `stripe_mcp` database has all 24 expected app tables. Owner entered `ADMIN_PASSPHRASE` and `TOKEN_ENCRYPTION_KEY` directly into Vercel as Sensitive Production-only settings, and privately enrolled one encrypted, timestamp-verified Stripe TEST key through the setup page. The agent did not view any secret. **Remote custom MCP OAuth, G-4/G-5 real provider smoke and G-6 owner Dashboard walkthrough remain UNVERIFIED**. Vercel Authentication remains enabled; Stripe LIVE remains disabled. Follow [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for outstanding acceptance gates.
