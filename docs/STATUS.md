@@ -1,3 +1,13 @@
+## 2026-10-23 — second CAP-1 PR #285 first-CI correction checkpoint
+
+At source candidate `780e3473f1844450893891c1e1e0dbdff1518849`, all seven CI prerequisite jobs ran:
+unit, disposable PostgreSQL, Stripe mock, RTC service/reference and core
+adoption returned SUCCESS. `check` failed lint because
+`src/stripe/unified-source.js` accidentally imported unused
+`fileURLToPath`. Corrected the import in the follow-up revision;
+**new exact-head checks are required** and not inferred from older green
+jobs. Original CAP-1 remains IN_PROGRESS. No OAuth host/DNS change.
+
 ## 2026-10-23 — second CAP-1 source stage (candidate, not provider acceptance)
 
 Captured immutable GA-public Stripe OpenAPI `2026-09-30.endive` from

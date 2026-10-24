@@ -68,3 +68,11 @@ compatibility, Stripe App OAuth and advanced organization entitlements
 **remain incomplete CAP-1/3 obligations**. The corporate hostname
 `stripe.robinsonaisystems.com` stays a future target, not the deployed
 issuer. Run exact-head CI before claiming passing source tests.
+
+## Verification/repair checkpoint
+
+First CI on `780e3473f1844450893891c1e1e0dbdff1518849`: `check` lint rejected unused
+`fileURLToPath` in `unified-source.js`; other six prerequisite
+jobs passed with disposable PostgreSQL, Stripe mock, unit and RTC.
+Removed unused import. Exact-head CI after fix must be reviewed before
+merge; no permission or provider execution claim.

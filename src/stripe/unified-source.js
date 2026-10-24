@@ -1,7 +1,6 @@
 // Independent GA-public unified v1/v2 source. Never used to construct a Stripe request.
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 
 export const UNIFIED_BLOB_SHA = '7e337a03e77e8a350e2fd1ead2e6afe89e18ff43';
 export const UPSTREAM_COMMIT = 'af2d19d63ea42049abecf784482898c654ab42d5';
