@@ -1,3 +1,25 @@
+## 2026-10-23 — CAP-1 credential-context safety groundwork (source candidate)
+
+New offline `src/stripe/credential-context.js` differentiates
+Stripe account secret, account restricted, Stripe App OAuth, Connect OAuth
+and organization secret credentials with reviewed public Stripe sources,
+exact account/tenant/mode/context matching and explicit unproven permission
+status. The associated reports carry per-operation provider sources and
+required header/context differences. A matching type/context is returned
+as **context-candidate-only, canExecute:false** and never as permission to
+execute. Unit tests reject cross-user, cross-tenant, stale/revoked,
+secret-bearing, wrong-mode, arbitrary connected-account and organization
+context probes. This does **not** implement real Stripe App login,
+human identity enrollment, credential storage, permission escalation or
+actual provider approval, and CAP-1 remains IN_PROGRESS.
+
+The native TEST cloud adapter previously returned
+`renewal_outcome_unknown_reconnect_required` on a benign whoami;
+do not replay an uncertain grant or count a provider PASS. The live
+Vercel source still needs a separate next scheduled daily promotion and
+authenticated client acceptance. Verification for this branch pending
+exact-head CI.
+
 ## 2026-10-23 — second CAP-1 source stage (candidate, not provider acceptance)
 
 Captured immutable GA-public Stripe OpenAPI `2026-09-30.endive` from
