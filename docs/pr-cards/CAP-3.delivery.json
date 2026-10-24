@@ -1,0 +1,41 @@
+{
+  "subsections": [
+    {
+      "id": "CAP-3",
+      "criteria": [
+        {
+          "criterion": "Verified human identities and tenant memberships must be distinct from a Stripe account authorization; operator, production customer, product administrator and developer roles require explicit, current server-checked memberships.",
+          "evidence": "Additive tenancy_principals and tenancy_memberships tables model opaque stable OIDC subject hashes, tenant membership contexts (development/product_admin/production), explicit roles and revision. No runtime OIDC verifier is yet connected, so independently trusted human enrollment remains unfinished."
+        },
+        {
+          "criterion": "Typed Stripe account/Connect/organization grants must bind tenant, stable person, verified provider account, mode, issuer/resource, permission revision and credential kind, with no cross-tenant credential or operation fallback.",
+          "evidence": "tenancy_grants stores only credential-free descriptors binding person, tenant, context, revision, exact Stripe account, mode and kind. src/tenancy/selection.js rejects automatic broader grant selection and always returns canExecute:false. Real provider permission/entitlement and encrypted grant proof remain unfinished."
+        },
+        {
+          "criterion": "Grant enrollment, ownership changes, revocation, replacement, expiry and concurrent use must be atomic and fail closed, without exposing provider bearer secrets or authorizing provider I/O based on metadata alone.",
+          "evidence": "One-use 256-bit hashed auth intent with ten-minute expiry is consumed by one exact client/person/tenant/mode query, and grant and membership revocations use atomic UPDATE with current revision. Real-db concurrent tests exist; no Stripe token exchange or provider writes are enabled."
+        },
+        {
+          "criterion": "Legacy owner-managed accounts/OAuth connections must remain compatible but unassigned; ownership migration requires independently proven owner identity, and ambiguous credentials must never become customer grants.",
+          "evidence": "Existing stripe_accounts and connector/oauth token schema and logic are not rewritten; disabled-by-default STRIPE_TENANCY_SCHEMA_APPROVED gate avoids unapproved production schema initialization, while disposable tests explicitly create tables. A verified legacy-owner migration remains unimplemented and must not be guessed."
+        },
+        {
+          "criterion": "Use disposable real PostgreSQL tests for independent identities, two tenants, same person different roles, foreign account/mode, stale membership, concurrent revocation, and negative provider-authority assumptions; keep signed-in independent money-out approval and LIVE safeguards unchanged.",
+          "evidence": "New disposable PostgreSQL tests cover independent users and tenant contexts, stale memberships, duplicate invite refusal, cross-tenant grants, concurrent grant revocation, replay-resistant intent, and absence of bearer columns; unit tests cover explicit selection and no provider permission. Tests await exact-head CI, and all original signed-in money/LIVE logic is untouched."
+        }
+      ],
+      "remainingEngineering": [
+        "Implement provider-backed human sign-in through a maintained OIDC verifier, with verified issuer/subject and PKCE/state/nonce, before calling identity-enrollment internals.",
+        "Implement one-screen branded Stripe App account consent and automatic mobile client return using registered Stripe App OAuth grant and independent identity.",
+        "Build encrypted tenant-bound credential lifecycle, real policy-based resolver, original OAuth connector migration and Full/God Mode upgrades with actual operation scope evidence.",
+        "Prove every direct, RTC, indirect and HTTP door with real PostgreSQL/independent provider and client acceptance, without changing signed-in money-out policy."
+      ]
+    }
+  ],
+  "productionAdded": 339,
+  "productionRemoved": 0,
+  "newEngineering": "Additive 5-table database tenant authority store with atomic owner-scoped member grants/revocations, exact Stripe grant-descriptor ownership, one-use authorization state and pre-provider no-fallback policy, integrated behind a disabled-by-default migration switch, and 17 isolated DB/unit security tests.",
+  "planComparison": "Delivered 339 meaningful production lines versus an estimated 550; this is an intentionally incomplete CAP-3 source foundation because real OIDC/Stripe App provider enrollment, encrypted credential selection, public client authorization and LIVE provider proof remain mandatory. No partial CAP-3 subsection counted as completed. Independent provider prereqs are not used to excuse further eligible implementation.",
+  "relatedWorkDecision": "CAP-3 stays IN_PROGRESS; do not merge it into CAP-2 as a completed subsection or claim any provider acceptance. Source schema is inactive on deployed systems until owner authorizes migration. CAP-2 full user profile lifecycle will reuse this store after verified human sign-in.",
+  "decision": "CONTINUE"
+}

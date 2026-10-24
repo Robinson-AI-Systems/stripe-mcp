@@ -3,6 +3,7 @@ import {createWebhookCreationStore,initWebhookCreationTables} from './webhooks/c
 import {createWebhookSignatureDb,initWebhookSignatureTables} from './webhooks/signature-store.js';
 import {createTestWebhookReceiptStore,initTestWebhookReceiptTables} from './webhooks/receipt-store.js';
 import { hashToken } from './core/oauth.js';
+import {createTenancyStore,initTenancyTables} from './tenancy/store.js';
 import {createMeteredBillingStore,initMeteredBillingTables} from './metered/store.js';
 import {createBrandKitStore,initBrandKitTables} from './brand/store.js';
 import {createAppProfileStore,initAppProfileTables} from './apps/profiles.js';
@@ -44,6 +45,7 @@ export function createDb(sql = getProductionSql()) {
     ...createBrandKitStore(sql),
     ...createMeteredBillingStore(sql),
     ...createAppProfileStore(sql),
+    tenancy: createTenancyStore(sql),
     ...createDevForwarderStore(sql),
     ...createDevForwarderReplayStore(sql),
     ...createDevSimulationCycleStore(sql),
@@ -1302,6 +1304,9 @@ export function createDb(sql = getProductionSql()) {
       await sql`CREATE INDEX IF NOT EXISTS login_attempts_window_idx ON login_attempts (ip, attempted_at)`;
       await sql`CREATE INDEX IF NOT EXISTS change_log_account_time_idx ON change_log (stripe_account, at DESC)`;
       await sql`CREATE INDEX IF NOT EXISTS one_time_secrets_expiration_idx ON one_time_secrets (expires_at)`;
+      // Additive tenant schema stays inactive on production until separately approved.
+      if(process.env.STRIPE_TENANCY_SCHEMA_APPROVED==='enabled')
+        await initTenancyTables(sql);
       await initWebhookCreationTables(sql);
       await initWebhookSignatureTables(sql);
       await initTestWebhookReceiptTables(sql);

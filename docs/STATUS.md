@@ -1,3 +1,45 @@
+## 2026-10-24 — CAP-3 PR #289 first exact-head CI correction
+
+The original source head `2183fa8b` passed repository check,
+Stripe mock, RTC reference/service and core-adoption checks.
+Disposable real PostgreSQL caught a nullable-bind type ambiguity in
+the optional owned-grant account/mode filter (`42P18`), and the
+invalid-provider-resource test found the URL validator accepted any
+HTTPS host. Unit and PostgreSQL schema inventory tests also expected
+the legacy `SCHEMA_TABLES` list to mean only tables created by the
+**default**, unapproved-production-safe `db.initSchema()`.
+
+The correction keeps the five gated CAP-3 table names separate
+(`TENANCY_TABLES`) from the legacy default schema, adds explicit
+`::text` casts for nullable filters, and requires the resource URL
+to be on `https://api.stripe.com` without query or fragment.
+All original tests remain enabled; fresh exact-head CI required.
+No schema or Stripe production change has been made.
+
+## 2026-10-24 — CAP-3 inactive tenant/grant storage (not public login)
+
+An additive internal tenant authority store now models opaque person IDs,
+separate organization tenants and developer/product-admin/production
+membership revisions, non-executable Stripe account-grant descriptors,
+independent owner-only membership changes and atomic one-use client state.
+Legacy encrypted owner keys and OAuth connectors remain untouched and
+unassigned. The existing provider client and money-out authorization
+path has **not** been replaced or widened.
+
+The new schema requires a separately approved server-side
+`STRIPE_TENANCY_SCHEMA_APPROVED=enabled` environment setting;
+production migrations are **not** enabled by default. Tests explicitly
+initialize only disposable localhost PostgreSQL tables. See
+[database contract](TENANCY-DATABASE.md) and
+[CAP-3 execution card](pr-cards/CAP-3.md).
+
+CAP-3 remains IN_PROGRESS: independent OIDC identity verification,
+Stripe App OAuth installation and mobile client return, encrypted
+tenant-bound provider credentials, God Mode, existing client
+migration and real provider proof are still unfinished.
+Existing LIVE two-step activation, signed-in owner approval for every
+AI money-out and $500/account/day guard remain unchanged.
+
 ## 2026-10-23 — PR #288 CI integration correction
 
 First exact-head `a63936b8` passed repository check, disposable
