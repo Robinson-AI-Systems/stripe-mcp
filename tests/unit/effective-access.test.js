@@ -46,7 +46,7 @@ describe('CAP-2 effective current-authority and recovery',()=>{
     const right={...account,live_enabled:true,live_connected:true};
     const widened=sourceAccessForProfile({registry,connection:{...live,rtcLiveOwnerApproved:true},
       account:right,toolName:'product_create',profile:'full'});
-    expect(widened.source.providerPermission).toBe('not-verified');
+    expect(widened.providerPermission).toBe('not-verified');
     expect(widened.ownerApproval).toBe(undefined);
   });
   it('refuses missing/foreign account, bad profile, nonexistent handler and arbitrary tools',()=>{

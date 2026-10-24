@@ -63,3 +63,12 @@ assert that a new Stripe App/user grant has been enrolled or that
 CAP-2 is fully complete. Full original CAP-2 remains **IN_PROGRESS**
 until persisted owner-consented user upgrade, multi-user isolation and
 real authorized provider operation acceptance.
+
+## Exact first-CI correction
+
+At candidate `a63936b8` tests surfaced three expected tool count/name
+inventory updates and two CAP-2 assertion/argument-shape corrections.
+Do not skip or weaken tests: preserve strict deny on any additional
+arguments, keep source-level provider denial, and update the original
+registry, home and meta catalog inventories to include this one
+read-only registered tool. No auth or money bypass is authorized.

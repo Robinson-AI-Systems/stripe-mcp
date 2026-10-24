@@ -1,3 +1,19 @@
+## 2026-10-23 — PR #288 CI integration correction
+
+First exact-head `a63936b8` passed repository check, disposable
+PostgreSQL, Stripe mock and RTC service/reference, but core adoption
+and unit tests detected the new tool was missing from three explicit
+inventory expectations (registry, catalog read-only 154→155 and home
+count 321→322). Two new CAP-2 unit assertions also exposed that
+`sourceAccessForProfile` already returns the source object, not
+`{source:...}`, and the new handler had not explicitly rejected
+unknown tool arguments (although the schema forbade them and the
+handler ignored them). Updated the fixture's correct object shape
+and tightened the handler to **reject all extra arguments**, including
+attempted account/mode/profile/credential selection. Keep original
+read-only/financial guards and all assertions; fresh exact-head CI
+required after this correction before merge.
+
 ## 2026-10-23 — CAP-2 ordinary Full explanation (source candidate, NOT deployed)
 
 New registered read-only `stripe_explain_access({tool,compareProfiles?})`

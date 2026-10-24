@@ -23,7 +23,9 @@ export const tools=[{
 }];
 export const handlers={
   async stripe_explain_access(args,{registry,connection,db}){
-    if(typeof args?.tool!=='string'||!/^[a-z][a-z0-9_]{1,80}$/.test(args.tool)||
+    if(!args||typeof args!=='object'||Array.isArray(args)||
+       Object.keys(args).some(key=>!['tool','compareProfiles'].includes(key))||
+       typeof args?.tool!=='string'||!/^[a-z][a-z0-9_]{1,80}$/.test(args.tool)||
        (args.compareProfiles!==undefined&&typeof args.compareProfiles!=='boolean')||
        !connection||typeof connection.stripeAccount!=='string'||
        typeof db?.getStripeAccount!=='function')
