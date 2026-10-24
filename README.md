@@ -2,7 +2,7 @@
 
 **Stripe by Robinson AI Systems** — standalone remote Stripe MCP server
 for authorized account owners and their AI clients. Source implementation of
-the 57 original roadmap subsections is merged; the new CAP-1..CAP-5 coverage,
+the 57 original roadmap subsections is merged; the new CAP-2..CAP-5 authorization and functional
 multi-user identity, Stripe App OAuth and optional God Mode expansion remains
 unfinished. This repo is **deployed in TEST-oriented development** but is
 **not independently accepted for broad public or LIVE financial use**.
@@ -14,6 +14,7 @@ Keep actual LIVE account activation, financial owner approvals, provider grants
 and CI/release gates distinct.
 
 - [Start here](docs/START-HERE.md) and [current status](docs/STATUS.md).
+- [Complete source-only CAP-1 evidence inventory](docs/pr-cards/CAP-1-final-inventory.md) — `node scripts/operation-evidence-report.mjs --families` or `--gaps`, linked tests/live evidence remain visibly unverified.
 - [CAP-1 reviewed credential/account-context matrix](docs/pr-cards/CAP-1-grant-context.md) now distinguishes exact own-account, installed app, Connect and organization contexts. Metadata classification never authorizes Stripe calls.
 - [CAP-1 offline operation/gap inventory](docs/pr-cards/CAP-1.md):
   `npm run check:capabilities`, `node scripts/capability-report.mjs --gaps`

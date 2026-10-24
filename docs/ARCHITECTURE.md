@@ -1,3 +1,28 @@
+## 2026-10-23 — CAP-1 original subsection source completion candidate
+
+Continuing from merged #286, new offline `src/stripe/operation-evidence.js`
+records one GA-pinned typed operation/effect/owner/source/credential/
+test/live-acceptance evidence object for **each of 644 Stripe GA method/
+path/version operations**. `operation-evidence-report.js` generates
+deterministic version/family risk and implementation-gap reports with an
+offline validator and negative falsified-provider/permission/effect
+fixtures. `npm run check:capabilities` now includes this final
+validator; `node scripts/operation-evidence-report.mjs --gaps` shows
+first 50 candidate engineering gaps without claiming entitlement.
+
+The original CAP-1 **source inventory** index is written as MERGED
+only **if this candidate passes protected exact-head CI and is actually
+merged**. All five original acceptance lines are mapped in
+`docs/pr-cards/CAP-1.delivery.json`, keeping unknown Stripe
+permission/roles/country entitlement, source/test gaps and every
+remote/provider acceptance unverified. Old protected provider acceptance
+ledger remains separate, not overwritten by a made-up zero.
+CAP-2/3 ordinary Full authorization, independent human identity,
+Stripe App OAuth, mobile login, optional God Mode and credential
+isolation; CAP-4 broader API capability; CAP-5 real provider/mobile
+acceptance are still not implemented. No money, LIVE, real OAuth,
+producer credentials or customer production data changed.
+
 ## 2026-10-23 — provider source correction and stronger handler evidence
 
 Stripe's current [Connect OAuth reference](https://docs.stripe.com/connect/oauth-reference)

@@ -18,7 +18,7 @@
     "check:session": "node --test scripts/session-prepare.test.mjs scripts/check-ci-layout.test.mjs scripts/ci-phase.test.mjs scripts/bundle-plan.test.mjs scripts/completion-evidence.test.mjs scripts/release-needed.test.mjs scripts/session-status.test.mjs && node scripts/session-status.mjs && node scripts/check-ci-layout.mjs",
     "session:bundle": "node scripts/bundle-plan.mjs",
     "session:prepare": "node scripts/session-prepare.mjs",
-    "check:capabilities": "node scripts/capability-report.mjs --verify && node scripts/unified-capability-report.mjs --verify"
+    "check:capabilities": "node scripts/capability-report.mjs --verify && node scripts/unified-capability-report.mjs --verify && node scripts/operation-evidence-report.mjs --verify"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

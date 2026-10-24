@@ -1057,13 +1057,13 @@
       "design": "docs/designs/MAXIMUM-AUTHORITY.md",
       "dependencies": [],
       "card": "docs/pr-cards/CAP-1.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "JIT contract before implementation",
       "budget": 650,
       "units": [
         "CAP-1"
       ],
-      "readiness": "CARD_PRESENT",
+      "readiness": "MERGED",
       "ownerInputs": []
     },
     {
