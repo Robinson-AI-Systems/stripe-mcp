@@ -4,7 +4,7 @@ Status: IN PROGRESS — source enumeration and truth-in-reporting; independent p
 Authority: [MAXIMUM-AUTHORITY](../designs/MAXIMUM-AUTHORITY.md) CAP-1. Baseline main `cc5be1c3d41ed1dbca68b4ed05d435ec70b26c71`.
 This is **one original predefined subsection**, not multiple invented mini-cards. CAP-2/3/4/5 remain dependency-gated. This card's plan precedes any code changes.
 
-## Drift and reuse
+## Drift check — inspected source and reuse
 - Existing `scripts/stripe-openapi.mjs` verifies the pinned 2026-09-30.endive OpenAPI's byte checksums; `src/stripe/openapi-index.js` constructs unique canonical operations.
 - `src/tools/index.js` is the actual native registry; `src/tools/universal.js` supports a guarded **subset**, not blanket universal coverage.
 - `docs/pr-cards/X-2.md` inventories protected TEST reads, **not** all Stripe operations or live provider passes.
