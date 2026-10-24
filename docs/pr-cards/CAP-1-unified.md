@@ -51,3 +51,10 @@ Verified base main `517dc3f12996515d5fd7f4ac9f47b3660f1459c9`. Last CAP-1 PR #28
 
 ## Successor
 After this stage, finish CAP-1 credible operation-specific account/org/Stripe App authorization evidence, then advance original CAP-2 and CAP-3 on their dependency path. Do not call the original CAP-1 unit complete merely because source enumeration succeeds.
+
+## Owner 2026-10-23 branding/hostname checkpoint
+
+[Corporate branding and custom-domain contract](../designs/STRIPE-BRAND-DOMAIN.md)
+is approved adjacent CAP-3 connection work, not a completed or additional CAP-1
+subsection. Its Vercel domain is NOT attached and source `PUBLIC_BASE_URL`
+must remain unchanged until independent deployment and OAuth origin tests.

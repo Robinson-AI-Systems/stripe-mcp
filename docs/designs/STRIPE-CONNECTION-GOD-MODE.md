@@ -1,5 +1,7 @@
 # Stripe connection, independent identity and optional God Mode
 
+**Canonical branding and hosted-origin companion:** [Robinson AI Systems Stripe brand/domain contract](STRIPE-BRAND-DOMAIN.md). The target is `stripe.robinsonaisystems.com` and the publisher-facing name is **Stripe by Robinson AI Systems**; no DNS, OAuth issuer or LIVE change is implied by planning.
+
 **Owner-approved 2026-10-23. Engineering NOT completed by this design.** Applies to
 existing CAP-1..CAP-5 and existing unfinished source/acceptance cards; no invented batch IDs,
 credential rights, live deployment or owner consent. GitHub MCP's mobile-focused

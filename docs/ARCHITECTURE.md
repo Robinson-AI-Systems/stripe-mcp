@@ -1,3 +1,17 @@
+## 2026-10-23 — publisher branding and custom hostname approved (not yet activated)
+
+Owner selected the Robinson AI Systems corporate branding for all Stripe connection,
+account-management, God Mode and error screens, using the approved company's actual
+R logo and emerald/teal/charcoal design. Proposed standalone service origin is
+`https://stripe.robinsonaisystems.com`; MCP endpoint `/api/mcp`, product name
+**Stripe by Robinson AI Systems**. See [branding and domain gates](
+designs/STRIPE-BRAND-DOMAIN.md). Corporate `robinson-ai-systems/docs/DOMAINS.md`
+already lists this host as intended Stripe MCP responsibility; an independent
+Vercel lookup found it **not currently attached** to the Stripe project.
+Keep current `PUBLIC_BASE_URL` and existing clients intact until DNS, TLS,
+OAuth issuer/resource, callback and exact READY release evidence pass.
+No new DNS, app publication, LIVE activation or deployment has occurred.
+
 ## 2026-10-23 — staged CAP-1 inventory and approved identity architecture (NOT deployed from this PR)
 
 The offline `src/stripe/capability-inventory.js` and
