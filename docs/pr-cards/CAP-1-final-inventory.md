@@ -64,3 +64,20 @@ and report validators reject fabricated source/real-provider proofs.
 Source inventory acceptance does **not** turn independent Stripe TEST/live
 client evidence into PASSED and does not claim functionality for any
 missing API operation. Changes here are offline and read-only.
+
+## Full original delivery candidate — separate implementation from acceptance
+
+[CAP-1.delivery.json](CAP-1.delivery.json) records all five frozen
+criteria. A deterministic 644-row GA source report now has explicit
+published operation IDs, versions, credential kinds and documentation
+sources, unknown required permission/role/product entitlement,
+financial/read/unknown effect, real registered source handler candidate
+or missing code, per-operation UNLINKED exact tests and separate
+UNJOINED independent deployed provider evidence. Family and version
+gaps are reproducible; validator rejects misstatements, duplication,
+missing source and fabricated provider PASS. The report does not claim
+functional/provider parity, return credentials or authorize an operation.
+The original **CAP-1 source inventory** is presented for MERGED status
+only if protected exact-head CI and self-review pass; all independent
+provider/account/authorization acceptance remains pending. CAP-2/3/4/5
+are the next actual product engineering.

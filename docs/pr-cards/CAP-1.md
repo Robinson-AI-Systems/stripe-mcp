@@ -1,6 +1,6 @@
 # CAP-1 — Operation and credential coverage inventory
 
-Status: IN PROGRESS — source enumeration and truth-in-reporting; independent provider acceptance remains separate.
+Status: SOURCE INVENTORY COMPLETION CANDIDATE — merge only with exact-head CI; provider and end-user acceptance remain separate.
 Authority: [MAXIMUM-AUTHORITY](../designs/MAXIMUM-AUTHORITY.md) CAP-1. Baseline main `cc5be1c3d41ed1dbca68b4ed05d435ec70b26c71`.
 This is **one original predefined subsection**, not multiple invented mini-cards. CAP-2/3/4/5 remain dependency-gated. This card's plan precedes any code changes.
 
@@ -91,3 +91,16 @@ source/doc change requires its own CI before merge.
 ## Original CAP-1 inventory finalization packet — 2026-10-23
 
 [Complete audited per-operation source, credential, effect, test and independent-live evidence report](CAP-1-final-inventory.md) is continuation of this same original CAP-1. Do not count as another subsection or provider acceptance.
+
+## Full original CAP-1 delivery (candidate PR)
+
+[Final inventory source packet](CAP-1-final-inventory.md) and
+[criteria/evidence JSON](CAP-1.delivery.json) cover all five original
+acceptance lines using the first official 644-operation GA v1/v2
+source plus 559-operation vendored SDK v1 source and the verified native
+registry. Unknown Stripe permissions, individual product entitlements,
+legacy/preview exclusions, missing source handlers and every unlinked
+provider/pass remain **visible as gaps**, not counted as supported.
+This does **not** complete CAP-2..CAP-5, deploy these changes, verify a
+Stripe App installation, approve money movements or close original
+real-provider acceptance rows.
