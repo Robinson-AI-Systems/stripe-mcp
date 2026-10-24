@@ -1,3 +1,16 @@
+## 2026-10-24 — CAP-3 PR #290 initial CI correction
+
+On source candidate `eca1dacaa6ab25030c1d2f2e7411ab68112d4fb6`,
+**unit, real disposable PostgreSQL, Stripe mock, RTC service/reference
+and private core adoption all passed**. The repository secret scanner
+correctly rejected synthetic key-shaped literals embedded directly
+in `tests/db/tenancy-vault.test.js`. Replaced those literals with
+runtime-assembled unmistakably disposable test values; the underlying
+positive/negative key-kind, AAD, rotation and revocation assertions
+remain unchanged. No real Stripe keys or financial/provider actions
+were involved. Fresh exact-head check/CI must pass before merging;
+CAP-3 and provider acceptance remain unfinished.
+
 ## 2026-10-24 — CAP-3 tenant-bound encrypted provider-grant vault (inactive source)
 
 A gated sixth tenancy table `tenancy_secrets` stores only

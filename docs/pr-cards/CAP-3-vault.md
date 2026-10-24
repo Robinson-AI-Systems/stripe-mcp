@@ -78,3 +78,12 @@ This is *storage engineering*, not a replacement OIDC client,
 Stripe App OAuth grant, end-user permission, God Mode or LIVE activation.
 The originally frozen CAP-3 criteria and remaining engineering are
 still binding. Fresh exact-head CI must run before merge.
+
+## Exact first-CI fixture correction
+
+First `#290` head passed unit, disposable PostgreSQL, Stripe
+mock, RTC and core adoption; `check-secrets` flagged key-shaped
+synthetic source literals in the new DB test. They are now constructed
+at runtime from visibly separate harmless fragments without changing
+the test's credential-kind and same-tenant AAD assertions. No scanner
+exclusion, skip or watered-down test. Exact-head CI must be rerun.
