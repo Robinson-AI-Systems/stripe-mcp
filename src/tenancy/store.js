@@ -22,7 +22,7 @@ const safeOrigin=value=>{
 const error=why=>{throw new TypeError('Tenant authority: '+why);};
 const safeApiResource=value=>{
   try {const u=new URL(value);return u.origin==='https://api.stripe.com'&&
-    (u.pathname==='/'||/^\\/v[12]\\//.test(u.pathname))&&
+    (u.pathname==='/'||u.pathname.startsWith('/v1/')||u.pathname.startsWith('/v2/'))&&
     !u.username&&!u.password&&!u.hash&&!u.search;}
   catch{return false;}
 };
