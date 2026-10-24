@@ -4,6 +4,8 @@
 import { createHash, randomUUID, randomBytes } from 'node:crypto';
 
 const account=id=>typeof id==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(id);
+const sealed=value=>typeof value==='string'&&
+  /^v1[.][A-Za-z0-9_-]{16}[.][A-Za-z0-9_-]{22}[.][A-Za-z0-9_-]+$/.test(value);
 const contexts=new Set(['development','product_admin','production']);
 const roles=new Set(['owner','administrator','member','developer']);
 const kinds=new Set(['account_secret','account_restricted','stripe_app_oauth',
@@ -246,7 +248,7 @@ export function createTenancyStore(sql){
       const a=selector({tenantId,identity,context,revision});
       if(!/^grant_[a-f0-9-]{36}$/.test(grantId??'')||!accountId(account)||
          !modes.has(mode)||!kinds.has(kind)||
-         typeof ciphertext!=='string'||!/^v1\\.[^.]+\\.[^.]+\\.[^.]+$/.test(ciphertext))
+         !sealed(ciphertext))
         error('sealed, exact owned grant required');
       const rows=await sql`INSERT INTO tenancy_secrets(grant_id,ciphertext)
       SELECT g.id,${ciphertext} FROM tenancy_grants g
@@ -285,7 +287,7 @@ export function createTenancyStore(sql){
       const a=selector({tenantId,identity,context,revision});
       if(!/^grant_[a-f0-9-]{36}$/.test(grantId??'')||
          !Number.isSafeInteger(expectedGeneration)||expectedGeneration<1||
-         typeof ciphertext!=='string'||!/^v1\\.[^.]+\\.[^.]+\\.[^.]+$/.test(ciphertext))
+         !sealed(ciphertext))
         error('exact generation and sealed credential required');
       const rows=await sql`UPDATE tenancy_secrets s SET
         ciphertext=${ciphertext},generation=s.generation+1,rotated_at=now()
