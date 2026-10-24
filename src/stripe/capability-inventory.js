@@ -117,7 +117,7 @@ export function buildCapabilityInventory({
   };
 }
 export function validateCapabilityInventory(inventory, {
-  api = catalog(), tools = registry.tools, pinnedSha = SOURCE_SHA256
+  api = catalog(), tools = registry.tools, handlers = registry.handlers, pinnedSha = SOURCE_SHA256
 } = {}) {
   if (inventory?.schemaVersion !== CAPABILITY_SCHEMA_VERSION ||
       inventory?.source?.sha256 !== pinnedSha ||

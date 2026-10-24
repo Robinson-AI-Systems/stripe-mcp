@@ -73,3 +73,12 @@ as deprecated; this inventory records the modern platform-key
 requires actual runtime function registration, not tool-name coincidence.
 Full source/provider proof and independent remote-client acceptance still
 remain outstanding and no provider credential is selected.
+
+## CI correction checkpoint
+
+At intermediate head `63a48e7e`, check and two focused unit
+assertions failed solely due to unbound `handlers` in
+`validateCapabilityInventory`; 1,794 other unit tests passed.
+Validator now declares the same default registry handler parameter as
+builder and passes it into drift regeneration. Full exact-head CI
+required before any merge; do not misreport the intermediate run.

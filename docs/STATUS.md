@@ -1,3 +1,15 @@
+## 2026-10-23 — CAP-1 PR #286 handler drift check correction
+
+Initial head `37341dd8` passed all seven CI checks. A subsequent
+strict registry-check patch at `63a48e7e` correctly rejected unsupported
+handler mappings but accidentally omitted its handler argument in the
+validator. That produced one root-cause `ReferenceError: handlers is not
+defined`: 2/1,796 unit assertions failed; remaining 1,794 unit
+assertions and all available PostgreSQL/mock/RTC checks passed.
+Fix passes the actual registry handlers through both build and validation.
+The corrected exact-head CI MUST independently pass before merge; no
+provider acceptance or new authority was inferred.
+
 ## 2026-10-23 — provider source correction and stronger handler evidence
 
 Stripe's current [Connect OAuth reference](https://docs.stripe.com/connect/oauth-reference)
