@@ -12,7 +12,9 @@ if (args.length > 1 || !valid.includes(args[0] ?? '')) {
   if (args[0] === '--json') console.log(JSON.stringify(inventory,null,2));
   else if (args[0] === '--gaps') console.log(JSON.stringify({
     source:inventory.source,limits:inventory.outsidePinnedSchema,
-    families:inventory.families},null,2));
+    families:inventory.families,
+    unmappedRegisteredTools:inventory.registeredTools.filter(t=>
+      t.mappedPinnedOperations.length===0)},null,2));
   else console.log('CAP-1 schema/registry consistent: '+proof.operationCount+
     ' pinned API operations in '+proof.familyCount+
     ' families; provider credentials and live acceptance NOT verified.');

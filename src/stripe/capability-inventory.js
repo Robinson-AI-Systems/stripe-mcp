@@ -79,6 +79,22 @@ export function buildCapabilityInventory({
       note: 'Code-path candidate is not provider execution or permission evidence.'
     };
   }).sort(compareRows);
+  // A named native tool does not prove a specific upstream operation. Expose every
+  // unmatched registry entry explicitly so the next CAP work can review it.
+  const nativeMap = new Map();
+  for (const operation of operations) {
+    if (!operation.source.nativeTool) continue;
+    const existing = nativeMap.get(operation.source.nativeTool) || [];
+    existing.push(operation.key);
+    nativeMap.set(operation.source.nativeTool,existing);
+  }
+  const registeredTools = tools.map(tool => ({
+    name:tool.name, area:tool.area || 'unclassified',
+    writes:tool.writes === true,
+    mappedPinnedOperations:[...(nativeMap.get(tool.name) || [])].sort(lexical),
+    evidence:nativeMap.has(tool.name) ? 'source-native-name-mapping-only'
+      : 'not-mapped-to-pinned-operation'
+  })).sort((a,b)=>lexical(a.name,b.name));
   const tally = new Map();
   for (const row of operations) {
     let family = tally.get(row.family);
@@ -95,6 +111,7 @@ export function buildCapabilityInventory({
       sha256:pinnedSha, gitBlob:SOURCE_GIT_BLOB },
     interpretation: 'Offline coverage candidates only. No provider-backed operation, role or credential parity is inferred.',
     operations,
+    registeredTools,
     families:[...tally.values()].sort((a,b) => lexical(a.family,b.family)),
     outsidePinnedSchema:OUTSIDE_PINNED_SCHEMA.map(x=>({...x})),
     independentLiveLedger:'docs/STATUS.md (not auto-joined; do not overwrite historical PASS records)'

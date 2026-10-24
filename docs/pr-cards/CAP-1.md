@@ -66,3 +66,16 @@ financial operations or acceptance passes are presumed. Next engineering:
 finish first-class reviewed credential requirement evidence for provider API
 v1/v2/organization operations, confirm all mapping claims and validate
 normal CI, regression and reviewer results before marking CAP-1 fully complete.
+
+## Source delivery classification (reviewed before merge)
+
+CAP-1 remains **IN_PROGRESS**, with zero completed original subsection credit.
+The stage implemented here is a deterministic pinned-v1 source/registry inventory
+and exact drift checker, plus a truthful list of registry tools not mapped to a
+specific method/path. It does not yet independently enumerate all API-v2 or
+organization operations, prove every credential's provider-level permission
+matrix, or join individual operations to authenticated provider acceptance.
+These requirements remain on the **same CAP-1** unit, not a new subsection
+and not an external acceptance queue. The code compiles and first exact-head
+CI passed at `c2e4217295bd392da0980bfd26d9ee7b6003ab07`; this later
+source/doc change requires its own CI before merge.

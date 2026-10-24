@@ -16,6 +16,12 @@ describe('CAP-1 source and provider evidence separation',()=>{
     const a=build(),b=build();
     expect(a).toEqual(b);
     expect(validateCapabilityInventory(a,{api:fixture(),tools,pinnedSha:'test-checksum'}).operationCount).toBe(4);
+    expect(a.registeredTools).toEqual([
+      {name:'api_read',area:'unclassified',writes:false,
+        mappedPinnedOperations:[],evidence:'not-mapped-to-pinned-operation'},
+      {name:'product_create',area:'unclassified',writes:false,
+        mappedPinnedOperations:['POST /v1/products'],evidence:'source-native-name-mapping-only'}
+    ]);
     expect(a.operations.map(x=>x.key)).toEqual([
       'GET /v1/customers/{customer}','POST /v1/products',
       'GET /v1/tokens/{token}','POST /v1/unmapped']);

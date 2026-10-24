@@ -1,3 +1,22 @@
+## Approved future Stripe App connection gates (2026-10-23 — NOT yet enabled)
+
+- [ ] Select and verify an independent human identity provider and scoped
+  tenant membership; the Stripe account install is *not* human sign-in.
+- [ ] Register/review the actual Stripe App with the requested permission
+  manifest, OAuth access method, verified callback and sandbox installation.
+  Do not substitute Connect OAuth for Stripe App OAuth.
+- [ ] Pass end-to-end mobile ChatGPT and Claude installation, final approval,
+  automatic return, ordinary Full/read-only refusal, account switching,
+  token refresh/revoke and repeated-callback tests on the real READY version.
+- [ ] Prove protected optional key setup, organization context, independent
+  user/tenant isolation and no broader-credential fallback on write failure.
+- [ ] Confirm every existing LIVE enablement and AI-initiated money-out
+  independent owner consent/$500 per-account day remains active. God Mode
+  never changes either without its own explicit authorization.
+- [ ] Reconcile any Stripe App publishing/review requirements before offering
+  public installation. No registration or production mutation is granted by
+  this checklist.
+
 # Go-live checklist — everything that must be switched on before real money moves
 
 Written for Chris (not a developer). Rule: everything is built and tested in **test mode**; anything that touches real

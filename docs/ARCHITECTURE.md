@@ -1,3 +1,23 @@
+## 2026-10-23 — staged CAP-1 inventory and approved identity architecture (NOT deployed from this PR)
+
+The offline `src/stripe/capability-inventory.js` and
+`scripts/capability-report.mjs` produce deterministic source-only
+operation/credential gaps from the immutable pinned v1 OpenAPI and actual
+native registry. Mapped handlers and universal read candidates are never
+treated as provider proof. Registered tool names with no known operation
+mapping are displayed explicitly. API-v2/org endpoints remain an
+unenumerated, labeled gap requiring continued CAP-1 engineering.
+
+The approved [Stripe connection contract](designs/STRIPE-CONNECTION-GOD-MODE.md)
+specifies distinct MCP-client OAuth, authenticated human/tenant membership,
+Stripe App account authorization, optional scoped additional credentials,
+one-screen mobile consent, account management and additive legacy migration.
+**None of those new public identity/Stripe App/God Mode execution routes is
+implemented by this inventory work.** The existing owner-only OAuth and
+encrypted key setup remain the current runtime behavior, including separate
+TEST/LIVE and financial safeguards. Never treat a Stripe account OAuth grant
+as proof identifying the human authorizing ChatGPT or Claude.
+
 ## 2026-10-21 source: client-owned OAuth disconnect
 
 The native issuer exposes POST /api/oauth/revoke in source and advertises it through issuer
