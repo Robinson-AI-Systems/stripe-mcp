@@ -8,8 +8,6 @@ import { evidenceForOperations,verifyOperationEvidence }
 const cmp=(a,b)=>a.localeCompare(b,'en');
 const key=o=>o.method+' '+o.path;
 const SOURCE_GAPS=new Set(['schema-only','schema-only-v2-no-generic-dispatch']);
-const EFFECTS=new Set(['read','financial-or-irreversible-review-required',
-  'mutation-with-unknown-provider-effect']);
 const VALID_EVIDENCE=1;
 
 export function buildOperationEvidenceReport({
