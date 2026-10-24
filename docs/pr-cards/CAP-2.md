@@ -49,3 +49,17 @@ Use a trust-preserving pure `src/core/effective-access.js` based on the **existi
 
 ## Finish boundary
 Complete CAP-2 only when full original criteria have real source/database/indirect-door proof and ordinary authorized provider acceptance, including safe user-selected profile persistence and non-disruptive upgrade; neither green source CI nor this isolated feature can be credited as full CAP-2. Document actual remaining engineering separately.
+
+## Source checkpoint: full criteria remain open
+
+`src/core/effective-access.js` compares actual existing source gates
+for the currently authenticated account/profile/TEST/LIVE setting, and
+`src/tools/access.js` registers the mobile-friendly read-only
+`stripe_explain_access`. Unit and through-dispatch tests verify Full
+TEST candidates, read-only refusals, LIVE owner consent, missing handler,
+recovery guidance, provider permission unknown, no account selection from
+tool args and indirect meta-tool call consistency. This does **not**
+assert that a new Stripe App/user grant has been enrolled or that
+CAP-2 is fully complete. Full original CAP-2 remains **IN_PROGRESS**
+until persisted owner-consented user upgrade, multi-user isolation and
+real authorized provider operation acceptance.

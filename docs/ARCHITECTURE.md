@@ -1,3 +1,30 @@
+## 2026-10-23 — CAP-2 ordinary Full explanation (source candidate, NOT deployed)
+
+New registered read-only `stripe_explain_access({tool,compareProfiles?})`
+uses only the current authenticated selected Stripe account and the
+**original enforced** `src/core/profiles.js` predicates. It shows the
+actual source-policy status and, optionally, safe side-by-side Full/
+Everyday/read-only profile candidates on the **same account and mode**.
+No tool argument can choose a different account, provider credential,
+user identity or LIVE environment. Recovery guidance distinguishes an
+explicit user-initiated profile reconnection from unavailable implementation,
+Stripe provider credential/entitlement uncertainty, independently activated
+LIVE and independently owner-approved money-out. The original MCP
+dispatcher and meta-tool indirect call rules remain authoritative. A
+source-eligible candidate does **not** mean actual provider permission,
+successful Stripe invocation, real external acceptance or automatic God
+Mode escalation.
+
+This delivers useful **CAP-2 engineering but not full CAP-2**: secure
+multi-user tenant grants, provider-authorized ordinary Full upgrades,
+persisted explicit reconnection/consent, God Mode optional lifecycle and
+direct-client real account acceptance require CAP-3 source/acceptance.
+New tool implemented in `src/tools/access.js`, pure classifier in
+`src/core/effective-access.js`, synthetic/direct/indirect denial tests
+in `tests/unit/effective-access.test.js`. Original independent
+money-out owner approval + shared $500/account/Denver-day unchanged;
+no LIVE, money, OAuth, DNS or provider write occurred.
+
 ## 2026-10-23 — CAP-1 original subsection source completion candidate
 
 Continuing from merged #286, new offline `src/stripe/operation-evidence.js`

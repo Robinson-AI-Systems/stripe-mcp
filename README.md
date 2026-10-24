@@ -20,6 +20,7 @@ and CI/release gates distinct.
   `npm run check:capabilities`, `node scripts/capability-report.mjs --gaps`
   or `--json`. Output is **source-only candidates**, not actual Stripe access.
 - [Approved GitHub-style connection and God Mode contract](docs/designs/STRIPE-CONNECTION-GOD-MODE.md).
+- [CAP-2 Full profile and effective-access explanation](docs/pr-cards/CAP-2.md): `stripe_explain_access` (source diagnostic only; no credential or LIVE approval).
 - **Future brand/canonical origin:** [Robinson AI Systems Stripe branding and domain](docs/designs/STRIPE-BRAND-DOMAIN.md) targeting `https://stripe.robinsonaisystems.com/api/mcp`, not yet assigned, released or active. Existing issuer remains unchanged until DNS, TLS, OAuth/callback and real-client cutover acceptance.
 - [Roadmap](docs/MASTER-ROADMAP.md), [owner guide](docs/OWNER-GUIDE.md)
   and [independent acceptance evidence](docs/developer-evidence.json).

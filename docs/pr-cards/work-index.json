@@ -1075,13 +1075,13 @@
         "CAP-1"
       ],
       "card": "docs/pr-cards/CAP-2.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "JIT contract before implementation",
       "budget": 650,
       "units": [
         "CAP-2"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_PRESENT",
       "ownerInputs": []
     },
     {
