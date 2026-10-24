@@ -1,3 +1,17 @@
+## 2026-10-23 — provider source correction and stronger handler evidence
+
+Stripe's current [Connect OAuth reference](https://docs.stripe.com/connect/oauth-reference)
+says the Connect access token is **deprecated**, recommending requests
+through the verified platform's key and the `Stripe-Account` header.
+The CAP-1 classifier now documents this distinction, rather than
+presenting a Connect token as a replacement account bearer. Context
+agreement remains `canExecute:false`. The v1 source inventory now
+verifies that every tool name also has an **actual registered handler
+function** before it labels a native/universal candidate; missing
+handlers fail validation and focused tests. Neither change edits
+runtime authorization or grants new Stripe privileges.
+Fresh exact-head CI required after these source modifications.
+
 ## 2026-10-23 — CAP-1 credential-context safety groundwork (source candidate)
 
 New offline `src/stripe/credential-context.js` differentiates

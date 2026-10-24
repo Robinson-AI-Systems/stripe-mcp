@@ -25,7 +25,7 @@ describe('provider credential context source evidence',()=>{
       expect(v.providerSource).toBe(CREDENTIAL_TYPE_SOURCES[kind].source);
     }
     expect(r.organization_secret.requiredHeader).toContain('Stripe-Context');
-    expect(r.connect_oauth.requiredHeader).toBe('Stripe-Account');
+    expect(r.connect_oauth.requiredHeader).toContain('OAuth access token deprecated');
     expect(()=>documentedCredentialRequirements({method:'GET',path:'/internal'})).toThrow();
   });
   it('allows only context candidates, never provider execution',()=>{

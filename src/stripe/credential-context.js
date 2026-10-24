@@ -3,7 +3,7 @@ export const CREDENTIAL_TYPE_SOURCES=Object.freeze({
   account_secret:{source:'https://docs.stripe.com/keys',context:'own-account',requiredHeader:null,verifiedPermission:'unknown'},
   account_restricted:{source:'https://docs.stripe.com/keys',context:'own-account',requiredHeader:null,verifiedPermission:'unknown'},
   stripe_app_oauth:{source:'https://docs.stripe.com/stripe-apps/api-authentication',context:'installed-account',requiredHeader:null,verifiedPermission:'unknown'},
-  connect_oauth:{source:'https://docs.stripe.com/connect/oauth-reference',context:'connected-account',requiredHeader:'Stripe-Account',verifiedPermission:'unknown'},
+  connect_oauth:{source:'https://docs.stripe.com/connect/oauth-reference',context:'connected-account',requiredHeader:'Stripe-Account for verified platform-key delegation; OAuth access token deprecated',verifiedPermission:'unknown'},
   organization_secret:{source:'https://docs.stripe.com/keys/organization-api-keys',context:'organization-account',requiredHeader:'Stripe-Context + Stripe-Version',verifiedPermission:'unknown'}
 });
 export const CREDENTIAL_TYPES=Object.freeze(Object.keys(CREDENTIAL_TYPE_SOURCES));

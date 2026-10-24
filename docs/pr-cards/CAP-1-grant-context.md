@@ -64,3 +64,12 @@ account, host, expiry, raw credential metadata, Connect relationship and
 organization Stripe-Context. No grant or provider execution occurred.
 Full operation-specific scopes, entitlement and independent provider
 acceptance remain original CAP-1 obligations.
+
+## Corrections included in this same work packet
+
+The official Connect OAuth reference describes legacy OAuth access tokens
+as deprecated; this inventory records the modern platform-key
+`Stripe-Account` delegation requirement. Source coverage additionally
+requires actual runtime function registration, not tool-name coincidence.
+Full source/provider proof and independent remote-client acceptance still
+remain outstanding and no provider credential is selected.
