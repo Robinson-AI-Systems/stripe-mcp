@@ -1,3 +1,32 @@
+## 2026-10-23 — CAP-2 ordinary Full explanation (source candidate, NOT deployed)
+
+New registered read-only `stripe_explain_access({tool,compareProfiles?})`
+uses only the current authenticated selected Stripe account and the
+**original enforced** `src/core/profiles.js` predicates. It shows the
+actual source-policy status and, optionally, safe side-by-side Full/
+Everyday/read-only profile candidates on the **same account and mode**.
+No tool argument can choose a different account, provider credential,
+user identity or LIVE environment. Recovery guidance distinguishes an
+explicit user-initiated profile reconnection from unavailable implementation,
+Stripe provider credential/entitlement uncertainty, independently activated
+LIVE and independently owner-approved money-out. The original MCP
+dispatcher and meta-tool indirect call rules remain authoritative. A
+source-eligible candidate does **not** mean actual provider permission,
+successful Stripe invocation, real external acceptance or automatic God
+Mode escalation.
+
+This delivers useful **CAP-2 engineering but not full CAP-2**: secure
+multi-user tenant grants, provider-authorized ordinary Full upgrades,
+persisted explicit reconnection/consent, God Mode optional lifecycle and
+direct-client real account acceptance require CAP-3 source/acceptance.
+New tool implemented in `src/tools/access.js`, pure classifier in
+`src/core/effective-access.js`, synthetic/direct/indirect denial tests
+in `tests/unit/effective-access.test.js`. Original independent
+money-out owner approval + shared $500/account/Denver-day unchanged;
+no LIVE, money, OAuth, DNS or provider write occurred.
+
+**`stripe_explain_access`** — read-only, available in read_only/everyday/full on the user's authenticated exact selected account. Arguments: required `tool` registered tool name, optional `compareProfiles` Boolean. Returns source predicate/selected profile/mode, reasons and legitimate recovery with `providerPermission:not-verified`; never key values, grant changes, actual provider execution, customer account switching or financial owner approval. Provider grants/entitlements and active user role remain a separate acceptance proof.
+
 **2026-10-18 source complete as-if-merged, PR #276:** E-4 adds 12 native Stripe Tax and 8 native Quotes operations, plus X-1 guarded `stripe_undo_change`. Source implementation completes the 57 original roadmap IDs only after reviewed merge. The typed Quote PDF URI is a private Stripe-authenticated files endpoint, not a public URL; Stripe Tax has no global transaction-list API and connector-indexed results are explicitly incomplete. X-2's 166-read inventory has zero actual provider PASS, separate from source/CI.
 
 **2026-10-18 implementation candidate (NOT merged):** original E-4 native Stripe Tax and Quote operations, X-1 verified change undo and X-2 protected TEST read-only smoke are being built together under `docs/pr-cards/E-4.md`. Their existing planned origin rows become built only after mandatory CI and reviewed merge. Stripe Tax does not provide a general list-transactions API: the candidate connector indexes only its own provider-read-back confirmed creations, never claims an account-global list. Quote PDF is an authenticated Stripe download, never a public bearerless URL. Provider real-world acceptance remains separate.
