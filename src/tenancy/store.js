@@ -206,6 +206,27 @@ export function createTenancyStore(sql){
       RETURNING id,tenant_id,principal_id,context,stripe_account,mode,kind,status`;
       return rows.length===1?redact(rows[0]):null;
     },
+    // Exact ownership-scoped lookup. Never apply a list/page limit to a
+    // chosen credential: old grants must remain revocable after many enrollments.
+    async getOwnedGrant({tenantId,identity,context,revision,grantId}){
+      const a=selector({tenantId,identity,context,revision});
+      if(!/^grant_[a-f0-9-]{36}$/.test(grantId??''))
+        error('exact owned grant identifier required');
+      const rows=await sql`SELECT g.id,g.tenant_id,g.principal_id,g.context,
+        g.stripe_account,g.mode,g.kind,g.provider_issuer,g.provider_resource,
+        g.status,g.membership_revision,g.created_at,g.expires_at,g.revoked_at
+      FROM tenancy_grants g JOIN tenancy_memberships m
+        ON m.tenant_id=g.tenant_id AND m.principal_id=g.principal_id
+        AND m.context=g.context
+      WHERE g.id=${grantId} AND g.tenant_id=${a.tenantId}
+        AND g.principal_id=${a.id} AND g.context=${a.context}
+        AND g.membership_revision=${a.revision}
+        AND m.active=TRUE AND m.revision=${a.revision}
+        AND g.revoked_at IS NULL
+        AND (g.expires_at IS NULL OR g.expires_at>now())
+      LIMIT 1`;
+      return redact(rows[0]??null);
+    },
     async listGrants({tenantId,identity,context,revision,account,mode}){
       const a=selector({tenantId,identity,context,revision});
       if(account!=null&&!accountId(account))error('invalid account filter');

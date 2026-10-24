@@ -68,6 +68,24 @@ describe('CAP-3 real PostgreSQL sealed pending provider grant',()=>{
     expect(await rawQuery('SELECT COUNT(*)::int n FROM tenancy_secrets WHERE grant_id=$1',
       [g.grantId])).toEqual([{n:1}]);
   });
+  it('can seal and revoke an older owned grant beyond the 100-row listing cap',async()=>{
+    const g=await stage({account:'acct_OldGrant'});
+    await rawQuery(`INSERT INTO tenancy_grants
+      (id,tenant_id,principal_id,context,membership_revision,
+        stripe_account,mode,kind,provider_issuer,provider_resource)
+      SELECT 'grant_'||gen_random_uuid()::text,$1,$2,'production',1,
+        'acct_OldGrant','test','account_restricted',
+        'https://api.stripe.com','https://api.stripe.com/v1/customers'
+      FROM generate_series(1,105)`,[tenant.tenantId,tenant.principalId]);
+    const page=await db.tenancy.listGrants({...owner(),
+      account:'acct_OldGrant',mode:'test'});
+    expect(page).toHaveLength(100);
+    expect(page.some(row=>row.id===g.grantId)).toBe(false);
+    expect(await vault.stage({...g,
+      credential:fake('rk','test','olderOwnedSynthetic123456')}))
+      .toMatchObject({status:'pending-provider-proof',canExecute:false});
+    expect((await vault.revoke(g)).status).toBe('revoked');
+  });
   it('refuses foreign tenants, identity, stale revision and account before decrypt',async()=>{
     const g=await stage({account:'acct_OnlyA'});
     for(const bad of [{...g,identity:B},{...g,revision:10},

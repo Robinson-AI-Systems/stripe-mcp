@@ -1,3 +1,17 @@
+## 2026-10-24 — CAP-3 PR #290 review: exact owned-grant selection
+
+Automated review correctly found that a 100-result capped
+`listGrants()` could hide an older but still-valid grant, leaving
+its vault ciphertext unable to be rotated or revoked. Added an
+**exact tenant/person/context/revision/grant-id SQL lookup**, with
+current membership and expiry checks before the vault can use any
+descriptor. A new real PostgreSQL test creates 105 newer same-account
+grants, verifies the normal listing is capped at 100 and still seals
+and revokes the older exact selected grant. No automatic broader grant
+selection or provider credential execution is permitted. This review
+fix requires a new exact-head CI; it is distinct from the earlier
+secret-scanner synthetic-fixture correction.
+
 ## 2026-10-24 — CAP-3 PR #290 initial CI correction
 
 On source candidate `eca1dacaa6ab25030c1d2f2e7411ab68112d4fb6`,

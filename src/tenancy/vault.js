@@ -26,8 +26,8 @@ const requireSecret=(value,kind,mode)=>{
 function selected(meta,owned){
   if(!meta||!account(meta.account)||!modes.has(meta.mode)||
      !kinds.has(meta.kind)||!grant(meta.grantId)||
-     !owned||!Array.isArray(owned)||owned.length!==1)return false;
-  const row=owned[0];
+     !owned||typeof owned!=='object'||Array.isArray(owned))return false;
+  const row=owned;
   return row.id===meta.grantId&&row.stripe_account===meta.account&&
     row.mode===meta.mode&&row.kind===meta.kind&&
     row.tenant_id===meta.tenantId&&row.context===meta.context&&
@@ -50,7 +50,7 @@ export function createTenantCredentialVault({
   tenancy,encryptionKey=readEncryptionKey()
 }={}){
   if(!tenancy||![
-    'getMembership','listGrants','insertSealedGrant','rotateSealedGrant',
+    'getMembership','getOwnedGrant','insertSealedGrant','rotateSealedGrant',
     'sealedGrantMetadata','revokeSealedGrant'
   ].every(name=>typeof tenancy[name]==='function')||
      !Buffer.isBuffer(encryptionKey)||encryptionKey.length!==32)
@@ -67,16 +67,13 @@ export function createTenantCredentialVault({
       tenantId:meta.tenantId,identity:meta.identity,context:meta.context
     });
     if(!member||member.revision!==meta.revision)return null;
-    const owned=await tenancy.listGrants({
+    const row=await tenancy.getOwnedGrant({
       tenantId:meta.tenantId,identity:meta.identity,
-      context:meta.context,revision:meta.revision,
-      account:meta.account,mode:meta.mode
+      context:meta.context,revision:meta.revision,grantId:meta.grantId
     });
-    if(!Array.isArray(owned))return null;
-    const row=owned.filter(g=>g.id===meta.grantId);
-    if(!selected(meta,row)||member.principal_id!==row[0].principal_id||
+    if(!selected(meta,row)||member.principal_id!==row.principal_id||
        member.tenant_id!==meta.tenantId||member.context!==meta.context||
-       row[0].membership_revision!==meta.revision)return null;
+       row.membership_revision!==meta.revision)return null;
     const aad=credentialAad({...meta,principalId:member.principal_id});
     return {aad};
   }

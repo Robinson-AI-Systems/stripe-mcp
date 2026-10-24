@@ -87,3 +87,12 @@ synthetic source literals in the new DB test. They are now constructed
 at runtime from visibly separate harmless fragments without changing
 the test's credential-kind and same-tenant AAD assertions. No scanner
 exclusion, skip or watered-down test. Exact-head CI must be rerun.
+
+## Review correction — exact owned grant lookup
+
+PR #290 Codex P2 found a real issue with grant lookup via
+capped 100-result listing. New `getOwnedGrant` uses an exact
+tenant/person/context/revision/ID SQL query and the vault calls
+it directly. A real PostgreSQL test stages 105 newer same-account
+grants and still safely stages/revokes the older owned grant.
+All checks and review threads must be reverified on corrected head.
