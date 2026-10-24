@@ -87,3 +87,7 @@ source/doc change requires its own CI before merge.
 ## Continued reviewed credential/context evidence — 2026-10-23
 
 [Credential type and context requirements work packet](CAP-1-grant-context.md) is additional source engineering **within the existing CAP-1** after #284/#285, without adding a subsection or crediting full CAP-1 as complete. Real provider permission proof, issuer and role verification, and independent deployed acceptance remain open.
+
+## Original CAP-1 inventory finalization packet — 2026-10-23
+
+[Complete audited per-operation source, credential, effect, test and independent-live evidence report](CAP-1-final-inventory.md) is continuation of this same original CAP-1. Do not count as another subsection or provider acceptance.
