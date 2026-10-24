@@ -16,7 +16,6 @@ const grant=(t=ta,who=alice)=>({
   ...mine(t,who),account:'acct_ALICE',mode:'test',kind:'stripe_app_oauth',
   providerIssuer:issuer,providerResource:resource
 });
-const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 beforeAll(async()=>{
   const url=process.env.TEST_DATABASE_URL;
@@ -24,6 +23,7 @@ beforeAll(async()=>{
     throw Error('Disposable localhost PostgreSQL is mandatory for tenant lifecycle tests');
   await openIsolatedSchema(url);
   db=createDb(neonShapedQuery());await db.initSchema();
+  await db.tenancy.initializeTables();
   ta=await db.tenancy.provisionTenant({verifiedIdentity:alice,label:'Tenant A'});
   tb=await db.tenancy.provisionTenant({verifiedIdentity:bob,label:'Tenant B'});
 });
@@ -86,6 +86,7 @@ describe('CAP-3 real PostgreSQL isolated tenant and grant foundation',()=>{
       {...grant(),kind:'invented_super_token'},
       {...grant(),providerIssuer:'http://example.com'},
       {...grant(),providerResource:'http://api.stripe.com'},
+      {...grant(),providerResource:'https://malicious.example/stripe'},
       {...grant(),expiresAt:'1999-01-01T00:00:00Z'}
     ]){
       await expect(db.tenancy.stageGrant(d)).rejects.toThrow();
