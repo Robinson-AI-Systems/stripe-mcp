@@ -3,6 +3,7 @@ import {createWebhookCreationStore,initWebhookCreationTables} from './webhooks/c
 import {createWebhookSignatureDb,initWebhookSignatureTables} from './webhooks/signature-store.js';
 import {createTestWebhookReceiptStore,initTestWebhookReceiptTables} from './webhooks/receipt-store.js';
 import { hashToken } from './core/oauth.js';
+import {createTenancyStore,initTenancyTables,TENANCY_TABLES} from './tenancy/store.js';
 import {createMeteredBillingStore,initMeteredBillingTables} from './metered/store.js';
 import {createBrandKitStore,initBrandKitTables} from './brand/store.js';
 import {createAppProfileStore,initAppProfileTables} from './apps/profiles.js';
@@ -20,6 +21,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
+  ...TENANCY_TABLES,
   'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs'
 ]);
 
@@ -44,6 +46,7 @@ export function createDb(sql = getProductionSql()) {
     ...createBrandKitStore(sql),
     ...createMeteredBillingStore(sql),
     ...createAppProfileStore(sql),
+    tenancy: createTenancyStore(sql),
     ...createDevForwarderStore(sql),
     ...createDevForwarderReplayStore(sql),
     ...createDevSimulationCycleStore(sql),
@@ -1302,6 +1305,7 @@ export function createDb(sql = getProductionSql()) {
       await sql`CREATE INDEX IF NOT EXISTS login_attempts_window_idx ON login_attempts (ip, attempted_at)`;
       await sql`CREATE INDEX IF NOT EXISTS change_log_account_time_idx ON change_log (stripe_account, at DESC)`;
       await sql`CREATE INDEX IF NOT EXISTS one_time_secrets_expiration_idx ON one_time_secrets (expires_at)`;
+      await initTenancyTables(sql);
       await initWebhookCreationTables(sql);
       await initWebhookSignatureTables(sql);
       await initTestWebhookReceiptTables(sql);
