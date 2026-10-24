@@ -1,0 +1,41 @@
+{
+  "subsections": [
+    {
+      "id": "CAP-3",
+      "criteria": [
+        {
+          "criterion": "Verified human identities and tenant memberships must be distinct from a Stripe account authorization; operator, production customer, product administrator and developer roles require explicit, current server-checked memberships.",
+          "evidence": "Tenancy identities and tenant memberships remain isolated by context, role and revision from merged PR #289. This continuation binds encrypted credential AAD to immutable person/tenant/context and exact owned grant, preserving the requirement that actual OIDC proof must be independently implemented before public enrollment."
+        },
+        {
+          "criterion": "Typed Stripe account/Connect/organization grants must bind tenant, stable person, verified provider account, mode, issuer/resource, permission revision and credential kind, with no cross-tenant credential or operation fallback.",
+          "evidence": "Existing grant descriptors have exact selected account/mode/kind and only pending status; the new sealed table and vault require matching persisted principal, membership revision and owned grant. A wrong context/key/tenant cannot decrypt. No actual provider grant can execute; original source permissions remain unknown."
+        },
+        {
+          "criterion": "Grant enrollment, ownership changes, revocation, replacement, expiry and concurrent use must be atomic and fail closed, without exposing provider bearer secrets or authorizing provider I/O based on metadata alone.",
+          "evidence": "New keyless metadata-only operations atomically INSERT once, rotate under expected generation CAS, and revoke without resurrection. AES-GCM envelope and AAD use the existing reviewed crypto, never returned by public tooling. Real PostgreSQL concurrent CAS/revocation tests added. External provider refresh/revoke remain unfinished."
+        },
+        {
+          "criterion": "Legacy owner-managed accounts/OAuth connections must remain compatible but unassigned; ownership migration requires independently proven owner identity, and ambiguous credentials must never become customer grants.",
+          "evidence": "Existing legacy account/AAD/OAuth records are unchanged and not auto-migrated. Tenant schema remains behind the explicit unenabled production migration flag; this PR adds only an inactive table and internal store methods, no LIVE activation or customer mutation."
+        },
+        {
+          "criterion": "Use disposable real PostgreSQL tests for independent identities, two tenants, same person different roles, foreign account/mode, stale membership, concurrent revocation, and negative provider-authority assumptions; keep signed-in independent money-out approval and LIVE safeguards unchanged.",
+          "evidence": "Seven new real disposable PostgreSQL test cases exercise encrypted at-rest material, wrong AAD and key kind/mode, exact owner/account scope, concurrent replace and revocation, absence of plaintext in outputs and stale membership. External mobile/provider acceptance and independent money-out proof remain open and original financial controls unchanged."
+        }
+      ],
+      "remainingEngineering": [
+        "Implement trusted OIDC human identity proof before any public tenancy/credential enrollment, and securely verify authorized Stripe App installation/account and scopes.",
+        "Complete the branded one-screen mobile ChatGPT/Claude sign-in and actual consent handback, tenant-bound MCP token issuance/refresh/revocation and existing owner credential migration.",
+        "Enable provider-backed verified grant activation and operation-specific permission/entitlement resolver with no credential widening; prove actual provider before/after Full and optional God Mode behavior.",
+        "Independent real multi-user/client/provider acceptance for all supported direct and indirect doors, preserving every signed-in money-out and LIVE constraint."
+      ]
+    }
+  ],
+  "productionAdded": 232,
+  "productionRemoved": 1,
+  "newEngineering": "Additive gated encrypted provider-grant vault with AES-256-GCM AAD ownership, atomic pending ciphertext insert, generation-checked rotation, independent metadata-only read and one-time revocation, seven genuine isolated PostgreSQL concurrency/security fixtures and updated migration notes. Codex review fix adds a current-membership exact grant-id lookup and a 105-newer-grant real PostgreSQL regression to prevent capped-list authorization/credential-revocation failures.",
+  "planComparison": "Delivered 232 new source lines (one replaced) versus estimated 480. This is one coherent security boundary and remains only partial CAP-3 source: provider identity enrollment, verified OAuth grants, tenant-authorized MCP tokens and provider-backed real acceptance cannot be safely conflated with inactive encrypted storage. No CAP-3 subsection completion is credited.",
+  "relatedWorkDecision": "CONTINUE original CAP-3 after this secure ciphertext storage phase. Advanced provider OAuth is its own external credential flow; CAP-2 Full profile persistence and CAP-3 user session linkage follow verified human identity. CAP-4/5 remain dependency gated. No new CAP unit is invented.",
+  "decision": "CONTINUE"
+}

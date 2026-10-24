@@ -1,3 +1,54 @@
+## 2026-10-24 — CAP-3 PR #290 review: exact owned-grant selection
+
+Automated review correctly found that a 100-result capped
+`listGrants()` could hide an older but still-valid grant, leaving
+its vault ciphertext unable to be rotated or revoked. Added an
+**exact tenant/person/context/revision/grant-id SQL lookup**, with
+current membership and expiry checks before the vault can use any
+descriptor. A new real PostgreSQL test creates 105 newer same-account
+grants, verifies the normal listing is capped at 100 and still seals
+and revokes the older exact selected grant. No automatic broader grant
+selection or provider credential execution is permitted. This review
+fix requires a new exact-head CI; it is distinct from the earlier
+secret-scanner synthetic-fixture correction.
+
+## 2026-10-24 — CAP-3 PR #290 initial CI correction
+
+On source candidate `eca1dacaa6ab25030c1d2f2e7411ab68112d4fb6`,
+**unit, real disposable PostgreSQL, Stripe mock, RTC service/reference
+and private core adoption all passed**. The repository secret scanner
+correctly rejected synthetic key-shaped literals embedded directly
+in `tests/db/tenancy-vault.test.js`. Replaced those literals with
+runtime-assembled unmistakably disposable test values; the underlying
+positive/negative key-kind, AAD, rotation and revocation assertions
+remain unchanged. No real Stripe keys or financial/provider actions
+were involved. Fresh exact-head check/CI must pass before merging;
+CAP-3 and provider acceptance remain unfinished.
+
+## 2026-10-24 — CAP-3 tenant-bound encrypted provider-grant vault (inactive source)
+
+A gated sixth tenancy table `tenancy_secrets` stores only
+AES-256-GCM ciphertext and CAS generation/revocation metadata. New
+`src/tenancy/vault.js` reuses the existing `src/core/crypto.js`
+and unique AAD containing tenant/person/context/membership revision/
+grant/Stripe account/TEST-LIVE/credential kind. Metadata queries
+return no ciphertext, API key or bearer; the vault has **no provider
+execution method** and reports `canExecute:false`. Storage requires
+an existing exact current owned *pending* grant descriptor. A stale
+membership, different account, expired/foreign/revoked grant, wrong
+key kind/mode, reused CAS or wrong AAD fails closed. Disposable
+PostgreSQL tests exercise encryption-at-rest, wrong-context refusal,
+parallel rotation, revocation and credential isolation.
+
+The table is initialized ONLY by the separately approved
+`STRIPE_TENANCY_SCHEMA_APPROVED=enabled` gate or direct
+disposable-test initializer. The flag is **not** activated, and
+neither current legacy Stripe keys/OAuth accounts nor provider money
+actions are modified. No real OIDC provider, Stripe App installation,
+new MCP user authentication or God Mode credential selection exists
+yet. Original CAP-3 remains IN_PROGRESS, not a provider acceptance
+PASS or completed indexed subsection.
+
 ## 2026-10-24 — CAP-3 PR #289 first exact-head CI correction
 
 The original source head `2183fa8b` passed repository check,

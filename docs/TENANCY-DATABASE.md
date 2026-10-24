@@ -1,3 +1,27 @@
+## 2026-10-24 — CAP-3 tenant-bound encrypted provider-grant vault (inactive source)
+
+A gated sixth tenancy table `tenancy_secrets` stores only
+AES-256-GCM ciphertext and CAS generation/revocation metadata. New
+`src/tenancy/vault.js` reuses the existing `src/core/crypto.js`
+and unique AAD containing tenant/person/context/membership revision/
+grant/Stripe account/TEST-LIVE/credential kind. Metadata queries
+return no ciphertext, API key or bearer; the vault has **no provider
+execution method** and reports `canExecute:false`. Storage requires
+an existing exact current owned *pending* grant descriptor. A stale
+membership, different account, expired/foreign/revoked grant, wrong
+key kind/mode, reused CAS or wrong AAD fails closed. Disposable
+PostgreSQL tests exercise encryption-at-rest, wrong-context refusal,
+parallel rotation, revocation and credential isolation.
+
+The table is initialized ONLY by the separately approved
+`STRIPE_TENANCY_SCHEMA_APPROVED=enabled` gate or direct
+disposable-test initializer. The flag is **not** activated, and
+neither current legacy Stripe keys/OAuth accounts nor provider money
+actions are modified. No real OIDC provider, Stripe App installation,
+new MCP user authentication or God Mode credential selection exists
+yet. Original CAP-3 remains IN_PROGRESS, not a provider acceptance
+PASS or completed indexed subsection.
+
 # CAP-3 tenancy schema and migration guard
 
 **Inactive source foundation as of 2026-10-24, not provider/user acceptance.**

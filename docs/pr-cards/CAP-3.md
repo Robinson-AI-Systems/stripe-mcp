@@ -77,3 +77,11 @@ blocks. Corrected optional SELECT casts, `api.stripe.com` exact
 host check, and separated default schema inventory from the gated
 CAP-3 tables. No test was skipped. Require fresh exact-head CI before
 merge; keep original CAP-3 IN_PROGRESS.
+
+## Encrypted-grant continuation packet — 2026-10-24
+
+[CAP-3 encrypted pending credential vault](CAP-3-vault.md) is
+further implementation **inside the same original CAP-3**. Do not
+claim verified human OIDC, Stripe App account/scopes, public client
+authorization, God Mode availability, LIVE money authority or full
+CAP-3 completion from a green encrypted-storage test.

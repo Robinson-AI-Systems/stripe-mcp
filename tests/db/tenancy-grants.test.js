@@ -158,7 +158,7 @@ describe('CAP-3 real PostgreSQL isolated tenant and grant foundation',()=>{
   it('does not expose any provider credential bytes in tenant storage',async()=>{
     const tables=(await rawQuery("SELECT tablename FROM pg_tables WHERE schemaname=current_schema() AND tablename LIKE 'tenancy_%' ORDER BY tablename")).map(x=>x.tablename);
     expect(tables).toEqual(['tenancy_auth_intents','tenancy_grants',
-      'tenancy_memberships','tenancy_principals','tenancy_tenants']);
+      'tenancy_memberships','tenancy_principals','tenancy_secrets','tenancy_tenants']);
     const cols=(await rawQuery("SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='tenancy_grants'")).map(x=>x.column_name);
     for(const forbidden of ['token','key_enc','ciphertext','client_secret','access_token']){
       expect(cols).not.toContain(forbidden);

@@ -4,6 +4,8 @@
 import { createHash, randomUUID, randomBytes } from 'node:crypto';
 
 const account=id=>typeof id==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(id);
+const sealed=value=>typeof value==='string'&&
+  /^v1[.][A-Za-z0-9_-]{16}[.][A-Za-z0-9_-]{22}[.][A-Za-z0-9_-]+$/.test(value);
 const contexts=new Set(['development','product_admin','production']);
 const roles=new Set(['owner','administrator','member','developer']);
 const kinds=new Set(['account_secret','account_restricted','stripe_app_oauth',
@@ -65,7 +67,7 @@ function descriptor(input) {
 }
 
 export const TENANCY_TABLES=Object.freeze(['tenancy_principals','tenancy_tenants',
-  'tenancy_memberships','tenancy_grants','tenancy_auth_intents']);
+  'tenancy_memberships','tenancy_grants','tenancy_auth_intents','tenancy_secrets']);
 export async function initTenancyTables(sql){
   await sql`CREATE TABLE IF NOT EXISTS tenancy_principals (
     id TEXT PRIMARY KEY, issuer TEXT NOT NULL, subject_hash TEXT NOT NULL,
@@ -107,6 +109,12 @@ export async function initTenancyTables(sql){
       REFERENCES tenancy_memberships(tenant_id,principal_id,context))`;
   await sql`CREATE INDEX IF NOT EXISTS tenancy_auth_intents_expiry_idx ON
     tenancy_auth_intents(expires_at)`;
+  await sql`CREATE TABLE IF NOT EXISTS tenancy_secrets (
+    grant_id TEXT PRIMARY KEY REFERENCES tenancy_grants(id),
+    ciphertext TEXT NOT NULL, generation INTEGER NOT NULL DEFAULT 1
+      CHECK(generation>0), created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    rotated_at TIMESTAMPTZ, revoked_at TIMESTAMPTZ
+  )`;
 }
 export function createTenancyStore(sql){
   if(typeof sql!=='function')error('tagged SQL implementation required');
@@ -198,6 +206,27 @@ export function createTenancyStore(sql){
       RETURNING id,tenant_id,principal_id,context,stripe_account,mode,kind,status`;
       return rows.length===1?redact(rows[0]):null;
     },
+    // Exact ownership-scoped lookup. Never apply a list/page limit to a
+    // chosen credential: old grants must remain revocable after many enrollments.
+    async getOwnedGrant({tenantId,identity,context,revision,grantId}){
+      const a=selector({tenantId,identity,context,revision});
+      if(!/^grant_[a-f0-9-]{36}$/.test(grantId??''))
+        error('exact owned grant identifier required');
+      const rows=await sql`SELECT g.id,g.tenant_id,g.principal_id,g.context,
+        g.stripe_account,g.mode,g.kind,g.provider_issuer,g.provider_resource,
+        g.status,g.membership_revision,g.created_at,g.expires_at,g.revoked_at
+      FROM tenancy_grants g JOIN tenancy_memberships m
+        ON m.tenant_id=g.tenant_id AND m.principal_id=g.principal_id
+        AND m.context=g.context
+      WHERE g.id=${grantId} AND g.tenant_id=${a.tenantId}
+        AND g.principal_id=${a.id} AND g.context=${a.context}
+        AND g.membership_revision=${a.revision}
+        AND m.active=TRUE AND m.revision=${a.revision}
+        AND g.revoked_at IS NULL
+        AND (g.expires_at IS NULL OR g.expires_at>now())
+      LIMIT 1`;
+      return redact(rows[0]??null);
+    },
     async listGrants({tenantId,identity,context,revision,account,mode}){
       const a=selector({tenantId,identity,context,revision});
       if(account!=null&&!accountId(account))error('invalid account filter');
@@ -231,6 +260,85 @@ export function createTenancyStore(sql){
           AND m.context=g.context AND m.revision=${a.revision}
           AND m.active=TRUE AND g.membership_revision=m.revision)
       RETURNING g.id`;
+      return rows.length===1;
+    },
+    // Encrypted provider credential storage is internal-only and metadata
+    // remains non-executable. These methods NEVER return a bearer/ciphertext.
+    async insertSealedGrant({tenantId,identity,context,revision,grantId,
+      account,mode,kind,ciphertext}){
+      const a=selector({tenantId,identity,context,revision});
+      if(!/^grant_[a-f0-9-]{36}$/.test(grantId??'')||!accountId(account)||
+         !modes.has(mode)||!kinds.has(kind)||
+         !sealed(ciphertext))
+        error('sealed, exact owned grant required');
+      const rows=await sql`INSERT INTO tenancy_secrets(grant_id,ciphertext)
+      SELECT g.id,${ciphertext} FROM tenancy_grants g
+      JOIN tenancy_memberships m ON m.tenant_id=g.tenant_id
+        AND m.principal_id=g.principal_id AND m.context=g.context
+      WHERE g.id=${grantId} AND g.tenant_id=${a.tenantId}
+        AND g.principal_id=${a.id} AND g.context=${a.context}
+        AND g.membership_revision=${a.revision}
+        AND g.stripe_account=${account} AND g.mode=${mode}
+        AND g.kind=${kind} AND g.status='pending_verification'
+        AND g.revoked_at IS NULL
+        AND (g.expires_at IS NULL OR g.expires_at>now())
+        AND m.active=TRUE AND m.revision=${a.revision}
+      ON CONFLICT(grant_id) DO NOTHING RETURNING generation`;
+      return rows.length===1;
+    },
+    async sealedGrantMetadata({tenantId,identity,context,revision,grantId}){
+      const a=selector({tenantId,identity,context,revision});
+      if(!/^grant_[a-f0-9-]{36}$/.test(grantId??''))
+        error('exact grant identifier required');
+      const rows=await sql`SELECT s.generation,s.created_at,s.rotated_at,
+        s.revoked_at,g.status
+      FROM tenancy_secrets s JOIN tenancy_grants g ON g.id=s.grant_id
+      JOIN tenancy_memberships m ON m.tenant_id=g.tenant_id
+        AND m.principal_id=g.principal_id AND m.context=g.context
+      WHERE g.id=${grantId} AND g.tenant_id=${a.tenantId}
+        AND g.principal_id=${a.id} AND g.context=${a.context}
+        AND g.membership_revision=${a.revision} AND m.active=TRUE
+        AND m.revision=${a.revision} AND g.revoked_at IS NULL
+        AND s.revoked_at IS NULL
+        AND (g.expires_at IS NULL OR g.expires_at>now())`;
+      return rows[0]??null;
+    },
+    async rotateSealedGrant({tenantId,identity,context,revision,grantId,
+      expectedGeneration,ciphertext}){
+      const a=selector({tenantId,identity,context,revision});
+      if(!/^grant_[a-f0-9-]{36}$/.test(grantId??'')||
+         !Number.isSafeInteger(expectedGeneration)||expectedGeneration<1||
+         !sealed(ciphertext))
+        error('exact generation and sealed credential required');
+      const rows=await sql`UPDATE tenancy_secrets s SET
+        ciphertext=${ciphertext},generation=s.generation+1,rotated_at=now()
+      FROM tenancy_grants g JOIN tenancy_memberships m
+        ON m.tenant_id=g.tenant_id AND m.principal_id=g.principal_id
+          AND m.context=g.context
+      WHERE s.grant_id=${grantId} AND s.grant_id=g.id
+        AND s.generation=${expectedGeneration} AND s.revoked_at IS NULL
+        AND g.tenant_id=${a.tenantId} AND g.principal_id=${a.id}
+        AND g.context=${a.context} AND g.membership_revision=${a.revision}
+        AND g.status='pending_verification' AND g.revoked_at IS NULL
+        AND (g.expires_at IS NULL OR g.expires_at>now())
+        AND m.active=TRUE AND m.revision=${a.revision}
+      RETURNING s.generation`;
+      return rows.length===1?Number(rows[0].generation):null;
+    },
+    async revokeSealedGrant({tenantId,identity,context,revision,grantId}){
+      const a=selector({tenantId,identity,context,revision});
+      if(!/^grant_[a-f0-9-]{36}$/.test(grantId??''))
+        error('exact grant identifier required');
+      const rows=await sql`UPDATE tenancy_secrets s SET revoked_at=now()
+      FROM tenancy_grants g JOIN tenancy_memberships m
+        ON m.tenant_id=g.tenant_id AND m.principal_id=g.principal_id
+          AND m.context=g.context
+      WHERE s.grant_id=${grantId} AND s.grant_id=g.id
+        AND g.tenant_id=${a.tenantId} AND g.principal_id=${a.id}
+        AND g.context=${a.context} AND g.membership_revision=${a.revision}
+        AND m.active=TRUE AND m.revision=${a.revision}
+        AND s.revoked_at IS NULL
+      RETURNING s.grant_id`;
       return rows.length===1;
     },
     async issueIntent({tenantId,identity,context,revision,account,mode,kind,clientId}){
