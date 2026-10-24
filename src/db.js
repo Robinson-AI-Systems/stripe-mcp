@@ -1305,7 +1305,9 @@ export function createDb(sql = getProductionSql()) {
       await sql`CREATE INDEX IF NOT EXISTS login_attempts_window_idx ON login_attempts (ip, attempted_at)`;
       await sql`CREATE INDEX IF NOT EXISTS change_log_account_time_idx ON change_log (stripe_account, at DESC)`;
       await sql`CREATE INDEX IF NOT EXISTS one_time_secrets_expiration_idx ON one_time_secrets (expires_at)`;
-      await initTenancyTables(sql);
+      // Additive tenant schema stays inactive on production until separately approved.
+      if(process.env.STRIPE_TENANCY_SCHEMA_APPROVED==='enabled')
+        await initTenancyTables(sql);
       await initWebhookCreationTables(sql);
       await initWebhookSignatureTables(sql);
       await initTestWebhookReceiptTables(sql);
