@@ -1,3 +1,21 @@
+## 2026-10-24 — CAP-3 PR #289 first exact-head CI correction
+
+The original source head `2183fa8b` passed repository check,
+Stripe mock, RTC reference/service and core-adoption checks.
+Disposable real PostgreSQL caught a nullable-bind type ambiguity in
+the optional owned-grant account/mode filter (`42P18`), and the
+invalid-provider-resource test found the URL validator accepted any
+HTTPS host. Unit and PostgreSQL schema inventory tests also expected
+the legacy `SCHEMA_TABLES` list to mean only tables created by the
+**default**, unapproved-production-safe `db.initSchema()`.
+
+The correction keeps the five gated CAP-3 table names separate
+(`TENANCY_TABLES`) from the legacy default schema, adds explicit
+`::text` casts for nullable filters, and requires the resource URL
+to be on `https://api.stripe.com` without query or fragment.
+All original tests remain enabled; fresh exact-head CI required.
+No schema or Stripe production change has been made.
+
 ## 2026-10-24 — CAP-3 inactive tenant/grant storage (not public login)
 
 An additive internal tenant authority store now models opaque person IDs,

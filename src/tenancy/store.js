@@ -20,6 +20,12 @@ const safeOrigin=value=>{
   catch{return false;}
 };
 const error=why=>{throw new TypeError('Tenant authority: '+why);};
+const safeApiResource=value=>{
+  try {const u=new URL(value);return u.origin==='https://api.stripe.com'&&
+    (u.pathname==='/'||/^\\/v[12]\\//.test(u.pathname))&&
+    !u.username&&!u.password&&!u.hash&&!u.search;}
+  catch{return false;}
+};
 const only=(value,keys)=>{
   if(!value||typeof value!=='object'||Array.isArray(value)||
     Object.keys(value).some(k=>!keys.includes(k)))error('unreviewed or sensitive fields');
@@ -49,7 +55,7 @@ function descriptor(input) {
   const s=selector(input);
   if(!account(input.account)||!modes.has(input.mode)||!kinds.has(input.kind)||
     !safeOrigin(input.providerIssuer)||!text(input.providerResource,256)||
-    !input.providerResource.startsWith('https://')||
+    !safeApiResource(input.providerResource)||
     (input.expiresAt!=null&&(!Number.isFinite(new Date(input.expiresAt).getTime())||
       new Date(input.expiresAt).getTime()<=Date.now())))
     error('exact Stripe account, provider issuer, resource and mode required');
@@ -206,8 +212,8 @@ export function createTenancyStore(sql){
         AND g.context=${a.context} AND g.membership_revision=m.revision
         AND m.revision=${a.revision} AND m.active=TRUE
         AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>now())
-        AND (${account??null} IS NULL OR g.stripe_account=${account??null})
-        AND (${mode??null} IS NULL OR g.mode=${mode??null})
+        AND g.stripe_account=COALESCE(${account??null}::text,g.stripe_account)
+        AND g.mode=COALESCE(${mode??null}::text,g.mode)
       ORDER BY g.created_at DESC,g.id LIMIT 100`;
       return rows.map(redact);
     },

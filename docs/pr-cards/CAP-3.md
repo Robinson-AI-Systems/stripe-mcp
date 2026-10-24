@@ -66,3 +66,14 @@ Stripe App OAuth, real encrypted provider grant, connection token
 binding, production migration, mobile callback or God Mode is
 implemented. These are original CAP-3 engineering, not external
 excuses or completed acceptance.
+
+## CI correction checkpoint
+
+First PR #289 CI at `2183fa8b` found untyped nullable PostgreSQL
+parameters, too-permissive HTTPS provider-resource classification,
+and two schema-inventory expectations affected by inactive gated
+tables. These were actual fixture/source mismatches, not provider
+blocks. Corrected optional SELECT casts, `api.stripe.com` exact
+host check, and separated default schema inventory from the gated
+CAP-3 tables. No test was skipped. Require fresh exact-head CI before
+merge; keep original CAP-3 IN_PROGRESS.
