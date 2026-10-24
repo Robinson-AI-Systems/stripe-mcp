@@ -94,7 +94,7 @@ export function buildOperationEvidenceReport({
       {type:'stripe-app-installation',disposition:'requires-independent-human-identity-and-provider-grant'}
     ],
     interpretation:'Immutable GA-pinned source and unknown authority inventory. No source candidate or test metadata certifies live execution, paid entitlement or permission.',
-    neverClaimed:{percentage:null,actualProviderPasses:0}
+    neverClaimed:{percentage:null,providerPassesLinkedInsideThisSourceReport:0}
   };
 }
 
