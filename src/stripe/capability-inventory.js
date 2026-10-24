@@ -3,6 +3,7 @@
 import { catalog, apiVersion } from './openapi-index.js';
 import { preferredNative } from './hand-built-map.js';
 import { financialDecision } from './money-operations.js';
+import { documentedCredentialRequirements } from './credential-context.js';
 import { registry } from '../tools/index.js';
 import { SOURCE_GIT_BLOB, SOURCE_SHA256 } from '../../scripts/stripe-openapi.mjs';
 
@@ -26,10 +27,6 @@ const familyFor = path => path.split('/').filter(Boolean)[1] || 'unclassified';
 const lexical = (a,b) => a.localeCompare(b,'en');
 const compareRows = (a,b) => lexical(a.path,b.path) || lexical(a.method,b.method);
 const invalid = message => { throw new TypeError('Capability inventory: ' + message); };
-const credentialKinds = () => Object.fromEntries(CREDENTIAL_KINDS.map(kind => [kind, {
-  disposition: 'unknown',
-  note: 'Operation-specific grant, Stripe product/country entitlement and connected-account scope require reviewed provider evidence.'
-}]));
 function sourceStatus(record, names) {
   const claimed = preferredNative(record);
   if (claimed && names.has(claimed)) return { disposition: 'mapped-native-candidate',
@@ -68,7 +65,7 @@ export function buildCapabilityInventory({
       summary: String(record.summary || '').slice(0,180),
       effect: record.method === 'GET' ? 'read' :
         financial.financial ? 'conservatively-financial-or-irreversible' : 'unclassified-mutation',
-      credentials: credentialKinds(),
+      credentials: documentedCredentialRequirements(record),
       providerPermission: 'unknown',
       requiredAccountRole: 'unknown',
       productCountryEntitlement: 'unknown',
