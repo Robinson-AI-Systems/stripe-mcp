@@ -32,10 +32,10 @@
       ]
     }
   ],
-  "productionAdded": 214,
+  "productionAdded": 232,
   "productionRemoved": 1,
-  "newEngineering": "Additive gated encrypted provider-grant vault with AES-256-GCM AAD ownership, atomic pending ciphertext insert, generation-checked rotation, independent metadata-only read and one-time revocation, seven genuine isolated PostgreSQL concurrency/security fixtures and updated migration notes.",
-  "planComparison": "Delivered 214 new source lines (one replaced) versus estimated 480. This is one coherent security boundary and remains only partial CAP-3 source: provider identity enrollment, verified OAuth grants, tenant-authorized MCP tokens and provider-backed real acceptance cannot be safely conflated with inactive encrypted storage. No CAP-3 subsection completion is credited.",
+  "newEngineering": "Additive gated encrypted provider-grant vault with AES-256-GCM AAD ownership, atomic pending ciphertext insert, generation-checked rotation, independent metadata-only read and one-time revocation, seven genuine isolated PostgreSQL concurrency/security fixtures and updated migration notes. Codex review fix adds a current-membership exact grant-id lookup and a 105-newer-grant real PostgreSQL regression to prevent capped-list authorization/credential-revocation failures.",
+  "planComparison": "Delivered 232 new source lines (one replaced) versus estimated 480. This is one coherent security boundary and remains only partial CAP-3 source: provider identity enrollment, verified OAuth grants, tenant-authorized MCP tokens and provider-backed real acceptance cannot be safely conflated with inactive encrypted storage. No CAP-3 subsection completion is credited.",
   "relatedWorkDecision": "CONTINUE original CAP-3 after this secure ciphertext storage phase. Advanced provider OAuth is its own external credential flow; CAP-2 Full profile persistence and CAP-3 user session linkage follow verified human identity. CAP-4/5 remain dependency gated. No new CAP unit is invented.",
   "decision": "CONTINUE"
 }
