@@ -1,0 +1,40 @@
+{
+  "subsections": [
+    {
+      "id": "CAP-2",
+      "criteria": [
+        {
+          "criterion": "Full ordinary authorization must expose every provider-supported action permitted by the verified connected account and the end user's chosen policy; optional God Mode must not gate ordinary rights.",
+          "evidence": "Read-only native stripe_explain_access now computes actual current source-policy Full/Everyday/read-only eligibility for each named registered tool, not a fictional credential tier. Full TEST source-eligible guarded writes are visible as candidates and unverified provider permission; actual user/provider grant still awaits CAP-3."
+        },
+        {
+          "criterion": "Explain account credential, role/entitlement, selected profile, actual TEST/LIVE owner activation, user policy and missing implementation as distinct effective-access layers with accurate repair steps.",
+          "evidence": "src/core/effective-access.js reports selected profile, account/mode, source write guard, independent LIVE consent and provider-scope/entitlement unknown separately; recovery tells the user to reconnect and approve Full explicitly, seek legitimate Stripe grant/roles or request implementation, never automatically widens."
+        },
+        {
+          "criterion": "Read-only never writes; Full/Everyday changes require the existing guarded write contract through direct MCP, indirect stripe_call and HTTPS doors without profile or key fallback bypass.",
+          "evidence": "Tests unit/effective-access.test.js cover direct MCP, indirect stripe_call via the original dispatcher, readonly write refusal and LIVE nonconsent; the normal write dispatcher, token refresh/DB profile and money guards are unchanged rather than duplicated."
+        },
+        {
+          "criterion": "All profile/consent changes are explicit user-controlled actions: preserve current account, mode, client/session, unrelated grants, refresh/revocation and no silent widening or privileged token fallback.",
+          "evidence": "Profile comparison uses only the original selected account/mode and keeps grants untouched; tool arguments cannot choose account, mode, profile, owner or credential; persisted owner-enabled explicit upgrade and multi-tenant controls remain work for later CAP-2/3."
+        },
+        {
+          "criterion": "Preserve independent owner-approved money-out and account-wide $500/Denver-day, LIVE activation, tenant and provider boundaries; positive/negative synthetic and real database authorization tests, with separate deployed acceptance.",
+          "evidence": "Original independent money owner approval/shared $500/day and LIVE two-step source predicates remain unchanged. Synthetic tests deny cross-account selection, missing account/handler and unknown tools; real provider acceptance remains separate."
+        }
+      ],
+      "remainingEngineering": [
+        "Implement actual customer/tenant/principal-owned permissions and deliberate non-destructive Full profile reauthorization for each client, with persisted database lifecycle tests.",
+        "Prove actual credential/role/Stripe App permission eligibility for each operation and provide safe recovery of genuine scopes without provider trial-and-error or silent fallback.",
+        "Validate Full permissions and read-only/LIVE denial through every real deployed MCP/HTTP/RTC door and independent authorized provider and mobile client acceptance."
+      ]
+    }
+  ],
+  "productionAdded": 163,
+  "productionRemoved": 0,
+  "newEngineering": "Real registered read-only stripe_explain_access over the existing server-derived selected account and same source write/profile guard predicates, including safe Full/Everyday/read-only comparison, reasons and recovery, plus seven direct/indirect/source negative unit tests and documented runtime caller integration.",
+  "planComparison": "A whole useful CAP-2 effective-access diagnostic is implemented and tested, but CAP-2's full original multi-user/credential/provider acceptance remains open. The 163-line source addition is below typical 400-line bundle guidance because this is a real deployable user feature and must not be combined with unverified external Stripe App/OIDC provider registration.",
+  "relatedWorkDecision": "Original CAP-2 remains IN_PROGRESS, with no whole subsection credited. CAP-3 human/tenant Stripe App/OIDC and God Mode remains a separate credential-provider bundle, not artificially counted here.",
+  "decision": "CONTINUE"
+}
