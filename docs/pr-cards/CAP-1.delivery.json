@@ -27,10 +27,10 @@
       "remainingEngineering": []
     }
   ],
-  "productionAdded": 255,
+  "productionAdded": 252,
   "productionRemoved": 0,
   "newEngineering": "Operation-specific typed/source/money/evidence record, full deterministic 644-operation family risk/gap report, operator CLI, strict source/provider-fraud validator and 6 unit regressions built on previously merged official/schema/credential baselines.",
-  "planComparison": "All five original CAP-1 full inventory criteria have explicit source and CI-runner tests. The 255-line source/CLI estimate is below the 400-line per-PR guide, but completes a whole previously in-progress original subsection using substantial previously merged CAP-1 engineering from PRs #284–#286; no artificial helper-only milestone is credited. Actual line count must be reconciled against GitHub diff.",
+  "planComparison": "All five original CAP-1 full inventory criteria have explicit source and CI-runner tests. The 252-line source/CLI estimate is below the 400-line per-PR guide, but completes a whole previously in-progress original subsection using substantial previously merged CAP-1 engineering from PRs #284–#286; no artificial helper-only milestone is credited. Actual line count must be reconciled against GitHub diff.",
   "relatedWorkDecision": "This delivers exactly one original CAP-1 unit, not multiple fabricated slices. CAP-2 and CAP-3 are now eligible for separate full feature bundles once this candidate merges; CAP-4 and CAP-5 remain dependency-gated. Provider acceptance remains separate and unchanged.",
   "decision": "SUBSTANTIAL_EXCEPTION",
   "exceptionEvidence": [
