@@ -1,0 +1,40 @@
+{
+  "subsections": [
+    {
+      "id": "CAP-1",
+      "criteria": [
+        {
+          "criterion": "Reproducibly enumerate official pinned Stripe methods and paths with stable operation IDs, version and source identity, without duplicate or orphan rows.",
+          "evidence": "Published GA v1/v2 source at immutable stripe/openapi commit af2d19d and original 559-op vendored SDK v1 are separately pinned in unified-source.js/capability-inventory.js. The strict source validators enumerate exactly 644 unique GA method/path rows (612 v1, 32 v2) with official IDs and reject duplicate/missing/orphan operations; tests/unit/unified-capability.test.js and operation-evidence.test.js exercise this."
+        },
+        {
+          "criterion": "Expose every operation's supported, unsupported or unknown credential-kind disposition, required scope, product entitlement and effect with explicit uncertainties.",
+          "evidence": "Every GA row now contains all five credential kinds from credential-context.js, sourced account/organization/Connect binding and required header distinctions, explicit UNKNOWN required provider permission, provider role, country/product entitlement, and conservative financial/read/unknown mutation effect in operation-evidence.js. No assumed God Mode super-token or entitlement."
+        },
+        {
+          "criterion": "Distinguish verified source handlers and guarded universal execution from discovery only, with per-operation test and independent live evidence recorded separately.",
+          "evidence": "buildCapabilityInventory checks actual registered handler functions, not only declared tool names. operation-evidence.js labels native/universal candidates separately from GA schema-only operations and records unit/mock/database/provider test evidence as NOT LINKED plus independent deployed account/readback acceptance NOT JOINED for every operation; missing evidence is visible and cannot count as PASS."
+        },
+        {
+          "criterion": "Generate deterministic family and version coverage gaps including API v2 and organization gaps, without an invented source or live parity percentage.",
+          "evidence": "operation-evidence-report.js and offline --families/--gaps CLI generate deterministic v1/v2 and family source gap totals, unknown credential/entitlement/test/deployed-acceptance counts, and the explicit organization-key/preview/Stripe App contract boundary. No invented provider parity numerator or percentage is reported."
+        },
+        {
+          "criterion": "Fail validation on source/schema drift and malformed or missing inventory records; preserve every actual financial, LIVE, tenant and owner-approval guard.",
+          "evidence": "validateUnifiedSource, validateCapabilityInventory, validateOperationEvidenceReport and verifyOperationEvidence strictly regenerate against pinned schema and actual registry. Mutation tests reject invented permission, test, real-provider PASS, drift and missing rows. No src/tools/write, src/stripe/provider, OAuth, LIVE, money owner-approval or shared $500/day guard is altered."
+        }
+      ],
+      "remainingEngineering": []
+    }
+  ],
+  "productionAdded": 255,
+  "productionRemoved": 0,
+  "newEngineering": "Operation-specific typed/source/money/evidence record, full deterministic 644-operation family risk/gap report, operator CLI, strict source/provider-fraud validator and 6 unit regressions built on previously merged official/schema/credential baselines.",
+  "planComparison": "All five original CAP-1 full inventory criteria have explicit source and CI-runner tests. The 255-line source/CLI estimate is below the 400-line per-PR guide, but completes a whole previously in-progress original subsection using substantial previously merged CAP-1 engineering from PRs #284–#286; no artificial helper-only milestone is credited. Actual line count must be reconciled against GitHub diff.",
+  "relatedWorkDecision": "This delivers exactly one original CAP-1 unit, not multiple fabricated slices. CAP-2 and CAP-3 are now eligible for separate full feature bundles once this candidate merges; CAP-4 and CAP-5 remain dependency-gated. Provider acceptance remains separate and unchanged.",
+  "decision": "SUBSTANTIAL_EXCEPTION",
+  "exceptionEvidence": [
+    "This closes the original CAP-1 method/path/version, provider credential/effect, code/test/live evidence and family/version drift audit across 644 official GA operations, with complete prior CAP-1 work already merged in #284/#285/#286.",
+    "The entire direct MCP authorization and financial runtime remains untouched: neither a synthetic pass nor a static schema satisfies real provider acceptance; CAP-2 through CAP-5 retain those obligations."
+  ]
+}
