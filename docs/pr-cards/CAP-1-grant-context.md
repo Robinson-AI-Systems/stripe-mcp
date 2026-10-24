@@ -49,3 +49,18 @@ Documentation of a credential **type** is never a proven permission/role for an 
 
 ## Security boundaries
 This implementation remains read-only offline cataloging. It neither issues nor selects a provider credential, and never executes or recommends an unverified privileged request. No account switching under a global secret, no silent escalation from the normal Stripe App OAuth grant, no LIVE enablement, and no change to independent owner money-out approval or the shared $500/account/day limit. Browser-mediated Stripe App installation and the multi-user database remain CAP-3 source engineering, not proven by this stage.
+
+## Delivery checkpoint (CI not yet verified)
+
+The existing original CAP-1 unit remains **IN_PROGRESS**. New
+`src/stripe/credential-context.js` exports documentation-linked
+per-operation credential requirements (all permission dispositions remain
+unknown) and a non-executable preflight with explicit
+`context-candidate-only` or `denied-context`, always `canExecute:false`.
+`src/stripe/capability-inventory.js` and
+`src/stripe/unified-capability.js` now show these facts per method/path.
+Synthetic Vitest covers wrong tenant, person, role revision, mode,
+account, host, expiry, raw credential metadata, Connect relationship and
+organization Stripe-Context. No grant or provider execution occurred.
+Full operation-specific scopes, entitlement and independent provider
+acceptance remain original CAP-1 obligations.
