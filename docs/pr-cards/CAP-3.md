@@ -47,3 +47,22 @@ New tables are additive and isolated, with owner membership verified independent
 
 ## Tests and gate
 Disposable real PostgreSQL, two independent principals and tenants, owner/customer role isolation, wrong context/account, stale membership, idempotent enrollment, parallel membership/credential revocation and no legacy owner key adoption. Unit negative tests for bearer redaction and exact issuer/account selection. Exact-head CI, target-main, review and merge, with source versus real deployment acceptance tracked separately. This packet is not permission for LIVE payment, provider registration or domain publication.
+
+## Source checkpoint — 2026-10-24
+
+The CAP-3 source branch adds five inactive tenant tables in
+`src/tenancy/store.js`, gated by
+`STRIPE_TENANCY_SCHEMA_APPROVED=enabled`. The store provides
+separate human/tenant/context memberships, stale revision refusal,
+provisional credential-free account descriptors, exact owned
+revoke, and hashed single-use client state. `src/tenancy/selection.js`
+always returns `canExecute:false` and refuses automatic broader
+grant selection. Real PostgreSQL and unit tests cover foreign tenants,
+identity role switching, wrong accounts, stale or revoked membership,
+concurrent exact-grant revocations and one-use callback state.
+
+**Status remains IN_PROGRESS:** no public human OIDC provider, verified
+Stripe App OAuth, real encrypted provider grant, connection token
+binding, production migration, mobile callback or God Mode is
+implemented. These are original CAP-3 engineering, not external
+excuses or completed acceptance.
