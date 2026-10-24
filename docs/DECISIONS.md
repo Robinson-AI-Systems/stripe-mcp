@@ -1,3 +1,28 @@
+## 2026-10-23 — approved Stripe App login, management and optional God Mode
+
+The owner approved the [GitHub-derived, Stripe-specific direct connection
+contract](designs/STRIPE-CONNECTION-GOD-MODE.md). **No public onboarding,
+Stripe App enrollment, God Mode key enrollment, permission expansion or real
+provider acceptance is claimed by this design.** Implement within CAP-1..CAP-5
+in dependency order. Initial connect should be client-initiated and mobile-safe;
+the independent tenant/human identity must be verified separately from the
+Stripe account grant; advanced keys are optional and never an unrestricted
+cross-tenant fallback. Original money-out consent and $500/account/day stay
+enforced. GitHub's classic master token has no universal Stripe equivalent.
+
+The CAP-1 work branch `ai/gpt6/cap1-inventory-doc-reconciliation-20261023`
+was frozen at planning commit `b79b4c47961f1d22ea79df8f9dd534a2b97c4494` and adds an offline source
+inventory/validator. All classifications are code **candidates**, not fresh
+Stripe permissions or actual deployed provider PASS. At the checked start
+`main=live=cc5be1c3d41ed1dbca68b4ed05d435ec70b26c71`,
+the Vercel deployment `dpl_CWMMndp4Y8zuumQiZp2awtEBTkqR` was
+reported READY on that exact GitHub SHA. Original source 57/57 MERGED;
+CAP-1..CAP-5 remain not completed; last original protected acceptance
+ledger is 13 PASSED / 30 PENDING (43), with the Hub-owned optional row
+still recorded pending but not required for standalone completion. No
+new authenticated acceptance or real Stripe mutation occurred in this
+reconciliation.
+
 ## 2026-10-21 — approved maximum-authority expansion
 
 Owner requested adapting the completed GitHub planning job to all active custom MCPs.

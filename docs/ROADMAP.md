@@ -1,11 +1,16 @@
-# ROADMAP — ideas not being built now
+# ROADMAP — ideas not in the approved CAP implementation
+
+2026-10-23 reconciliation: The owner's approved [CAP-1..CAP-5](designs/MAXIMUM-AUTHORITY.md)
+and [Stripe connection/God Mode implementation](designs/STRIPE-CONNECTION-GOD-MODE.md)
+now **include inventory and actual closure of supported Connect, Issuing, Treasury,
+Terminal, Financial Connections and organization-operation gaps** when verified by
+the provider. Those areas are no longer categorically excluded pending a
+particular app adopting them. This list below records separate speculative
+customer projects, workflows and distribution tasks; it does not override
+the approved CAP roadmap.
 
 Not approved scope. An item moves into a design only with Chris's approval (a dated DECISIONS entry).
 
-- **Connect** (`connect_*`, 16 tools in TOOL-CATALOG): when YardSync or Cortiware takes payments on behalf of other
-  businesses. Batch U reaches Connect operations meanwhile.
-- **Hand-built tools for Terminal, Issuing, Treasury, Financial Connections** when one of them is actually used
-  (signal: repeated `api_*` calls in the change log).
 - **YardSync and Cortiware project profiles** when their billing code exists (`workflow_project_setup` drafts them).
 - **Browser-assisted dashboard steps:** for settings Stripe has no API for, an agent with a browser (Claude in Chrome)
   follows `stripe_where_is_setting`'s structured steps while Chris watches; the server then reads back where possible.

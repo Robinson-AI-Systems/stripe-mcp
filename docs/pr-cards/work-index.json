@@ -17,7 +17,7 @@
     "X",
     "CAP"
   ],
-  "process": "Just-in-time cards from approved designs; each card runs the drift protocol and updates this index as if merged. Session execution and queued deployed acceptance follow docs/SESSION-START.md. Owner-approved execution: adjacent small roadmap slices are grouped into cohesive outcome-sized PRs; session PR count comes only from the current owner prompt. See docs/SESSION-START.md. Owner clarification 2026-10-14: PR workload accounting counts whole predefined batch subsections in the authoritative roadmap/design, never a function, UI hookup, guard, helper or execution-packet subtask. Partial subsections count zero completed batch subsections; count each subsection once with full eligible engineering and pre-merge evidence. Group related subsections into substantial PRs; use focused checks during work and full required gates on the coherent PR. Existing acceptance and safety gates remain. 2026-10-17 historical source-status checkpoint: PR #270 aligned six older source labels, but incorrectly held V-3/G-6/H-1 implementation IN_PROGRESS because external provider acceptance had not happened. 2026-10-17 later explicit owner correction: implementation and acceptance are separate ledgers. V-3 original native event implementation (most recent PR #271), G-6 native owner/admin implementation (through #151), and H-1 original source (#243) are now marked implementation MERGED, with all genuine Stripe provider/browser/Dashboard external acceptance remaining PENDING in its own queue. Count 52/57 original subsections source-MERGED and 5 source-APPROVED; zero implementation IN_PROGRESS. 43 external acceptance criteria last counted 10 PASSED/33 PENDING, not modified. See docs/audits/2026-10-17-implementation-acceptance-separation.md.",
+  "process": "Just-in-time cards from approved designs; each card runs the drift protocol and updates this index as if merged. Session execution and queued deployed acceptance follow docs/SESSION-START.md. Owner-approved execution: adjacent small roadmap slices are grouped into cohesive outcome-sized PRs; session PR count comes only from the current owner prompt. See docs/SESSION-START.md. Owner clarification 2026-10-14: PR workload accounting counts whole predefined batch subsections in the authoritative roadmap/design, never a function, UI hookup, guard, helper or execution-packet subtask. Partial subsections count zero completed batch subsections; count each subsection once with full eligible engineering and pre-merge evidence. Group related subsections into substantial PRs; use focused checks during work and full required gates on the coherent PR. Existing acceptance and safety gates remain. 2026-10-17 historical source-status checkpoint: PR #270 aligned six older source labels, but incorrectly held V-3/G-6/H-1 implementation IN_PROGRESS because external provider acceptance had not happened. 2026-10-17 later explicit owner correction: implementation and acceptance are separate ledgers. V-3 original native event implementation (most recent PR #271), G-6 native owner/admin implementation (through #151), and H-1 original source (#243) are now marked implementation MERGED, with all genuine Stripe provider/browser/Dashboard external acceptance remaining PENDING in its own queue. Count 52/57 original subsections source-MERGED and 5 source-APPROVED; zero implementation IN_PROGRESS. 43 external acceptance criteria last counted 10 PASSED/33 PENDING, not modified. See docs/audits/2026-10-17-implementation-acceptance-separation.md. CAP-1 has a reproducible pinned-v1 inventory stage in PR #284, but full official API-v2, organization context, credential evidence and real-provider acceptance remain separate open engineering. Do not credit the full original CAP-1 subsection as completed from the generator alone.",
   "cards": [
     {
       "id": "A-1",
@@ -1057,13 +1057,13 @@
       "design": "docs/designs/MAXIMUM-AUTHORITY.md",
       "dependencies": [],
       "card": "docs/pr-cards/CAP-1.md",
-      "status": "APPROVED",
+      "status": "IN_PROGRESS",
       "migration": "JIT contract before implementation",
       "budget": 650,
       "units": [
         "CAP-1"
       ],
-      "readiness": "WRITE_CARD_AT_START",
+      "readiness": "CARD_PRESENT",
       "ownerInputs": []
     },
     {
