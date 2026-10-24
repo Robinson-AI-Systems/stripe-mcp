@@ -55,3 +55,14 @@ This is **one original predefined subsection**, not multiple invented mini-cards
 ## Delivery and independent acceptance
 Planning commit SHA: to be filled by exact GitHub readback, without modifying the frozen JSON.
 Do not close this subsection or claim a substantial bundle until its entire acceptance above is verified. The code and CI may be complete even when real provider/live coverage remains unverified; keep that evidence separate. Follow the existing independent release route and actual reviewer rules.
+
+## Implementation checkpoint — 2026-10-23
+
+Plan was committed first at `b79b4c47961f1d22ea79df8f9dd534a2b97c4494`. The same full CAP-1 frozen criteria
+remain in force. This PR adds offline source truth checks and the approved
+next-CAP connection architecture; **no** credential permissions, deployed
+provider execution, Stripe App registration, tenant migrations, LIVE activation,
+financial operations or acceptance passes are presumed. Next engineering:
+finish first-class reviewed credential requirement evidence for provider API
+v1/v2/organization operations, confirm all mapping claims and validate
+normal CI, regression and reviewer results before marking CAP-1 fully complete.
