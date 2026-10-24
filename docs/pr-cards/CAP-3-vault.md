@@ -63,3 +63,18 @@ revoked state, never resurrect a credential. A stored pending record
 is **not** a provider-authorized credential; no runtime resolver/API
 may use it. Production schema remains gated. Finish with exact-head
 CI, real disposable PostgreSQL, review and owner handoff.
+
+## Source checkpoint — independent release/credential acceptance still open
+
+A sixth inactive `tenancy_secrets` table stores only ciphertext and
+optimistic generation; current membership and pending exact-owned
+grant checked at every internal storage operation.
+`src/tenancy/vault.js` encrypts with `src/core/crypto.js` authenticated
+AES-256-GCM AAD binding person/tenant/context/revision/grant/account/
+mode/credential-kind, never returns bearer/ciphertext or authorizes
+provider I/O. Real PostgreSQL tests cover foreign grant and mode,
+wrong AAD, concurrent generation, revocation and no resurrection.
+This is *storage engineering*, not a replacement OIDC client,
+Stripe App OAuth grant, end-user permission, God Mode or LIVE activation.
+The originally frozen CAP-3 criteria and remaining engineering are
+still binding. Fresh exact-head CI must run before merge.
