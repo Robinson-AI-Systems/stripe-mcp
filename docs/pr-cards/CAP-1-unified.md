@@ -58,3 +58,13 @@ After this stage, finish CAP-1 credible operation-specific account/org/Stripe Ap
 is approved adjacent CAP-3 connection work, not a completed or additional CAP-1
 subsection. Its Vercel domain is NOT attached and source `PUBLIC_BASE_URL`
 must remain unchanged until independent deployment and OAuth origin tests.
+
+## Source outcome evidence (pre-CI)
+
+From the official GA snapshot pinned to upstream commit above, v1/v2 operations
+are now enumerated with conservative legacy/native mapping, binary source
+drift protection and negative fixtures. Real-provider permission
+compatibility, Stripe App OAuth and advanced organization entitlements
+**remain incomplete CAP-1/3 obligations**. The corporate hostname
+`stripe.robinsonaisystems.com` stays a future target, not the deployed
+issuer. Run exact-head CI before claiming passing source tests.

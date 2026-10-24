@@ -1,3 +1,20 @@
+## 2026-10-23 — second CAP-1 source stage (candidate, not provider acceptance)
+
+Captured immutable GA-public Stripe OpenAPI `2026-09-30.endive` from
+upstream `stripe/openapi` at commit
+`af2d19d63ea42049abecf784482898c654ab42d5`,
+official source blob `9da296dc459321ad8cd04c68c41d32af8ca436dd`.
+Compact operation snapshot records **644 published GA operations: 612 v1
+and 32 v2**, independently SHA-1 blob pinned and validated. Runtime
+`src/stripe/unified-source.js` and `src/stripe/unified-capability.js`
+compare the SDK v1 catalog/registered tools against this reviewed
+non-executable GA source, while keeping unknown provider/entitlement
+and credential requirements explicit. `npm run check:capabilities`
+validates both inventories offline. No Stripe API calls or credentials
+are used and no parity percentage or real acceptance is asserted.
+Unpublished/preview operations and reviewed credential matrices remain
+original CAP-1 engineering, not complete.
+
 ## 2026-10-23 — publisher branding and custom hostname approved (not yet activated)
 
 Owner selected the Robinson AI Systems corporate branding for all Stripe connection,
