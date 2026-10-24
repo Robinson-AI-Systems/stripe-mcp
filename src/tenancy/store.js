@@ -105,6 +105,8 @@ export async function initTenancyTables(sql){
 export function createTenancyStore(sql){
   if(typeof sql!=='function')error('tagged SQL implementation required');
   return {
+    // Internal-only migration entry point; callers must not expose it as an API.
+    initializeTables:()=>initTenancyTables(sql),
     // ONLY the eventual trusted OIDC callback may call this; never a public
     // route accepting issuer/subject strings from a user or Stripe account grant.
     async provisionTenant({verifiedIdentity,label,context='production'}){
@@ -136,7 +138,8 @@ export function createTenancyStore(sql){
     },
     async addMember({actor,memberIdentity,role,context}){
       const a=selector(actor),p=principal(memberIdentity);
-      if(!roles.has(role)||context!==a.context||role==='owner')
+      if(!roles.has(role)||context!==a.context||role==='owner'||
+     (role==='developer'&&context!=='development'))
         error('owner grants require a separate verified ownership transfer');
       // Only the existing current owner can add active roles to the same tenant.
       const rows=await sql`WITH actor AS (
