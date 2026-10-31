@@ -67,3 +67,17 @@ Status: PLAN FROZEN, source and review pending. Owner removed external Hub disco
 | Prevent eager full catalogs or outbound Hub adapters | Existing independent single service connection and 20-result discovery cap | Stripe; source implementation does not call Hub |
 
 Frozen RTC1 baseline retained; Hub main conformance specification reviewed at `3cc7f4ad4332155d639125b23e8a5c4c13804a3d`. New code does not claim deployed or live-tested acceptance.
+
+## RTC 2 adoption — owner decision, 2026-10-31
+
+**Owner decision, 2026-10-31:** RTC 2 is adopted by Chris's dated decision as RTC 1's §9 successor. The primary record is the dated decision in the Hub repo's [docs/DECISIONS.md](https://github.com/Robinson-AI-Systems/robinsons-toolkit-hub/blob/main/docs/DECISIONS.md); the adopted specification is the Hub's [docs/RTC-2-SPEC.md](https://github.com/Robinson-AI-Systems/robinsons-toolkit-hub/blob/main/docs/RTC-2-SPEC.md). The five rulings:
+
+- **D1 — Result recovery = content pages.** The RTC 2 specification's §7 stands as written.
+- **D2 — OAuth is optional-but-specified in RTC 2.** Passes remain the required baseline.
+- **D3 — Handle lifetime = 24 hours,** carried from RTC 1.
+- **D4 — The health path IS included in the advertisement** as a SHOULD-level manifest field.
+- **D5 — The R-3 disposition is the composite:** the RTC 1 freeze **holds** (no shipped dialect is amended to chase the hub's unversioned post-freeze suite drift) **and** RTC 2 is adopted by this dated decision as RTC 1's §9 successor.
+
+This record is a contract-level supersession on this server's discovery/connection surface only. It claims **no behavior change**: the frozen RTC 1 baseline and pin recorded above stand as the RTC 1 record, and this server's conformance claims remain RTC 1 claims until its RTC 2 adoption lands. Under the governing-spec rule above, adoption by dated decision is the separately reviewed, versioned protocol change a successor requires — never a silent per-server wire-protocol tweak.
+
+This server's own RTC 2 adoption and conformance proceed through their own card as a follow-on; this section is the adoption record, not the adoption build.
