@@ -41,7 +41,16 @@ export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupIm
     if (client?.cimd) return client.redirect_uris.some((uri) => redirectUriMatches(uri, requested));
     return !!client?.redirect_uris?.includes(requested);
   }
-  function validateResource(value) {
+  // Owner ruling 2026-11-03, per D-001 client compatibility: the
+  // `resource` parameter is OPTIONAL — a mandatory resource parameter
+  // broke real phone flows, so the mandate is not rebuilt here. Absent
+  // proceeds (an empty value is absence: the consent form itself
+  // re-submits the field empty when the client sent none); a resource
+  // that IS sent must still be exactly this MCP's, so a grant aimed at
+  // another resource is never honored. Same shape as the revocation
+  // door (oauth-revocation.js), which never mandated the parameter.
+  function resourceAcceptable(value) {
+    if (value === undefined || value === null || value === '') return true;
     const { resource } = urls();
     return value === resource;
   }
@@ -114,13 +123,16 @@ export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupIm
       '<title>Connect Stripe Unleashed</title><style>body{font:16px system-ui,sans-serif;max-width:410px;margin:6vh auto;padding:20px}form{display:grid;gap:14px}input,select,button{font:inherit;padding:10px}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
       '<h1>Connect Stripe Unleashed</h1>' + (error ? '<p role="alert">' + escapeHtml(error) + '</p>' : '') +
       (accounts.length ? '<p>Choose the Stripe account for this AI connection.</p>' :
-       '<p>No Stripe accounts connected yet. Add a test account securely through the setup page when A-5 is available.</p>') +
+       '<p>No Stripe accounts connected yet. Add a test account securely through the setup page.</p>') +
       accessDisplay +
       '<form method="post">' + hidden +
       '<label>Stripe account<select name="stripe_account" required>' + accountList + '</select></label>' +
       liveNotice+'<label>Stripe environment<select name="mode">' + modeList + '</select></label>'+writeConsent+
       '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<button type="submit"' + (!accounts.length ? ' disabled' : '') + '>Authorize this connection</button></form></body></html>';
+      '<button type="submit"' + (!accounts.length ? ' disabled' : '') + '>Authorize this connection</button></form>' +
+      // Trademark guardrail (D-001): every connect page carries the exact
+      // non-affiliation sentence — the same string the front door renders.
+      '<footer><p>Stripe Unleashed is a Robinson AI Systems product. It is not affiliated with, endorsed by, or sponsored by Stripe, Inc.</p></footer></body></html>';
   }
   async function authorize(req, res) {
     if (!only(res, req, ['GET', 'POST'])) return;
@@ -131,8 +143,8 @@ export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupIm
       return bad(res, 400, 'invalid_request', 'Unknown client or redirect address');
     }
     if (p.response_type !== 'code' || p.code_challenge_method !== 'S256' ||
-      !/^[A-Za-z0-9_-]{43}$/.test(str(p.code_challenge)) || !validateResource(p.resource)) {
-      return bad(res, 400, 'invalid_request', 'Authorization code, S256 PKCE, and exact MCP resource are required');
+      !/^[A-Za-z0-9_-]{43}$/.test(str(p.code_challenge)) || !resourceAcceptable(p.resource)) {
+      return bad(res, 400, 'invalid_request', 'Authorization code and S256 PKCE are required; a sent resource must name this MCP');
     }
     const accounts = await db.listStripeAccounts();
     if (req.method === 'GET') {
@@ -187,7 +199,7 @@ export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupIm
     if (!only(res, req, ['POST'])) return;
     let p;
     try { p = paramsOf(req); } catch { return bad(res, 400, 'invalid_request', 'Malformed token request'); }
-    if (!validateResource(p.resource)) return bad(res, 400, 'invalid_target', 'Token resource must be this MCP');
+    if (!resourceAcceptable(p.resource)) return bad(res, 400, 'invalid_target', 'Token resource must be this MCP');
     // RFC 6749: confidential clients may authenticate with HTTP Basic. Never
     // accept two credential mechanisms on the same request.
     const authHeader = String(req.headers?.authorization || '');

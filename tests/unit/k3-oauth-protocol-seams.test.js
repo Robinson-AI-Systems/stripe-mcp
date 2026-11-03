@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {createStripeOAuthProtocolAdapter} from '../../src/core/k3-oauth-protocol-seams.js';
+import {paramsOf} from '../../src/core/http.js';
 import {createOAuthProtocolOverlay} from '../../scripts/k3-oauth-overlay.mjs';
 import {readFileSync,existsSync} from 'node:fs';
 describe('K-3 portable OAuth protocol / original Stripe identity',()=>{
@@ -92,5 +93,56 @@ describe('K-3 portable OAuth protocol / original Stripe identity',()=>{
     expect(sqlCount).toBe(1);
     db.rotateRefreshToken=async()=>({...rotated,client_id:'other'});
     expect(await handlers.db.rotateRefreshToken({clientId:'client'})).toBeNull();
+  });
+  it('supplies the issuer resource only when the client sent none (owner ruling 2026-11-03, D-001)',async()=>{
+    // Fake portable core with the private protocol's CURRENT contract:
+    // resource is mandatory and must name this MCP exactly.
+    const expected='https://stripe-mcp.example.test/api/mcp';
+    const seen=[];
+    const core={createOAuthProtocolHandlers(){
+      return {token(req){
+        const p=paramsOf(req);
+        seen.push(p.resource);
+        if(p.resource===undefined||p.resource===null||p.resource==='')
+          return {status:400,error:'invalid_target'};
+        if(p.resource!==expected)return {status:400,error:'invalid_target'};
+        return {status:200};
+      }};
+    }};
+    const source={createOAuthHandlers(){
+      return {register(){},authorize(){},metadata(){},resourceMetadata(){}};
+    }};
+    const db=Object.fromEntries(['getOAuthClient','rotateRefreshToken',
+      'createAccessToken','consumeAuthCode','createOAuthClient'].map(k=>[k,async()=>null]));
+    const res=()=>({setHeader(){}});
+    const adapter=createStripeOAuthProtocolAdapter({core,source,db,
+      env:{PUBLIC_BASE_URL:'https://stripe-mcp.example.test'}});
+    // Absent resource: the seam supplies the issuer's one resource.
+    expect(await adapter.token({method:'POST',headers:{},
+      body:{grant_type:'authorization_code'}},res())).toEqual({status:200});
+    // The consent form's empty re-submission counts as absent too.
+    expect(await adapter.token({method:'POST',headers:{},
+      body:{grant_type:'authorization_code',resource:''}},res())).toEqual({status:200});
+    // A sent resource passes through untouched — wrong one still refused
+    // by the core, correct one accepted as sent.
+    expect(await adapter.token({method:'POST',headers:{},
+      body:{grant_type:'authorization_code',
+        resource:'https://elsewhere.example.test/api/mcp'}},res()))
+      .toEqual({status:400,error:'invalid_target'});
+    expect(await adapter.token({method:'POST',headers:{},
+      body:{grant_type:'authorization_code',resource:expected}},res())).toEqual({status:200});
+    // Form-encoded bodies get the same treatment.
+    expect(await adapter.token({method:'POST',
+      headers:{'content-type':'application/x-www-form-urlencoded'},
+      body:'grant_type=authorization_code'},res())).toEqual({status:200});
+    expect(seen).toEqual([expected,expected,
+      'https://elsewhere.example.test/api/mcp',expected,expected]);
+    // Unconfigured origin: nothing is supplied and nothing throws — the
+    // request reaches the core exactly as the client sent it.
+    const bare=createStripeOAuthProtocolAdapter({core,source,db,env:{}});
+    expect(await bare.token({method:'POST',headers:{},
+      body:{grant_type:'authorization_code'}},res()))
+      .toEqual({status:400,error:'invalid_target'});
+    expect(seen.at(-1)).toBeUndefined();
   });
 });

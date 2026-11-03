@@ -14,7 +14,8 @@ import { deployedCommit, packageVersion, releaseVersion, serverRelease }
   from '../../src/release.js';
 import { checkDatabase, healthReadout } from '../../src/health.js';
 import healthHandler from '../../api/health.js';
-import frontDoorHandler from '../../api/index.js';
+import frontDoorHandler, { createFrontDoorHandler } from '../../api/index.js';
+import { profileCounts } from '../../src/core/profiles.js';
 
 const SHA = '0123456789abcdef0123456789abcdef01234567';
 const env = { VERCEL_GIT_COMMIT_SHA: SHA };
@@ -99,7 +100,7 @@ describe('VER-1 surfaces agree (CAP-5 agreement check, no provider calls)', () =
 
       // front door: same identity, rendered from live state.
       const res = response();
-      frontDoorHandler({ method: 'GET', headers: {} }, res);
+      await frontDoorHandler({ method: 'GET', headers: {} }, res);
       expect(res.body.version).toBe(releaseVersion(env));
       expect(res.body.commit).toBe(SHA);
       expect(res.body.tools).toBe(registry.tools.length);
@@ -130,6 +131,66 @@ describe('VER-1 surfaces agree (CAP-5 agreement check, no provider calls)', () =
     } finally {
       if (saved !== undefined) process.env.VERCEL_GIT_COMMIT_SHA = saved;
     }
+  });
+});
+
+describe('front door status and counts truth (audit W4-F6, W4-F7)', () => {
+  const savedUrl = process.env.DATABASE_URL;
+  const savedOrigin = process.env.PUBLIC_BASE_URL;
+  function restoreEnv() {
+    if (savedUrl === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = savedUrl;
+    if (savedOrigin === undefined) delete process.env.PUBLIC_BASE_URL;
+    else process.env.PUBLIC_BASE_URL = savedOrigin;
+  }
+  function configure() {
+    process.env.DATABASE_URL = 'postgres://front-door-test.invalid/db';
+    process.env.PUBLIC_BASE_URL = 'https://stripe-mcp.example.test';
+  }
+  it('says online only when the health dependency check passes', async () => {
+    configure();
+    try {
+      const okRes = response();
+      await createFrontDoorHandler({ check: async () => true })(
+        { method: 'GET', headers: {} }, okRes);
+      expect(okRes.body.status).toBe('online');
+      // A failing store must not read 'online' (the old config-boolean
+      // derivation said online whenever the env vars merely existed).
+      const downRes = response();
+      await createFrontDoorHandler({ check: async () => false })(
+        { method: 'GET', headers: {} }, downRes);
+      expect(downRes.body.status).toBe('degraded');
+    } finally { restoreEnv(); }
+  });
+  it('says setup-required when unconfigured and runs no dependency check', async () => {
+    delete process.env.DATABASE_URL;
+    delete process.env.PUBLIC_BASE_URL;
+    try {
+      let called = false;
+      const res = response();
+      await createFrontDoorHandler({ check: async () => { called = true; return true; } })(
+        { method: 'GET', headers: {} }, res);
+      expect(res.body.status).toBe('setup-required');
+      expect(called).toBe(false);
+    } finally { restoreEnv(); }
+  });
+  it('labels every published profile count with its scope', async () => {
+    configure();
+    try {
+      const res = response();
+      await createFrontDoorHandler({ check: async () => true })(
+        { method: 'GET', headers: {} }, res);
+      expect(res.body.tools).toBe(registry.tools.length);
+      // Reads-only counts (the profileCounts default) sit under their own
+      // scope label, never bare beside the registry total.
+      expect(res.body.profileToolCounts).toEqual(profileCounts(registry));
+      expect(res.body.profileToolCountsScope).toContain('Read tools only');
+      // Declared visibility (reads + writes) is published and labelled too.
+      expect(res.body.profileVisibilityCounts)
+        .toEqual(profileCounts(registry, { allowWrites: true }));
+      expect(res.body.profileVisibilityCounts.full).toBe(registry.tools.length);
+      expect(res.body.profileVisibilityCountsScope).toContain('reads and writes');
+    } finally { restoreEnv(); }
   });
 });
 
