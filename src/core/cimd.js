@@ -71,6 +71,26 @@ async function hostIsPublic(url, lookupImpl) {
   return addresses.every((address) => isPublicAddress(address));
 }
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+// Redirect matching for card clients: exact match, with the one
+// sanctioned relaxation (MCP client practice, preserved from the fleet
+// reference pattern) — for loopback redirect URIs the port is ignored,
+// because native clients such as Claude Code bind ephemeral ports.
+// Scheme, host and path still match exactly, and non-loopback URIs
+// always match byte-for-byte. (This matcher lives here, not in
+// src/core/oauth.js: that module is a checksum-pinned shared leaf and
+// must stay byte-identical to the private core.)
+export function redirectUriMatches(registered, requested) {
+  if (registered === requested) return true;
+  let a; let b;
+  try { a = new URL(registered); b = new URL(requested); } catch { return false; }
+  if (!LOOPBACK_HOSTS.has(a.hostname.toLowerCase()) ||
+    !LOOPBACK_HOSTS.has(b.hostname.toLowerCase())) return false;
+  return a.protocol === b.protocol && a.hostname === b.hostname &&
+    a.pathname === b.pathname && a.search === b.search && !a.hash && !b.hash;
+}
+
 export function isCimdClientId(clientId) {
   if (typeof clientId !== 'string' || clientId.length === 0 || clientId.length > 2048) return false;
   let url;

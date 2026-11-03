@@ -1,7 +1,7 @@
 // Contract-generic OAuth HTTP handlers. No Stripe-specific imports.
 import {createOAuthRevocation} from './oauth-revocation.js';
-import { randomToken, hashToken, secretsMatch, verifyPkce, validRedirectUri, redirectUriMatches, evaluateLogin, clientIp, LOCKOUT_WINDOW_MINUTES } from './oauth.js';
-import { isCimdClientId, resolveCimdClient } from './cimd.js';
+import { randomToken, hashToken, secretsMatch, verifyPkce, validRedirectUri, evaluateLogin, clientIp, LOCKOUT_WINDOW_MINUTES } from './oauth.js';
+import { isCimdClientId, resolveCimdClient, redirectUriMatches } from './cimd.js';
 import { publicOrigin, send, escapeHtml, paramsOf, only } from './http.js';
 
 const PROFILES = ['read_only', 'everyday', 'full'];
