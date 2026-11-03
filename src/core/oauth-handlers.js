@@ -1,6 +1,7 @@
 // Contract-generic OAuth HTTP handlers. No Stripe-specific imports.
 import {createOAuthRevocation} from './oauth-revocation.js';
 import { randomToken, hashToken, secretsMatch, verifyPkce, validRedirectUri, evaluateLogin, clientIp, LOCKOUT_WINDOW_MINUTES } from './oauth.js';
+import { contextForAuthorizationCode, resolveGrantContext, contextMayOperate, journalBoundaryEvent } from '../developer/access.js';
 import { isCimdClientId, resolveCimdClient, redirectUriMatches } from './cimd.js';
 import { publicOrigin, send, escapeHtml, paramsOf, only } from './http.js';
 
@@ -155,6 +156,12 @@ export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupIm
       return send(res,200,authorizePage({...p,mode:'test',liveWriteConsent:undefined,listing},accounts),'text/html; charset=utf-8');
     }
     if (!env.ADMIN_PASSPHRASE) return bad(res, 503, 'server_not_configured', 'Admin passphrase is not configured');
+    // TRANSITIONAL (D-001 fleet developer access boundary): the owner
+    // passphrase is the current operator gate for this consent journey.
+    // Named operator identity is the recorded direction; the passphrase
+    // alone is not a developer entitlement and this gate never mints
+    // developer context — grant context is stamped at token issuance
+    // from the server's own records (src/developer/access.js).
     const verdict = await evaluateLogin({ ip: clientIp(req), supplied: p.passphrase,
       expected: env.ADMIN_PASSPHRASE, store: db });
     if (verdict.status === 'locked') {
@@ -245,14 +252,41 @@ export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupIm
       if(record.mode==='live'&&(env.VERCEL_ENV!=='production'||
         !liveReady(await db.getStripeAccount(record.stripe_account))))
         return bad(res,400,'invalid_grant','Selected LIVE account is no longer enabled');
+      // Fleet developer access boundary (D-001): a code minted through the
+      // operator developer connection yields a developer-context grant,
+      // derived from the server-verified code record — never from caller
+      // input. Developer grants are TEST-only, so LIVE authority is never
+      // minted from a developer code; the MCP door repeats this refusal.
+      const { origin } = urls();
+      const context = contextForAuthorizationCode({ redirectUri: record.redirect_uri, origin });
+      if (!contextMayOperate({ context, mode: record.mode })) {
+        await journalBoundaryEvent(db, { surface: 'oauth_token', context,
+          mode: record.mode, reason: 'developer_live_issuance_refused', clientId });
+        return bad(res, 400, 'invalid_grant', 'Developer grants cannot be issued for LIVE mode');
+      }
       const accessToken = randomToken(32), refreshToken = randomToken(32);
       await db.createAccessToken({ accessToken, refreshToken, clientId: clientId,
         stripeAccount: record.stripe_account, mode: record.mode, profile: record.profile,
-        listing: record.listing,liveWriteApproved:record.live_write_approved===true });
+        listing: record.listing,liveWriteApproved:record.live_write_approved===true, context });
       return send(res, 200, tokenResponse(accessToken, refreshToken));
     }
     if (p.grant_type === 'refresh_token') {
       if (!str(p.refresh_token)) return bad(res, 400, 'invalid_grant', 'Missing refresh token');
+      // Boundary pre-check, before rotation consumes the credential: a
+      // developer-context LIVE grant must not refresh into continued LIVE
+      // authority. Resolution covers grants minted before context typing,
+      // derived from their registered client (src/developer/access.js).
+      const existing = typeof db.getTokenByRefreshToken === 'function'
+        ? await db.getTokenByRefreshToken(p.refresh_token) : null;
+      if (existing && existing.client_id === clientId) {
+        const { origin } = urls();
+        const context = resolveGrantContext({ record: existing, client, origin });
+        if (!contextMayOperate({ context, mode: existing.mode })) {
+          await journalBoundaryEvent(db, { surface: 'oauth_token', context,
+            mode: existing.mode, reason: 'developer_live_refresh_refused', clientId });
+          return bad(res, 400, 'invalid_grant', 'Refresh credential is expired, used, or revoked');
+        }
+      }
       const accessToken = randomToken(32), refreshToken = randomToken(32);
       const rotated = await db.rotateRefreshToken({ refreshToken: p.refresh_token, clientId: clientId,
         accessToken, newRefreshToken: refreshToken });

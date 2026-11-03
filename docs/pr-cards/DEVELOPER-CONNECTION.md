@@ -18,6 +18,66 @@ production data destruction and resource-isolation gates remain unchanged.
 - Native MCP testing uses the connected developer principal and existing write guards.
 - Separate source, offline tests, deployed revision and real provider/scratch acceptance.
 
+## Fleet classification — OPERATOR surface (RAS MCP Standard, 2026-11-02)
+
+Per Library D-001's fleet developer access boundary and row 4 of
+[RAS-MCP-CONFORMANCE](../RAS-MCP-CONFORMANCE.md), this connection is this
+server's **operator surface**: a backend developer/operator control-plane
+entry for the implementing agents, in the same class as the owner setup
+pages. It is never a public sign-in mode, login choice, consent option,
+advertised onboarding path, tool-catalog capability or public page link,
+and it is never linked from the public front door, the public connection
+material, OAuth metadata or any client snippet. Three identity contexts
+exist and never silently merge: **customer** (public sign-in grants),
+**developer** (this connection's grants — TEST contexts and fixtures
+only, never LIVE customer authority, never LIVE acceptance evidence) and
+**operator** (the owner acting through the passphrase-gated setup and
+consent surfaces). The owner passphrase gates are **transitional**:
+preserved while needed, with named operator identity the recorded
+direction; a passphrase alone never mints developer context. Any future
+TEST-grant issuance beyond this connection follows the D-001 `DevGrant`
+minimum specification: its own grant type, short-lived, default
+read-only, journaled, never imported into public users, never exchanged
+for live customer authority.
+
+## Bundle plan — developer access boundary implementation (2026-11-02)
+
+<!-- bundle-plan:start -->
+```json
+{
+  "baseRevision": "04d2fdf9635b7c6a4871a7067431101b85c571e8",
+  "workKind": "ENGINEERING",
+  "outcome": "Make the fleet developer access boundary real in source for the implementing-agent connection: every OAuth grant carries a server-derived context, developer-context grants fail closed on LIVE customer operations at issuance, refresh and the MCP door, boundary refusals are journaled without secrets, and the operator classification plus transitional passphrase marking are recorded in code and docs.",
+  "integrationBoundary": "Additive only, inside the existing OAuth grant store, token handlers, MCP bearer door and developer handoff modules. No change to the public connect/consent journey's behaviour, no tool added or changed, no release-identity (VER-1) fields, no provider call, no LIVE action, and the existing operator connection's TEST flow is preserved end to end.",
+  "newEngineering": "Additive oauth_tokens context typing with issuance stamping and refresh propagation (real and fake stores), a DeveloperAccess resolver with no public-user fallback, fail-closed crossover enforcement at token issuance, refresh and requireMcpToken, a dedicated developer boundary event journal, transitional/classification marking, and crossover tests in both directions plus a public-surface no-developer-link guard.",
+  "estimatedProductionLines": 330,
+  "relatedWorkDecision": "This completes the source engineering for RAS-MCP-CONFORMANCE row 4 under this existing card; the row's live acceptance (entitled developer versus ordinary-user denial pair at the checked deployed release) stays open and the row remains DESIGNED / NOT VERIFIED at live level. CAP-3/CAP-5 connection-contract work and VER-1 release identity are separate workstreams on their own branches and are not touched beyond shared-file-compatible additive seams.",
+  "subsections": [
+    {
+      "id": "DEVELOPER-CONNECTION",
+      "acceptance": [
+        "The implementing-agent developer connection is classified and enforced as the operator surface: never linked or advertised from the public front door, public connection material, OAuth metadata or tool catalog, and never presented as a sign-in class.",
+        "Every OAuth grant carries a server-derived context (customer or developer), stamped at issuance from the server's own records, propagated through refresh, and never taken from caller input.",
+        "Developer-context grants fail closed on public LIVE customer operations at issuance, refresh and the MCP door, including pre-typing legacy grants derived from their registered client; customer grants never acquire developer context and cannot use the developer handoff beyond the existing registered-callback rule.",
+        "Boundary refusals are journaled without secrets in a dedicated additive store, and journaling failure never changes a refusal outcome.",
+        "Owner passphrase and setup surfaces are marked transitional in code and docs; named operator identity is recorded as the direction and nothing existing is disabled.",
+        "Future TEST-grant issuance is bound to the D-001 DevGrant minimum spec in the repo record: own grant type, short-lived, default read-only, journaled, never imported into public users, never LIVE and never LIVE-acceptance evidence.",
+        "The existing operator connection keeps working unchanged for TEST use: handoff start, owner consent, sealed-code polling, token exchange and refresh behave as before for TEST grants."
+      ],
+      "remainingEngineering": [
+        "Additive oauth_tokens.context column with issuance stamping, refresh propagation and fake-db parity",
+        "DeveloperAccess resolver module (src/developer/access.js) with no public-user fallback",
+        "Fail-closed enforcement at token issuance, refresh and the MCP door, with boundary-event journaling",
+        "Transitional marking of passphrase/setup surfaces in code and docs",
+        "Public-surface no-developer-link guard plus crossover unit and DB tests in both directions",
+        "Card, conformance record, DECISIONS, STATUS and ARCHITECTURE updates"
+      ]
+    }
+  ]
+}
+```
+<!-- bundle-plan:end -->
+
 ## Resume
 Implemented mobile PKCE/RSA authorization handoff in each standalone service and native
 rtool OAuth connection/refresh/check/call commands in Hub's CLI. Product catalog/profile
@@ -26,6 +86,35 @@ initialized by the developer endpoint, separate from native provider/account sto
 Unit/CLI tests run locally; SQL race/expiry tests require disposable CI Postgres.
 CI provenance guard separates standard connectors and custom-service proof. Exact-head CI,
 reviewed deployment, initial owner consent and real provider/scratch acceptance pending.
+
+## Boundary implementation delivery — 2026-11-02
+
+Landed on branch `ai/vivienne/developer-access-boundary` (bundle plan
+frozen in the planning commit directly on `04d2fdf9`): additive
+`oauth_tokens.context` typing with issuance stamping and refresh
+preservation (real store + fake store parity); the `DeveloperAccess`
+resolver (`src/developer/access.js`); fail-closed crossover enforcement
+at token issuance, refresh and the MCP bearer door; the
+`developer_boundary_events` refusal journal; journaled handoff-start
+refusals; OPERATOR classification comments on the connection and
+transitional marking on the passphrase/setup surfaces; crossover and
+guard tests (`tests/unit/developer-boundary.test.js`,
+`tests/db/developer-boundary.test.js`). The existing connection flow is
+unchanged for TEST: the pre-existing handoff, OAuth and MCP-auth suites
+pass alongside the new ones. Remaining, deliberately not built here:
+the live acceptance pair for conformance row 4 (runs at the checked
+deployed release after the daily promotion) and any `DevGrant` issuance
+surface beyond this connection (bound by the minimum specification in
+the classification section above when a consumer exists).
+
+CI correction cycle (2026-11-02, same PR): the first exact-head CI run
+failed the database job on `tests/db/dev-runs.test.js`, whose
+`dev_%` table inventory is an exact pin — the new
+`developer_boundary_events` table falls under that prefix. The pin was
+updated to include the journal table (the same treatment as the
+`SCHEMA_TABLES` pin in `tests/unit/schema.test.js`); no assertion was
+weakened. Verified locally on disposable Postgres (dev-runs, boundary
+and MCP-wire suites, 15 tests) before the single correction push.
 
 ## Role-drift and completion review
 Read docs/reviews/2026-10-13-completion-recovery.md. Review the actual source/index

@@ -1,3 +1,36 @@
+## 2026-11-02 — Developer access boundary implemented in source (DEVELOPER-CONNECTION)
+
+The fleet developer access boundary (Library D-001; RAS-MCP-CONFORMANCE
+row 4) is implemented in source. Every OAuth grant now carries a
+server-derived identity context: an additive `oauth_tokens.context`
+column stamped at token issuance from the server-verified code record
+(grants minted through the implementing-agent developer connection are
+`developer`), preserved through refresh, with pre-typing developer
+grants resolved by derivation from their registered client
+(`src/developer/access.js`, no public-user fallback, no caller-input
+influence). Developer-context grants fail closed on LIVE customer
+operations at issuance, at refresh (pre-check before rotation, refusal
+leaves the credential unconsumed) and at the MCP bearer door; customer
+clients remain refused at handoff start and a connector bearer is not a
+polling credential. Refusals are journaled without secrets in the new
+`developer_boundary_events` table, and a journal failure never changes
+an outcome. The developer connection is classified in code as the
+OPERATOR surface (never publicly linked — a guard test covers the front
+door, contract advertisement, OAuth metadata, catalog and public docs),
+and the owner passphrase/setup gates are marked transitional toward
+named operator identity. Nothing is disabled; the operator connection's
+TEST flow (handoff, consent, sealed-code polling, exchange, refresh) is
+unchanged. Proof: new unit suite `tests/unit/developer-boundary.test.js`
+(14 tests) and real-Postgres suite `tests/db/developer-boundary.test.js`
+(4 tests) pass locally alongside the neighboring OAuth/handoff suites;
+full `npm run check` and exact-head CI are this PR's publication gates.
+**Source only**: deployment follows the checked daily `main` → `live`
+promotion, and row 4's live acceptance (entitled developer versus
+ordinary-user denial pair at the checked deployed release) is still
+owed, so the row remains `DESIGNED / NOT VERIFIED` at live level. Next:
+CAP-3/CAP-5 connection contract and VER-1 release identity proceed on
+their own branches; this row closes when the live denial pair runs.
+
 ## 2026-11-02 — CAP-3 connection implementation: client ID cards (CIMD) + one-sign-in consent (source)
 
 First implementation under the conformance plan (owner-directed in the
@@ -43,6 +76,7 @@ evidence. CAP-3 remains IN_PROGRESS overall (human OIDC, Stripe App
 installation and the My Connection screen remain open engineering);
 this packet completes no CAP-3 subsection. Packet record:
 [CAP-3-cimd](pr-cards/CAP-3-cimd.md).
+
 ## 2026-11-02 — VER-1 release provenance, front door and fleet health (source; live proof owed)
 
 Owner-directed implementation of the RELEASE-IDENTITY workstream from

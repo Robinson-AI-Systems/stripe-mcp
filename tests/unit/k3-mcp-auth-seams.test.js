@@ -42,4 +42,44 @@ describe('K-3 Stripe-owned portable bearer seam',()=>{
       client_id:'x',stripe_account:'acct_FAKE_ONE',result_scope:'scope'})).toMatchObject({
         clientId:'x',stripeAccount:'acct_FAKE_ONE',mode:'test',profile:'read_only'});
   });
+  it('projects the source grant context and confines developer context to TEST (D-001 boundary)',async()=>{
+    let gate;
+    const core={
+      authorizationHeaderEvidence:()=>({valid:false}),
+      createMcpBearerAuthenticator:opts=>{gate=opts;return async()=>null;}
+    };
+    const env={PUBLIC_BASE_URL:'https://stripe-mcp.example.test'};
+    const base={kind:'connector',client_id:'client-x',
+      stripe_account:'acct_FAKE_ONE',profile:'read_only',
+      listing:'compact',result_scope:'scope'};
+    const build=db=>createStripeCoreMcpAuthenticator({core,db,env});
+    // No stamp, store cannot name the client: customer context, exactly
+    // like the source door with the same store.
+    let db={getAccessToken:async()=>({...base,mode:'test'})};
+    build(db);
+    expect(gate.projectConnection(await gate.getAccessToken('t')))
+      .toMatchObject({context:'customer'});
+    // Issuance stamp wins: developer context is projected in TEST.
+    db={getAccessToken:async()=>({...base,mode:'test',context:'developer'})};
+    build(db);
+    expect(gate.projectConnection(await gate.getAccessToken('t')))
+      .toMatchObject({context:'developer'});
+    // Pre-typing grant to a developer client resolves by derivation.
+    db={getAccessToken:async()=>({...base,mode:'test'}),
+      getOAuthClient:async()=>({redirect_uris:[
+        'https://stripe-mcp.example.test/api/developer/connect']})};
+    build(db);
+    expect(gate.projectConnection(await gate.getAccessToken('t')))
+      .toMatchObject({context:'developer'});
+    // Developer context in LIVE is refused at the seam (lookup returns
+    // null, so no claims are projected) and the refusal is journaled.
+    const journaled=[];
+    db={getAccessToken:async()=>({...base,mode:'live',context:'developer'}),
+      recordDeveloperBoundaryEvent:async e=>{journaled.push(e);}};
+    build(db);
+    expect(await gate.getAccessToken('t')).toBeNull();
+    expect(journaled).toEqual([{surface:'mcp',context:'developer',
+      mode:'live',reason:'developer_live_access_refused',
+      clientId:'client-x'}]);
+  });
 });

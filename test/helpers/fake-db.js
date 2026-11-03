@@ -11,6 +11,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const codes = new Map();
   const tokens = new Map();
   const attempts = [];
+  const boundaryEvents = [];
   const accountRows = new Map(accounts.map(a => [a.id, structuredClone(a)]));
   const encryptedTestKeys = new Map();
   const encryptedLiveKeys = new Map();
@@ -34,6 +35,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const defaultIntents = [];
   const limitIntents = [];
   return {
+    boundaryEvents,
     async getProjectSetupRun({account,id}){
       const row=projectRuns.get(account+'|'+id);
       return row?structuredClone(row):null;
@@ -168,10 +170,11 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     },
     async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
       mode = 'test', profile = 'everyday', listing = 'catalog',
-      liveWriteApproved = false, ttlSeconds = 3600 }) {
+      liveWriteApproved = false, context = 'customer', ttlSeconds = 3600 }) {
       tokens.set(hashToken(accessToken), { result_scope:randomUUID(),token_hash: hashToken(accessToken),
         refresh_hash: refreshToken ? hashToken(refreshToken) : null, client_id: clientId,
         stripe_account: stripeAccount, mode, profile, listing, kind: 'connector',
+        context: context === 'developer' ? 'developer' : 'customer',
         allow_writes:mode==='live'&&liveWriteApproved===true,money_limit_cents:0,
         expires_at: clock() + ttlSeconds * 1000, revoked_at: null });
     },
@@ -233,6 +236,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const row = tokens.get(hashToken(accessToken));
       if (!row || row.revoked_at || row.expires_at <= clock()) return null;
       return { client_id: row.client_id, ...connectionSettings(row), kind: row.kind,
+        context: row.context || 'customer',
         result_scope:row.result_scope,allow_writes:row.allow_writes,
         expires_at: new Date(row.expires_at), revoked_at: null };
     },
@@ -240,7 +244,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const key = hashToken(refreshToken);
       const row = [...tokens.values()].find((item) => item.refresh_hash === key &&
         !item.revoked_at);
-      return row ? { client_id: row.client_id, ...connectionSettings(row) } : null;
+      return row ? { client_id: row.client_id, ...connectionSettings(row),
+        context: row.context || 'customer' } : null;
     },
     async rotateRefreshToken({ refreshToken, clientId, accessToken, newRefreshToken,
       ttlSeconds = 3600 }) {
@@ -255,7 +260,13 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       row.refresh_hash = hashToken(newRefreshToken);
       row.expires_at = clock() + ttlSeconds * 1000;
       tokens.set(row.token_hash, row);
-      return { client_id: row.client_id, ...connectionSettings(row) };
+      return { client_id: row.client_id, ...connectionSettings(row),
+        context: row.context || 'customer' };
+    },
+    async recordDeveloperBoundaryEvent({ surface, context, mode = null, reason, clientId = null }) {
+      if (typeof surface !== 'string' || !surface || typeof context !== 'string' || !context ||
+        typeof reason !== 'string' || !reason) throw new TypeError('Boundary event needs surface, context and reason');
+      boundaryEvents.push({ surface, context, mode, reason, client_id: clientId });
     },
     async revokeOAuthToken({token,clientId}) {
       if(typeof token!=='string'||!token||typeof clientId!=='string'||!clientId)
