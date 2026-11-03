@@ -3,6 +3,11 @@
 Status: **APPROVED** (Chris, 2026-10-10, IN-00; amended the same day — see "Amendments"). Scope and acceptance:
 `docs/PLAN.md` → Batch R. Cards R-1 … R-3. Depends on Batches B and C.
 
+*2026-11-02 annotation:* RTC 2 was adopted by dated owner decision
+2026-10-31 ([HUB-COMPATIBILITY](../HUB-COMPATIBILITY.md), PR #291) as RTC 1's
+successor; the RTC 1 record in this design stands as history, and Batch R's
+remaining conformance proceeds under RTC 2 through its own card.
+
 Chris (2026-10-10) chose this architecture: each service gets its own solid, hosted server (Google Workspace MCP, this
 Stripe MCP, later Vercel, Neon, GitHub, …), and **Robinson's Toolkit** (`Robinson-AI-Systems/robinsons-toolkit-hub`, the
 hub) combines them into one MCP, CLI and HTTPS API for any AI agent, wherever it runs. So this server provides only the

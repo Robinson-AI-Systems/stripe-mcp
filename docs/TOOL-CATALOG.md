@@ -178,18 +178,15 @@ money (dollar preview, daily limit, always confirm).
 **Profile:** `R` read_only and up · `E` everyday and up · `F` full only.
 (Every read tool is in `R`; the column shows the lowest profile that has it.)
 
-## Server about itself (`stripe_*`) — 18
+## Server about itself (`stripe_*`) — 16
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
 | `stripe_whoami` | Selected account, TEST mode, profile, masked key, actual shared USD daily limit/used amount, `server_release` (VER-1 checked release identity) | — | built #16, amount status #28, server_release VER-1 | R |
 | `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
-| `stripe_set_default_account` | Set the default account shown to NEW AI connections; private owner page only, public MCP tool gated | P | private owner action #32; MCP planned | F |
 | `stripe_check_key_permissions` | Re-probe encrypted server-only TEST key; compact/full output and optional fields | — | built #29 | R |
 | `stripe_list_connections` | Selected-account AI connection metadata, never credentials | — | built B-8a | R |
-| `stripe_revoke_connection` | Revoke a particular connection; owner-only private setup flow in B-8b2a, AI-callable tool still gated | C | planned MCP; private owner flow B-8b2a | F |
-| `stripe_enable_live` / `stripe_disable_live` | Enabling remains OFF (IN-06); private owner page can emergency-disable LIVE only (B-8b2b1). Neither is AI-callable yet | C | private disable #31; MCP tools planned | F |
-| `stripe_set_money_limit` | Private owner-only per-account USD cap change; no AI-callable tool yet, every money-out still requires owner consent | C | private owner flow #33; MCP planned | F |
+| `stripe_revoke_connection` | Revoke a particular connection; the registered tool prepares an owner-confirmed revocation for the exact account/client ID — no access is revoked until private owner confirmation (the private owner flow is B-8b2a) | C | built B-8b2a | F |
 | `stripe_recent_changes` | Account-scoped audit summaries without raw snapshots (advanced filters later) | — | built B-8a | R |
 | `stripe_undo_change` | Undo one change-log entry when it has a clean opposite; says plainly when it does not | C | N | E |
 | `stripe_search_tools` | Find tools by plain words; one line each with safety marks (compact mode's front door) | — | built #36 | R |
@@ -217,7 +214,7 @@ money (dollar preview, daily limit, always confirm).
 | `customer_set_default_payment_method` | Which saved method pays invoices | P | built #37 | E |
 | `customer_list_balance_transactions` | Account credit/debit history | — | built #37 | R |
 | `customer_add_balance_credit` | Add credit (or a debit) to a customer's balance | $ | built #37 | E |
-| `customer_list_tax_ids` / `customer_add_tax_id` / `customer_delete_tax_id` | Tax IDs | — / P / C | built #37 | E |
+| `customer_list_tax_ids` / `customer_add_tax_id` / `customer_delete_tax_id` | Tax IDs | — / P / C | built #37 | R list; E add/delete |
 | `customer_remove_discount` | End a customer-level coupon | C | built #37 | E |
 
 ## Payments and refunds (`payment_*`) — 19
@@ -234,7 +231,7 @@ money (dollar preview, daily limit, always confirm).
 | `payment_create_refund` | Refund all or part of a charge or payment, with reason; checks refundable amount first | $ | built #38 | E |
 | `payment_list_refunds` / `payment_get_refund` | Refunds | — | built #38 | R |
 | `payment_update_refund` | Refund metadata | P | built #38 | E |
-| `payment_cancel_refund` | Cancel a refund still pending (bank refunds) | C | built #38 | E |
+| `payment_cancel_refund` | Cancel a refund still pending (bank refunds) | C | built #38 | F |
 | `setup_list` / `setup_get` | Setup intents (saving a payment method) | — | built #38 | R |
 | `setup_cancel` | Cancel a setup intent | C | built #38 | E |
 
@@ -286,8 +283,8 @@ with raw payment method IDs and returned `client_secret` (replaced by
 | `meter_deactivate` / `meter_reactivate` | Turn a meter off or on | C / P | C | F |
 | `meter_record_usage` | Send a usage event (idempotent by event identifier) | P | C | E |
 | `meter_list_usage_summaries` | Usage per customer per period | — | C | R |
-| `alert_list` / `alert_create` / `alert_activate` / `alert_deactivate` / `alert_archive` | Billing usage alerts | — / P / P / P / C | C | F |
-| `credit_list_grants` / `credit_create_grant` / `credit_void_grant` | Billing credit grants | — / $ / C | N | F |
+| `alert_list` / `alert_create` / `alert_activate` / `alert_deactivate` / `alert_archive` | Billing usage alerts | — / P / P / P / C | C | R list; F writes |
+| `credit_list_grants` / `credit_create_grant` / `credit_void_grant` | Billing credit grants | — / $ / C | N | R list; F writes |
 
 Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summaries`
 (Stripe removed legacy usage records; meters replace them).
@@ -334,18 +331,18 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `coupon_delete` | Delete a coupon | C | C | E |
 | `promo_list` / `promo_get` / `promo_find_by_code` | Promotion codes | — | C/C/R | R |
 | `promo_create` / `promo_update` | Codes customers type | P | C | E |
-| `feature_list` / `feature_create` | Entitlement features | — / P | C | F |
-| `feature_attach_to_product` / `feature_detach_from_product` / `feature_list_for_product` | Product features | P / C / — | C/N/C | F |
+| `feature_list` / `feature_create` | Entitlement features | — / P | C | R list; F create |
+| `feature_attach_to_product` / `feature_detach_from_product` / `feature_list_for_product` | Product features | P / C / — | C/N/C | R list; F attach/detach |
 | `entitlement_list_active` | What a customer is entitled to | — | C | R |
-| `taxrate_list` / `taxrate_get` / `taxrate_create` / `taxrate_update` | Manual tax rates (the app uses these) | — / — / P / P | C | E |
+| `taxrate_list` / `taxrate_get` / `taxrate_create` / `taxrate_update` | Manual tax rates (the app uses these) | — / — / P / P | C | R reads; E writes |
 
 ## Stripe Tax (`tax_*`) — 12
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `tax_get_settings` / `tax_update_settings` | Stripe Tax head office and defaults | — / C | C | F |
+| `tax_get_settings` / `tax_update_settings` | Stripe Tax head office and defaults | — / C | C | R read; F update |
 | `tax_calculate` | Tax on a basket for an address | — | C | R |
-| `tax_list_registrations` / `tax_add_registration` / `tax_end_registration` | Where you are registered to collect | — / C / C | N | F |
+| `tax_list_registrations` / `tax_add_registration` / `tax_end_registration` | Where you are registered to collect | — / C / C | N | R list; F add/end |
 | `tax_list_transactions` / `tax_get_transaction` | Recorded tax transactions | — | C | R |
 | `tax_record_transaction` / `tax_reverse_transaction` | Record from a calculation, or reverse | C | N | F |
 | `tax_list_codes` / `tax_get_code` | Tax codes | — | C | R |
@@ -360,9 +357,9 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `money_list_payout_transactions` | TEST automatic payout balance transactions (manual payouts refused) | — | built #79 | R |
 | `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts; TEST pending manual cancel guarded | $ / C / $ | cancel built #81; create built #82; reverse built #83 (CI pending) | F |
 | `money_update_payout` | TEST payout metadata only, guarded | P | built #81 (CI pending) | F |
-| `money_get_payout_schedule` / `money_set_payout_schedule` | TEST own-account schedule read (built #80); change is planned with owner guard | — / C | read #80; setter built #87 (CI pending); guided own-account refusal | F |
+| `money_get_payout_schedule` / `money_set_payout_schedule` | TEST own-account schedule read (built #80); change is planned with owner guard | — / C | read #80; setter built #87 (CI pending); guided own-account refusal | R read; F set |
 | `money_list_bank_accounts` | TEST own-account payout destinations, last4 only; explicit unavailable on Connect-only API denial | — | built #80 | R |
-| `money_list_topups` / `money_get_topup` | TEST top-up reads, no bank/source leakage | — | built #79 | F |
+| `money_list_topups` / `money_get_topup` | TEST top-up reads, no bank/source leakage | — | built #79 | R |
 | `money_create_topup` / `money_cancel_topup` | TEST synthetic-bank top-up (owner approved) / pending cancel | $ / C | built #84 (CI pending); real bank OFF | F |
 
 Removed on purpose: `stripe_create_bank_account`, `stripe_verify_bank_account`,
@@ -403,12 +400,12 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 | `event_list_undelivered` | TEST Events with provider delivery_success=false; no app processing claim | — | built #103 | R |
 | `webhook_list` / `webhook_get` | TEST endpoint status/origin and bounded event subscriptions; paths, query and secrets redacted | — | built #104 | R |
 | `webhook_create` | Guarded TEST endpoint, durable immutable retry; Stripe signing secret only on the independently authenticated one-time owner setup page, never in chat | C | built #109 | F |
-| `webhook_update` | Guarded native TEST URL or description update with exact stale-plan refusal; event subscriptions unchanged | C | built #110 | F |
+| `webhook_update` | Guarded native TEST URL or description update with exact stale-plan refusal; event subscriptions unchanged | C | built #110 | E |
 | `webhook_add_events` / `webhook_remove_events` | Confirmed TEST set union/difference preserving unrelated subscriptions, exact provider read-back | P / C | built #105 | E |
-| `webhook_delete` | Guarded native TEST webhook deletion with provider tombstone verification | C | built #110 | F |
+| `webhook_delete` | Guarded native TEST webhook deletion with provider tombstone verification | C | built #110 | E |
 | `webhook_check_signature` | Validate TEST payload/signature using encrypted, owner-provisioned endpoint secret; return only event ID/type | — | built #111 | F |
 
-## Developer tools (`dev_*`, `testclock_*`) — 23 (test mode only; `docs/designs/BATCH-V.md`)
+## Developer tools (`dev_*`, `testclock_*`) — 27 (test mode only; `docs/designs/BATCH-V.md`)
 
 Building with Stripe on any project: realistic test data, precise cleanup, real test events, forwarding events into an
 app under development, and time travel. Every tool refuses on a live connection.
@@ -421,18 +418,18 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `dev_seed_refund` | One owner-approved full refund of a run-owned TEST store charge, with verified ledger entry | $ | built #49 | E |
 | `dev_confirm_seed_ach` | Confirm an unconfirmed run-owned TEST ACH intent and verify Stripe processing/action/success; no settlement assertion | P | built #55 | E |
 | `dev_verify_outcomes` | Verify actual run-owned TEST dispute events, ACH state and exact succeeded event; never infer settlement or webhook delivery | — | built #51/#55 | R |
+| `dev_reconcile_original_event` | Reconcile an existing independently verified original TEST Event into its immutable run ledger (no provider write is issued) | P | built V-3 | E |
 | `dev_cleanup` | Safely clean recorded TEST IDs, with zero-balance seller and dependency-free clock deletion; immutable money retained | C | built #57/#58 | E |
 | `dev_reset_test_data` | Owner-guided TEST Dashboard reset, no fake bulk-delete API | — | V-2a #57 | R |
-| `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (seventeen types through V-3c3d; additional curated types later) | — / P | V-3a #59 / V-3b #60 / V-3c1 #61 / V-3c2 #62 / V-3c3a #63 / V-3c3b #64 / V-3c3c #65 / V-3c3d (hosted native TEST Checkout); more pending | E |
-| `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | Guarded TEST register/list/soft-delete. A target's signing secret is shown only via owner-password-protected one-time setup page; no MCP secret exposure. Outbound sending is V-4c. | C / — / C | built #69 | E |
+| `dev_list_triggers` / `dev_trigger_event` | Current TEST events via true guarded provider actions and independently verified Event IDs (seventeen types through V-3c3d; additional curated types later) | — / P | V-3a #59 / V-3b #60 / V-3c1 #61 / V-3c2 #62 / V-3c3a #63 / V-3c3b #64 / V-3c3c #65 / V-3c3d (hosted native TEST Checkout); more pending | R list; E trigger |
+| `dev_create_forwarder` / `dev_list_forwarders` / `dev_delete_forwarder` | Guarded TEST register/list/soft-delete. A target's signing secret is shown only via owner-password-protected one-time setup page; no MCP secret exposure. Outbound sending is V-4c. | C / — / C | built #69 | R list; E create/delete |
 | `dev_forward_events` | Guarded TEST-only signed replay of up to five independently verified original Stripe Events (IDs or since/type); durable per-event HTTP status; uncertain retries never auto-resend | C | built #71 | E |
 | `testclock_list` | Read TEST clock status and frozen time; inspect one exact clock ID | — | built #53 | R |
 | `testclock_create` / `testclock_advance` | Create or advance guarded TEST clocks; async advance is only confirmed when provider ready | P / P | built #53 | E |
-| `testclock_delete` | Delete a TEST clock after validating dependent records and destructive impact | C | planned V-5 | F |
 | `dev_simulate_subscription` | Guarded TEST setup, one-cycle clock advance, inspect and independently verify exact renewal invoice, PaymentIntent and original Stripe Event; 1–3 months | P | setup #73; advance #76; observation #77 | E |
 | `dev_test_cards` | Published TEST-only synthetic card/ACH PaymentMethod IDs, not card or bank numbers; safe case filters and pagination, no provider call | — | built #72 | R |
 
-## Reports and account (`report_*`, `account_*`) — 10
+## Reports and account (`report_*`, `account_*`) — 11
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
@@ -522,11 +519,12 @@ Optional, for any app you build whose own code runs Stripe billing. See `docs/de
 | `project_list_profiles` / `project_get_profile` / `project_record_link` | Public selected TEST account project directory and verified app route navigation | — | Built P-1/P-2 | R |
 | `project_bind_profile_account` / `project_enable_scoped_ownership` | Separate owner-confirmed TEST app/account binding and explicit legacy-to-scoped activation | C | Built P-1/P-2 | F |
 | `project_draft_profile` | Draft app contract and APP-NEEDS text from explicit safe observed findings; unknown events reported, no code fetched or cross-repo commit | — | Built P-4 | R |
-| `workflow_app_readiness` | Is Stripe set up for this project (test or live; a profile or an inline spec for a project being built)? Every need: done / fixed (with confirm) / needs you (link + clicks) / needs a decision; prints the exact permission list for the project's own restricted key | C* (only when applying a fix) | N | E |
+| `workflow_app_readiness` | Is Stripe set up for this project (test or live; a profile or an inline spec for a project being built)? Every need: done / fixed (with confirm) / needs you (link + clicks) / needs a decision; prints the exact permission list for the project's own restricted key | C* (only when applying a fix) | N | R |
+| `workflow_app_readiness_fix` | Individually confirmed TEST repair of one observed P-3 gap through its guarded native tool | C | built P-3 | F |
 | `workflow_project_setup` | Preview and individually confirm one durable TEST setup step at a time; wrapped webhook/Portal/payment/branding/catalog, then inactive draft + APP-NEEDS text, no guessed configuration or automatic pending replay | C | Built P-4 | F |
 | `project_portal_create` | New TEST Billing Portal configuration with four explicit owner policy flags, guarded confirmation and provider readback | C | Built P-4 | F |
 
-## Workflows (`workflow_*`) — 13
+## Workflows (`workflow_*`) — 16
 
 Each runs several Stripe calls and answers in plain English. Read-only ones
 are marked `R`; the rest preview first and confirm before money moves.
@@ -539,9 +537,9 @@ are marked `R`; the rest preview first and confirm before money moves.
 | `workflow_refund_customer` | Find the right charge from a plain description ("their deposit from last month"), show refundable amount, refund with reason, read back | $ | E |
 | `workflow_cancel_customer` | Cancel subscriptions (now or period end), optional prorated or full refund, optional void open invoices; one preview of everything first | $ | E |
 | `workflow_change_plan` | Find the subscription, show the exact price difference, apply, read back | $ | E |
-| `workflow_dispute_kit` | Gather what the dispute needs (customer, receipt, invoice, the signed agreement via the project profile's record links, refund policy), draft evidence, save it, and list what Chris must add before the deadline. Submitting stays a separate confirmed step | P | E |
-| `workflow_webhook_health` | For each endpoint: enabled events vs what each profiled project needs, undelivered events in the last 3 days, test/live parity; offers the exact fix (calls `webhook_add_events`) | C* (only when applying the fix) | E |
-| `workflow_go_live_checklist` | Compares test and live for an account: activation, what Stripe still needs, webhook endpoints and events, portal, payment methods, descriptor, branding; runs `workflow_app_readiness` for each profiled project on the account; offers to copy catalog items to live **only** for projects that don't create their own (confirm, live) | C* | F |
+| `workflow_dispute_kit` | Gather what the dispute needs (customer, receipt, invoice, the signed agreement via the project profile's record links, refund policy), draft evidence, save it, and list what Chris must add before the deadline. Submitting stays a separate confirmed step | P | R |
+| `workflow_webhook_health` | For each endpoint: enabled events vs what each profiled project needs, undelivered events in the last 3 days, test/live parity; offers the exact fix (calls `webhook_add_events`) | C* (only when applying the fix) | R |
+| `workflow_go_live_checklist` | Compares test and live for an account: activation, what Stripe still needs, webhook endpoints and events, portal, payment methods, descriptor, branding; runs `workflow_app_readiness` for each profiled project on the account; offers to copy catalog items to live **only** for projects that don't create their own (confirm, live) | C* | R |
 | `workflow_month_end_close` | For a calendar month: gross, refunds, disputes, fees, net, payouts and what each contained, tax collected, plus a report-run download link for the accountant | — | R |
 | `workflow_set_up_catalog` | Create products and prices from a plain list ("washer/dryer pair, $65 a month"), using lookup keys so running it twice changes nothing | P | E |
 | `workflow_brand_business` | One sentence sets up how a business looks and reads everywhere on Stripe: uploads logo/icon, sets colors (account-wide where allowed), saves the brand kit, statement descriptor, public support details, invoice footer, portal links; previews all of it first and finishes with a test Checkout link to look at. The Stripe version of the Workspace server's `workflow_brand_mailbox` | C | F |
@@ -615,17 +613,36 @@ so an agent that has a browser (Claude in Chrome, Claude's own browser) can
 carry them out with Chris watching and approving, and then the server checks
 the result where Stripe lets it read the setting back.
 
+## Planned, not built (not in the registry)
+
+These names are approved plan items only. None of them is a registered tool
+(the registry counted for the Totals below has no tool under any of these
+names), no connection can call them, and they stay out of the tool tables
+above so unbuilt names are never dressed as catalog rows:
+
+- `stripe_set_default_account` — Set the default account shown to NEW AI connections; private owner page only, public MCP tool gated (P; private owner action #32; profile F).
+- `stripe_enable_live` / `stripe_disable_live` — Enabling remains OFF (IN-06); private owner page can emergency-disable LIVE only (B-8b2b1). Neither is AI-callable yet (C; private disable #31; profile F).
+- `stripe_set_money_limit` — Private owner-only per-account USD cap change; no AI-callable tool yet, every money-out still requires owner consent (C; private owner flow #33; profile F).
+- `testclock_delete` — Delete a TEST clock after validating dependent records and destructive impact (C; planned V-5; profile F).
+
 ## Totals
 
-302 hand-built tools plus the 4 universal `api_*` tools (306 in all; 322 with Connect), plus guided settings for
-every dashboard-only owner setting. The universal tools reach every other Stripe operation. The `everyday` profile
-has about 125; `read_only` about 115 (B-6 prints the exact numbers). In compact mode (`docs/designs/BATCH-C.md`)
-an agent loads only about 20 of them up front and reaches the rest through
-`stripe_search_tools` / `stripe_call`.
+**Counted from the registry in source on 2026-11-03** (`src/tools/index.js`
+loaded and counted programmatically; re-count when the registry changes):
+**322 tools are registered** — 318 hand-built tools plus the 4 universal
+`api_*` tools — plus guided settings for every dashboard-only owner setting.
+The universal tools reach every other Stripe operation. No `connect_*` tool
+is registered: the Connect section above is optional and unscheduled, and its
+16 planned names are not part of this count. Declared profile visibility is
+`read_only` 155, `everyday` 248 and `full` 322. A connection is served less
+than the declared visibility: a TEST connection's catalog listing is
+guard-filtered to 155 / 227 / 301 by profile, and in compact mode
+(`docs/designs/BATCH-C.md`) an agent loads only 16 / 16 / 24 of them up front
+and reaches the rest through `stripe_search_tools` / `stripe_call`.
 
 ## Implementation notes — B-2 (draft #21)
 
-The LIVE authorization helper is internal only. It does **not** register or expose a tool, enable a live connection, accept a live key, or change the planned 302-tool catalog. Until the owner-controlled activation flow exists, all external write doors remain disabled.
+The LIVE authorization helper is internal only. It does **not** register or expose a tool, enable a live connection, accept a live key, or change the planned tool catalog. Until the owner-controlled activation flow exists, all external write doors remain disabled.
 
 ## Implementation note — B-2b internal owner live-intent flow (#22)
 
