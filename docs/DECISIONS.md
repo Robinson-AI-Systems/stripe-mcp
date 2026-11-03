@@ -1,3 +1,47 @@
+## 2026-11-03 — Design-conformance compensation: record re-baselined to the current Standard; refusal classification and four conversions
+
+- **Owner direction (main chat, 2026-11-03):** the designing to the
+  RAS MCP Specification that was not done is made up now, before
+  further implementation drifts from it. This server's conformance
+  pass (PR #292) conformed the plans to Library D-001 at `063eeff2`;
+  the Standard has since gained three sections (Library PRs #3 and
+  #4, Library `main` `f134c849`): capability completeness, the
+  conformance-correction process, and owner-obedience. Under the
+  correction process each new section opened a correction row here.
+  [RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md) is re-baselined to
+  `f134c849` and extended with rows 15–17; the process status
+  vocabulary (conforms / correctable / ruled exception /
+  not applicable) is adopted alongside the evidence labels.
+- **Capability completeness (row 15):** CAP-1 stands as the
+  retroactive census for the API surface. The census's remaining
+  elements — beside-API and substrate dispositions, workflow-frequency
+  research, and the consumer test — are owed as a census addendum
+  filed with CAP-4's card, before CAP-4's gap set freezes. The front
+  door's depth line must cite the census, not the tool count; that
+  correction rides the branded front door (row 8).
+- **Owner-obedience classification (row 17):** a source census of all
+  233 runtime files classified 47 refusal mechanisms: 36 aim checks
+  (kept hard), 4 non-convertible boundaries, 3 platform rules, 4
+  convertible vetoes. Decided dispositions: the money-out exact
+  approval, the daily cap with its second override, and pass money
+  ceilings are aim checks already in confirmed-action shape and do
+  **not** convert; the passphrase lockout stays hard; the
+  developer-context LIVE wall is a non-convertible boundary.
+- **Four conversions are designed, not built:** V1 the LIVE
+  enablement deployment-flag stop (IN-06's owner approval is
+  unchanged; only the additional flag that outranks the owner's
+  completed ceremony converts), V2 the LIVE write static allowlists
+  and TEST-only handlers (family by family; the money gates are
+  untouched by the mode conversion), V3 the catalog `outsideApp`
+  categorical ban, V4 the pass/revoke preparation gate. Each is an
+  implementation card under normal discipline and closes only on
+  live evidence. Four unclassified items are recorded in row 17 as
+  defects with owners (CAP-4 takes the LIVE-reads family and the
+  universal-door classification engineering; CAP-3 takes the tenancy
+  census when it wires that code to a door).
+- This entry records design and classification decisions only: no
+  code, refusal behavior, deployment, or LIVE state changed.
+
 ## 2026-11-03 — Resource wall removed by owner ruling; audit rulings; owner-credential promotion route
 
 - **Resource parameter (owner ruling, main chat 2026-11-03):** the
