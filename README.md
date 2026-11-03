@@ -1,11 +1,15 @@
-# Robinson Stripe MCP
+# Stripe Unleashed by Robinson AI Systems
 
-**Stripe by Robinson AI Systems** — standalone remote Stripe MCP server
-for authorized account owners and their AI clients. Source implementation of
-the 57 original roadmap subsections is merged; the new CAP-2..CAP-5 authorization and functional
-multi-user identity, Stripe App OAuth and optional God Mode expansion remains
-unfinished. This repo is **deployed in TEST-oriented development** but is
-**not independently accepted for broad public or LIVE financial use**.
+**Stripe Unleashed by Robinson AI Systems** — standalone remote Stripe MCP
+server for authorized account owners and their AI clients. Source
+implementation of the 57 original roadmap subsections is merged. The CAP-3
+connection source — client ID cards (CIMD) and the corrected one-sign-in
+consent journey — and the VER-1 release identity are also merged in source,
+labelled `FIXED IN SOURCE / NOT VERIFIED LIVE`. What remains unfinished is
+the human identity provider, Stripe App installation, the My Connection
+settings screen and CAP-5 live acceptance. This repo is **deployed in
+TEST-oriented development** but is **not independently accepted for broad
+public or LIVE financial use**.
 
 Connect using the authenticated remote MCP URL `/api/mcp` on the verified
 service origin. Current legacy setup uses a protected owner page and verified

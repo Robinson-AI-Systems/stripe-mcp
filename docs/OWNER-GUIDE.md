@@ -104,7 +104,13 @@ The planned default connection for **Stripe by Robinson AI Systems** is:
 add remote MCP to ChatGPT/Claude → verify the person → visit Stripe's owned
 App OAuth installation/consent → approve one clear, account-scoped final
 client page → return automatically. The existing owner-only key setup
-continues to work while the new system is built. The [full specification](designs/STRIPE-CONNECTION-GOD-MODE.md) distinguishes the Stripe App account
+continues to work while the new system is built.
+
+> **Superseded (2026-11-03):** the product name is now **Stripe Unleashed by
+> Robinson AI Systems** and the product mark is the Unleashed Break-Out; the
+> Robinson AI Systems R logo remains the company/publisher mark only. See the
+> 2026-11-02 entry in [DECISIONS.md](DECISIONS.md). This entry stands as the
+> 2026-10-23 record. The [full specification](designs/STRIPE-CONNECTION-GOD-MODE.md) distinguishes the Stripe App account
 grant from the human identity and explains TEST/LIVE and consent guards.
 
 **God Mode is optional**: connect additional verified account/organization

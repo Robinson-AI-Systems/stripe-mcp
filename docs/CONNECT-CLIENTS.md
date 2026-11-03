@@ -11,7 +11,7 @@ settings on the connection, never separate sign-ins.
 **Addresses.** The server's identity is its branded address,
 `https://stripe.robinsonaisystems.com` (MCP endpoint
 `https://stripe.robinsonaisystems.com/api/mcp`). The branded address is
-reserved and advertised; until the brand/domain cutover in
+reserved; not yet attached or serving. Until the brand/domain cutover in
 [STRIPE-BRAND-DOMAIN](designs/STRIPE-BRAND-DOMAIN.md) completes, the
 same snippets work unchanged with the current deployment origin
 `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` in place of the
@@ -50,6 +50,15 @@ card, the owner's browser opens the server's consent screen, and the
 client returns automatically after approval.
 
 ## Muse
+
+> **Before you copy-paste any snippet on this page:** every snippet
+> below (this one, the JSON config and the Hermes YAML) names the
+> branded host `stripe.robinsonaisystems.com`, which does not answer
+> yet. Until the brand/domain cutover completes, replace that host in
+> each snippet with the current deployment origin,
+> `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app`, keeping the
+> `/api/mcp` path. The snippets then work as written, and will work
+> unchanged with the branded host once it serves.
 
 ```bash
 claude mcp add --transport http stripe-unleashed https://stripe.robinsonaisystems.com/api/mcp
@@ -90,6 +99,9 @@ mcp_servers:
     url: "https://stripe.robinsonaisystems.com/api/mcp"
     transport: streamable-http
 ```
+
+(Reminder: substitute the current deployment origin for the branded
+host, as in the banner above, until the cutover completes.)
 
 ## Bearer / pass access (RTC doors)
 
