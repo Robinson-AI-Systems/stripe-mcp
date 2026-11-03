@@ -1,3 +1,44 @@
+## 2026-11-03 — Design-conformance compensation: conformance record re-baselined and extended to 17 rows
+
+On Chris's direction, the designing to the RAS MCP Specification that
+was not done has been made up before further implementation continues.
+The conformance record was written against Library D-001 at `063eeff2`;
+the Standard has since gained capability completeness, the
+conformance-correction process, and owner-obedience (Library `main`
+`f134c849`). [RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md) is
+re-baselined to that text and extended with rows 15–17, and the
+correction process's status vocabulary is adopted with a per-row
+process-status map.
+
+- **Row 15 (capability completeness):** CAP-1 stands as the retroactive
+  census for the API surface (644 operations). The census addendum for
+  substrate dispositions, workflow-frequency research, and the consumer
+  test is owed with CAP-4's card; the front-door depth line must cite
+  the census and rides the branded cutover.
+- **Row 16 (correction process):** steps 0–2 are recorded as done (two
+  audits with degradations declared, the retroactive census, this
+  record); the row closes when every row conforms or carries a ruled
+  exception with live proof filed.
+- **Row 17 (owner-obedience):** a read-only source census of all 233
+  runtime files classified **47 refusal mechanisms — 36 aim checks,
+  4 non-convertible boundaries, 3 platform rules, 4 convertible
+  vetoes** — filed as the row's appendix. The four conversions (LIVE
+  enablement deployment-flag stop; LIVE write allowlists and TEST-only
+  handlers; catalog `outsideApp` ban; pass/revoke preparation gate)
+  are designed, not built; each is a future card closing on live
+  evidence. Four unclassified items are recorded as defects with
+  owners in CAP-3/CAP-4. Money-out approval, the daily cap, and the
+  passphrase lockout were examined in full and classified as aim
+  checks that do not convert.
+- [COMPLETION](COMPLETION.md) carries rows 15–17 in its conformance
+  schedule and its shortest-answer remainder. The decisions and
+  grounds are recorded in [DECISIONS](DECISIONS.md) (2026-11-03,
+  design-conformance compensation).
+- This update is documentation and design only: no code, refusal
+  behavior, deployment, provider state, money state, or LIVE
+  authorization changed. The deployed baseline remains `live` =
+  `c95f9cf0160f85f59789a11d1885e422ec84770b`.
+
 ## 2026-11-03 — Completion audit reconciled; finished-product schedule published
 
 A second, fresh documentation-versus-code-and-stack audit was run at

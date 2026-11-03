@@ -75,7 +75,7 @@ not close any product requirement by itself.
 | Work index | **59 of 63 units `MERGED`**; CAP-2 and CAP-3 `IN_PROGRESS`; CAP-4 and CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4/CAP-5 card files are intentionally absent until their just-in-time card is written at start. |
 | Protected provider acceptance queue | **13 PASSED / 30 PENDING of 43.** Of the pending rows, **29 are Stripe-owned** and **1 is Hub-owned optional**. | The 29 Stripe-owned rows include the `STRIPE-TEST` aggregate, so the count is a ledger count, not 29 unrelated features. The Hub row is not a standalone-product gate. |
 | Session planner view | `scripts/session-status.mjs` reports 42 waiting/verification tasks plus the Hub-owned optional task. | This overlaps the queue above: it treats recorded passes as deployment-recheck items. Do not add 42 to 30. The queue dispositions remain 13 passed and 30 pending. |
-| RAS MCP conformance | **14 numbered rows**, not 16. | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. The other rows are partial, planned, plan-conforming, or recorded as described in the conformance table. |
+| RAS MCP conformance | **17 numbered rows** (14 at the 2026-11-02 pass; rows 15–17 opened 2026-11-03 by the Specification's new sections). | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. Rows 15–17 record the design-conformance compensation: the capability census is incomplete past its API element, the correction process is running, and four owner-facing refusals are designed for conversion to confirmed actions. |
 | CAP-5 knock-test component | **Passed** at deployed release `5b5f701c`. | It proves the real client-ID-card journey, owner approval, no-`resource` authorize/token behavior, refresh rotation and refusal of the old refresh token, `stripe_whoami`, revocation, and refusal after revocation. It does not complete the CAP-5 unit or the full client matrix. |
 | Current release identity and health | **Verified live at `c95f9cf0`** for the public front door, health, and contract surfaces. | Authenticated `initialize`/`stripe_whoami` were exercised at immediate parent `5b5f701c`; the only intervening change was documentation, so the code behavior carries to `c95f9cf0`. |
 | Branded identity/domain | **Not cut over.** | The configured identity is still a platform hostname, the publicly serving hostname is a different platform alias, and the branded hostname is inactive. |
@@ -177,7 +177,12 @@ Still required:
    CAP-4's design depends on CAP-1, CAP-2, and CAP-3.
 2. Derive the active gap set from CAP-1, prioritizing Connect platform and
    connected-account lifecycle and organization context, then payment,
-   billing, Tax, event, and advanced entitled-product gaps.
+   billing, Tax, event, and advanced entitled-product gaps. Before the
+   set is frozen, file the capability-census addendum conformance row 15
+   requires (substrate dispositions, workflow-frequency research, and
+   the consumer test), and take in the two engineering items row 17 left
+   unclassified: the read tools that refuse LIVE data Stripe serves, and
+   the universal door's unclassified non-money operations.
 3. Reconcile that set with original unfinished cards so existing work keeps
    its original ID and is not double-counted.
 4. Write and freeze the just-in-time CAP-4 card and its request, credential,
@@ -238,9 +243,13 @@ CAP-5 cannot finally close before CAP-2, CAP-3, and CAP-4 are complete.
 | 12. No global credential fallback | **CONFORMS at plan level.** | The governing design states the rule. Future CAP-2/CAP-3 implementation and CAP-5 proof must continue to demonstrate it; this row supplies no independent live pass. |
 | 13. Version evolution | **CONFORMS at plan level.** | Additive/fail-closed evolution remains a continuing rule for later changes, not a completed acceptance event. |
 | 14. Pattern appraisal guardrails | **RECORDED; remote coding runtime NOT APPLICABLE.** | No further baseline work. |
+| 15. Capability completeness | **CORRECTABLE.** | CAP-1 censused the API surface (644 operations). Still owed: beside-API and substrate dispositions, the workflow-frequency research, and the consumer test — all filed as a census addendum with CAP-4's card — plus the front-door depth line citing the census instead of the tool count, which rides the branded cutover. |
+| 16. Conformance-correction process | **CORRECTABLE — process running.** | Steps 0–2 are done (two declared-degradation audits, the retroactive census, this record at 17 rows). The row closes when every row conforms or carries a ruled exception with live proof filed. |
+| 17. Owner-obedience | **CORRECTABLE.** | All 47 refusal mechanisms are classified in the conformance record: 36 aim checks kept hard, 4 non-convertible boundaries, 3 platform rules, and **4 convertible vetoes** whose conversions are designed but not built — the LIVE enablement deployment-flag stop, the LIVE write allowlists/TEST-only handlers, the catalog `outsideApp` ban, and the pass/revoke preparation gate. Four unclassified items are recorded as defects (incl. read tools that refuse LIVE data Stripe serves). Each conversion closes only on live proof. |
 
-The conformance file contains **14** numbered rows. Any older reference to
-16 rows is superseded by this count.
+The conformance file contains **17** numbered rows (14 from the 2026-11-02
+pass plus rows 15–17 opened by the Specification's 2026-11-03 sections).
+Any older reference to 16 rows is superseded by this count.
 
 ## Branded domain, identity, and public front-door schedule
 
@@ -375,8 +384,11 @@ Stripe Unleashed by Robinson AI Systems product.
 Stripe Unleashed by Robinson AI Systems still needs: CAP-2 completion;
 CAP-3's human identity, Stripe App, executable tenant grants, migration,
 God Mode, and My Connection work; CAP-4's frozen and implemented workflow
-gaps; CAP-5's full independent acceptance and client matrix; the
-developer-boundary live pair; the 29 Stripe-owned protected acceptance rows;
+gaps (with the capability-census addendum filed first); CAP-5's full
+independent acceptance and client matrix; the developer-boundary live
+pair; the four owner-obedience conversions (LIVE enablement flag, LIVE
+write allowlists, catalog `outsideApp` ban, pass/revoke preparation
+gate), each live-proven; the 29 Stripe-owned protected acceptance rows;
 the branded-domain/identity and public front-door completion; and the
 production-readiness gate. Only after those are complete—and separately,
 only with Chris's authorization for launch or per-account LIVE use—can it

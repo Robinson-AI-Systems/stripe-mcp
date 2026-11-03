@@ -13,6 +13,22 @@ The existing roadmap, acceptance, security/review and release procedures still a
 > CAP-3 have partial source implementations, and one CAP-5 component (the
 > CIMD live knock test) has passed. Current unit dispositions and the
 > remaining work are reconciled in [COMPLETION](../COMPLETION.md).
+>
+> **Design-conformance note (2026-11-03, later):** this design predates
+> three sections of the RAS MCP Standard (Library D-001) — capability
+> completeness, the conformance-correction process, and owner-obedience
+> — now carried as rows 15–17 of
+> [RAS-MCP-CONFORMANCE](../RAS-MCP-CONFORMANCE.md). The CAP units inherit
+> three obligations from those rows: CAP-4's gap derivation runs the
+> census elements row 15 records (substrate dispositions,
+> workflow-frequency research, consumer test) before its gap set
+> freezes, and takes in row 17's two engineering items (LIVE-refusing
+> read tools; universal-door classification); CAP-3 owes a refusal
+> census pass when its tenancy code is wired to a door; and CAP-5's
+> acceptance includes the live proofs that close row 17's four
+> conversions. Owner-obedience binds only the owner's own connection —
+> nothing in those rows widens any delegate, profile, pass, or
+> developer grant in this design.
 
 
 ## Binding product rules

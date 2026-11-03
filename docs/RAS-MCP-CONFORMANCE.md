@@ -17,13 +17,30 @@ acceptance runs, its implementation status stays `DESIGNED / NOT VERIFIED`
 > current schedule is [COMPLETION](COMPLETION.md); in case of a summary
 > conflict, the row's latest dated evidence plus COMPLETION govern.
 
+> **Design-conformance compensation (2026-11-03, later):** Chris directed
+> that the designing to the RAS MCP Specification that was not done be
+> made up before further implementation drifts from it. The Specification
+> gained three sections on 2026-11-03 — capability completeness, the
+> conformance-correction process, and owner-obedience — after this record
+> was written against the older text. Under the correction process, each
+> new section automatically opened a correction row on this server. This
+> record is therefore re-baselined to Library D-001 at Library `main`
+> `f134c849038e1845a70e8e1d5a569859571b15f2` (2026-11-03) and extended
+> with rows 15–17 below: **17 numbered rows**. The correction process's
+> status vocabulary (conforms / correctable / ruled exception /
+> not applicable) is adopted in the process-status map under Status
+> vocabulary; rows keep their evidence labels alongside it.
+
 ## Governing specification
 
 - [Library D-001 — the RAS MCP Standard](https://github.com/Robinson-AI-Systems/library/blob/main/designs/ras-mcp-standard.md),
   Robinson-AI-Systems/library, read at main `063eeff2` (2026-11-02), including
   the 2026-11-02 amendments: the fleet developer access boundary, VER-1
   release provenance, the cross-server pattern appraisal, the client ID-card
-  (CIMD) contract and its promulgation plan.
+  (CIMD) contract and its promulgation plan. **Re-baselined 2026-11-03**
+  to Library `main` `f134c849038e1845a70e8e1d5a569859571b15f2`, which adds
+  the 2026-11-03 sections: capability completeness, the
+  conformance-correction process, and owner-obedience (rows 15–17).
 - The Standard's promulgation table names Vercel, GitHub, Workspace, Dokploy
   and Neon; it does not carry a Stripe row. This record is Stripe's row,
   kept here in the style of [HUB-COMPATIBILITY](HUB-COMPATIBILITY.md), and it
@@ -43,6 +60,32 @@ acceptance runs, its implementation status stays `DESIGNED / NOT VERIFIED`
   this pass; each correction is also named in the PR body.
 - **NOT APPLICABLE** — the requirement does not bind this server, with the
   reason stated.
+
+**Process status (adopted 2026-11-03 from the conformance-correction
+process).** Each row also carries the correction process's status —
+**conforms / correctable / ruled exception / not applicable** — which
+describes the plan's position against the current Standard, separately
+from the evidence label in its heading:
+
+| Row | Process status |
+|---|---|
+| 1. Client compatibility | correctable (CAP-5 matrix and handshakes) |
+| 2. Client ID cards (CIMD) | conforms (component live-closed) |
+| 3. One public sign-in | correctable (My Connection settings screen, CAP-3) |
+| 4. Developer access boundary | correctable (live pair) |
+| 5. Release provenance — VER-1 | conforms (live-closed) |
+| 6. Identity anchoring | correctable (branded cutover) |
+| 7. Unleashed branding and naming | correctable (D-005 claim at first marked surface) |
+| 8. Branded front door | correctable (row 8 items (a), (c), (d), (e); `/` route question) |
+| 9. Fleet health contract | conforms (live-closed) |
+| 10. Production readiness gate | correctable (gate not yet passed) |
+| 11. Discovery & contract governance (RTC) | conforms (plan level) |
+| 12. No global credential fallback | conforms (plan level) |
+| 13. Version evolution | conforms (plan level) |
+| 14. Pattern appraisal guardrails | not applicable (remote coding runtime; recorded) |
+| 15. Capability completeness | correctable (census elements 2–4; front-door census line) |
+| 16. Conformance-correction process | correctable (process running; closes when all rows conform or carry a ruled exception) |
+| 17. Owner-obedience | correctable (four conversions designed; four unclassified items recorded) |
 
 ## Conformance record
 
@@ -507,6 +550,244 @@ planned. Vercel's issuer logic, Dokploy's permission model and Workspace's
 account scheme are not copied into this service; where a fleet MUST is
 added later it must name its benefit, provider-independent contract,
 negative test, migration cost and where it does not apply.
+
+### 15. Capability completeness — the census before the tool list — CORRECTABLE
+
+The Standard (2026-11-03) requires every server — and every major
+revision of an existing one — to begin from a written capability census:
+(1) the provider's full reachable surface, every item dispositioned
+covered / planned / deliberately out; (2) beyond-API substrate designed
+in from the start; (3) workflow-frequency research that collapses
+repeated call chains into one-call composites; (4) the consumer test —
+the provider's whole project scope done through this one connection,
+with every "no" dispositioned. Completeness is claimed from the census,
+never from the tool count, and the census is a living record.
+
+This server started before the section existed. Scored element by
+element against the retroactive census this process prescribes:
+
+1. **Full reachable surface — covered for the API.** CAP-1 is the
+   retroactive census: 644 unique GA method/path rows (612 v1, 32 v2),
+   five credential kinds per row, provider permission/entitlement kept
+   `UNKNOWN` where unproven, and machine checks that keep the registry
+   and the census consistent. Surfaces beside the API are covered only
+   in part: webhooks and events are inside the API census, and
+   dashboard-only settings are carried by the guided-settings design —
+   but no separate disposition exists for Stripe's CLI or for
+   bulk/export routes beyond their API equivalents.
+2. **Beyond-API substrate — present, never censused.** Test-data
+   lifecycle, event forwarding, test clocks, and project profiles are
+   designed and built, but no census chapter dispositions the substrate
+   Stripe work needs beside the API.
+3. **Workflow frequency — composites built, research unrecorded.** The
+   Batch W workflow tools are one-call composites, but no frequency
+   research record supports them. CAP-4's gap derivation
+   ([COMPLETION](COMPLETION.md)) must run this element before its gap
+   set is frozen.
+4. **Consumer test — never formally run.** No record asks, from the
+   chair of an agent holding only this connection, whether Stripe's
+   whole project scope completes through it, or dispositions the "no"
+   answers.
+
+Two corrections ride existing work: the front door currently cites tool
+counts (322); under this section its depth line must cite the census —
+that correction lands with the branded front door (row 8). And the
+living duty is recorded here: the census re-runs when Stripe ships a
+major API change, when a user hits a gap in real work (the gap enters
+the census first, as a finding), and at each major revision.
+
+**Next step:** a census addendum covering elements 2–4, filed with
+CAP-4's just-in-time card. **Closing proof:** the addendum in this
+repository, plus the census-citing depth line read live at the branded
+origin. Process status: **correctable**.
+
+### 16. Conformance-correction process — bringing a pre-Standard server under the Standard — CORRECTABLE (process running)
+
+The Standard (2026-11-03) names the five-step process this server is
+being corrected under, and the standing rule that a new section of the
+Standard automatically opens a correction row on every existing server.
+This row is that process's record for this server:
+
+- **Step 0 — Freeze and inventory: done twice.** The 2026-11-03
+  documentation-versus-code audit (449 items, frozen at `2b9f19a6`) and
+  the completion audit (frozen at `c95f9cf0`), each with its degradation
+  declared in its record; a degraded phase has never been counted as a
+  clean pass.
+- **Step 1 — Retroactive capability census: done with gaps.** CAP-1,
+  scored in row 15; its missing elements are CAP-4 work, not paperwork.
+- **Step 2 — Conformance record: this file.** Fourteen rows against the
+  2026-11-02 text; extended to seventeen rows against the 2026-11-03
+  text on 2026-11-03, with the process status vocabulary adopted.
+- **Step 3 — Correction plan ordered by risk: [COMPLETION](COMPLETION.md).**
+  Identity and sign-in safety first, then owner authority, then
+  capability completeness, then legibility — the order the completion
+  schedule's remainder already follows.
+- **Step 4 — Correct in place: the standing pattern.** Corrections land
+  as ordinary pull requests at green exact-head checks (PRs #292–#301
+  are the worked examples); the server keeps serving throughout.
+- **Step 5 — Live proof and close-out:** rows close only on live
+  evidence at the checked release. Rows 2, 5, and 9 closed that way;
+  no other row has been closed by paperwork.
+
+**Watch duty accepted:** when the Standard gains a section, a row opens
+here in the next correction pass, dispositioned like any other; the
+census re-runs on row 15's triggers. **Closing proof for this row:**
+every row in this record conforms or carries a ruled exception, with
+its live proof filed. Process status: **correctable**.
+
+### 17. Owner-obedience — confirmed action in place of hard blocks — CORRECTABLE
+
+The Standard (2026-11-03): on the owner's own connection, a dangerous
+action is never refused for the action's own sake; the confirmed-action
+pattern (evaluate, disclose, fingerprint, confirm by naming the
+fingerprint, re-check, journal, verify) replaces the refusal. Aim
+checks are not vetoes and stay hard. Three boundaries can never be
+converted: the tenant wall, secret values never shown back, and the
+platform's own rules reported as the platform's. Every refusal point
+in the server must be inventoried and classified in this record as an
+aim check, a convertible veto, a non-convertible boundary, or a
+platform rule.
+
+**Classification filed 2026-11-03.** A source census swept all 233
+runtime files under `src/` and `api/` (28,814 lines; 1,851 candidate
+refusal lines triaged) and grouped them into **47 mechanisms: 36 aim
+checks, 4 non-convertible boundaries, 3 platform rules, and 4
+convertible vetoes.** The appendix below is the classification of
+record. Spotlight dispositions, checked in full:
+
+- Money-out exact owner approval, the shared daily cap with its second
+  override, and delegated pass money ceilings are **aim checks**: they
+  bind AI and delegate callers, the owner is the approver, the cap is
+  the owner's own setting with owner routes around it, and the flow
+  already implements the confirmed-action shape. They do not convert.
+- The administrator passphrase lockout is an **aim check** (identity
+  proof under brute-force attack), kept hard.
+- The `read_only` profile write refusal and the RTC pass scope
+  refusals are **plan-binding on grants as issued**; they bind
+  delegates and chosen profiles, not the owner's full connection.
+- The developer-context LIVE wall is a **non-convertible boundary**:
+  converting it would let a developer grant mint LIVE customer
+  authority, widening someone else's authority — the one thing the
+  pattern never does.
+
+**The four convertible vetoes** — the complete set found where the
+owner's own connection is hard-refused for the action's own sake.
+Each conversion is an implementation card under normal discipline;
+this document converts nothing. Conversion order: V1 first (it gates
+all LIVE work and its ceremony already exists), then V2 family by
+family, most destructive first, with the money families' own approval
+gates (appendix rows 20–22) untouched by the mode conversion; then
+V3, then V4.
+
+- **V1 — LIVE enablement environment-flag stop** (`src/stripe/setup-page.js`).
+  After passphrase, account-specific consent, a 10-minute intent, and a
+  verified LIVE key, `enable-live` still refuses unless the deployment
+  setting `LIVE_MODE_OWNER_APPROVED` is `true`. Conversion: remove the
+  blanket flag as a hard stop; bind the existing ceremony to a
+  fingerprint of the evaluated state (account, key last-4, environment,
+  intent), re-check at consumption, journal, read back. IN-06's owner
+  approval itself is unchanged — what converts is only the additional
+  flag that outranks the owner's completed ceremony.
+- **V2 — LIVE write static allowlists and TEST-only handlers**
+  (`src/core/profiles.js` and the legacy write handlers). On the
+  owner's full, LIVE-consented connection, whole classes of
+  LIVE-supported writes (payments, invoices, billing, checkout, credit
+  notes, dispute submission, money tools, report runs, file links,
+  customer monetary writes) refuse because they are unreviewed.
+  Conversion per family: provider-derived LIVE preview, plain-words
+  disclosure, confirmation bound to the preview fingerprint, re-check
+  at execution, existing journal and read-back.
+- **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).
+  The one place the owner's explicit ownership acknowledgment — the
+  route the general app-ownership guard accepts — is itself refused.
+  Conversion: evaluate the exact product/price and its marker state,
+  disclose, fingerprint target + marker + previewed change, owner
+  confirms the fingerprint, re-check the marker at apply, journal,
+  read back. The refusal of a write whose ownership is *unclear* stays
+  an aim check.
+- **V4 — Pass/revoke preparation gate** (`src/tools/server.js`). The
+  read-only preparation tools for pass issuance and connection
+  revocation demand a full TEST connection although the owner page
+  completes both in LIVE. Conversion: allow preparation on the owner's
+  full connection in either mode; the consequential step stays on the
+  passphrase-authenticated owner page.
+
+**Unclassified items — recorded as defects, not silently labeled:**
+(1) a family of read tools refuses LIVE connections although Stripe
+serves the same data in LIVE (money/bank/report reads and others) —
+reads should simply obey, so the remedy is engineering (per-reader
+mode review), owned by CAP-4's gap derivation; (2) universal-door
+non-money operations the classifier cannot yet classify — the
+classification engineering is owed, owned by CAP-4; (3) the CAP-3
+tenancy/vault code is unreachable from any door, so it has no live
+refusal point to classify — a census pass is owed when CAP-3 wires it
+to a door; (4) two money-surface wording/eligibility ambiguities on
+the owner setup page (a "TEST request" refusal text over a mode-general
+layer; a money-limit flow staged for "TEST-connected" accounts while
+the cap governs LIVE too) — verify, then correct the wording or the
+eligibility.
+
+**Closing proof:** each conversion live at a checked release, proven
+on the owner's own connection (the action completes after fingerprint
+confirmation and is refused, with a fresh disclosure, when the
+fingerprint has moved); the row closes when all four conversions are
+live-proven and the four unclassified items are classified or
+engineered away. Process status: **correctable**.
+
+#### Appendix to row 17 — refusal-point classification (2026-11-03)
+
+Condensed from the source census; sites are the primary enforcement
+files at baseline `92cdf0c7`. Mechanism numbering is the census's.
+
+| # | Mechanism | Primary sites | Classification |
+|---|---|---|---|
+| 1 | Bearer-token identity (missing/expired/revoked → 401) | `src/core/mcp-auth.js` | aim check |
+| 2 | OAuth authorize-request validation (incl. sent `resource` must name this MCP) | `src/core/oauth-handlers.js` | aim check |
+| 3 | Dynamic client registration metadata bounds | `src/core/oauth-handlers.js` | aim check |
+| 4 | CIMD client-card identity (SSRF-bounded fetch; secret-holding cards refused) | `src/core/cimd.js` | aim check |
+| 5 | Authorization-code redemption (expiry, single use, PKCE match) | `src/core/oauth-handlers.js` | aim check |
+| 6 | Refresh-token lifecycle (rotation; reuse refused) | `src/core/oauth-handlers.js`, `src/db.js` | aim check |
+| 7 | Revocation endpoint ownership (a client revokes only its own tokens) | `src/core/oauth-revocation.js` | non-convertible boundary (client wall) |
+| 8 | Administrator passphrase + IP lockout (5 failures / 15 min) | `src/core/oauth.js`, `src/stripe/setup-page.js` | aim check |
+| 9 | Owner setup-page transport guards (origin, CSRF, body limits) | `src/stripe/setup-page.js`, `src/core/http.js` | aim check |
+| 10 | Owner-action intents (10-minute, consent + passphrase per action) | `src/stripe/setup-page.js` | aim check (confirmed-action shape already) |
+| 11 | Developer handoff identity | `src/developer/handoff.js` | aim check |
+| 12 | Developer-context LIVE wall | `src/developer/access.js`, `src/core/mcp-auth.js` | non-convertible boundary (principal-class wall) |
+| 13 | Profile grant scope and default-deny dispatch (incl. `read_only` write refusal) | `src/core/profiles.js`, `src/core/mcp-server.js`, `src/tools/meta.js` | aim check (plan-binding) |
+| 14 | RTC pass authentication state | `src/core/rtc-http.js`, `src/db.js` | aim check |
+| 15 | RTC pass scope (areas, profile, ceiling, rate limit) | `src/core/rtc-http.js`, `src/core/rtc-passes.js` | aim check (plan-binding) |
+| 16 | Result-handle scope (foreign handle indistinguishable from missing) | `src/tools/server.js`, `src/core/rtc-http.js` | non-convertible boundary (tenant wall) |
+| 17 | RTC pass issuance policy (validated grant terms; credential shown once) | `src/core/rtc-passes.js`, `src/stripe/setup-page.js` | aim check |
+| 18 | Guarded write lifecycle prerequisites (preview, confirm, idempotency key, journal) | `src/core/write.js` | aim check |
+| 19 | Write read-back verification (unverifiable outcome is never reported done) | `src/core/write.js` | aim check |
+| 20 | Money-out exact owner approval | `src/money.js`, `src/db.js`, `src/stripe/setup-page.js` | aim check (confirmed-action shape already) |
+| 21 | Shared daily money cap + second owner override | `src/db.js`, `src/stripe/setup-page.js` | aim check |
+| 22 | Delegated pass money ceiling | `src/db.js` | aim check (plan-binding) |
+| 23 | Non-USD money-out (no verified conversion policy) | `src/money.js`, `src/db.js` | aim check (re-examine if a conversion policy is built) |
+| 24 | LIVE activation state at every door | `src/core/mcp-auth.js`, `src/stripe/provider.js`, `src/tools/live-guard.js` | aim check |
+| 25 | LIVE credential enrollment verification | `src/keys.js`, `src/stripe/setup-page.js` | aim check |
+| 26 | IN-06 LIVE enablement environment-flag stop | `src/stripe/setup-page.js` | **convertible veto — V1** |
+| 27 | LIVE write consent gate (consent carried on the grant) | `src/tools/live-guard.js` | aim check (plan-binding) |
+| 28 | LIVE write static allowlists + TEST-only handlers for real operations | `src/core/profiles.js`, `src/tools/*-writes.js` | **convertible veto — V2** |
+| 29 | Intrinsically TEST-only operations (fixtures, test clocks, synthetic events) | `src/dev/`, `src/tools/dev-*.js`, `src/tools/testclocks.js` | platform rule |
+| 30 | App-ownership guard (general; `outsideApp` acknowledgment is the owner route) | `src/tools/app-guard.js` | aim check |
+| 31 | Catalog `outsideApp` categorical ban | `src/tools/catalog.js` | **convertible veto — V3** |
+| 32 | Portal ownership-unproven refusal | `src/tools/brand-account.js` | aim check (re-examine if an ownership proof is built) |
+| 33 | App-owned customer metadata namespace | `src/tools/customer-writes.js` | aim check |
+| 34 | Undo restrictions (proven exact inverse only) | `src/tools/undo.js` | aim check |
+| 35 | Universal-door financial classification | `src/stripe/universal-policy.js`, `src/tools/universal.js` | aim check (amount proof) |
+| 36 | Secret values never shown back (one-time reveal only) | `src/core/one-time-secrets.js`, `src/tools/util.js` | non-convertible boundary |
+| 37 | Stripe's own answers reported as Stripe's | `src/keys.js`, `src/tools/errors.js`, `src/stripe/client.js` | platform rule |
+| 38 | Client construction mode proof (key mode must match requested mode) | `src/stripe/client.js` | aim check |
+| 39 | Account identity and mode verification | `src/stripe/test-account.js`, `src/tools/account-mode.js` | aim check |
+| 40 | TEST webhook signature and provisioning | `src/webhooks/test-receiver.js`, `src/webhooks/signature-store.js` | aim check |
+| 41 | Developer fixture run ownership | `src/tools/dev-cleanup.js`, `src/dev/cleanup.js` | aim check |
+| 42 | Developer forwarder destination rules (SSRF-class destination proof) | `src/dev/forwarder-security.js` | aim check |
+| 43 | App-profile, brand-kit, and metered revision binding | `src/tools/app-profiles.js`, `src/brand/store.js`, `src/metered/store.js` | aim check (plan-binding) |
+| 44 | Guided Dashboard-only settings (no Stripe API exists) | `src/tools/admin-guided.js` | platform rule |
+| 45 | Transport and per-tool input-validation family | `src/core/http.js`, `src/tools/result-rules.js`, tool files | aim check |
+| 46 | Pass/revoke preparation gate (full TEST connection demanded) | `src/tools/server.js` | **convertible veto — V4** |
+| 47 | Acceptance harness gates (operator test scripts; not a product door) | `src/acceptance/` | aim check |
 
 ## Corrections made in this pass
 
