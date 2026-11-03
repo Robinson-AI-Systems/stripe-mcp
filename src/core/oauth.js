@@ -18,29 +18,12 @@ export function verifyPkce(verifier, challenge, method = 'S256') {
   if (typeof verifier !== 'string' || !/^[A-Za-z0-9~._-]{43,128}$/.test(verifier)) return false;
   return secretsMatch(createHash('sha256').update(verifier).digest('base64url'), challenge);
 }
-const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
-export function isLoopbackHost(hostname) {
-  return LOOPBACK_HOSTS.includes(String(hostname || '').toLowerCase());
-}
 export function validRedirectUri(value) {
   try {
     const u = new URL(value);
     return !u.username && !u.password && !u.hash && !!u.hostname &&
-      (u.protocol === 'https:' || (u.protocol === 'http:' && isLoopbackHost(u.hostname)));
+      (u.protocol === 'https:' || (u.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname)));
   } catch { return false; }
-}
-// Exact match, with the one sanctioned relaxation (MCP client practice,
-// preserved from the fleet CIMD reference pattern): for loopback redirect
-// URIs the port is ignored, because native clients such as Claude Code
-// bind ephemeral ports. Scheme, host and path still match exactly, and
-// non-loopback URIs always match byte-for-byte.
-export function redirectUriMatches(registered, requested) {
-  if (registered === requested) return true;
-  let a; let b;
-  try { a = new URL(registered); b = new URL(requested); } catch { return false; }
-  if (!isLoopbackHost(a.hostname) || !isLoopbackHost(b.hostname)) return false;
-  return a.protocol === b.protocol && a.hostname === b.hostname &&
-    a.pathname === b.pathname && a.search === b.search && !a.hash && !b.hash;
 }
 function expandIpv6(ip) {
   let text = ip;
