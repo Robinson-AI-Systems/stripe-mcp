@@ -107,6 +107,15 @@ deployed release after the daily promotion) and any `DevGrant` issuance
 surface beyond this connection (bound by the minimum specification in
 the classification section above when a consumer exists).
 
+CI correction cycle (2026-11-02, same PR): the first exact-head CI run
+failed the database job on `tests/db/dev-runs.test.js`, whose
+`dev_%` table inventory is an exact pin — the new
+`developer_boundary_events` table falls under that prefix. The pin was
+updated to include the journal table (the same treatment as the
+`SCHEMA_TABLES` pin in `tests/unit/schema.test.js`); no assertion was
+weakened. Verified locally on disposable Postgres (dev-runs, boundary
+and MCP-wire suites, 15 tests) before the single correction push.
+
 ## Role-drift and completion review
 Read docs/reviews/2026-10-13-completion-recovery.md. Review the actual source/index
 before extending scope: preserve full product capability, isolate builder permission,
