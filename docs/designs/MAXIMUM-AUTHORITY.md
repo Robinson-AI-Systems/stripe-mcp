@@ -91,6 +91,13 @@ refresh/replacement, interrupted enrollment and secret redaction. Prove an actua
 before/after authority difference for each additional credential kind; unsupported
 upgrades remain explicit. Real grants/paid operations keep independent test approvals.
 
+**Fleet conformance note (2026-11-02):** the connection lifecycle in this unit
+also carries **client ID-card (CIMD) clients** as a first-class identification
+shape — fetch and validate the card per the fleet contract (address match,
+redirect printed on the card, secret-holding cards refused, SSRF-bounded
+fetch, fail-closed negative tests) — alongside discovery/registration. See
+[docs/RAS-MCP-CONFORMANCE.md](../RAS-MCP-CONFORMANCE.md) row 2.
+
 ## CAP-4 — close provider-specific advanced workflow gaps
 
 Priority and scope: Connect platform/account lifecycle and organization context first; then operation gaps across payment/billing/Tax/event families and advanced entitled Stripe products. Inventory every missing method rather than assuming a universal route reaches it.
@@ -129,6 +136,15 @@ all real supported doors/clients, generated source/live coverage metrics and exp
 external prerequisites for every unverified operation. Preserve all original live
 acceptance rows verbatim; append new exact-source criteria only when real implemented
 procedures exist. Publication/distribution remains separate; no launch is authorized.
+
+**Fleet conformance note (2026-11-02):** this unit's acceptance additionally
+carries the RAS MCP Standard's client-compatibility gate (the full client
+matrix, both auth shapes, a spec-shaped handshake per shape, per-client setup
+snippets, untestable clients declared untested), the **CIMD live knock test**
+with a real card client, and the **VER-1 release-identity agreement check**
+(`initialize`, `stripe_whoami` `server_release`, manifest, health and front
+door all reporting the same checked release, unknown SHA stated unknown).
+See [docs/RAS-MCP-CONFORMANCE.md](../RAS-MCP-CONFORMANCE.md) rows 1, 2 and 5.
 
 ## Execution and source reconciliation
 

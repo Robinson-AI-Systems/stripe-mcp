@@ -81,3 +81,12 @@ Frozen RTC1 baseline retained; Hub main conformance specification reviewed at `3
 This record is a contract-level supersession on this server's discovery/connection surface only. It claims **no behavior change**: the frozen RTC 1 baseline and pin recorded above stand as the RTC 1 record, and this server's conformance claims remain RTC 1 claims until its RTC 2 adoption lands. Under the governing-spec rule above, adoption by dated decision is the separately reviewed, versioned protocol change a successor requires — never a silent per-server wire-protocol tweak.
 
 This server's own RTC 2 adoption and conformance proceed through their own card as a follow-on; this section is the adoption record, not the adoption build.
+
+## RAS MCP Standard conformance — 2026-11-02
+
+Fleet-Standard conformance beyond the Hub contract — client compatibility
+including client ID cards (CIMD), the developer access boundary, VER-1
+release provenance, identity anchoring and Unleashed branding — is recorded
+in [RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md) (owner-directed,
+2026-11-02). This document remains the RTC record; nothing here is
+superseded by that pass.

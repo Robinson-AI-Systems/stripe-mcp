@@ -1,3 +1,27 @@
+## 2026-11-02 — RAS MCP Standard conformance pass (plans only, owner-directed)
+
+Chris directed the plan set be brought into line with the RAS MCP
+Specification (Library D-001 at `063eeff2`, incl. the 2026-11-02 CIMD,
+developer-boundary and VER-1 amendments). Delivered as documentation:
+new [RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md) record (16 rows:
+CONFORMS / PLANNED / CORRECTED / NOT APPLICABLE per Standard area),
+a dated [DECISIONS](DECISIONS.md) entry, and in-place corrections —
+public product name is now **Stripe Unleashed by Robinson AI Systems**
+(2026-10-23 name superseded by the 2026-10-30 fleet naming rule), product
+mark corrected to the Unleashed Break-Out with **planned** Magenta
+`#E35FD0` accent claim (registry claim NOT filed), consent-screen wording
+corrected so profiles are customer settings rather than a sign-in choice,
+CIMD card clients added to the CAP-3 connection contract, the
+client-compatibility gate + CIMD live knock test + VER-1 release-identity
+agreement check added to CAP-5 acceptance, the developer access boundary
+recorded for the implementing-agent connection, identity anchoring
+(one configured branded origin) added to the brand/domain contract, and
+Batch R annotated for the RTC 2 adoption (PR #291). **No code, deployment,
+DNS, provider or LIVE change; no subsection, CAP unit or protected
+acceptance row changes status.** Implementation conformance remains
+separate acceptance work, `DESIGNED / NOT VERIFIED` per row. Next: the
+rows close through their own cards (CAP-3/CAP-5 first) on live evidence.
+
 ## 2026-10-24 — CAP-3 PR #290 review: exact owned-grant selection
 
 Automated review correctly found that a 100-result capped

@@ -1,3 +1,48 @@
+## 2026-11-02 — RAS MCP Standard conformance pass for the plans (owner-directed)
+
+Chris directed (main chat, 2026-11-02) that this server's plans be updated to
+conform to the RAS MCP Specification (Library D-001, read at library main
+`063eeff2`, including the 2026-11-02 amendments). The full record is
+[RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md). **Plans only**: no code,
+deployment, DNS, provider or LIVE change, and no implementation-conformance
+claim — every row closes later on live evidence at the checked deployed
+release through its own card.
+
+Decisions recorded by this entry:
+
+- **Product name corrected.** The fleet naming rule (2026-10-30) titles
+  provider-connector MCPs "<Provider> Unleashed by Robinson AI Systems".
+  The 2026-10-23 branding decision below named this product "Stripe by
+  Robinson AI Systems" (the original-products family name) before that rule
+  existed. The public name is now **Stripe Unleashed by Robinson AI
+  Systems**; the branding and connection designs are corrected in place.
+- **Product mark corrected.** The product mark is the Unleashed Break-Out,
+  not the company R logo (which remains the publisher/company mark). The
+  planned shard accent is **Magenta `#E35FD0`**, next unclaimed in the
+  D-005 registry order, to be claimed in the registry in the same change
+  as the first branded surface per the four-step claim procedure. The
+  claim is **not** filed by this entry.
+- **Client ID cards (CIMD) adopted as a planned connection shape** (CAP-3),
+  with the live knock test in CAP-5: fetch and validate the card; never
+  recognise-only.
+- **Profiles confirmed as customer settings**, not sign-in modes: one
+  public sign-in yielding the fullest provider-authorised grant; the
+  consent screen displays the resulting effective access (connection
+  design wording corrected).
+- **Developer access boundary recorded**: the implementing-agent developer
+  connection is an operator surface, never publicly linked or advertised;
+  future TEST grants follow the fleet `DevGrant` minimum specification;
+  existing passphrase/setup surfaces are transitional toward named
+  operator identity; nothing is disabled.
+- **VER-1 release provenance adopted as planned work**: one checked
+  version/SHA source reported identically by `initialize`,
+  `stripe_whoami` (`server_release`), manifest, health and front door;
+  unknown SHA stated unknown, never synthesised.
+- RTC 2 adoption (2026-10-31, [HUB-COMPATIBILITY](HUB-COMPATIBILITY.md),
+  PR #291) and the no-global-credential-fallback rules already conform;
+  no change. Batch R's historical "RTC 1" labels are annotated, not
+  rewritten.
+
 ## 2026-10-23 — publisher branding and custom hostname approved (not yet activated)
 
 Owner selected the Robinson AI Systems corporate branding for all Stripe connection,

@@ -1,6 +1,6 @@
 # Stripe connection, independent identity and optional God Mode
 
-**Canonical branding and hosted-origin companion:** [Robinson AI Systems Stripe brand/domain contract](STRIPE-BRAND-DOMAIN.md). The target is `stripe.robinsonaisystems.com` and the publisher-facing name is **Stripe by Robinson AI Systems**; no DNS, OAuth issuer or LIVE change is implied by planning.
+**Canonical branding and hosted-origin companion:** [Robinson AI Systems Stripe brand/domain contract](STRIPE-BRAND-DOMAIN.md). The target is `stripe.robinsonaisystems.com` and the publisher-facing name is **Stripe Unleashed by Robinson AI Systems** (fleet naming rule, 2026-10-30; supersedes the name in the 2026-10-23 approval — see DECISIONS, 2026-11-02); no DNS, OAuth issuer or LIVE change is implied by planning.
 
 **Owner-approved 2026-10-23. Engineering NOT completed by this design.** Applies to
 existing CAP-1..CAP-5 and existing unfinished source/acceptance cards; no invented batch IDs,
@@ -11,9 +11,21 @@ are *behavior and security references*, not copy/paste provider adapters.
 
 ## Connection contract
 
-1. ChatGPT or Claude adds **Stripe by Robinson AI Systems** using ordinary remote
+1. ChatGPT or Claude adds **Stripe Unleashed** using ordinary remote
    MCP OAuth discovery/registration, PKCE S256, callback and issuer/resource checks.
    Sign-in opens inside the client's provider-owned browser journey with automatic return.
+   A client may instead identify itself by a **client ID card (CIMD)** — a URL
+   pointing at its own client metadata document, the shape Claude and ChatGPT
+   present. Card clients are a first-class identification shape (fleet contract,
+   2026-11-02; see [RAS-MCP-CONFORMANCE](../RAS-MCP-CONFORMANCE.md) row 2): fetch
+   the card over HTTPS from the exact `client_id` URL and validate it — the
+   card's declared address equals the fetched URL, a client name is present,
+   every redirect address used is printed on the card, **secret-holding cards
+   are refused** (card clients are public clients), and the fetch is
+   SSRF-bounded (HTTPS only, no private/link-local/reserved targets, bounded
+   redirects, time/size caps). Card failures fail closed without issuing
+   credentials, and card support is claimed only after a live knock test with
+   a real card client (CAP-5).
 2. Verify a stable **human principal and tenant membership** independently of the Stripe
    App's account OAuth authorization: a Stripe account grant is not evidence identifying
    which person at an organization is operating the client. Company developer credentials
@@ -26,10 +38,17 @@ are *behavior and security references*, not copy/paste provider adapters.
    MCP credentials. Do not guess a universal install URL or launch a Connect onboarding
    flow as a substitute for Stripe App installation.
 4. Show **one** mobile-safe final client approval screen: named requesting client,
-   verified Stripe accounts, selected read-only or explicit Full profile,
-   TEST/LIVE distinction and potential cost/write notices. Approve and cancel are
+   verified Stripe accounts, the **resulting effective access**, TEST/LIVE
+   distinction and potential cost/write notices. Approve and cancel are
    independent one-use server-side states. Hand the client its code exactly once and
    return automatically. Avoid fragile multi-cookie redirect chains.
+   **Profile is not a sign-in choice** (fleet rule, 2026-11-02): there is one
+   public sign-in, and it yields the fullest grant the provider authorised.
+   The screen displays the effective access that results — including any
+   read-only tightening the user has set for this connection — while profile,
+   read-only, account/mode and delegation choices are authenticated customer
+   **settings** managed in My Connection (item 5), never alternate login
+   systems or consent-screen modes.
 5. A separately authenticated **My Connection** screen manages own accounts, newly
    installed accounts, connected clients, read-only controls, account/mode choice,
    disconnect, revoke/rotate, history and optional additional credentials. Recheck
@@ -96,6 +115,18 @@ remains CAP-5; optional Hub federation is not a Stripe completion gate.
   original guarded tools; include organization/Connect account-specific paths.
 - **CAP-5**: original and new exact-source provider/client acceptance on real
   authorized, nonproduction fixtures. Do not claim anything from CI alone.
+
+## Developer access boundary (fleet doctrine, 2026-11-02)
+
+The implementing-agent developer connection (`docs/pr-cards/DEVELOPER-CONNECTION.md`,
+`api/developer/connect.js`) is an operator surface, not a customer sign-in:
+it is never linked or advertised from the public front door, the public
+connection page, the tool catalog or any onboarding path, and its
+developer-principal grants are a distinct type — never customer authority,
+never LIVE acceptance evidence. Any future developer TEST-grant issuance
+follows the fleet `DevGrant` minimum specification recorded in
+[RAS-MCP-CONFORMANCE](../RAS-MCP-CONFORMANCE.md) row 4. Batch V's developer
+tools are customer product features, not fleet developer grants.
 
 ## Provider source and distribution boundary
 

@@ -1,3 +1,38 @@
+## 2026-11-02 — RAS MCP Standard conformance (plans only)
+
+Owner-directed conformance pass against the RAS MCP Specification (Library
+D-001 at `063eeff2`, incl. the 2026-11-02 amendments). Full record:
+[RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md); decisions:
+[DECISIONS](DECISIONS.md) 2026-11-02. This entry changes **plans only** —
+no acceptance row below is passed, no subsection status changes, and
+CAP-1..CAP-5 remain open exactly as recorded.
+
+New planned acceptance, attached to existing units (not new subsections):
+
+- **CAP-3:** client ID-card (CIMD) clients are a first-class identification
+  shape in the connection contract — fetch and validate the card (address
+  match, redirect printed on the card, secret-holding cards refused,
+  SSRF-bounded fetch, fail-closed negative tests).
+- **CAP-5:** the Standard's client-compatibility gate (full client matrix,
+  both auth shapes, spec-shaped handshake per shape, per-client setup
+  snippets, untestable clients declared untested), the **CIMD live knock
+  test** with a real card client, and the **VER-1 release-identity
+  agreement check** (initialize / `stripe_whoami` `server_release` /
+  manifest / health / front door report one checked release; unknown SHA
+  stated unknown).
+- **Settings framing corrected:** one public sign-in; profile, read-only,
+  account/mode and delegation choices are authenticated customer settings
+  (My Connection); the consent screen displays the resulting effective
+  access. IN-05 money approvals and the shared daily cap are unchanged.
+- **Developer boundary:** the implementing-agent developer connection is
+  an operator surface, never publicly linked; future TEST grants follow
+  the fleet `DevGrant` minimum specification.
+- **Branding:** public name is **Stripe Unleashed by Robinson AI
+  Systems**; product mark is the Unleashed Break-Out with planned Magenta
+  `#E35FD0` accent claim (not filed); identity anchoring and the five
+  front-door requirements are recorded in the conformance record and the
+  corrected [brand/domain contract](designs/STRIPE-BRAND-DOMAIN.md).
+
 ## 2026-10-23 — CAP-2 ordinary Full explanation (source candidate, NOT deployed)
 
 New registered read-only `stripe_explain_access({tool,compareProfiles?})`
@@ -230,6 +265,10 @@ next bounded implementation.
 - [ ] Passes per RTC §2; HTTPS tool API, manifest and OpenAPI per RTC §1/§7.
 - [ ] Same seven write-contract checks through MCP, `stripe_call` and HTTPS.
 - [ ] RTC 1 conformance green in CI.
+- *2026-11-02 annotation:* RTC 2 was adopted by dated owner decision
+  2026-10-31 ([HUB-COMPATIBILITY](HUB-COMPATIBILITY.md), PR #291) as RTC 1's
+  successor; the RTC 1 record above stands as history, and Batch R's
+  remaining conformance proceeds under RTC 2 through its own card.
 
 ## Batch E — Catalog, Stripe Tax, usage, quotes (`designs/BATCH-E.md`)
 - [ ] Every listed tool built; profiled apps' catalogs never touched; no legacy usage records.
