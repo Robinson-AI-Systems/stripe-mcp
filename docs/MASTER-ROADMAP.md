@@ -1,3 +1,20 @@
+## 2026-11-02 — RAS MCP Standard conformance (plans only)
+
+Owner-directed: the plan set now conforms to the RAS MCP Specification
+(Library D-001 at `063eeff2`). The record is
+[RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md); the dated decisions are in
+[DECISIONS](DECISIONS.md) (2026-11-02). Headlines: public name corrected
+to **Stripe Unleashed by Robinson AI Systems** (Break-Out mark, planned
+Magenta `#E35FD0` accent claim — not filed); client ID-card (CIMD)
+connection shape and live knock test added to CAP-3/CAP-5; the
+client-compatibility gate and VER-1 release-identity agreement check
+added to CAP-5; profiles confirmed as customer settings behind one public
+sign-in; the developer access boundary recorded for the implementing-agent
+connection; identity anchoring (one configured branded origin) added to
+the brand/domain contract. **Plans only** — no subsection, acceptance or
+release status changes; CAP-1..CAP-5 and the protected queue stand as
+recorded.
+
 ## 2026-10-23 — CAP-2 ordinary Full explanation (source candidate, NOT deployed)
 
 New registered read-only `stripe_explain_access({tool,compareProfiles?})`
@@ -189,6 +206,6 @@ the approved design; write the card when its predecessor is real.
 | P Project profiles | P-1 known_apps + Appliance Desk · P-2 record links · P-3 app readiness · P-4 project setup | JIT |
 | W Workflows | W-1 … W-10 (`designs/BATCH-W.md` §4 table) | JIT |
 | U Universal | U-1 | JIT |
-| R Hub-ready doors (RTC 1) | R-1 passes · R-2 HTTPS API, manifest, OpenAPI · R-3 conformance in CI | JIT |
+| R Hub-ready doors (RTC 1; RTC 2 adopted 2026-10-31) | R-1 passes · R-2 HTTPS API, manifest, OpenAPI · R-3 conformance in CI | JIT |
 | E Catalog etc. | E-1 … E-4 | JIT |
 | X Close-out | X-1 undo · X-2 smoke test | JIT |
