@@ -1,3 +1,48 @@
+## 2026-11-03 — Documentation audit closed; resource ruling live; CAP-5 knock test passed at the deployed release
+
+A full documentation-versus-code audit (449 inventory items, frozen at
+main `2b9f19a6`) returned a fix-first verdict with no Critical findings;
+its fixes landed the same day in three reviewed PRs: #297 (governing and
+public docs, incl. the product name), #298 (tool catalog and work
+records, corrected against the live registry) and #299 (consent-page
+non-affiliation disclaimer, labelled front-door counts, health-derived
+front-door status, and the resource ruling below). PR #295 (developer
+access boundary, entry below) was then unblocked — conflicts with
+current main resolved, two CI-caught contract gaps in the K-3 seam
+adapters fixed in the open — and merged at exact-head green as
+`5b5f701c`.
+
+**Owner ruling (2026-11-03), now the standing rule:** the mandatory
+exact `resource` parameter is removed. Sign-in accepts requests with
+or without the value and validates it only when sent (a wrong value is
+still refused), at both the authorize and token steps, per the RAS MCP
+Standard; tests were converted, not deleted. This reverses this
+server's stricter D-001-era posture, not the Standard.
+
+**Release:** today's scheduled promotion did not arrive (GitHub
+schedule delay), so the checked recovery ran through the owner's own
+GitHub MCP **user** credential — the workflow's owner gate records the
+actor as the owner himself (the MCP's curated dispatch tool acts as
+its app installation and is refused by that gate by design). The
+promoter fast-forwarded `live` to `5b5f701c`; the Vercel production
+deployment is READY at that commit, and the health readout, front
+door, OAuth metadata, RTC manifest and `stripe_whoami` server release
+all name it. All four PRs above ride that release.
+
+**CAP-5 live knock test: PASSED at the deployed release.** A real
+hosted client ID card was fetched and validated by the deployed
+server (fake card refused; redirect not on the card refused; the
+loopback port relaxation held); the owner approved on the consent
+page; token exchange and refresh rotation succeeded with no
+`resource` sent; `stripe_whoami` answered for the connected TEST
+account naming the deployed commit; the grant was revoked and then
+refused at the door. Conformance rows 2 and 3 record **VERIFIED
+LIVE**. Still owed and unchanged: row 4's live acceptance pair
+(entitled developer versus ordinary-user denial) at a deployed
+release, and the branded-domain/identity cutover behind its recorded
+gates. The audit's remaining minor rulings are recorded in DECISIONS
+(2026-11-03).
+
 ## 2026-11-02 — Developer access boundary implemented in source (DEVELOPER-CONNECTION)
 
 The fleet developer access boundary (Library D-001; RAS-MCP-CONFORMANCE

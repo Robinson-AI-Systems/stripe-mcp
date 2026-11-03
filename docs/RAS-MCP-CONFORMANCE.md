@@ -105,6 +105,20 @@ dynamic registration. Status is `FIXED IN SOURCE / NOT VERIFIED
 LIVE`; the CAP-5 live knock test against the checked deployed
 release is still owed and closes this row.
 
+**Live acceptance (2026-11-03):** the CAP-5 knock test ran against
+the checked deployed release `5b5f701cb1c7aa803d076b4c5e023b5ea3639ece`
+(production, `live` branch) and passed end to end. A real hosted card
+was fetched and validated by the deployed server (a fake card was
+refused with a legible error; a redirect not printed on the card was
+refused; the sanctioned loopback port relaxation held); the owner
+approved on the consent page; the token exchange and a refresh
+rotation both succeeded with **no `resource` parameter sent** (the
+owner ruling recorded in DECISIONS, 2026-11-03); `stripe_whoami`
+answered for the connected TEST account and named the deployed
+commit as its server release; the grant was then revoked and refused
+at the MCP door. Card support is claimed: **VERIFIED LIVE** at that
+release. This closes the live half of this row.
+
 ### 3. One public sign-in; profiles are customer settings — CORRECTED
 
 The Standard: exactly **one public customer sign-in and consent journey**.
@@ -136,6 +150,12 @@ setting, with all LIVE gates unchanged. The My Connection settings
 screen itself remains CAP-3 engineering gated on the unselected
 human identity provider; live verification of the corrected journey
 rides the same deployed-release evidence as row 2.
+
+**Live verification (2026-11-03):** the corrected journey was
+exercised in the knock test recorded under row 2 — the approval page
+offered no profile or listing choice, and the issued grant carried
+the fullest profile (`full`) by default at the deployed release
+`5b5f701cb1c7aa803d076b4c5e023b5ea3639ece`.
 
 ### 4. Developer access boundary — PLANNED (with classification)
 
