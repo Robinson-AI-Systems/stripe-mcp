@@ -18,6 +18,17 @@ No new DNS, app publication, LIVE activation or deployment has occurred.
 > 2026-11-02 entry in [DECISIONS.md](DECISIONS.md). The entry above stands as
 > the 2026-10-23 record.
 
+## Current reconciliation (2026-11-03)
+
+The service is deployed in TEST-oriented form at `live` = `c95f9cf0`.
+That deployment does **not** tick the launch, owner-verification, Stripe
+App, or per-account LIVE boxes below. This checklist mixes product-launch
+verification, separate provider evidence, a different project's own
+go-live items, and per-account real-money authorization; the reconciled
+standalone-product remainder is in [COMPLETION](COMPLETION.md). An
+unchecked box here means the checklist has not recorded that verification,
+not by itself that the underlying code is absent.
+
 ## Approved future Stripe App connection gates (2026-10-23 — NOT yet enabled)
 
 - [ ] Select and verify an independent human identity provider and scoped
@@ -101,7 +112,7 @@ list with explanations is `docs/APP-NEEDS-APPLIANCE-DESK.md`; the app's own chec
 
 ## Money-out owner authorization gate (IN-05, 2026-10-10)
 
-B-8c2 implements two independently password-authenticated TEST-only owner confirmation actions on the private setup page. Verify all following items on the eventual authorized deployment before ticking them; the feature is NOT deployed, and AI provider money tools remain off.
+B-8c2 implements two independently password-authenticated TEST-only owner confirmation actions on the private setup page. Verify all following items on the authorized deployment before ticking them. Historical wording in this section once said the feature was “NOT deployed”; the code has since been included in the deployed TEST-oriented service, but the owner-verification items below remain unchecked and AI provider money tools remain governed by the exact approvals described there.
 
 - [ ] Owner-only authenticated browser page lists exact account, tool, Stripe-derived
       amount, target/destination and request key for pending money-out operations.

@@ -3,13 +3,17 @@
 **Stripe Unleashed by Robinson AI Systems** — standalone remote Stripe MCP
 server for authorized account owners and their AI clients. Source
 implementation of the 57 original roadmap subsections is merged. The CAP-3
-connection source — client ID cards (CIMD) and the corrected one-sign-in
-consent journey — and the VER-1 release identity are also merged in source,
-labelled `FIXED IN SOURCE / NOT VERIFIED LIVE`. What remains unfinished is
-the human identity provider, Stripe App installation, the My Connection
-settings screen and CAP-5 live acceptance. This repo is **deployed in
-TEST-oriented development** but is **not independently accepted for broad
-public or LIVE financial use**.
+client ID-card (CIMD) component and corrected one-sign-in consent journey
+are **VERIFIED LIVE** at deployed release `5b5f701c`; the VER-1 release
+identity and fleet health surfaces are **VERIFIED LIVE** at `c95f9cf0`.
+Those component proofs do not finish CAP-3 or CAP-5. The reconciled
+remainder is in [the completion schedule](docs/COMPLETION.md): CAP-2 and
+CAP-3 remain in progress, CAP-4 and CAP-5 remain unfinished units, 29
+Stripe-owned protected provider-acceptance rows remain pending, the
+branded-domain/identity cutover remains open, and the production-readiness
+gate has not passed. This repo is **deployed in TEST-oriented
+development** but is **not independently accepted for broad public or LIVE
+financial use**.
 
 Connect using the authenticated remote MCP URL `/api/mcp` on the verified
 service origin. Current legacy setup uses a protected owner page and verified
@@ -17,7 +21,9 @@ Stripe keys; this is not yet the new one-screen public self-enrollment flow.
 Keep actual LIVE account activation, financial owner approvals, provider grants
 and CI/release gates distinct.
 
-- [Start here](docs/START-HERE.md) and [current status](docs/STATUS.md).
+- [Start here](docs/START-HERE.md), [current status](docs/STATUS.md), and
+  [the reconciled completion schedule](docs/COMPLETION.md) — the single
+  current answer to what remains before this is a finished product.
 - [Complete source-only CAP-1 evidence inventory](docs/pr-cards/CAP-1-final-inventory.md) — `node scripts/operation-evidence-report.mjs --families` or `--gaps`, linked tests/live evidence remain visibly unverified.
 - [CAP-1 reviewed credential/account-context matrix](docs/pr-cards/CAP-1-grant-context.md) now distinguishes exact own-account, installed app, Connect and organization contexts. Metadata classification never authorizes Stripe calls.
 - [CAP-1 offline operation/gap inventory](docs/pr-cards/CAP-1.md):

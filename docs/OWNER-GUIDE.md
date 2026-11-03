@@ -1,3 +1,13 @@
+## 2026-11-03 — Current completion state (read this first)
+
+The dated entries below are historical layers and preserve older counts.
+The current reconciled state is in [COMPLETION](COMPLETION.md): the
+original provider-acceptance queue is **13 PASSED / 30 PENDING of 43**
+(29 Stripe-owned pending rows plus one Hub-owned optional row); CAP-2 and
+CAP-3 remain in progress; CAP-4 and CAP-5 remain unfinished; the
+branded-domain cutover and production-readiness gate remain open. The
+product name is **Stripe Unleashed by Robinson AI Systems**.
+
 ## 2026-10-24 — CAP-3 tenant-bound encrypted provider-grant vault (inactive source)
 
 A gated sixth tenancy table `tenancy_secrets` stores only

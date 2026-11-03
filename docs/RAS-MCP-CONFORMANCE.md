@@ -9,6 +9,14 @@ row below on live evidence at the checked deployed release; until a row's
 acceptance runs, its implementation status stays `DESIGNED / NOT VERIFIED`
 (or the weaker label the row itself states).
 
+> **Reconciliation (2026-11-03):** the paragraph above and the closing
+> “What this pass deliberately does not do” section describe the original
+> 2026-11-02 plans-only pass. Later dated updates inside individual rows
+> supersede them where they record source implementation or live proof.
+> This file contains **14 numbered rows**, not 16. The single reconciled
+> current schedule is [COMPLETION](COMPLETION.md); in case of a summary
+> conflict, the row's latest dated evidence plus COMPLETION govern.
+
 ## Governing specification
 
 - [Library D-001 — the RAS MCP Standard](https://github.com/Robinson-AI-Systems/library/blob/main/designs/ras-mcp-standard.md),
@@ -38,7 +46,7 @@ acceptance runs, its implementation status stays `DESIGNED / NOT VERIFIED`
 
 ## Conformance record
 
-### 1. Client compatibility — matrix, both auth shapes, verification gate — PLANNED
+### 1. Client compatibility — matrix, both auth shapes, verification gate — PLANNED / OPEN
 
 The Standard (2026-10-30) requires every server to ship compatible with the
 clients people actually use, verified before deploy: ChatGPT and Claude
@@ -62,7 +70,7 @@ Hermes `config.yaml` form) are part of the connection material delivered
 with **CAP-3**. A client shape that cannot connect gets a legible refusal
 and a remedy, never silence.
 
-### 2. Client ID cards (CIMD) — fetch and validate, never recognise-only — PLANNED
+### 2. Client ID cards (CIMD) — fetch and validate, never recognise-only — VERIFIED LIVE (component)
 
 The Standard's 2026-11-02 amendment: clients such as Claude and ChatGPT may
 identify themselves by a **URL pointing at their own ID card** (a client
@@ -93,7 +101,8 @@ The connection design previously assumed discovery/registration as the only
 client identification shape. **CAP-3** now carries card clients as a
 first-class identification shape in the connection contract (see the
 correction to [STRIPE-CONNECTION-GOD-MODE](designs/STRIPE-CONNECTION-GOD-MODE.md)),
-and **CAP-5** carries the live knock test. No card support is claimed today.
+and **CAP-5** carries the live knock test. No card support is claimed
+today. **[Superseded by the 2026-11-03 live acceptance below.]**
 
 **Implementation status (2026-11-02):** implemented in source in the
 CAP-3 connection workstream (packet
@@ -119,7 +128,7 @@ commit as its server release; the grant was then revoked and refused
 at the MCP door. Card support is claimed: **VERIFIED LIVE** at that
 release. This closes the live half of this row.
 
-### 3. One public sign-in; profiles are customer settings — CORRECTED
+### 3. One public sign-in; profiles are customer settings — CORRECTED / JOURNEY VERIFIED LIVE; SETTINGS SCREEN OPEN
 
 The Standard: exactly **one public customer sign-in and consent journey**.
 Read-only, production/live, profile, areas and spending/approval delegation
@@ -157,7 +166,7 @@ offered no profile or listing choice, and the issued grant carried
 the fullest profile (`full`) by default at the deployed release
 `5b5f701cb1c7aa803d076b4c5e023b5ea3639ece`.
 
-### 4. Developer access boundary — PLANNED (with classification)
+### 4. Developer access boundary — PLANNED (with classification) / SOURCE IMPLEMENTED; LIVE PAIR OPEN
 
 The Standard (2026-11-02): a developer/implementation-agent sign-in and any
 system for issuing developer-only TEST grants belong **only to a separately
@@ -232,7 +241,7 @@ deployed release; the planned `DevGrant` issuance system itself is not
 built (no consumer exists yet) and stays bound by the minimum
 specification recorded here when it is.
 
-### 5. Release provenance — VER-1 — PLANNED
+### 5. Release provenance — VER-1 — VERIFIED LIVE
 
 The Standard (2026-11-02, from GitHub MCP's VER-1): an agent must be able
 to answer "which exact release am I connected to, and where can I read the
@@ -269,7 +278,15 @@ Status: `IMPLEMENTED IN SOURCE / NOT VERIFIED LIVE` — the row closes
 when the surfaces are re-read at the deployed SHA after the scheduled
 `main` → `live` promotion.
 
-### 6. Identity anchoring — the branded origin is the identity — PLANNED
+**Live closure (2026-11-03 completion reconciliation):** the public
+front door (`/api`), `/api/health`, and `/api/contract` were re-read at
+deployed commit `c95f9cf0160f85f59789a11d1885e422ec84770b` and agree on
+that release. Authenticated `initialize` and `stripe_whoami` were
+exercised at the immediate parent release `5b5f701c` in the knock test;
+the only intervening change to `c95f9cf0` was documentation, so the code
+behavior carries. Row status: **VERIFIED LIVE**.
+
+### 6. Identity anchoring — the branded origin is the identity — PLANNED / CUTOVER OPEN
 
 The Standard (2026-11-01): a connector server's OAuth identity anchors to
 its own branded origin — issuer, authorization/token/registration/
@@ -302,7 +319,15 @@ is **not performed** and remains owed as the separate ruled step
 through the STRIPE-BRAND-DOMAIN gates above. Status unchanged in
 kind: identity step unfinished, not failed.
 
-### 7. Unleashed branding and naming — CORRECTED
+**Current stack note (2026-11-03):** the configured issuer still names
+the platform hostname `stripe-mcp-chris-projects-de6cd1bf.vercel.app`,
+which Vercel Authentication intercepts for unauthenticated visitors;
+the application was verified serving on the different platform alias
+`stripe-mcp-psi.vercel.app`; and `stripe.robinsonaisystems.com` returned
+`DEPLOYMENT_NOT_FOUND`. Those are three distinct states and none is the
+completed branded identity.
+
+### 7. Unleashed branding and naming — CORRECTED / D-005 CLAIM OPEN
 
 The fleet naming rule (2026-10-30) and the Unleashed brand system
 (2026-11-02): a provider-connector MCP's public title is
@@ -325,7 +350,10 @@ Coral, Workspace Violet are claimed). Per the registry's binding
 four-step procedure, the claim is filed in the registry **in the same
 change that ships this server's first branded surface**, after reading
 the registry, and verified by read-back. **The claim is not filed by
-this pass**, and no branded surface ships here. Trademark guardrails from
+this pass**, and no branded surface ships here. For the claim trigger,
+“first branded surface” means the first surface carrying the Break-Out
+mark, not product-name or disclaimer text alone; the claim remains
+unfiled at the 2026-11-03 reconciliation. Trademark guardrails from
 the Standard apply at that surface: no Stripe logo/mark/shape in the
 mark or lockup, the provider name is descriptive only and never more
 prominent than ours, and every connect page, listing and docs front page
@@ -333,7 +361,7 @@ carries: **"Stripe Unleashed is a Robinson AI Systems product. It is not
 affiliated with, endorsed by, or sponsored by Stripe, Inc."** Where
 Stripe publishes brand guidelines, the stricter rule wins.
 
-### 8. Branded front door — the five fleet things — PLANNED
+### 8. Branded front door — the five fleet things — PLANNED / PARTIAL
 
 Every RAS MCP ships with: (a) a subdomain of robinsonaisystems.com —
 reserved (`stripe.robinsonaisystems.com`), attachment gated by the
@@ -369,7 +397,15 @@ is website work in another repo, owed when the branded connection
 page actually answers. Status: `PARTIALLY IMPLEMENTED IN SOURCE /
 NOT VERIFIED LIVE`.
 
-### 9. Fleet health contract — PLANNED
+**Live reconciliation (2026-11-03):** item (b)'s substance is now
+verified live at deployed `c95f9cf0`, but at **`/api`**, not the literal
+`/` route: `/` on the serving alias returns 404 and `/api` returns the
+health-derived status surface. The row therefore remains partial; either
+the route or this governing wording must be deliberately resolved rather
+than silently treating `/api` as `/`. Items (a), (c), (d), and (e)
+remain open as recorded.
+
+### 9. Fleet health contract — VERIFIED LIVE
 
 The Standard's Stage-1 health contract: one GET JSON readout with the
 pinned minimal shape — `status` (`ok`/`degraded`), server version,
@@ -394,7 +430,14 @@ carries no credentials, user data, hostnames or configuration values
 advertisement. Status: `IMPLEMENTED IN SOURCE / NOT VERIFIED LIVE` —
 the row closes on a live read at the checked deployed release.
 
-### 10. Production readiness & protection gate — PLANNED as the bar
+**Live closure (2026-11-03 completion reconciliation):** `/api/health`
+and the `/health` rewrite were read at deployed commit
+`c95f9cf0160f85f59789a11d1885e422ec84770b`; both returned the pinned
+healthy shape with the database check true, and `/api/contract` at the
+same commit advertises `health: '/api/health'`. Row status:
+**VERIFIED LIVE**.
+
+### 10. Production readiness & protection gate — PLANNED as the bar / OPEN
 
 No "production ready" claim — in a listing, page, report or conversation —
 until this server passes the Standard's readiness gate with evidence per
@@ -417,6 +460,10 @@ discipline), with two server-specific notes:
 
 The owner-question doctrine applies to the gate: solvable questions are
 researched, decided and logged, not parked for the owner.
+
+**Current status (2026-11-03):** no filed production-readiness pass is
+recorded. The gate, its retention-clock note, and its legal gate remain
+open; a READY production deployment is not a readiness pass.
 
 ### 11. Discovery & contract governance (RTC) — CONFORMS
 
@@ -485,6 +532,12 @@ negative test, migration cost and where it does not apply.
    pointer (row 11). The RTC 1 record itself is untouched.
 
 ## What this pass deliberately does not do
+
+> **Historical scope note:** this section describes the original
+> 2026-11-02 plans-only pass. Later dated row updates and the 2026-11-03
+> completion reconciliation supersede its “no acceptance row is passed”
+> wording for rows 2, 5, and 9 and for the row 3 journey. It remains
+> accurate that the original pass itself made none of those changes.
 
 - No code, schema, deployment, DNS, Stripe App, key or LIVE change.
 - No D-005 registry claim filed (row 7 records the planned claim only).

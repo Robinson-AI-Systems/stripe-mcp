@@ -1,3 +1,16 @@
+## 2026-11-03 — Completion reconciliation (current)
+
+The single reconciled finished-product schedule is
+[COMPLETION](COMPLETION.md), frozen at `c95f9cf0`. It supersedes any
+shorter remainder list in the dated entries below. Reconciled state:
+CAP-1 is complete only as a **source inventory** (provider permissions,
+entitlements, and per-operation live parity remain in the protected queue
+and CAP-5); CAP-2 and CAP-3 are `IN_PROGRESS`; CAP-4 and CAP-5 are
+`APPROVED` but unfinished; the protected provider queue is 13 PASSED / 30
+PENDING of 43 (29 Stripe-owned pending plus one Hub-owned optional row);
+the conformance record has **14** numbered rows; the branded-domain
+cutover and production-readiness gate remain open.
+
 ## 2026-11-02 — RAS MCP Standard conformance (plans only)
 
 Owner-directed conformance pass against the RAS MCP Specification (Library
@@ -276,9 +289,12 @@ next bounded implementation.
 ## Batch X — Undo and smoke test (`designs/BATCH-X.md`)
 - [ ] Undo for every clean opposite; read-only smoke report on test mode. No toolkit compatibility or retirement decision.
 
-## Maximum-authority acceptance (all open)
+## Maximum-authority acceptance (reconciled 2026-11-03)
 
-- [ ] **CAP-1:** Operation and credential coverage inventory; full criteria in MAXIMUM-AUTHORITY.
+- [x] **CAP-1:** Operation and credential coverage inventory — **source
+  inventory only**. Provider permission/entitlement proof and per-operation
+  live parity remain in the protected queue and CAP-5; see
+  [COMPLETION](COMPLETION.md).
 - [ ] **CAP-2:** Standard fullest authorization and effective-access recovery; full criteria in MAXIMUM-AUTHORITY.
 - [ ] **CAP-3:** Guided additional authority lifecycle; full criteria in MAXIMUM-AUTHORITY.
 - [ ] **CAP-4:** Advanced functional workflow gap closure; full criteria in MAXIMUM-AUTHORITY.

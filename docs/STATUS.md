@@ -1,3 +1,45 @@
+## 2026-11-03 — Completion audit reconciled; finished-product schedule published
+
+A second, fresh documentation-versus-code-and-stack audit was run at
+`main` = `live` = `c95f9cf0160f85f59789a11d1885e422ec84770b`, using two
+independent cartographer maps (structural and semantic) reconciled by
+the coordinator and direct checks of the registry, code, Git refs,
+Vercel Unleashed by Robinson AI Systems, and the live service. No
+five-replica Critic panel ran, so this is a survey-and-reconciliation
+record, not a full Tier 2 Critic pass.
+
+The reconciled result is [COMPLETION](COMPLETION.md), now the single
+current schedule for what remains before Stripe Unleashed by Robinson AI
+Systems is a finished standalone product. It corrects the narrower
+reading of the entry immediately below: that entry's “still owed” list
+covered the 2026-11-03 release/knock-test sequence only. It did not erase
+CAP-2, CAP-3, CAP-4, CAP-5, the protected provider queue, the
+branded-domain gates, or the production-readiness gate.
+
+Reconciled state at the baseline:
+
+- Local and deployed registry both count **322 tools**; `/api`,
+  `/api/health`, and `/api/contract` on the serving alias name
+  `c95f9cf0`, with the health database check true.
+- PR #300's closeout documentation was subsequently promoted under
+  Chris's explicit same-day marker override; `live` reached `c95f9cf0`
+  and the Vercel production deployment is READY at that commit.
+- Conformance rows 5 and 9 are now recorded **VERIFIED LIVE**. Row 2's
+  CIMD component and row 3's corrected sign-in journey remain verified at
+  `5b5f701c`, with only documentation intervening to `c95f9cf0`.
+- The conformance record contains **14 numbered rows**, not 16.
+- CAP-1 is complete only as a source inventory. CAP-2 and CAP-3 remain
+  `IN_PROGRESS`; CAP-4 and CAP-5 remain `APPROVED` and unfinished.
+- The protected provider queue remains **13 PASSED / 30 PENDING of 43**:
+  29 Stripe-owned pending rows (including the `STRIPE-TEST` aggregate)
+  and one Hub-owned optional row that is not a standalone gate.
+- The configured issuer hostname is intercepted by Vercel
+  Authentication for unauthenticated visitors, the application serves on
+  `stripe-mcp-psi.vercel.app`, and `stripe.robinsonaisystems.com` is not
+  attached or serving. The branded identity cutover remains open.
+- This documentation update changes no code, deployment, provider
+  state, money state, or LIVE authorization.
+
 ## 2026-11-03 — Documentation audit closed; resource ruling live; CAP-5 knock test passed at the deployed release
 
 A full documentation-versus-code audit (449 inventory items, frozen at
@@ -158,7 +200,8 @@ Chris directed the plan set be brought into line with the RAS MCP
 Specification (Library D-001 at `063eeff2`, incl. the 2026-11-02 CIMD,
 developer-boundary and VER-1 amendments). Delivered as documentation:
 new [RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md) record (16 rows:
-CONFORMS / PLANNED / CORRECTED / NOT APPLICABLE per Standard area),
+CONFORMS / PLANNED / CORRECTED / NOT APPLICABLE per Standard area;
+**corrected 2026-11-03: the file contains 14 numbered rows**),
 a dated [DECISIONS](DECISIONS.md) entry, and in-place corrections —
 public product name is now **Stripe Unleashed by Robinson AI Systems**
 (2026-10-23 name superseded by the 2026-10-30 fleet naming rule), product
@@ -1556,6 +1599,12 @@ See pr-cards/DEVELOPER-CONNECTION.md. No production provider activation or paid 
 
 # STATUS — current work, blockers and next action
 
+> **Historical-section warning (2026-11-03):** the formal “current,”
+> “Next,” “Environment,” and “Blocked” sections below preserve dated
+> October checkpoints and are not the current product state. The newest
+> dated entries at the top of this file and [COMPLETION](COMPLETION.md)
+> govern current state.
+
 ## Current gateway recovery disposition — 2026-10-12
 
 Owner requested cross-repository architecture/planning correction. Prioritize independently usable provider tools
@@ -1966,7 +2015,12 @@ The daily release implementation from #166 is merged. Production Branch Tracking
 
 - Repo: `Robinson-AI-Systems/stripe-mcp`, default branch `main`. CI validates docs, secrets, tests with throwaway PostgreSQL and stripe-mock (PR #9). The first commit (this plan) went straight to `main`
   because the repository was empty; every later change goes through an `ai/*` branch and a PR.
-- Vercel project, Neon database and Stripe test keys: not created yet (IN-02, IN-03, IN-04).
+- Vercel project, Neon database and Stripe test keys: not created yet
+  (IN-02, IN-03, IN-04). **[Historical 2026-10-10 wording, corrected
+  2026-11-03: the Vercel project and Neon database have since been
+  created and verified, and production config/key names are present;
+  see [COMPLETION](COMPLETION.md) and
+  [GO-LIVE-CHECKLIST](GO-LIVE-CHECKLIST.md).]**
 
 ## Recent merges (newest first)
 

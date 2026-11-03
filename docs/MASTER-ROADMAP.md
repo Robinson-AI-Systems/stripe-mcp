@@ -1,3 +1,14 @@
+## 2026-11-03 — Completion reconciliation (current remainder)
+
+The finished-product remainder is now reconciled in
+[COMPLETION](COMPLETION.md), frozen at `main` = `live` = `c95f9cf0`.
+CAP-1 is complete only as a source inventory; CAP-2 and CAP-3 remain in
+progress; CAP-4 and CAP-5 remain unfinished; 29 Stripe-owned protected
+provider-acceptance rows remain pending; the branded-domain/identity
+cutover and production-readiness gate remain open. The dated entries and
+work-coverage table below are historical layers unless a newer entry says
+otherwise; do not read them as a current completion list.
+
 ## 2026-11-02 — RAS MCP Standard conformance (plans only)
 
 Owner-directed: the plan set now conforms to the RAS MCP Specification
@@ -153,7 +164,11 @@ RTC interface work and authorized nonproduction Hub route acceptance are indepen
 Follow current STATUS/index and service isolation/owner gates. Optional reuse must not block provider capability
 or require replacing service-owned dispatch/state. Hub's H-1–H-3 work belongs in its repository.
 
-# MASTER ROADMAP — the one handoff
+# MASTER ROADMAP — historical handoff layers
+
+> **Current-state note (2026-11-03):** this body is a dated historical
+> handoff. Use [COMPLETION](COMPLETION.md) for the current reconciled
+> remainder and STATUS for the newest dated record.
 
 **Current 2026-10-11 external acceptance checkpoint (verified live):** Vercel + isolated Neon + 24 app tables and one encrypted/verified owner TEST key are deployed. This is **not** authentic custom-MCP G-4/G-5 provider smoke, G-6 signed-in Dashboard walkthrough or OAuth connection acceptance. G-6 remains IN_PROGRESS and H-1 remains gated; LIVE OFF. See `docs/STATUS.md` "Next" for the next session's **one-time #136 carried PR credit (slot 1/5, four new production PRs remaining)**; #137–#139 are infrastructure/documentation only and excluded from that five-development-PR count. Always verify current main and approved cards before work.
 
@@ -192,7 +207,10 @@ Written 2026-10-10 for an empty repository. [STATUS](STATUS.md) holds current st
 ## Work coverage
 
 `docs/pr-cards/work-index.json` is the machine-readable list (`python3 docs/pr-cards/validate-index.py`). **JIT** = covered by
-the approved design; write the card when its predecessor is real.
+the approved design; write the card when its predecessor is real. The
+status column in this table is an October source-era snapshot, not the
+current product state; [COMPLETION](COMPLETION.md) governs current
+completion status.
 
 | Batch | Cards | Card status |
 |---|---|---|
