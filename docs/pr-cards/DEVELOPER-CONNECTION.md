@@ -87,6 +87,26 @@ Unit/CLI tests run locally; SQL race/expiry tests require disposable CI Postgres
 CI provenance guard separates standard connectors and custom-service proof. Exact-head CI,
 reviewed deployment, initial owner consent and real provider/scratch acceptance pending.
 
+## Boundary implementation delivery — 2026-11-02
+
+Landed on branch `ai/vivienne/developer-access-boundary` (bundle plan
+frozen in the planning commit directly on `04d2fdf9`): additive
+`oauth_tokens.context` typing with issuance stamping and refresh
+preservation (real store + fake store parity); the `DeveloperAccess`
+resolver (`src/developer/access.js`); fail-closed crossover enforcement
+at token issuance, refresh and the MCP bearer door; the
+`developer_boundary_events` refusal journal; journaled handoff-start
+refusals; OPERATOR classification comments on the connection and
+transitional marking on the passphrase/setup surfaces; crossover and
+guard tests (`tests/unit/developer-boundary.test.js`,
+`tests/db/developer-boundary.test.js`). The existing connection flow is
+unchanged for TEST: the pre-existing handoff, OAuth and MCP-auth suites
+pass alongside the new ones. Remaining, deliberately not built here:
+the live acceptance pair for conformance row 4 (runs at the checked
+deployed release after the daily promotion) and any `DevGrant` issuance
+surface beyond this connection (bound by the minimum specification in
+the classification section above when a consumer exists).
+
 ## Role-drift and completion review
 Read docs/reviews/2026-10-13-completion-recovery.md. Review the actual source/index
 before extending scope: preserve full product capability, isolate builder permission,

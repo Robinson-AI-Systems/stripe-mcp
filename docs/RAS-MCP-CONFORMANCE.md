@@ -171,6 +171,26 @@ entitled developer uses the protected backend; an ordinary user with the
 same provider account cannot reach it; crossover attempts fail closed both
 ways. Until that runs live, status is `DESIGNED / NOT VERIFIED`.
 
+**Implementation (source, 2026-11-02; live acceptance still owed).** The
+boundary is now enforced in source under the DEVELOPER-CONNECTION card:
+every OAuth grant carries a server-derived identity context (additive
+`oauth_tokens.context`, stamped at issuance from the server-verified
+code record, preserved through refresh; pre-typing developer grants
+resolve by derivation from their registered client, via the
+`DeveloperAccess` resolver in `src/developer/access.js`). Developer-context
+grants fail closed on LIVE operations at issuance, at refresh and at the
+MCP door; customer clients are refused at handoff start and a connector
+bearer is not a polling credential; refusals are journaled without
+secrets in `developer_boundary_events`; the operator connection and the
+passphrase/setup surfaces are classified and marked transitional in code
+and docs, with nothing disabled and the connection's TEST flow unchanged.
+Unit and real-Postgres tests prove both crossover directions and the
+zero-developer-link guard over the public surfaces. What remains for
+this row is only the live half of the acceptance above, at the checked
+deployed release; the planned `DevGrant` issuance system itself is not
+built (no consumer exists yet) and stays bound by the minimum
+specification recorded here when it is.
+
 ### 5. Release provenance — VER-1 — PLANNED
 
 The Standard (2026-11-02, from GitHub MCP's VER-1): an agent must be able

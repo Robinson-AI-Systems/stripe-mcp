@@ -237,7 +237,8 @@ A-2 defined seven tables; B-1 added `money_reservations` and `money_approvals`, 
 | `stripe_accounts` | Per-account labels, encrypted key slots, live-mode gate and money limit |
 | `oauth_clients` | Client registrations |
 | `oauth_codes` | Expiring one-time login codes and connection scope |
-| `oauth_tokens` | Hashed access/refresh credentials, exact account/mode/profile/listing and a server-generated opaque `result_scope` stable across token refresh |
+| `oauth_tokens` | Hashed access/refresh credentials, exact account/mode/profile/listing, its identity `context` (`customer`/`developer`, stamped server-side at issuance per the D-001 developer access boundary) and a server-generated opaque `result_scope` stable across token refresh |
+| `developer_boundary_events` | D-001 developer access boundary refusal journal: surface, context, mode, reason code and client id only — never credential material |
 | `login_attempts` | Auditable sign-in attempts and future lockout |
 | `change_log` | Preview/confirm/read-back audit history and future undo links |
 | `one_time_secrets` | Only ciphertext, expiry and single-view record |

@@ -1,3 +1,57 @@
+## 2026-11-02 — Developer access boundary implemented in source (DEVELOPER-CONNECTION)
+
+Implements, in source, the boundary the conformance entry below recorded
+for [RAS-MCP-CONFORMANCE](RAS-MCP-CONFORMANCE.md) row 4 (Library D-001,
+fleet developer access boundary). Decisions taken in implementation:
+
+- **Grant context is a stored, server-derived type.** `oauth_tokens`
+  gains an additive `context` column (`customer` default). At token
+  issuance the token handler stamps `developer` when the consumed code's
+  server-verified redirect is this service's own developer handoff
+  callback — a fact the handoff itself proved before releasing the code —
+  never from caller input, a mode, a header or a role parameter. Refresh
+  rotation preserves the stamp in the same row.
+- **Pre-typing grants resolve by derivation.** Grants minted before
+  context typing carry the `customer` default; at the MCP door and at
+  refresh they resolve as `developer` when their registered client is a
+  developer client (its registered redirects include the handoff
+  callback). Developer determination is sticky: either server-side proof
+  suffices, so a developer client cannot launder grants into customer
+  context, and no public-user record can raise a customer grant.
+- **Enforcement is fail-closed at three points.** A developer-context
+  grant cannot be minted for LIVE (token issuance refuses), cannot
+  refresh into continued LIVE authority (pre-check runs before rotation
+  consumes the credential, and a refusal leaves the credential
+  unconsumed), and cannot be used at the MCP door in LIVE mode (the same
+  indistinguishable `invalid_token` refusal as any bad token). Customer
+  clients remain refused at handoff start under the existing
+  registered-callback rule, and a connector bearer is not a handoff
+  polling credential.
+- **Refusals are journaled without secrets.** The additive
+  `developer_boundary_events` table records surface, context, mode,
+  reason code and client id only. Journaling is evidence, not
+  enforcement: a failed journal write never changes a refusal outcome.
+- **The operator connection keeps its owner-consented full TEST
+  profiles.** The 2026-10-13 owner decision (this connection is the
+  implementing agent's own development authority over approved test
+  fixtures) stands. D-001's short-lived, default-read-only rule binds
+  **future `DevGrant` issuance**, not this existing operator connection;
+  the two are never to be conflated. No new TEST-grant issuance surface
+  is built here; when one is, the `DevGrant` minimum specification in
+  the conformance record binds it, with the CAP-3 tenancy store as the
+  candidate home for the fuller grant record.
+- **Passphrase gates are transitional, marked in code.** The consent
+  journey's owner passphrase, the setup pages and the RTC pass issuer's
+  gate are preserved unchanged and marked transitional toward named
+  operator identity. A passphrase alone never mints developer context.
+- **Live acceptance is still owed.** The row's acceptance — an entitled
+  developer using the protected backend while an ordinary user with the
+  same provider account cannot reach it, proven at the checked deployed
+  release — has not run. Row 4 stays `DESIGNED / NOT VERIFIED` at live
+  level; this entry claims source implementation and local/CI proof
+  only.
+
+
 ## 2026-11-02 — RAS MCP Standard conformance pass for the plans (owner-directed)
 
 Chris directed (main chat, 2026-11-02) that this server's plans be updated to
