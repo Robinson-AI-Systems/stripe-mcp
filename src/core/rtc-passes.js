@@ -42,7 +42,11 @@ export function createReadOnlyTestPassIssuer({db,oneTimeStore,
 // RTC 1 owner-configured passes. This issuer is invoked ONLY after the server's
 // private owner setup passphrase+CSRF gate; it never trusts a tool-supplied
 // "authenticated" boolean. The existing read-only issuer remains unchanged
-// for short-lived TEST Hub acceptance fixtures.
+// for short-lived TEST Hub acceptance fixtures. TRANSITIONAL (D-001 fleet
+// developer access boundary): the owner passphrase gate is the current
+// operator gate, preserved while needed; named operator identity is the
+// recorded direction, and passes remain their own credential type — never
+// developer grants and never customer sign-in.
 const PROFILES=new Set(['read_only','everyday','full']);
 function passAreas(areas,available){
   const items=typeof areas==='string'?areas.split(',').map(x=>x.trim()):areas;

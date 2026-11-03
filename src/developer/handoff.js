@@ -1,5 +1,13 @@
 // Mobile OAuth handoff; owner consent and native token exchange remain authoritative.
 // The polling client holds the PKCE verifier, RSA private key and polling secret.
+//
+// OPERATOR SURFACE (Library D-001 fleet developer access boundary;
+// docs/RAS-MCP-CONFORMANCE.md row 4): this endpoint is this server's
+// backend developer/operator entry for the implementing agents. It is
+// never linked or advertised from any public page, the tool catalog,
+// OAuth metadata or client onboarding material, and it is not a sign-in
+// class. Grants minted through it are stamped developer context at token
+// issuance (src/developer/access.js) and are confined to TEST.
 import {createHash,createPublicKey,publicEncrypt,constants,randomBytes} from 'node:crypto';
 const digest=value=>createHash('sha256').update(value).digest('hex');
 const random=()=>randomBytes(32).toString('base64url');
@@ -19,7 +27,7 @@ export function validateStart(p){
     throw Error('invalid_request');
   return {...p,public_key:key.export({type:'spki',format:'pem'})};
 }
-export function createHandoff({store,origin,getClient,clientIp=req=>req.socket?.remoteAddress||'unknown',now=()=>Date.now()}){
+export function createHandoff({store,origin,getClient,clientIp=req=>req.socket?.remoteAddress||'unknown',now=()=>Date.now(),journal=null}){
   const base=new URL(origin);
   if(base.protocol!=='https:'||base.origin!==origin||base.username||base.password)throw Error('invalid_origin');
   return async(req,res)=>{
@@ -33,7 +41,14 @@ export function createHandoff({store,origin,getClient,clientIp=req=>req.socket?.
       if(req.method==='POST'){
         let p;try{p=validateStart(req.body);}catch{return json(400,{error:'invalid_request'});}
         const client=await getClient(p.client_id);
-        if(!client?.redirect_uris?.includes(origin+callbackPath))return json(400,{error:'invalid_client'});
+        if(!client?.redirect_uris?.includes(origin+callbackPath)){
+          // Boundary refusal, journaled without secrets: only a registered
+          // developer client (its redirects include this operator callback)
+          // may start a handoff. A public customer client fails closed here.
+          try{await journal?.({surface:'developer_connect',context:'developer',
+            mode:null,reason:'client_not_developer',clientId:p.client_id});}catch{}
+          return json(400,{error:'invalid_client'});
+        }
         const state=random(), expires=new Date(now()+600000);
         const ip=digest(String(clientIp(req)));
         if(!await store.start({...p,state,ip,expires}))return json(429,{error:'rate_limited'});

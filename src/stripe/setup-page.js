@@ -1,4 +1,10 @@
 // Owner-only setup UI. The browser sends Stripe keys directly over HTTPS; no AI tool accepts them.
+// OPERATOR SURFACE, TRANSITIONAL GATE (Library D-001 fleet developer access
+// boundary): this is the service/product administrator context. Its
+// passphrase gate is transitional — preserved while needed, with named
+// operator identity the recorded direction. The passphrase is an operator
+// gate only: it is not a sign-in class for customers and never mints
+// developer context.
 import { randomBytes } from 'node:crypto';
 import {buildSetupReadinessReport} from '../acceptance/setup-readiness-report.js';
 import {OwnerSmokeFailure,ownerSmokeFailureMessage} from '../acceptance/owner-smoke-failure.js';

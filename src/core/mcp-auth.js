@@ -1,5 +1,6 @@
 // Contract-generic MCP bearer authentication. Never forwards the bearer to the provider.
 import { publicOrigin, send } from './http.js';
+import { resolveGrantContext, contextMayOperate, journalBoundaryEvent } from '../developer/access.js';
 
 export async function requireMcpToken(req, res, db, env = process.env) {
   const origin = publicOrigin(env);
@@ -21,6 +22,24 @@ export async function requireMcpToken(req, res, db, env = process.env) {
     send(res, 401, { error: 'invalid_token' });
     return null;
   }
+  // Fleet developer access boundary (D-001): resolve the grant's identity
+  // context from server-side records only (issuance stamp, else the
+  // registered client) and confine developer context to TEST. A developer
+  // grant presented for LIVE customer operations fails closed with the
+  // same indistinguishable refusal as any other invalid token.
+  let context = record.context === 'developer' ? 'developer' : 'customer';
+  if (context !== 'developer' && typeof db.getOAuthClient === 'function') {
+    let client = null;
+    try { client = await db.getOAuthClient(record.client_id); } catch { client = null; }
+    context = resolveGrantContext({ record, client, origin });
+  }
+  if (!contextMayOperate({ context, mode: record.mode })) {
+    await journalBoundaryEvent(db, { surface: 'mcp', context, mode: record.mode,
+      reason: 'developer_live_access_refused', clientId: record.client_id });
+    res.setHeader('WWW-Authenticate', challenge + ', error="invalid_token"');
+    send(res, 401, { error: 'invalid_token' });
+    return null;
+  }
   if(record.mode==='live'){
     let account;
     try{account=env.VERCEL_ENV==='production'&&
@@ -34,7 +53,7 @@ export async function requireMcpToken(req, res, db, env = process.env) {
     }
   }
   return Object.freeze({ clientId: record.client_id, stripeAccount: record.stripe_account,
-    mode: record.mode, profile: record.profile, listing: record.listing,
+    mode: record.mode, profile: record.profile, listing: record.listing, context,
     // The only LIVE write grant is the actual owner-consented persisted OAuth
     // token bit; no caller-controlled JSON can create it. Money is NOT granted.
     rtcLiveOwnerApproved:record.mode==='live'&&record.allow_writes===true,

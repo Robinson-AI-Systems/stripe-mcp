@@ -21,7 +21,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs', 'developer_boundary_events'
 ]);
 
 let productionSql;
@@ -88,14 +88,15 @@ export function createDb(sql = getProductionSql()) {
     },
     async createAccessToken({ accessToken, refreshToken, clientId, stripeAccount = null,
       mode = 'test', profile = 'everyday', listing = 'catalog',
-      liveWriteApproved = false, ttlSeconds = 3600 }) {
+      liveWriteApproved = false, context = 'customer', ttlSeconds = 3600 }) {
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
       await sql`INSERT INTO oauth_tokens
         (token_hash, refresh_hash, client_id, stripe_account, mode, profile,
-         listing, allow_writes, money_limit_cents, expires_at)
+         listing, allow_writes, money_limit_cents, context, expires_at)
         VALUES (${hashToken(accessToken)}, ${refreshToken ? hashToken(refreshToken) : null},
           ${clientId}, ${stripeAccount}, ${mode}, ${profile}, ${listing},
-          ${mode==='live'&&liveWriteApproved===true}, 0, ${expiresAt})`;
+          ${mode==='live'&&liveWriteApproved===true}, 0,
+          ${context === 'developer' ? 'developer' : 'customer'}, ${expiresAt})`;
     },
     async createRtcReadOnlyPass({id,account,token,expiresAt,areas=null}) {
       if(areas!==null&&(!Array.isArray(areas)||areas.length<1||areas.length>6||
@@ -199,13 +200,13 @@ export function createDb(sql = getProductionSql()) {
     async getAccessToken(accessToken) {
       if (typeof accessToken !== 'string' || !accessToken) return null;
       const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing, kind, result_scope,
-        allow_writes, expires_at, revoked_at FROM oauth_tokens WHERE token_hash = ${hashToken(accessToken)}
+        allow_writes, context, expires_at, revoked_at FROM oauth_tokens WHERE token_hash = ${hashToken(accessToken)}
         AND expires_at > now() AND revoked_at IS NULL AND kind = 'connector'`;
       return rows[0] || null;
     },
     async getTokenByRefreshToken(refreshToken) {
       if (typeof refreshToken !== 'string' || !refreshToken) return null;
-      const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing
+      const rows = await sql`SELECT client_id, stripe_account, mode, profile, listing, context
         FROM oauth_tokens WHERE refresh_hash = ${hashToken(refreshToken)}
         AND revoked_at IS NULL AND kind = 'connector'`;
       return rows[0] || null;
@@ -223,8 +224,17 @@ export function createDb(sql = getProductionSql()) {
           AND (mode = 'test' OR (mode = 'live' AND EXISTS (
             SELECT 1 FROM stripe_accounts a WHERE a.id = oauth_tokens.stripe_account
               AND a.live_enabled = TRUE AND a.live_key_enc IS NOT NULL)))
-        RETURNING client_id, stripe_account, mode, profile, listing`;
+        RETURNING client_id, stripe_account, mode, profile, listing, context`;
       return rows[0] || null;
+    },
+    // Developer access boundary journal (D-001): who was refused, at which
+    // surface, in which context/mode and why — identifiers and reason
+    // codes only. Callers treat a failed write as non-fatal.
+    async recordDeveloperBoundaryEvent({ surface, context, mode = null, reason, clientId = null }) {
+      if (typeof surface !== 'string' || !surface || typeof context !== 'string' || !context ||
+        typeof reason !== 'string' || !reason) throw new TypeError('Boundary event needs surface, context and reason');
+      await sql`INSERT INTO developer_boundary_events (surface, context, mode, reason, client_id)
+        VALUES (${surface}, ${context}, ${mode}, ${reason}, ${clientId})`;
     },
     // Client disconnect must never revoke another caller or an RTC pass.
     async revokeOAuthToken({token,clientId}) {
@@ -919,6 +929,22 @@ export function createDb(sql = getProductionSql()) {
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS areas TEXT[]`;
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS for_hub BOOLEAN NOT NULL DEFAULT FALSE`;
       await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS rate_limit_per_minute INTEGER NOT NULL DEFAULT 120`;
+      // Fleet developer access boundary (D-001): every grant carries its
+      // identity context. Grants minted before typing default to customer;
+      // developer context for those is derived from their registered client
+      // at read time (src/developer/access.js), never written from input.
+      await sql`ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS context TEXT NOT NULL DEFAULT 'customer'`;
+      // Boundary refusals are journaled without secrets: surface, context,
+      // mode, reason code and client id only — never a token or credential.
+      await sql`CREATE TABLE IF NOT EXISTS developer_boundary_events (
+        id BIGSERIAL PRIMARY KEY,
+        at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        surface TEXT NOT NULL,
+        context TEXT NOT NULL,
+        mode TEXT,
+        reason TEXT NOT NULL,
+        client_id TEXT
+      )`;
       await sql`CREATE TABLE IF NOT EXISTS rtc_pass_rates (
         token_hash TEXT NOT NULL, window_start TIMESTAMPTZ NOT NULL,
         count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(token_hash,window_start)

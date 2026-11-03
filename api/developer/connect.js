@@ -1,8 +1,13 @@
 import {clientIp} from '../../src/core/oauth.js';
 // Machine protocol, not an MCP tool: OAuth secrets never enter tool results.
+// OPERATOR SURFACE (Library D-001 fleet developer access boundary): this
+// endpoint is the backend developer/operator connection for the
+// implementing agents. Never link or advertise it from a public page,
+// the tool catalog, OAuth metadata or onboarding material.
 import {neon} from '@neondatabase/serverless';
 import {createHandoff} from '../../src/developer/handoff.js';
 import {handoffStore,HANDOFF_SCHEMA,HANDOFF_LIMIT_SCHEMA} from '../../src/developer/handoff-store.js';
+import {journalBoundaryEvent} from '../../src/developer/access.js';
 import {createDb} from '../../src/db.js';
 import {publicOrigin} from '../../src/core/http.js';
 export default async function handler(req,res){
@@ -15,6 +20,7 @@ export default async function handler(req,res){
     const query=(text,values)=>typeof sql.query==='function'?sql.query(text,values):sql(text,values);
     await query(HANDOFF_SCHEMA);await query(HANDOFF_LIMIT_SCHEMA);
     const db=createDb();
-    return await createHandoff({store:handoffStore(query),origin,clientIp,getClient:id=>db.getOAuthClient(id)})(req,res);
+    return await createHandoff({store:handoffStore(query),origin,clientIp,getClient:id=>db.getOAuthClient(id),
+      journal:event=>journalBoundaryEvent(db,event)})(req,res);
   }catch{return res.status(503).json({error:'developer_connection_unavailable'});}
 }
