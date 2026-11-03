@@ -39,7 +39,14 @@ describe('RTC 1 HTTPS TEST-only pass boundary',()=>{
   it('publishes safe prefixed discovery without changing registered MCP names',async()=>{
     expect(rtcManifest(registry)).toMatchObject({rtc:1,prefix:'stripe',
       profiles:['read_only','everyday','full'],counts:{tools:2,writes:0,money:0},areas:['account','server']});
+    // counts are the pass-eligible union, and the manifest now says so
+    // in the document itself (audit W4-F11) instead of leaving 284-style
+    // figures to be read as the registry total.
+    expect(rtcManifest(registry).counts_scope).toContain('owner-issued RTC pass');
+    expect(rtcManifest(registry).counts_scope).toContain('not the full MCP registry');
     const spec=rtcOpenApi();
+    expect(spec.info.title).toBe(
+      'Stripe Unleashed by Robinson AI Systems — RTC scoped TEST/LIVE API');
     expect(Object.keys(spec.paths)).toContain('/api/contract');
     expect(Object.keys(spec.paths)).toContain('/api/openapi.json');
     const attested=rtcManifest(registry,{sha:'a'.repeat(40),

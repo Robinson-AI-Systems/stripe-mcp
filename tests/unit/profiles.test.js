@@ -136,11 +136,11 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     expect(response.isError).toBeUndefined();
     expect(fixture.count()).toBe(1);
   });
-  it('home endpoint publishes true currently usable counts for each profile',()=>{
+  it('home endpoint publishes true currently usable counts for each profile',async()=>{
     let body;
     const res={setHeader:()=>{},status:(code)=>{expect(code).toBe(200);return res;},
       json:value=>{body=value;return res;}};
-    home({},res);
+    await home({},res);
     // The home endpoint must report EXACTLY the active registry's visible tools.
     // Under the isolated K-3 core-adoption adapter, the portable profile policy
     // intentionally differs by one owner-only tool; do not hardcode a stale count.

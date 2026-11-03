@@ -51,6 +51,24 @@ describe('personal-use OAuth HTTP endpoints', () => {
     expect(auth.code_challenge_methods_supported).toEqual(['S256']);
     expect(json(await call(h.resourceMetadata, request('GET', {}))).resource).toBe(resource);
   });
+  it('carries the exact non-affiliation disclaimer on the connect page', async () => {
+    const { h } = createFixture();
+    const client = await register(h);
+    const page = await call(h.authorize, request('GET', authorizeArgs(client)));
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('Stripe Unleashed is a Robinson AI Systems product. ' +
+      'It is not affiliated with, endorsed by, or sponsored by Stripe, Inc.');
+  });
+  it('points owners at the setup page without an internal card reference when no account exists', async () => {
+    const db = createFakeDb({ accounts: [] });
+    const h = createOAuthHandlers({ db, env });
+    const client = await register(h);
+    const page = await call(h.authorize, request('GET', authorizeArgs(client)));
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('Add a test account securely through the setup page.');
+    expect(page.body).not.toContain('A-5');
+    expect(page.body).toContain('Stripe Unleashed is a Robinson AI Systems product.');
+  });
   it('rejects insecure redirect URIs and unsupported public-client auth', async () => {
     const { h } = createFixture();
     const res = await call(h.register, request('POST', { redirect_uris: ['http://evil.example.test/cb'] }));
@@ -294,10 +312,54 @@ describe('personal-use OAuth HTTP endpoints', () => {
     expect((await call(h.token, request('POST', {
       grant_type: 'refresh_token', client_id: 'fake-other-client', client_secret: client.client_secret,
       refresh_token: second.refresh_token, resource }))).statusCode).toBe(401);
-    expect((await call(h.token, request('POST', {
+    // A resource that IS sent must still name this MCP (owner ruling
+    // 2026-11-03 made the parameter optional, never unvalidated).
+    const wrongResource = await call(h.token, request('POST', {
       grant_type: 'refresh_token', client_id: client.client_id, client_secret: client.client_secret,
       refresh_token: second.refresh_token, resource: 'https://elsewhere.example.test/api/mcp'
-    }))).statusCode).toBe(400);
+    }));
+    expect(wrongResource.statusCode).toBe(400);
+    expect(json(wrongResource).error).toBe('invalid_target');
+  });
+  it('treats resource as optional at authorize and token (owner ruling 2026-11-03, D-001)', async () => {
+    const { db, h } = createFixture();
+    const client = await register(h);
+    const { resource: _omit, ...noResource } = authorizeArgs(client);
+    // Authorize renders and approves with no resource at all — the phone
+    // flows D-001 protects send none.
+    const page = await call(h.authorize, request('GET', noResource));
+    expect(page.statusCode).toBe(200);
+    const authorized = await call(h.authorize, request('POST', {
+      ...noResource, passphrase: env.ADMIN_PASSPHRASE }));
+    expect(authorized.statusCode).toBe(302);
+    const code = new URL(authorized.headers.Location).searchParams.get('code');
+    // Token exchange with no resource issues the grant.
+    const granted = await call(h.token, request('POST', { grant_type: 'authorization_code',
+      client_id: client.client_id, client_secret: client.client_secret, redirect_uri: callback,
+      code, code_verifier: verifier }));
+    expect(granted.statusCode).toBe(200);
+    const tokens = json(granted);
+    expect(await db.getAccessToken(tokens.access_token)).toMatchObject({
+      stripe_account: 'acct_fake_one', mode: 'test', profile: 'full' });
+    // Refresh with no resource rotates as before.
+    const refreshed = await call(h.token, request('POST', { grant_type: 'refresh_token',
+      client_id: client.client_id, client_secret: client.client_secret,
+      refresh_token: tokens.refresh_token }));
+    expect(refreshed.statusCode).toBe(200);
+    // And the consent form's own empty re-submission counts as absent.
+    const again = await call(h.authorize, request('POST', {
+      ...noResource, resource: '', passphrase: env.ADMIN_PASSPHRASE }));
+    expect(again.statusCode).toBe(302);
+  });
+  it('refuses a wrong resource at authorize, while the correct one still succeeds', async () => {
+    const { h } = createFixture();
+    const client = await register(h);
+    const wrong = await call(h.authorize, request('GET', {
+      ...authorizeArgs(client), resource: 'https://elsewhere.example.test/api/mcp' }));
+    expect(wrong.statusCode).toBe(400);
+    expect(json(wrong).error).toBe('invalid_request');
+    const right = await call(h.authorize, request('GET', authorizeArgs(client)));
+    expect(right.statusCode).toBe(200);
   });
   it('refuses forged live mode even with the correct admin passphrase', async () => {
     const { h } = createFixture();
