@@ -142,6 +142,9 @@ export function rtcManifest(registry,deployment={}){
     areas:[...new Set(exposed.map(t=>t.area??'server'))].sort(),
     counts:{tools:exposed.length,writes:exposed.filter(t=>t.writes===true).length,
       money:exposed.filter(moneyTool).length},
+    counts_scope:'counts describe the tools an owner-issued RTC pass may '+
+      'expose (eligible reads + guarded TEST writes), not the full MCP '+
+      'registry; an issued pass sees only its own profile, areas and policy',
     profiles:['read_only','everyday','full'],listingModes:['compact','catalog'],
     modes:['test','live'],devTools:true,
     conformanceStatus:'pending_external_approval_and_conformance',
@@ -160,7 +163,7 @@ export function rtcOpenApi(){
           name:{type:'string'},args:{type:'object'}}}}}}}}};
   const pathParam=name=>[{name,in:'path',required:true,schema:{type:'string'}}];
   return {openapi:'3.1.0',
-    info:{title:'Robinson Stripe MCP RTC scoped TEST/LIVE API',version:packageVersion()},
+    info:{title:'Stripe Unleashed by Robinson AI Systems — RTC scoped TEST/LIVE API',version:packageVersion()},
     // OpenAPI describes only the pass-authenticated HTTPS subset. OAuth/MCP
     // has separate authorization, including profiles this door must refuse.
     security:[{rtcTestPass:[]}],

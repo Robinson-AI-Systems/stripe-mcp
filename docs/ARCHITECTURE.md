@@ -165,6 +165,12 @@ Keep current `PUBLIC_BASE_URL` and existing clients intact until DNS, TLS,
 OAuth issuer/resource, callback and exact READY release evidence pass.
 No new DNS, app publication, LIVE activation or deployment has occurred.
 
+> **Superseded (2026-11-03):** the product name is now **Stripe Unleashed by
+> Robinson AI Systems** and the product mark is the Unleashed Break-Out; the
+> Robinson AI Systems R logo remains the company/publisher mark only. See the
+> 2026-11-02 entry in [DECISIONS.md](DECISIONS.md). The entry above stands as
+> the 2026-10-23 record.
+
 ## 2026-10-23 — staged CAP-1 inventory and approved identity architecture (NOT deployed from this PR)
 
 The offline `src/stripe/capability-inventory.js` and

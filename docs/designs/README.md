@@ -20,3 +20,11 @@ go in `CHANGES-SINCE-DESIGN.md`. New designs start from `TEMPLATE.md`.
 | R Hub-ready doors (RTC 1) | [BATCH-R](BATCH-R.md) | Approved 2026-10-10 (IN-00); amended 2026-10-10 (hub architecture) |
 | E Catalog, Stripe Tax, usage | [BATCH-E](BATCH-E.md) | Approved 2026-10-10 (IN-00) |
 | X Undo, smoke test, toolkit decision | [BATCH-X](BATCH-X.md) | Approved 2026-10-10 (IN-00) |
+
+Governing contracts (not batches; these bind the batches above):
+
+| Contract | File | Status |
+|---|---|---|
+| Maximum legitimate Stripe authority (CAP-1…CAP-5 plan) | [MAXIMUM-AUTHORITY](MAXIMUM-AUTHORITY.md) | Approved plan 2026-10-21; future engineering, not completed implementation |
+| Brand and domain contract | [STRIPE-BRAND-DOMAIN](STRIPE-BRAND-DOMAIN.md) | Approved by owner 2026-10-23; target, not yet activated |
+| Connection, independent identity and optional God Mode | [STRIPE-CONNECTION-GOD-MODE](STRIPE-CONNECTION-GOD-MODE.md) | Owner-approved 2026-10-23; engineering not completed by the design |

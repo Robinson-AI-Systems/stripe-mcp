@@ -31,6 +31,52 @@ owed, so the row remains `DESIGNED / NOT VERIFIED` at live level. Next:
 CAP-3/CAP-5 connection contract and VER-1 release identity proceed on
 their own branches; this row closes when the live denial pair runs.
 
+## 2026-11-02 — CAP-3 connection implementation: client ID cards (CIMD) + one-sign-in consent (source)
+
+First implementation under the conformance plan (owner-directed in the
+main chat: after the plans conform, implementation begins). New
+`src/core/cimd.js` fetches and validates a visiting client's ID card
+exactly as the fleet contract (D-001, 2026-11-02) requires: HTTPS-only
+fetch from the exact `client_id` URL, the card's declared address must
+equal the fetched URL, a client name is required, every redirect
+address used must be printed on the card, secret-holding cards are
+refused (card clients are public clients, never upgraded), and the
+fetch is SSRF-bounded — the card host's DNS answers are classified
+before fetching and any private, link-local or reserved answer refuses
+the card; redirects are followed manually, same-host only, at most 3,
+under one 5-second timeout and a 64 KiB cap. All failures resolve to
+the existing legible "Unknown client or redirect address" refusal; no
+credentials are issued on any card failure. The authorize, token and
+revoke handlers resolve a client through the registration store first,
+then the card resolver, so dynamic registration is unchanged (exact
+redirect matching kept); card clients match their printed redirect
+addresses with the sanctioned loopback port relaxation (Claude Code's
+ephemeral ports). Discovery now advertises
+`client_id_metadata_document_supported: true`.
+
+The consent journey is corrected to the one-public-sign-in contract:
+the authorize page no longer offers a profile or tool-listing choice;
+it displays the resulting effective access (account, mode, grant, and
+any read-only tightening set on the connection), and a connection
+created without a profile setting defaults to `full` — the fullest
+grant. A profile value a client supplies is still honored as the
+connection's stored setting, and every existing LIVE gate is
+unchanged (activated account, production service, separate write
+consent; a read-only connection still cannot take LIVE write
+consent). Per-client setup snippets are delivered as CAP-3 connection
+material in [CONNECT-CLIENTS](CONNECT-CLIENTS.md).
+
+**Honest status: `FIXED IN SOURCE / NOT VERIFIED LIVE`.** Unit and
+handler tests cover every D-001 negative card case plus the full card
+authorize → token flow; no deployed release carries this code yet.
+CAP-5's live knock test with a real card client is **owed** against
+the checked deployed release after the daily `main` → `live`
+promotion carries it, and conformance row 2 closes only on that
+evidence. CAP-3 remains IN_PROGRESS overall (human OIDC, Stripe App
+installation and the My Connection screen remain open engineering);
+this packet completes no CAP-3 subsection. Packet record:
+[CAP-3-cimd](pr-cards/CAP-3-cimd.md).
+
 ## 2026-11-02 — VER-1 release provenance, front door and fleet health (source; live proof owed)
 
 Owner-directed implementation of the RELEASE-IDENTITY workstream from

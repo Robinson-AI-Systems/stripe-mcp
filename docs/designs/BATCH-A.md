@@ -43,6 +43,11 @@ everything else), **Full** (all). Stripe sandboxes are separate accounts with th
 (`read_only`, `everyday`, `full`) and listing modes (`catalog`, `compact`) are defined in Batch B and Batch C; A stores
 them.
 
+**Amendment 2026-11-02 (recorded 2026-11-03):** “chosen at login” in A6 above is superseded — the connect
+journey offers no profile or listing choice; the authorize page displays the resulting effective access, and
+profile/listing are connection settings honored from storage. See the Amendments section below,
+`docs/RAS-MCP-CONFORMANCE.md` row 3 and `docs/designs/STRIPE-CONNECTION-GOD-MODE.md`.
+
 **A7. The Stripe API version is pinned in code** (`STRIPE_API_VERSION` in `src/stripe/client.js`), set to the version the
 installed library ships with. Moving it is its own card with a changelog review (see FINDINGS-style breakage in
 `docs/audits/2026-10-10-existing-stripe-code.md`, bugs 1–3).
@@ -131,7 +136,9 @@ Tests: contract against fake and Postgres; `initSchema()` twice changes nothing.
 Files: `api/oauth/*`, `api/well-known/*`, `src/oauth/*`, `api/mcp.js` (lists zero tools until B; home page `api/index.js`
 prints counts).
 Change: port the Workspace flow; authorize page shows account dropdown, mode (test only unless `live_enabled`), profile,
-listing, passphrase. Hash tokens. **Settings survive refresh** (review finding on the Workspace server, 2026-10-10):
+listing, passphrase. **Amendment 2026-11-02 (recorded 2026-11-03):** the profile and listing choices in this
+sentence are superseded — the connect journey offers no profile or listing choice; see the Amendments section
+below, `docs/RAS-MCP-CONFORMANCE.md` row 3 and `docs/designs/STRIPE-CONNECTION-GOD-MODE.md`. Hash tokens. **Settings survive refresh** (review finding on the Workspace server, 2026-10-10):
 `stripe_account`, `mode`, `profile` and `listing` are stored on the authorization code and the token row, the
 refresh-token lookup returns them, and one helper copies every connection setting from the issuing row into the new row
 for both grant types — a refresh never falls back to defaults (a test connection must never become something else).
@@ -189,3 +196,10 @@ exists). Stripe-specific pieces (client, keys, money table, app guard, Stripe er
 server. No behavior changes.
 
 **2026-10-10 — Owner-directed persistent connection (A-3b).** The MCP is for the owner’s projects alone: authorization is set up once, not repeatedly. Short-lived access tokens (one hour) are silently refreshed with one-use rotating refresh tokens. A refresh token **does not expire merely because its access token expires**: keep the hashed refresh credential usable until explicit revocation, server-side account suspension, or credential reset. This is an intentional persistent personal connection, not a long-lived bearer access token. Refresh rotation must atomically replace both hashed credentials, preserve every account/mode/profile/listing setting, reject replay, and remain client-bound. Test refreshing after the access token is already expired. Tokens never pass through Stripe and Stripe API keys never pass through MCP tools. The client platform may independently require a login when disconnected. All money/live guards remain in effect. This owner decision overrides A-3a’s shared 30-day token expiry for refresh use.
+
+**2026-11-02 — One public sign-in; profile and listing are connection settings (fleet rule, recorded 2026-11-03).**
+A6's “chosen at login” and work unit A-3's authorize-page profile/listing choices are superseded on this one
+point: the connect journey offers no profile or listing choice — the screen displays the resulting effective
+access, and profile and read-only choices live as customer settings on the connection. Recorded in
+`docs/RAS-MCP-CONFORMANCE.md` row 3 (CORRECTED) and `docs/designs/STRIPE-CONNECTION-GOD-MODE.md` item 4; the
+code at main follows the corrected rule. The historical design text above is not rewritten.

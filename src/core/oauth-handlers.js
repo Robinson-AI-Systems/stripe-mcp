@@ -2,6 +2,7 @@
 import {createOAuthRevocation} from './oauth-revocation.js';
 import { randomToken, hashToken, secretsMatch, verifyPkce, validRedirectUri, evaluateLogin, clientIp, LOCKOUT_WINDOW_MINUTES } from './oauth.js';
 import { contextForAuthorizationCode, resolveGrantContext, contextMayOperate, journalBoundaryEvent } from '../developer/access.js';
+import { isCimdClientId, resolveCimdClient, redirectUriMatches } from './cimd.js';
 import { publicOrigin, send, escapeHtml, paramsOf, only } from './http.js';
 
 const PROFILES = ['read_only', 'everyday', 'full'];
@@ -13,12 +14,44 @@ const tokenResponse = (access, refresh) => ({
 const bad = (res, status, code, description) => send(res, status, { error: code, error_description: description });
 const str = (x) => typeof x === 'string' ? x : '';
 
-export function createOAuthHandlers({ db, env = process.env }) {
+export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupImpl } = {}) {
   function urls() {
     const origin = publicOrigin(env);
     return { origin, resource: origin + '/api/mcp' };
   }
-  function validateResource(value) {
+  // A client is either a stored dynamic-registration row or a visiting
+  // client presenting its ID card (CIMD): a client_id that is an HTTPS
+  // URL is fetched and validated as a card, never looked up as a secret.
+  // Registered IDs are not URLs, so the store answer always wins.
+  async function resolveClient(clientId) {
+    if (typeof clientId !== 'string' || !clientId) return null;
+    const stored = await db.getOAuthClient(clientId);
+    if (stored) return stored;
+    if (isCimdClientId(clientId)) {
+      return resolveCimdClient(clientId, {
+        ...(fetchImpl ? { fetchImpl } : {}), ...(lookupImpl ? { lookupImpl } : {})
+      });
+    }
+    return null;
+  }
+  // Card clients match redirect addresses printed on the card, with the
+  // sanctioned loopback port relaxation; registered clients keep the
+  // exact byte-for-byte match they registered with.
+  function redirectAllowed(client, requested) {
+    if (!validRedirectUri(requested)) return false;
+    if (client?.cimd) return client.redirect_uris.some((uri) => redirectUriMatches(uri, requested));
+    return !!client?.redirect_uris?.includes(requested);
+  }
+  // Owner ruling 2026-11-03, per D-001 client compatibility: the
+  // `resource` parameter is OPTIONAL — a mandatory resource parameter
+  // broke real phone flows, so the mandate is not rebuilt here. Absent
+  // proceeds (an empty value is absence: the consent form itself
+  // re-submits the field empty when the client sent none); a resource
+  // that IS sent must still be exactly this MCP's, so a grant aimed at
+  // another resource is never honored. Same shape as the revocation
+  // door (oauth-revocation.js), which never mandated the parameter.
+  function resourceAcceptable(value) {
+    if (value === undefined || value === null || value === '') return true;
     const { resource } = urls();
     return value === resource;
   }
@@ -68,8 +101,18 @@ export function createOAuthHandlers({ db, env = process.env }) {
     const hidden = fields.map(name => '<input type="hidden" name="' + name + '" value="' + escapeHtml(p[name]) + '">').join('');
     const accountList = accounts.length ? accounts.map(a => '<option value="' + escapeHtml(a.id) + '"' +
       (p.stripe_account === a.id ? ' selected' : '') + '>' + escapeHtml(a.label) + '</option>').join('') : '';
-    const profileList = PROFILES.map(v => '<option value="' + v + '"' + (p.profile === v ? ' selected' : '') + '>' + v + '</option>').join('');
-    const listingList = LISTINGS.map(v => '<option value="' + v + '"' + (p.listing === v ? ' selected' : '') + '>' + v + '</option>').join('');
+    // One public sign-in (fleet rule, 2026-11-02): the connect journey
+    // offers no profile or listing choice. The screen displays the
+    // resulting effective access; profile and read-only tightening are
+    // customer settings on the connection, never alternate sign-ins.
+    const effectiveProfile = PROFILES.includes(p.profile) ? p.profile : 'full';
+    const accessSummary = effectiveProfile === 'read_only'
+      ? 'Read-only access to the selected Stripe account: this connection can look, but cannot change anything or move money.'
+      : effectiveProfile === 'everyday'
+        ? 'Everyday access to the selected Stripe account: day-to-day operations, with the most sensitive administration held back by the connection setting.'
+        : 'Full access to the selected Stripe account: every operation your Stripe account allows in the mode you choose below. Money leaving an account still needs its separate owner approval, and the shared daily limit still applies.';
+    const accessDisplay = '<p><strong>Access this connection will have:</strong> ' + accessSummary + '</p>' +
+      '<p>Signed in as the account owner, this connection acts with the access shown here. Read-only and profile choices are settings on the connection itself, not separate sign-ins.</p>';
     const liveAvailable=env.VERCEL_ENV==='production'&&accounts.some(account=>
       account.live_enabled===true&&account.live_connected===true);
     const modeList='<option value="test"'+(p.mode!=='live'?' selected':'')+'>TEST (default)</option>'+
@@ -78,29 +121,31 @@ export function createOAuthHandlers({ db, env = process.env }) {
     const writeConsent='<label><input type="checkbox" name="liveWriteConsent" value="confirm"'+
       (p.liveWriteConsent==='confirm'?' checked':'')+'>I independently authorize this connection to execute confirmed LIVE writes within my selected profile. No payment is approved by this checkbox; money-out still needs its original separate approval.</label>';
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-      '<title>Connect Robinson Stripe MCP</title><style>body{font:16px system-ui,sans-serif;max-width:410px;margin:6vh auto;padding:20px}form{display:grid;gap:14px}input,select,button{font:inherit;padding:10px}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
-      '<h1>Connect Stripe MCP</h1>' + (error ? '<p role="alert">' + escapeHtml(error) + '</p>' : '') +
-      (accounts.length ? '<p>Choose the Stripe account and permissions for this AI connection.</p>' :
-       '<p>No Stripe accounts connected yet. Add a test account securely through the setup page when A-5 is available.</p>') +
+      '<title>Connect Stripe Unleashed</title><style>body{font:16px system-ui,sans-serif;max-width:410px;margin:6vh auto;padding:20px}form{display:grid;gap:14px}input,select,button{font:inherit;padding:10px}button{cursor:pointer}p{line-height:1.5}</style></head><body>' +
+      '<h1>Connect Stripe Unleashed</h1>' + (error ? '<p role="alert">' + escapeHtml(error) + '</p>' : '') +
+      (accounts.length ? '<p>Choose the Stripe account for this AI connection.</p>' :
+       '<p>No Stripe accounts connected yet. Add a test account securely through the setup page.</p>') +
+      accessDisplay +
       '<form method="post">' + hidden +
       '<label>Stripe account<select name="stripe_account" required>' + accountList + '</select></label>' +
-      '<label>Profile<select name="profile">' + profileList + '</select></label>' +
-      '<label>Tool listing<select name="listing">' + listingList + '</select></label>' +
       liveNotice+'<label>Stripe environment<select name="mode">' + modeList + '</select></label>'+writeConsent+
       '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
-      '<button type="submit"' + (!accounts.length ? ' disabled' : '') + '>Authorize this connection</button></form></body></html>';
+      '<button type="submit"' + (!accounts.length ? ' disabled' : '') + '>Authorize this connection</button></form>' +
+      // Trademark guardrail (D-001): every connect page carries the exact
+      // non-affiliation sentence — the same string the front door renders.
+      '<footer><p>Stripe Unleashed is a Robinson AI Systems product. It is not affiliated with, endorsed by, or sponsored by Stripe, Inc.</p></footer></body></html>';
   }
   async function authorize(req, res) {
     if (!only(res, req, ['GET', 'POST'])) return;
     let p;
     try { p = paramsOf(req); } catch { return bad(res, 400, 'invalid_request', 'Malformed authorization request'); }
-    const client = await db.getOAuthClient(str(p.client_id));
-    if (!client || !client.redirect_uris?.includes(p.redirect_uri) || !validRedirectUri(p.redirect_uri)) {
+    const client = await resolveClient(str(p.client_id));
+    if (!client || !redirectAllowed(client, p.redirect_uri)) {
       return bad(res, 400, 'invalid_request', 'Unknown client or redirect address');
     }
     if (p.response_type !== 'code' || p.code_challenge_method !== 'S256' ||
-      !/^[A-Za-z0-9_-]{43}$/.test(str(p.code_challenge)) || !validateResource(p.resource)) {
-      return bad(res, 400, 'invalid_request', 'Authorization code, S256 PKCE, and exact MCP resource are required');
+      !/^[A-Za-z0-9_-]{43}$/.test(str(p.code_challenge)) || !resourceAcceptable(p.resource)) {
+      return bad(res, 400, 'invalid_request', 'Authorization code and S256 PKCE are required; a sent resource must name this MCP');
     }
     const accounts = await db.listStripeAccounts();
     if (req.method === 'GET') {
@@ -124,6 +169,14 @@ export function createOAuthHandlers({ db, env = process.env }) {
       return send(res, 429, authorizePage(p, accounts, 'Too many sign-in attempts'), 'text/html; charset=utf-8');
     }
     if (verdict.status !== 'ok') return send(res, 401, authorizePage(p, accounts, 'Incorrect passphrase'), 'text/html; charset=utf-8');
+    // The sign-in yields the fullest grant by default. A profile or
+    // listing value is honored only as the connection's stored setting
+    // when a client supplies one; the page itself offers no choice, and
+    // an absent value is never an error.
+    if (p.profile === undefined) p.profile = 'full';
+    if (p.listing === undefined) {
+      p.listing = /claude/i.test(client.client_name || '') ? 'catalog' : 'compact';
+    }
     if (!MODES.includes(p.mode) || !PROFILES.includes(p.profile) || !LISTINGS.includes(p.listing) ||
       !accounts.some(a => a.id === p.stripe_account) ||
       (p.liveWriteConsent!==undefined&&p.liveWriteConsent!=='confirm')) {
@@ -153,7 +206,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
     if (!only(res, req, ['POST'])) return;
     let p;
     try { p = paramsOf(req); } catch { return bad(res, 400, 'invalid_request', 'Malformed token request'); }
-    if (!validateResource(p.resource)) return bad(res, 400, 'invalid_target', 'Token resource must be this MCP');
+    if (!resourceAcceptable(p.resource)) return bad(res, 400, 'invalid_target', 'Token resource must be this MCP');
     // RFC 6749: confidential clients may authenticate with HTTP Basic. Never
     // accept two credential mechanisms on the same request.
     const authHeader = String(req.headers?.authorization || '');
@@ -169,7 +222,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
       }
     }
     const clientId = basic?.id || str(p.client_id);
-    const client = await db.getOAuthClient(clientId);
+    const client = await resolveClient(clientId);
     const method = client?.token_endpoint_auth_method;
     const validPublic = method === 'none' && !authHeader &&
       (p.client_secret === undefined || p.client_secret === '');
@@ -186,7 +239,7 @@ export function createOAuthHandlers({ db, env = process.env }) {
       return bad(res, 401, 'invalid_client', 'Client credentials rejected');
     }
     if (p.grant_type === 'authorization_code') {
-      if (!p.code || !client.redirect_uris.includes(p.redirect_uri) || !p.code_verifier) {
+      if (!p.code || !redirectAllowed(client, p.redirect_uri) || !p.code_verifier) {
         return bad(res, 400, 'invalid_grant', 'Missing or invalid authorization details');
       }
       const record = await db.consumeAuthCode(p.code);
@@ -250,7 +303,8 @@ export function createOAuthHandlers({ db, env = process.env }) {
       revocation_endpoint:origin+'/api/oauth/revoke',
       revocation_endpoint_auth_methods_supported:['client_secret_post','client_secret_basic','none'],
       response_types_supported: ['code'], grant_types_supported: ['authorization_code','refresh_token'],
-      code_challenge_methods_supported: ['S256'], token_endpoint_auth_methods_supported: ['client_secret_post','client_secret_basic','none'] });
+      code_challenge_methods_supported: ['S256'], token_endpoint_auth_methods_supported: ['client_secret_post','client_secret_basic','none'],
+      client_id_metadata_document_supported: true });
   }
   function resourceMetadata(req, res) {
     if (!only(res, req, ['GET'])) return;
@@ -258,5 +312,5 @@ export function createOAuthHandlers({ db, env = process.env }) {
     return send(res, 200, { resource, authorization_servers: [origin] });
   }
   return { register, authorize, token, metadata, resourceMetadata,
-    revoke:createOAuthRevocation({db,env,allowBasic:true}) };
+    revoke:createOAuthRevocation({db,env,allowBasic:true,resolveClient}) };
 }

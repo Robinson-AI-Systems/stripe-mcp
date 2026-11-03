@@ -52,6 +52,39 @@ fleet developer access boundary). Decisions taken in implementation:
   only.
 
 
+## 2026-11-02 — CAP-3 connection implementation decisions (CIMD resolver, consent journey)
+
+Implementation choices made building the conformance record's
+connection rows 2–3 (packet: [CAP-3-cimd](pr-cards/CAP-3-cimd.md));
+the Standard (Library D-001 at `063eeff2`) governs where any plan
+text and the implementation could be read differently.
+
+- **SSRF bound is enforced on DNS answers, not just the URL text.** A
+  card host is fetched only when every address it resolves to is
+  globally routable; literal private IPs, mixed public/private
+  answers and DNS failure all refuse the card. Redirects are followed
+  manually (at most 3, same host only, every hop revalidated) rather
+  than refused outright, matching the Standard's "bounded redirects".
+- **Card clients are stored nowhere.** A validated card normalizes to
+  the registration store's record shape in memory only (public client,
+  `client_secret_hash: null`), cached per process for one hour;
+  registered clients always win resolution and keep exact redirect
+  matching. The loopback port relaxation applies to card clients
+  only, per the reference pattern, and is never generalized.
+- **Profile remains a stored connection setting, not a sign-in
+  choice.** The consent page renders no profile/listing choice and
+  displays the resulting effective access; a connection created
+  without a profile setting defaults to `full`. A profile value
+  supplied in the authorization request is still honored as the
+  connection's stored setting, preserving the existing LIVE
+  safeguards verbatim (including that a read-only connection cannot
+  take LIVE write consent). The full My Connection settings screen
+  remains CAP-3 engineering gated on the human identity provider,
+  which has not been selected; nothing here claims it.
+- **No live claim.** Card support is `FIXED IN SOURCE / NOT VERIFIED
+  LIVE` until CAP-5's knock test passes against the checked deployed
+  release.
+
 ## 2026-11-02 — VER-1 release identity implemented in source (owner-directed)
 
 Chris directed implementation to begin after the plan conformance

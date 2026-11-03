@@ -12,6 +12,12 @@ Keep current `PUBLIC_BASE_URL` and existing clients intact until DNS, TLS,
 OAuth issuer/resource, callback and exact READY release evidence pass.
 No new DNS, app publication, LIVE activation or deployment has occurred.
 
+> **Superseded (2026-11-03):** the product name is now **Stripe Unleashed by
+> Robinson AI Systems** and the product mark is the Unleashed Break-Out; the
+> Robinson AI Systems R logo remains the company/publisher mark only. See the
+> 2026-11-02 entry in [DECISIONS.md](DECISIONS.md). The entry above stands as
+> the 2026-10-23 record.
+
 # Deploy Robinson Stripe MCP — owner checklist
 
 **Status (verified 2026-10-11 Colorado):** `stripe-mcp` Vercel Production build is READY; dedicated Neon `stripe_mcp` database has all 24 expected app tables. Owner entered `ADMIN_PASSPHRASE` and `TOKEN_ENCRYPTION_KEY` directly into Vercel as Sensitive Production-only settings, and privately enrolled one encrypted, timestamp-verified Stripe TEST key through the setup page. The agent did not view any secret. **Remote custom MCP OAuth, G-4/G-5 real provider smoke and G-6 owner Dashboard walkthrough remain UNVERIFIED**. Vercel Authentication remains enabled; Stripe LIVE remains disabled. Follow [GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) for outstanding acceptance gates.
@@ -30,7 +36,7 @@ operation or paid deployment is authorized by this instruction.
 
 ## Current deployment details (TEST enrollment complete; external MCP acceptance pending)
 
-- Vercel project: `stripe-mcp` (team `Robinson AI Systems`, existing Pro plan), linked to the correct GitHub repository `Robinson-AI-Systems/stripe-mcp`, branch `main`.
+- Vercel project: `stripe-mcp` (team `Robinson AI Systems`, existing Pro plan), linked to the correct GitHub repository `Robinson-AI-Systems/stripe-mcp`. Production tracks the `live` branch, advanced from `main` by the daily checked promotion (see [DAILY-PRODUCTION-PROMOTION.md](DAILY-PRODUCTION-PROMOTION.md)); nothing deploys from `main` directly.
 - Production origin configured in Vercel: `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` (`PUBLIC_BASE_URL`). Review deployment protection before exposing OAuth discovery to remote AI clients; build READY does not prove endpoint accessibility.
 - After explicit owner authorization for the existing **Launch usage-billed plan**, a separate Neon project `stripe-mcp` was created in AWS us-east-1 with PostgreSQL 18, database `stripe_mcp`, fixed 0.25 CU compute and 5-minute auto-suspend. Isolated SQL connectivity succeeded. Its credential was transferred directly to Vercel as sensitive Production-only `DATABASE_URL`, not to chat, GitHub or other projects. No plan upgrade occurred; monitor actual metered usage.
 - Owner administrator/encryption settings are configured as Sensitive Production-only variables. Owner TEST key is encrypted in the isolated database (one verified account record; no stored/live-enabled LIVE key). All 24 app tables exist and Vercel Production redeployed READY after owner setup; no secret was copied into GitHub or chat. **Database presence does NOT authenticate any connected Stripe API tools**. Verify Vercel Authentication's effect on the custom OAuth endpoints before connecting external clients, then exercise independent TEST identity, safe G-4/G-5 smoke, and owner Dashboard G-6 reconciliation without disclosing the key. Do not loosen protection blindly or turn on LIVE.
@@ -54,7 +60,7 @@ Nothing should be created or billed until you approve the Vercel project and Neo
 2. Name the project `stripe-mcp`, with the repository root as root directory and the **Other** framework preset; retain ordinary Vercel serverless functions in `api/`.
 3. In Neon's dashboard, create a **separate** project for the Stripe MCP, or use Vercel Storage → Neon to connect an existing separately owned Neon project. Confirm the plan and billing impact before selecting an integration. Choose a location suitable for your account.
 4. Connect the new project's Postgres URL as **`DATABASE_URL`** for the **production** deployment of this MCP only. Use a separate **isolated branch/database** for previews if you enable preview DB access; never test a PR against the live production database or a business application's database.
-5. Deploy from `main`; make sure the deployment succeeds. The API uses Node/ESM. Code will create its additive tables when the authenticated server endpoints initialize.
+5. Make sure the deployment succeeds. Production serves the `live` branch: work lands on `main` first and reaches production through the daily checked `main` → `live` promotion (see [DAILY-PRODUCTION-PROMOTION.md](DAILY-PRODUCTION-PROMOTION.md)). The API uses Node/ESM. Code will create its additive tables when the authenticated server endpoints initialize.
 
 If Vercel's Neon integration produces several variable names, **verify `DATABASE_URL` is present**. Do not assume a variable with a different name will be read.
 
@@ -97,7 +103,7 @@ In Stripe's key editor, the setting for each resource is **None, Read or Write**
 | **Everyday (later, after safety B)** | The above readable resources, plus **Write** for Customers, Payment Intents, Refunds, Checkout Sessions, Payment Links, Billing Portal/Portal Sessions, Subscriptions, Invoices, Invoice Items, Credit Notes, Products, Prices, Coupons, Promotion Codes, Webhook Endpoints and Files; keep unrelated permissions Read/None. The exact selectable names may differ; match each operation before enabling. |
 | **Full (exceptional, later)** | Broad read/write restricted-key permissions when required for owner administration and explicitly approved. Prefer restricted permissions rather than a general `sk_test_` key; don't enable unused categories just to avoid setup. |
 
-**Current implementation limitation:** The A-5 setup page stores **one active test key per Stripe account**, replacing the previous key when a new one is saved. These three lists are *permission templates*, not three simultaneously selectable keys or connection profiles. The OAuth `read_only`/`everyday`/`full` profile selection controls **MCP tool permissions**, not the Stripe restricted key's grants. More key-routing and write tools arrive in later batches. Stripe may require **additional read grants** for the nine harmless permission probes even when the eventual workflow doesn't use them.
+**Current implementation limitation:** The A-5 setup page stores **one active test key per Stripe account**, replacing the previous key when a new one is saved. These three lists are *permission templates*, not three simultaneously selectable keys or connection profiles. The OAuth `read_only`/`everyday`/`full` profile is a stored connection setting that controls **MCP tool permissions**, not the Stripe restricted key's grants; it is not chosen at sign-in — the sign-in page shows the access the connection will have, and profile/read-only changes are made later as connection settings. More key-routing and write tools arrive in later batches. Stripe may require **additional read grants** for the nine harmless permission probes even when the eventual workflow doesn't use them.
 
 Stripe's own documentation: [restricted keys](https://docs.stripe.com/keys/restricted-api-keys) and [API keys and agent approvals](https://docs.stripe.com/keys). Never create or enter a `rk_live_`/`sk_live_` key at this stage; the setup page refuses live keys.
 
@@ -119,7 +125,7 @@ Use your client application's **custom remote MCP / connector setup**, where ava
 
 - **Server URL:** `https://<your-origin>/api/mcp`
 - **Login:** OAuth authorization-code flow. The server publishes `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource`.
-- **Authorize once:** Choose the Stripe account, **test** mode and connection profile. Enter the administrator passphrase on the HTTPS OAuth page. An agent never receives your Stripe key.
+- **Authorize once:** Choose the Stripe account and **test** mode. The page shows the access the connection will have — profile and read-only choices are stored connection settings, not a sign-in choice. Enter the administrator passphrase on the HTTPS OAuth page. An agent never receives your Stripe key.
 - **Verify:** Ask the connected client, “Which Stripe account am I connected to?” It should call `stripe_whoami` and show TEST mode and a masked key, never a real key. Also try `stripe_list_accounts`.
 - **Renewal:** Access tokens last about one hour. Rotating hashed refresh tokens remain usable until revoked, so a compatible client can refresh automatically. Some clients may require specific offline-access metadata/permissions or eventually prompt to reconnect. Check an actual refresh after expiration; do **not** promise uninterrupted operation until your chosen client passes that test.
 
@@ -141,7 +147,7 @@ Run these checks in order; do not claim completion from a green GitHub CI check 
 - [ ] No live key is entered, no live account is enabled and no real money moves.
 - [ ] Batch B safety, money limit and live activation guards are implemented **before** enabling write actions.
 
-**Current scope:** A-1–A-5 are implemented/tested, but actual hosted deployment and a real Stripe test-key verification have not happened. The guide is not a claim they have.
+**Scope note (corrected 2026-11-03):** an earlier draft of this section claimed hosted deployment and a real Stripe test-key verification had not happened. Both were in fact verified on 2026-10-11 — see the status header at the top of this file. A-1–A-5 are implemented/tested; the checks above still govern before calling the service operational.
 
 ## 7. If anything goes wrong
 
