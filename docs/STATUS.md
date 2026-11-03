@@ -1,3 +1,33 @@
+## 2026-11-02 — VER-1 release provenance, front door and fleet health (source; live proof owed)
+
+Owner-directed implementation of the RELEASE-IDENTITY workstream from
+the conformance record (rows 5, 6, 8, 9), card
+[VER-1](pr-cards/VER-1.md). **Built in source:** one checked release
+source (`src/release.js` — installed package version + deployed commit
+from verified build-time metadata only; unknown stated as unknown)
+now backs `initialize` `serverInfo.version`, `stripe_whoami`'s
+`server_release`, the RTC manifest `version` + `revision`, `/health`
+and the front door, so the surfaces agree by construction. New fleet
+Stage-1 health door `GET /api/health` (plus `/health` rewrite): pinned
+shape, 200/`ok` or 503/`degraded` from a bounded store check that can
+genuinely fail; the manifest advertises the health path. The front
+door renders the public name **Stripe Unleashed by Robinson AI
+Systems**, release identity, store posture, tool counts and the fleet
+disclaimer from live state. Identity anchoring is proven in source by
+a unit test: discovery fetched with a platform-alias Host still names
+the one configured origin (`PUBLIC_BASE_URL`). The CAP-5 VER-1
+agreement check runs as a no-provider-calls unit test
+(`tests/unit/release-identity.test.js`). **Not done, deliberately:**
+no `PUBLIC_BASE_URL`, DNS, domain-attachment or deployment change —
+the branded cutover remains behind the STRIPE-BRAND-DOMAIN gates as a
+separate ruled step; no D-005 registry claim (no branded surface ships
+here — the front-door name/disclaimer text is not the mark). **Live
+acceptance owed:** after the scheduled `main` → `live` promotion
+serves this build, re-read initialize / `stripe_whoami` /
+`/api/contract` / `/api/health` at the deployed SHA; the conformance
+rows close only on that evidence. Implementation status:
+`IMPLEMENTED IN SOURCE / NOT VERIFIED LIVE`.
+
 ## 2026-11-02 — RAS MCP Standard conformance pass (plans only, owner-directed)
 
 Chris directed the plan set be brought into line with the RAS MCP

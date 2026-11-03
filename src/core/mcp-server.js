@@ -11,6 +11,7 @@ import { randomBytes } from 'node:crypto';
 import { safePreparsedObject } from './http.js';
 import {readDetail,splitResult,resultPage} from '../tools/result-rules.js';
 import {nativeReadArgs} from './read-presentation.js';
+import {releaseVersion} from '../release.js';
 
 function inertSnapshot(value){
   const result=safePreparsedObject(value);
@@ -115,13 +116,8 @@ export function createMcpHandler({ db, registry, services={}, env = process.env 
     if (allowBrowserProtocol(req, res, { methods: ['GET','POST','DELETE'], mcp: true })) return;
     const connection = await requireMcpToken(req,res,db,env);
     if (!connection) return;
-    const server = new Server({name:'robinson-stripe-mcp',version:'0.1.0'},
-      {capabilities:{tools:{}}});
-    server.setRequestHandler(ListToolsRequestSchema,async()=>({
-      tools:listingForConnection(registry,connection,req.query?.listing).map(publicToolInfo)
-    }));
-    server.setRequestHandler(CallToolRequestSchema,async request=>
-      dispatchReadOnlyTool({registry,name:request.params?.name,args:request.params?.arguments,connection,db,services}));
+    const server = createMcpServer({db,registry,services,env,connection,
+      listing:req.query?.listing});
     const transport = new StreamableHTTPServerTransport({sessionIdGenerator:undefined});
     res.on?.('close',()=>{transport.close();server.close();});
     try {
@@ -131,4 +127,22 @@ export function createMcpHandler({ db, registry, services={}, env = process.env 
       if (!res.headersSent) res.status(500).json({error:'internal_error'});
     }
   };
+}
+// The MCP server for one authenticated connection. serverInfo.version is
+// the VER-1 release identity (src/release.js): the same value whoami, the
+// manifest, /health and the front door report for this build. This factory
+// deliberately lives AFTER createMcpHandler: the K-3 dispatch overlay
+// (scripts/k3-dispatch-overlay.mjs) replaces everything between
+// dispatchReadOnlyTool and createMcpHandler, and the factory must survive
+// that slice.
+export function createMcpServer({ db, registry, services={}, env = process.env,
+  connection, listing }) {
+  const server = new Server({name:'robinson-stripe-mcp',version:releaseVersion(env)},
+    {capabilities:{tools:{}}});
+  server.setRequestHandler(ListToolsRequestSchema,async()=>({
+    tools:listingForConnection(registry,connection,listing).map(publicToolInfo)
+  }));
+  server.setRequestHandler(CallToolRequestSchema,async request=>
+    dispatchReadOnlyTool({registry,name:request.params?.name,args:request.params?.arguments,connection,db,services}));
+  return server;
 }

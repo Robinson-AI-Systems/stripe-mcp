@@ -182,7 +182,7 @@ money (dollar preview, daily limit, always confirm).
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `stripe_whoami` | Selected account, TEST mode, profile, masked key, actual shared USD daily limit/used amount | — | built #16, amount status #28 | R |
+| `stripe_whoami` | Selected account, TEST mode, profile, masked key, actual shared USD daily limit/used amount, `server_release` (VER-1 checked release identity) | — | built #16, amount status #28, server_release VER-1 | R |
 | `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
 | `stripe_set_default_account` | Set the default account shown to NEW AI connections; private owner page only, public MCP tool gated | P | private owner action #32; MCP planned | F |
 | `stripe_check_key_permissions` | Re-probe encrypted server-only TEST key; compact/full output and optional fields | — | built #29 | R |
