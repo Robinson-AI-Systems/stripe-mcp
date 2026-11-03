@@ -249,7 +249,10 @@ describe('personal-use OAuth HTTP endpoints', () => {
     const page = await call(h.authorize, request('GET', p));
     expect(page.statusCode).toBe(200);
     expect(page.body).toContain('My Business');
-    expect(page.body).toContain('value="full" selected');
+    // The connect journey offers no profile choice; it displays the
+    // resulting effective access (full, unless a setting tightens it).
+    expect(page.body).not.toContain('name="profile"');
+    expect(page.body).toContain('Full access to the selected Stripe account');
     const authorized = await call(h.authorize, request('POST', { ...p, passphrase: env.ADMIN_PASSPHRASE }));
     expect(authorized.statusCode).toBe(302);
     const code = new URL(authorized.headers.Location).searchParams.get('code');
