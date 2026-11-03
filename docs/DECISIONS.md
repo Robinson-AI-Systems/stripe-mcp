@@ -52,6 +52,37 @@ fleet developer access boundary). Decisions taken in implementation:
   only.
 
 
+## 2026-11-02 — VER-1 release identity implemented in source (owner-directed)
+
+Chris directed implementation to begin after the plan conformance
+(PR #292). The RELEASE-IDENTITY workstream (card VER-1) records:
+
+- **One checked release source.** `src/release.js` resolves the
+  installed package version from `package.json` and the deployed
+  commit only from verified build-time deployment metadata
+  (`VERCEL_GIT_COMMIT_SHA`). `main` HEAD, request data, guessed tags
+  and CI state are never sources; an unknown commit is reported as
+  `+unknown` / `null`, never synthesised. `initialize`
+  `serverInfo.version`, `stripe_whoami` `server_release`, the RTC
+  manifest `version` + `revision`, `/health` and the front door all
+  resolve from it, so the CAP-5 agreement check is a unit test, not a
+  hope.
+- **Fleet health door.** `GET /api/health` serves the Standard's
+  Stage-1 pinned shape with a genuine, bounded store check (200/`ok`,
+  503/`degraded`); an unconfigured store reads degraded, matching the
+  authenticated doors' own refusal. The RTC manifest advertises the
+  health path per RTC 2 ruling D4.
+- **Identity anchoring: code proven, cutover not performed.** All
+  issuer surfaces already derive from the one configured
+  `PUBLIC_BASE_URL`; a regression test proves discovery fetched via a
+  platform alias still names the configured origin. The branded
+  cutover (domain attachment + `PUBLIC_BASE_URL` change) stays behind
+  the STRIPE-BRAND-DOMAIN gates as a separate ruled step — no DNS,
+  env or deployment change is made or implied by this entry.
+- **Honest status.** Implementation is `IMPLEMENTED IN SOURCE / NOT
+  VERIFIED LIVE`; the conformance rows close only on live reads at
+  the deployed SHA after the scheduled `main` → `live` promotion.
+
 ## 2026-11-02 — RAS MCP Standard conformance pass for the plans (owner-directed)
 
 Chris directed (main chat, 2026-11-02) that this server's plans be updated to

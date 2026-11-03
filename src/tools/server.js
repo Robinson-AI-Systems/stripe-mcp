@@ -4,6 +4,7 @@ import { whereIsSetting } from '../data/dashboard-map.js';
 import { denverLocalTime } from './util.js';
 import { resultPage } from './result-rules.js';
 import {publicOrigin} from '../core/http.js';
+import {serverRelease} from '../release.js';
 const schema = { type: 'object', properties: {}, additionalProperties: false };
 const profiles = ['read_only','everyday','full'];
 export const tools = [
@@ -171,6 +172,7 @@ export const handlers = {
         connection:connection.clientId || 'status'}) : null;
     return ok({account:row.id,label:row.label,mode:connection.mode,profile:connection.profile,
       listing:connection.listing,
+      server_release:serverRelease(),
       keyType:connection.mode === 'test' ? row.test_key_kind : row.live_key_kind,
       keyLast4:connection.mode === 'test' ? row.test_key_last4 : row.live_key_last4,
       stripeApiVersion:STRIPE_API_VERSION,currency:'usd',moneyLimitCents:safeCents(row.money_limit_cents),

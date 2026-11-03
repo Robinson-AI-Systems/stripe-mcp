@@ -217,6 +217,17 @@ Nothing in the current plans provided this; `stripe_whoami` exists as the
 identity tool and is the planned home of `server_release`. Status:
 `DESIGNED / NOT VERIFIED`.
 
+**Implementation update (2026-11-02, card [VER-1](pr-cards/VER-1.md)):**
+built in source — `src/release.js` is the one checked source (installed
+package version; deployed commit from verified build-time deployment
+metadata only; unknown stated as unknown), and `initialize`
+`serverInfo.version`, `stripe_whoami` `server_release`, the manifest
+`version` + `revision`, `/health` and the front door all resolve from
+it. The CAP-5 agreement check runs as a no-provider-calls unit test.
+Status: `IMPLEMENTED IN SOURCE / NOT VERIFIED LIVE` — the row closes
+when the surfaces are re-read at the deployed SHA after the scheduled
+`main` → `live` promotion.
+
 ### 6. Identity anchoring — the branded origin is the identity — PLANNED
 
 The Standard (2026-11-01): a connector server's OAuth identity anchors to
@@ -238,6 +249,17 @@ fleet snapshot: the branded address is reserved and advertised, the
 deployment does not yet serve there — **identity step unfinished, not
 failed**; it completes as one ruled change through the existing cutover
 gates, as its own adoption step.
+
+**Implementation update (2026-11-02, card [VER-1](pr-cards/VER-1.md)):**
+the code side is proven in source — every issuer surface derives from
+the one configured `PUBLIC_BASE_URL` via `publicOrigin`, no serving
+code derives an origin from a request Host, and a unit test fetches
+the discovery documents with a platform-alias Host and verifies they
+still name the configured origin. The live cutover itself (domain
+attachment, `PUBLIC_BASE_URL` change, re-proof at the branded origin)
+is **not performed** and remains owed as the separate ruled step
+through the STRIPE-BRAND-DOMAIN gates above. Status unchanged in
+kind: identity step unfinished, not failed.
 
 ### 7. Unleashed branding and naming — CORRECTED
 
@@ -294,6 +316,18 @@ Noted stale reference, not changed in this pass: `AGENTS.md` still names
 RTC 1 in its "What this is" and rules-location text; RTC 2 governs per
 [HUB-COMPATIBILITY](HUB-COMPATIBILITY.md).
 
+**Implementation update (2026-11-02, card [VER-1](pr-cards/VER-1.md)):**
+item (b) is built in source — the front door at `/` renders the public
+name, the VER-1 release identity, store posture, tool counts and the
+fleet disclaimer from the same live state `/api/health` reports,
+nothing hardcoded. Items (a), (c), (d) and (e) remain as recorded:
+the subdomain attachment rides the brand/domain cutover gates; the
+public `/connection` page and branded-address-only instructions belong
+to the connection workstream (CAP-3/CAP-5); the single /tools listing
+is website work in another repo, owed when the branded connection
+page actually answers. Status: `PARTIALLY IMPLEMENTED IN SOURCE /
+NOT VERIFIED LIVE`.
+
 ### 9. Fleet health contract — PLANNED
 
 The Standard's Stage-1 health contract: one GET JSON readout with the
@@ -306,6 +340,18 @@ carry the health path (RTC 2 ruling D4, already recorded in
 [HUB-COMPATIBILITY](HUB-COMPATIBILITY.md)), so the one fleet watcher
 learns what to watch from the same document. VER-1 (row 5) and this row
 share the same checked version/SHA source.
+
+**Implementation update (2026-11-02, card [VER-1](pr-cards/VER-1.md)):**
+built in source — `GET /api/health` (with a `/health` rewrite) returns
+the pinned shape (`status`, `version`, `commit`, `tools`,
+`timestamp`), 200 when healthy and 503 when the checked store
+dependency is degraded; the dependency check is a bounded `select 1`
+against the configured store that can genuinely fail, and the readout
+carries no credentials, user data, hostnames or configuration values
+(booleans at most). The RTC manifest now carries `health:
+'/api/health'`, so the fleet watcher learns the path from the
+advertisement. Status: `IMPLEMENTED IN SOURCE / NOT VERIFIED LIVE` —
+the row closes on a live read at the checked deployed release.
 
 ### 10. Production readiness & protection gate — PLANNED as the bar
 

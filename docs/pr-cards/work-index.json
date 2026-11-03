@@ -1141,6 +1141,22 @@
       ],
       "readiness": "WRITE_CARD_AT_START",
       "ownerInputs": []
+    },
+    {
+      "id": "VER-1",
+      "title": "Release provenance, front door and fleet health (RAS MCP Standard VER-1)",
+      "batch": "CAP",
+      "design": "docs/RAS-MCP-CONFORMANCE.md",
+      "dependencies": [],
+      "card": "docs/pr-cards/VER-1.md",
+      "status": "MERGED",
+      "migration": "Additive surfaces only; no storage or migration change",
+      "budget": 400,
+      "units": [
+        "VER-1"
+      ],
+      "readiness": "MERGED",
+      "ownerInputs": []
     }
   ],
   "k3StripeAdoption": {
