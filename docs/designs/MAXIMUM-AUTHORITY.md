@@ -5,6 +5,15 @@ to this project. This is approved future engineering, not completed implementati
 new provider authority, runtime permission widening or deployed acceptance.
 The existing roadmap, acceptance, security/review and release procedures still apply.
 
+> **Status reconciliation (2026-11-03):** this design remains the
+> governing statement of the CAP outcomes and acceptance criteria. Its
+> execution-layer sentence below saying all five units were unfinished
+> with zero bundles was the original planning baseline and is no longer a
+> current status. CAP-1's source inventory has since merged, CAP-2 and
+> CAP-3 have partial source implementations, and one CAP-5 component (the
+> CIMD live knock test) has passed. Current unit dispositions and the
+> remaining work are reconciled in [COMPLETION](../COMPLETION.md).
+
 
 ## Binding product rules
 
@@ -153,7 +162,9 @@ implementation retain priority. CAP-1 precedes CAP-2/CAP-3; CAP-4
 needs all three; CAP-5 needs the completed authorization and workflow units.
 Reconcile existing cards before creating new ones. Write bounded implementation
 contracts before code; these five planning units are all unfinished and complete
-zero implementation bundles or live acceptance. Provider references are starting
+zero implementation bundles or live acceptance. **[Planning-baseline text,
+superseded as a current status by the 2026-11-03 note at the top of this
+file.]** Provider references are starting
 evidence, not a claim that this plan audited every endpoint; recheck per operation.
 
 References checked 2026-10-21:

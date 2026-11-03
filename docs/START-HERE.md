@@ -1,6 +1,6 @@
 # START HERE — Robinson Stripe MCP
 
-A hosted MCP server (Node 20, plain ES modules, Vercel serverless + Neon Postgres) that gives Chris's AI agents safe,
+A hosted MCP server (Node >=20, plain ES modules, Vercel serverless + Neon Postgres) that gives Chris's AI agents safe,
 almost-complete control of his Stripe accounts. Same family and conventions as `Robinson-AI-Systems/google-workspace-mcp`
 (reused code is named in `docs/designs/BATCH-A.md`). General-purpose across Chris's projects; apps that run their own Stripe billing get a project profile (Batch P),
 the first being the Appliance Desk rental app (`docs/APP-NEEDS-APPLIANCE-DESK.md`). Chris operates mostly from a phone; everything he reads must be plain language.
@@ -9,11 +9,14 @@ the first being the Appliance Desk rental app (`docs/APP-NEEDS-APPLIANCE-DESK.md
 
 1. Implementing a card: [SESSION-START](SESSION-START.md) (one page). Otherwise AGENTS — workflow and hard limits.
 2. [STATUS](STATUS.md) — current head/state/next item.
-3. [MASTER-ROADMAP](MASTER-ROADMAP.md) — order of batches and work coverage.
-4. Next card, then its named design headings and code. If JIT, write the short card from the design first;
+3. [COMPLETION](COMPLETION.md) — the reconciled finished-product schedule:
+   source, deployed, live-verified, provider-accepted, production-ready,
+   and owner-authorized states kept separate.
+4. [MASTER-ROADMAP](MASTER-ROADMAP.md) — order of batches and work coverage.
+5. Next card, then its named design headings and code. If JIT, write the short card from the design first;
    [drift protocol](implementation-contracts/DRIFT-PROTOCOL.md) applies every time.
-5. PLAN's acceptance for the batch and PLAYBOOK's verification commands.
-6. Need concrete mappings or fixture patterns? Select one section from
+6. PLAN's acceptance for the batch and PLAYBOOK's verification commands.
+7. Need concrete mappings or fixture patterns? Select one section from
    [implementation guides](implementation-guides/README.md); existing paths and proposed paths are labeled separately.
 
 ## Code map (target; confirm the actual path before editing)
@@ -23,7 +26,7 @@ the first being the Appliance Desk rental app (`docs/APP-NEEDS-APPLIANCE-DESK.md
 `robinson-mcp-core`) · `src/stripe/` the only Stripe client, money-operation table, OpenAPI index ·
 `src/tools/` one module per area (`customers.js`, `payments.js`, …) plus `write.js` (safety layer), `guards*.js`,
 `app-guard.js`, `live-guard.js`, `summaries.js`, `errors.js`, `util.js`, `index.js` (registry layers) ·
-`src/db.js` all SQL · `tests/unit|db|mock|doors` · `scripts/` checks ·
+`src/db.js` all SQL · `tests/unit|db|mock` plus `test/contract` · `scripts/` checks ·
 `vendor/stripe-openapi/` Stripe's published API description for the pinned version.
 
 ## One authority per fact
@@ -32,7 +35,8 @@ the first being the Appliance Desk rental app (`docs/APP-NEEDS-APPLIANCE-DESK.md
 |---|---|
 | Workflow / hard limits | AGENTS; PLAYBOOK for command recipes |
 | Current state / ordered work | STATUS / MASTER-ROADMAP / `pr-cards/work-index.json` |
-| Remaining acceptance | PLAN |
+| Finished-product remainder | COMPLETION (reconciles the ledgers below) |
+| Remaining acceptance | PLAN and the protected queue in STATUS |
 | How each batch works | `designs/BATCH-*.md` (targeted headings); the card for exact execution |
 | Every tool and its safety marks | TOOL-CATALOG |
 | What each profiled app needs | `APP-NEEDS-<APP>.md` (first: APP-NEEDS-APPLIANCE-DESK), `designs/BATCH-P.md` |

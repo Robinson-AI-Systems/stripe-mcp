@@ -8,16 +8,29 @@ consent screen, and the connection receives the fullest access the
 owner's Stripe account allows. Profile and read-only choices are
 settings on the connection, never separate sign-ins.
 
-**Addresses.** The server's identity is its branded address,
-`https://stripe.robinsonaisystems.com` (MCP endpoint
-`https://stripe.robinsonaisystems.com/api/mcp`). The branded address is
-reserved; not yet attached or serving. Until the brand/domain cutover in
-[STRIPE-BRAND-DOMAIN](designs/STRIPE-BRAND-DOMAIN.md) completes, the
-same snippets work unchanged with the current deployment origin
-`https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` in place of the
-branded host. Never enter a Stripe key, passphrase or secret into a
-client: sign-in happens only on the server's own pages, in the
-client's own browser journey.
+**Addresses — read this before using a snippet.** Three different
+addresses must not be collapsed until the brand/domain cutover completes:
+
+- **Branded identity target:** `https://stripe.robinsonaisystems.com`
+  (MCP endpoint `https://stripe.robinsonaisystems.com/api/mcp`). It is
+  reserved as the target, but it is **not attached or serving yet**.
+- **Configured issuer origin today:**
+  `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app`. OAuth metadata
+  names this platform hostname as issuer/resource, but Vercel
+  Authentication intercepts it for unauthenticated visitors, so it is not
+  a completed public connection address.
+- **Public serving alias verified in the 2026-11-03 audit:**
+  `https://stripe-mcp-psi.vercel.app`. The same deployment answers there.
+  For current TEST-oriented evaluation, the snippet *structure* works
+  after substituting this serving alias for the branded host; that does
+  not make the alias the product identity, and named-client compatibility
+  remains CAP-5 proof, not a claim made by this page.
+
+The mismatch among those three is an open identity item, reconciled in
+[COMPLETION](COMPLETION.md) and governed by the cutover gates in
+[STRIPE-BRAND-DOMAIN](designs/STRIPE-BRAND-DOMAIN.md). Never enter a
+Stripe key, passphrase or secret into a client: sign-in happens only on
+the server's own pages, in the client's own browser journey.
 
 **Client identification shapes.** Two are first-class:
 
@@ -35,12 +48,15 @@ client's own browser journey.
    addresses only, bounded redirects, time and size caps). Card
    failures fail closed with a legible "unknown client" refusal.
 
-Status honesty: card support is **FIXED IN SOURCE / NOT VERIFIED
-LIVE** — the CAP-5 live knock test with a real card client runs
-against the checked deployed release and is recorded in
-[STATUS](STATUS.md) when it passes. Per-client live verification is
-CAP-5 acceptance; a client not yet verified live is **untested**, not
-silently skipped.
+Status honesty: card support is **VERIFIED LIVE** for the real
+client-ID-card knock-test journey at deployed release `5b5f701c`: a real
+hosted card was fetched and validated, a fake card and an unlisted
+redirect were refused, the owner approved, token exchange and refresh
+rotation succeeded with no `resource` sent, `stripe_whoami` answered for
+the connected TEST account, and the grant was revoked and then refused.
+That component proof does not verify every named client below.
+Per-client live verification remains CAP-5 acceptance; a client not yet
+verified live is **untested**, not silently skipped.
 
 ## Claude (app, desktop, browser) and ChatGPT
 
@@ -55,10 +71,11 @@ client returns automatically after approval.
 > below (this one, the JSON config and the Hermes YAML) names the
 > branded host `stripe.robinsonaisystems.com`, which does not answer
 > yet. Until the brand/domain cutover completes, replace that host in
-> each snippet with the current deployment origin,
-> `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app`, keeping the
-> `/api/mcp` path. The snippets then work as written, and will work
-> unchanged with the branded host once it serves.
+> each snippet with the public serving alias verified in the audit,
+> `https://stripe-mcp-psi.vercel.app`, keeping the `/api/mcp` path. The
+> snippet structure then matches the serving deployment; the alias is
+> not the product identity, and each named client's live compatibility
+> still requires its CAP-5 result.
 
 ```bash
 claude mcp add --transport http stripe-unleashed https://stripe.robinsonaisystems.com/api/mcp
@@ -100,8 +117,8 @@ mcp_servers:
     transport: streamable-http
 ```
 
-(Reminder: substitute the current deployment origin for the branded
-host, as in the banner above, until the cutover completes.)
+(Reminder: substitute the public serving alias for the branded host,
+as in the banner above, until the cutover completes.)
 
 ## Bearer / pass access (RTC doors)
 
