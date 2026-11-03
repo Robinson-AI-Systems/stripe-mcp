@@ -5,6 +5,7 @@ import {incomingBodyWithinLimit,safePreparsedObject,send} from './http.js';
 import {dispatchReadOnlyTool} from './mcp-server.js';
 import {publicToolInfo,isGuardedTestWrite,isGuardedLiveWrite} from './profiles.js';
 import {projectFields} from '../tools/result-rules.js';
+import {packageVersion} from '../release.js';
 
 // HTTP authentication scheme tokens are case-insensitive; pass bytes are not.
 const AUTH=/^[Bb][Ee][Aa][Rr][Ee][Rr][ \t]+(rtc_pass_[A-Za-z0-9_-]{43})$/;
@@ -134,7 +135,11 @@ export function rtcManifest(registry,deployment={}){
   const environment=['production','preview','development'].includes(
     deployment.environment)?deployment.environment:null;
   return {rtc:1,server:'robinson-stripe-mcp',prefix:'stripe',
-    version:'0.1.0',areas:[...new Set(exposed.map(t=>t.area??'server'))].sort(),
+    // VER-1: version is the installed package version from the one checked
+    // source; revision is the deployed build commit, or explicitly null
+    // when the build carries no verified commit metadata — never guessed.
+    version:packageVersion(),revision:sha,health:'/api/health',
+    areas:[...new Set(exposed.map(t=>t.area??'server'))].sort(),
     counts:{tools:exposed.length,writes:exposed.filter(t=>t.writes===true).length,
       money:exposed.filter(moneyTool).length},
     profiles:['read_only','everyday','full'],listingModes:['compact','catalog'],
@@ -155,7 +160,7 @@ export function rtcOpenApi(){
           name:{type:'string'},args:{type:'object'}}}}}}}}};
   const pathParam=name=>[{name,in:'path',required:true,schema:{type:'string'}}];
   return {openapi:'3.1.0',
-    info:{title:'Robinson Stripe MCP RTC scoped TEST/LIVE API',version:'0.1.0'},
+    info:{title:'Robinson Stripe MCP RTC scoped TEST/LIVE API',version:packageVersion()},
     // OpenAPI describes only the pass-authenticated HTTPS subset. OAuth/MCP
     // has separate authorization, including profiles this door must refuse.
     security:[{rtcTestPass:[]}],
