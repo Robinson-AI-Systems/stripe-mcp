@@ -1,3 +1,37 @@
+## 2026-11-03 — Resource wall removed by owner ruling; audit rulings; owner-credential promotion route
+
+- **Resource parameter (owner ruling, main chat 2026-11-03):** the
+  mandatory exact `resource` requirement comes OUT. This server comes
+  in line with the RAS MCP Standard (Library D-001), which is not
+  amended: authorize and token accept a request with or without the
+  value; a sent value must still name this MCP exactly, and a wrong
+  one is refused (`invalid_request` / `invalid_target`). Grounds: the
+  fleet's own servers accept the no-resource shape, real clients omit
+  it, and a wall the fleet does not keep is friction without a threat
+  model. Landed in PR #299 (tests converted, not deleted) and proven
+  live in the CAP-5 knock test the same day (see STATUS 2026-11-03).
+  Implementation note for future seam work: the K-3 rehearsal's
+  portable token path still mandates resource, so the OAuth protocol
+  seam supplies this issuer's one resource only when the client sent
+  none; updating the private core itself is a separate cross-repo
+  program. The same seam discipline applies to the bearer path: source
+  claims-shape changes must be mirrored in the seam adapters or the
+  rehearsal's differential fails without test lines (PR #295).
+- **Audit dispositions (documentation-versus-code audit, 2026-11-03):**
+  the forty-plus dated execution packets whose status lines no longer
+  match the work index are accepted as dated records and are NOT
+  edited (the index is the living record); the RTC manifest's
+  `rtc: 1` field and `conformanceStatus` are deliberate frozen-baseline
+  values, not defects — only its counts gained a scope label.
+- **Promotion recovery route:** `promote-live.yml`'s owner gate
+  requires the actor to be the owner account. The GitHub MCP's
+  curated dispatch tool acts as the MCP's app installation and cannot
+  satisfy it; the MCP's raw API write with its **user** credential
+  records the owner as actor and runs the same checked promoter with
+  the same once-per-day guard. That is the sanctioned recovery route
+  when a scheduled promotion is missed; it is not a manual deploy,
+  and its use is reported when it happens.
+
 ## 2026-11-02 — Developer access boundary implemented in source (DEVELOPER-CONNECTION)
 
 Implements, in source, the boundary the conformance entry below recorded
