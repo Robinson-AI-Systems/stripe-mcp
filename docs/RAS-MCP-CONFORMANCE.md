@@ -95,6 +95,16 @@ first-class identification shape in the connection contract (see the
 correction to [STRIPE-CONNECTION-GOD-MODE](designs/STRIPE-CONNECTION-GOD-MODE.md)),
 and **CAP-5** carries the live knock test. No card support is claimed today.
 
+**Implementation status (2026-11-02):** implemented in source in the
+CAP-3 connection workstream (packet
+[CAP-3-cimd](pr-cards/CAP-3-cimd.md)): `src/core/cimd.js` fetches and
+validates cards with the full bound above — including DNS-answer
+classification, which this server adds to the reference pattern — and
+the authorize/token/revoke handlers resolve card clients alongside
+dynamic registration. Status is `FIXED IN SOURCE / NOT VERIFIED
+LIVE`; the CAP-5 live knock test against the checked deployed
+release is still owed and closes this row.
+
 ### 3. One public sign-in; profiles are customer settings — CORRECTED
 
 The Standard: exactly **one public customer sign-in and consent journey**.
@@ -115,6 +125,17 @@ any read-only tightening the user has set for this connection), while
 profile and read-only choices live in the authenticated **My Connection**
 settings, where the design already manages them. No plan change to the
 money rules: IN-05 owner approvals and the shared daily cap are untouched.
+
+**Implementation status (2026-11-02):** the consent journey is
+corrected in source with the card work (packet
+[CAP-3-cimd](pr-cards/CAP-3-cimd.md)): the authorize page renders no
+profile or listing choice, displays the resulting effective access,
+and defaults a new connection to the fullest grant (`full`); a
+profile value remains honored only as the connection's stored
+setting, with all LIVE gates unchanged. The My Connection settings
+screen itself remains CAP-3 engineering gated on the unselected
+human identity provider; live verification of the corrected journey
+rides the same deployed-release evidence as row 2.
 
 ### 4. Developer access boundary — PLANNED (with classification)
 

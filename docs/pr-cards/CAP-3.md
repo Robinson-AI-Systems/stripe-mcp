@@ -85,3 +85,15 @@ further implementation **inside the same original CAP-3**. Do not
 claim verified human OIDC, Stripe App account/scopes, public client
 authorization, God Mode availability, LIVE money authority or full
 CAP-3 completion from a green encrypted-storage test.
+
+## CIMD + consent continuation packet — 2026-11-02
+
+[CAP-3 CIMD and one-sign-in consent packet](CAP-3-cimd.md) is a
+third implementation packet **inside the same original CAP-3**,
+building the RAS MCP conformance rows 2–3: client ID-card (CIMD)
+clients as a first-class identification shape of the existing OAuth
+connection, and the consent journey corrected to one public sign-in
+(no profile choice; effective access displayed; full by default).
+Status on landing: `FIXED IN SOURCE / NOT VERIFIED LIVE` — CAP-5's
+live knock test with a real card client is owed against the checked
+deployed release. CAP-3 remains IN_PROGRESS.
