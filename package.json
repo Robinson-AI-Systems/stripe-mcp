@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Standalone, safely guarded Stripe MCP server",
+  "description": "Stripe Unleashed by Robinson AI Systems — standalone, safely guarded Stripe MCP server",
   "engines": {
     "node": ">=20"
   },

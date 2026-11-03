@@ -12,6 +12,12 @@ Keep current `PUBLIC_BASE_URL` and existing clients intact until DNS, TLS,
 OAuth issuer/resource, callback and exact READY release evidence pass.
 No new DNS, app publication, LIVE activation or deployment has occurred.
 
+> **Superseded (2026-11-03):** the product name is now **Stripe Unleashed by
+> Robinson AI Systems** and the product mark is the Unleashed Break-Out; the
+> Robinson AI Systems R logo remains the company/publisher mark only. See the
+> 2026-11-02 entry in [DECISIONS.md](DECISIONS.md). The entry above stands as
+> the 2026-10-23 record.
+
 ## Approved future Stripe App connection gates (2026-10-23 — NOT yet enabled)
 
 - [ ] Select and verify an independent human identity provider and scoped

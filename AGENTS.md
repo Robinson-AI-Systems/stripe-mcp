@@ -346,7 +346,8 @@ G-6, H) and **day-to-day operation** (everything else). An app that
 runs its own Stripe billing can optionally get a **project profile** (Batch P) so the server never fights it. Real
 projects such as Appliance Desk are used only as **completeness checks** ("can it do everything this needed?"), never
 to narrow the design. It is reached
-through a Claude connector and a plain HTTPS API, and it follows the **Robinson Tool Contract** (RTC 1) so that
+through a Claude connector and a plain HTTPS API, and it follows the **Robinson Tool Contract** — RTC 2 governs
+(RTC 1 is the frozen baseline it succeeded; see the adoption record in `docs/HUB-COMPATIBILITY.md`) — so that
 **Robinson's Toolkit** (`Robinson-AI-Systems/robinsons-toolkit-hub`, the hub) can combine it with Chris's other servers into
 one MCP, CLI and HTTPS API for any agent. **Chris is not a developer:** every
 update, question or PR summary for him is plain English — what changed, how it was verified, what he must decide,
@@ -453,7 +454,7 @@ page. Money is shown in dollars and cents; stored in integer cents.
 | Go-live switches | `docs/GO-LIVE-CHECKLIST.md` |
 | What Chris can ask for | `docs/OWNER-GUIDE.md` |
 | Money/secret constraints for PRs | `docs/AI-PR-READ-FIRST.md` |
-| The contract every Robinson server follows | `Robinson-AI-Systems/robinsons-toolkit-hub` `docs/CONTRACT.md` (RTC 1) |
+| The contract every Robinson server follows | RTC 2, adopted in `docs/HUB-COMPATIBILITY.md` (owner decision, 2026-10-31); the frozen RTC 1 record is `Robinson-AI-Systems/robinsons-toolkit-hub` `docs/CONTRACT.md` |
 | Audit of the older Stripe code | `docs/audits/2026-10-10-existing-stripe-code.md` |
 | Retired documents (reference only) | `docs/archive/` |
 
