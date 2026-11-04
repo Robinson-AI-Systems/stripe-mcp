@@ -1,15 +1,30 @@
 // G-3d: Identity sessions without exposing verification documents, PII or client_secret.
-import {defineWrite,gone} from './write.js';
+import {defineWrite} from './write.js';
 import {client,fullProfiles,guarded,fail,paging,pageResult,local,validateFields} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 const invalid=m=>{throw new TypeError(m);};
+const modeOf=ctx=>ctx?.connection?.mode;
+const modeLabel=ctx=>modeOf(ctx)==='live'?'LIVE':'TEST';
+// previewFingerprint is a core control field (owner-obedience V2
+// shared machinery); the family validator must not reject it.
+const stripControl=a=>{if(!a||typeof a!=='object'||Array.isArray(a))return a;
+  const {previewFingerprint:_f,...rest}=a;return rest;};
 const exact=v=>typeof v==='string'&&/^vs_[A-Za-z0-9]{2,100}$/.test(v);
 const states=['requires_input','processing','verified','canceled'];
 const types=['document','id_number'];
-export function identitySafe(v){
+// When the caller supplies the connection mode, a session verifies only
+// in its own mode (owner-obedience V2, Identity family): a LIVE session
+// on a LIVE connection verifies with the same safe fields, a wrong-mode
+// session is unavailable. Callers that supply no mode — the read tools,
+// whose LIVE reachability is CAP-4's, not this family's — keep the
+// historical TEST-only check exactly.
+export function identitySafe(v,mode){
+  const expected=['test','live'].includes(mode)?mode==='live':false;
   if(v?.object!=='identity.verification_session'||!exact(v.id)||
-    v.livemode!==false||!Number.isSafeInteger(v.created)||v.created<946684800||
+    v.livemode!==expected||!Number.isSafeInteger(v.created)||v.created<946684800||
     !states.includes(v.status)||!types.includes(v.type))
-    invalid('Exact TEST Identity verification session unavailable');
+    invalid('Exact '+(expected?'LIVE':'TEST')+
+      ' Identity verification session unavailable');
   const redaction=v.redaction?.status??null;
   if(redaction!==null&&!['processing','redacted'].includes(redaction))
     invalid('Identity redaction state invalid');
@@ -31,7 +46,8 @@ const sess={type:'string',pattern:'^vs_[A-Za-z0-9]{2,100}$'};
 const t={type:'string',enum:types};
 const props={type:t};
 const common={dryRun:{type:'boolean'},confirm:{type:'boolean'},
-  requestKey:{type:'string',minLength:1,maxLength:128}};
+  requestKey:{type:'string',minLength:1,maxLength:128},
+  previewFingerprint:{type:'string',maxLength:64}};
 function validate(a,allowed,needed=[]){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(x=>!allowed.includes(x))||
@@ -48,7 +64,7 @@ export const tools=[
     inputSchema:{type:'object',properties:{sessionId:sess},
       required:['sessionId'],additionalProperties:false}},
   {...makeIdentityCreate().tool,area:'identity',profiles:fullProfiles,
-    description:'Create an owner-guarded TEST Identity session and return only verified hosted URL.',
+    description:'Create an owner-guarded Identity session in the connection mode; return only the verified hosted URL.',
     inputSchema:{type:'object',properties:{...props,...common},
       required:['type'],additionalProperties:false}}
 ];
@@ -69,35 +85,41 @@ export const handlers={
       if(v?.id!==a.sessionId)invalid('Identity session ID mismatch');
       return identitySafe(v);
     }),
-  identity_create_session:(a,ctx)=>ctx?.connection?.mode!=='test'?
-    gone('Identity creation requires TEST mode'):makeIdentityCreate().handler(a,ctx)
+  identity_create_session:(a,ctx)=>makeIdentityCreate().handler(a,ctx)
 };
 export function makeIdentityCreate(){
   let createdId=null,verifiedUrl=null;
   const op=defineWrite({
     name:'identity_create_session',
     read:async(a,ctx)=>{
-      validateFields(a,props,['type']);
+      validateFields(stripControl(a),props,['type']);
       if(!types.includes(a.type))invalid('Supported Identity verification type required');
       const result=await (await client(ctx)).identity.verificationSessions.list({limit:1});
       if(!Array.isArray(result?.data)||typeof result.has_more!=='boolean')
-        invalid('Selected TEST Identity provider could not be verified');
+        invalid('Selected '+modeLabel(ctx)+' Identity provider could not be verified');
+      for(const record of result.data)assertAccountResourceMode(record,modeOf(ctx));
       return {id:'identity_new_session',metadata:{},customer:null};
     },
-    summarize:(_b,a)=>'TEST ONLY. Create a new hosted Stripe Identity '+a.type+
+    summarize:(_b,a,ctx)=>modeOf(ctx)==='live'?
+      'LIVE MODE. Create a new hosted Stripe Identity '+a.type+
+      ' verification session. A real person will be asked to submit'+
+      ' identity documents to Stripe to verify who they are.'+
+      ' The hosted URL is only shown after independent read-back.':
+      'TEST ONLY. Create a new hosted Stripe Identity '+a.type+
       ' verification session. Customer document data stays on Stripe.'+
       ' The hosted URL is only shown after independent read-back.',
     apply:async(a,ctx,{idempotencyKey})=>{
       const v=await (await client(ctx)).identity.verificationSessions.create({
         type:a.type},{idempotencyKey});
-      if(!exact(v?.id)||v.object!=='identity.verification_session'||v.livemode!==false)
+      if(!exact(v?.id)||v.object!=='identity.verification_session'||
+        v.livemode!==(modeOf(ctx)==='live'))
         invalid('Stripe Identity creation identity unavailable');
       createdId=v.id; // do not keep, echo or log client_secret
     },
     readAfter:async(_a,ctx)=>createdId?
       (await client(ctx)).identity.verificationSessions.retrieve(createdId):null,
-    verify:(_b,v,args)=>{
-      const identity=identitySafe(v);
+    verify:(_b,v,args,ctx)=>{
+      const identity=identitySafe(v,modeOf(ctx));
       if(identity.id!==createdId||identity.type!==args.type||
         identity.status!=='requires_input')return false;
       verifiedUrl=hostedUrl(v.url);
