@@ -1,3 +1,53 @@
+## 2026-11-04 — Owner-obedience V2 Branding family: source-implemented (source)
+
+Family 11 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-BRANDING](pr-cards/OWNER-OBEDIENCE-V2-BRANDING.md)):
+
+- **Dispatcher admission.** The `branding` area joins
+  `guardedLiveAreas`; exactly the six in-scope writes change
+  LIVE admission (`brand_preview_checkout`,
+  `brand_upload_image`, `brand_save_kit`,
+  `brand_archive_invoice_template`,
+  `brand_unarchive_invoice_template`, `brand_set_portal_look`),
+  proven against the registry. `setup_set_payout_schedule`
+  (same area) already converted with the Money family under
+  ruling 6 and is byte-untouched; its behavior is re-proven
+  by the Money suites. Without the owner-approved LIVE
+  connection the admission still refuses, and `read_only`
+  still refuses everything.
+- **Handlers converted.** Both modules' TEST-only account
+  verifiers gain mode-aware forms (exact identity plus
+  independent provider mode evidence for the connection's
+  own mode); every evaluated object and read-back demands
+  the connection's mode in both directions; previews are
+  mode-labeled and fingerprint-bound. A bare LIVE connection
+  is refused by the LIVE-enablement guard before anything
+  executes.
+- **One hidden gate converted.** The brand-kit store itself
+  refused any non-TEST save; it is keyed by account+mode, so
+  LIVE kits are now separate records — disclosed in the kit
+  preview — with the store term mirrored in the fake DB and
+  the DB suite's separation proof updated by design.
+- **Row 32 does not convert.** The portal look's ownership
+  refusal — any actively bound app refuses the write even
+  with `outsideApp` — is byte-untouched and now proven
+  firing in both modes with zero provider writes. The
+  public-HTTPS URL validation, the owner-configured
+  return-destination match and the kit's brand-asset
+  scope/mode checks are demonstrably unrelaxed.
+- **Build-time verification resolved.**
+  `brand_preview_checkout` persists a real Checkout session
+  through Family 6's converted write; its write registration
+  is correct, and a LIVE preview Checkout is proven to use
+  the LIVE kit's branding, never the TEST kit's.
+- **Not converted.** The guided own-account tools and the
+  brand/template reads are not writes; they keep their
+  TEST-only gates byte-identically (CAP-4 owns read
+  reachability), so `workflow_brand_business` gains no LIVE
+  reachability. Money wiring byte-untouched. **Live proof
+  remains open** (CAP-5 queue).
+
 ## 2026-11-04 — Owner-obedience V2 Reports family: source-implemented (source)
 
 Family 10 of 13 of conformance row 17's V2 conversion is

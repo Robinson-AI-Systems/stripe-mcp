@@ -15,7 +15,7 @@ beforeAll(async()=>{
     [acct,'Brand fixture',other,'Other fixture']);
 });
 afterAll(async()=>closeIsolatedSchema());
-describe('H-1 TEST brand kit PostgreSQL persistence',()=>{
+describe('H-1 brand kit PostgreSQL persistence (TEST and LIVE records separate)',()=>{
   it('has an additive keyed table and idempotent schema setup',async()=>{
     expect(SCHEMA_TABLES).toContain('brand_kits');
     await db.initSchema();
@@ -39,14 +39,22 @@ describe('H-1 TEST brand kit PostgreSQL persistence',()=>{
     const two=await db.saveBrandKit({account:acct,mode:'test',
       settings:{displayName:'New brand'},expectedVersion:1});
     expect(two.version).toBe(2);
-    await expect(db.saveBrandKit({account:other,mode:'live',
-      settings:{displayName:'No LIVE'},expectedVersion:0})).rejects.toThrow();
+    // Owner-obedience V2 family 11: a LIVE kit is a separate record
+    // keyed by account+mode; saving one touches no TEST record.
+    const live=await db.saveBrandKit({account:other,mode:'live',
+      settings:{displayName:'Live brand'},expectedVersion:0});
+    expect(live.version).toBe(1);
+    expect((await db.getBrandKit({account:other,mode:'live'})).settings)
+      .toMatchObject({displayName:'Live brand'});
+    expect(await db.getBrandKit({account:other,mode:'test'})).toBeNull();
+    expect((await db.getBrandKit({account:acct,mode:'test'})).version).toBe(2);
   });
   it('does not accept an account or mode mismatch or create orphaned branding',async()=>{
     await expect(db.saveBrandKit({account:'acct_MISSING',mode:'test',
       settings:{displayName:'Orphan'},expectedVersion:0})).rejects.toThrow();
     await expect(db.getBrandKit({account:acct,mode:'unknown'})).rejects.toThrow();
-    const rows=await rawQuery('SELECT stripe_account,mode,version FROM brand_kits');
-    expect(rows).toEqual([{stripe_account:acct,mode:'test',version:2}]);
+    const rows=await rawQuery('SELECT stripe_account,mode,version FROM brand_kits ORDER BY stripe_account,mode');
+    expect(rows).toEqual([{stripe_account:acct,mode:'test',version:2},
+      {stripe_account:other,mode:'live',version:1}]);
   });
 });

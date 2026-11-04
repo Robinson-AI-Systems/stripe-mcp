@@ -105,9 +105,12 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
           area==='webhooks'&&liveWebhooks.has(tool.name)||
           area==='catalog'&&liveCatalog.has(tool.name)||
           area==='money'&&liveMoney.has(tool.name)||
-          // The payout schedule's branding-area exposure converted with
-          // the Money family (ruling 6); no other branding write did.
-          (area==='branding'&&tool.name==='setup_set_payout_schedule')||
+          // Branding: the payout schedule's exposure converted with the
+          // Money family (ruling 6); the rest of the area converted with
+          // owner-obedience V2 family 11 (Branding), so every wrapped
+          // branding write is now LIVE-admitted for the owner-approved
+          // connection.
+          area==='branding'||
           // Owner-obedience V2 family 10 (Reports): the single
           // report-run write is LIVE-admitted for an owner-approved
           // connection; the report reads are not writes and stay

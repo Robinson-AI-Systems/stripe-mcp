@@ -1,8 +1,8 @@
-// H-1: guarded and audited TEST brand kit persistence and public image import.
+// H-1: guarded and audited brand kit persistence and public image import.
 import {defineWrite,gone} from './write.js';
 import {client,allProfiles,writeProfiles,reply,fail,validateFields} from './billing-shared.js';
 import {validateBrandKit,checkoutBranding} from '../brand/store.js';
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
 import {makeCheckoutWrite} from './checkout-writes.js';
 import {downloadEvidence,parseEvidenceUrl} from '../stripe/evidence-source.js';
 
@@ -12,12 +12,30 @@ const uploadArgs={sourceUrl:{type:'string',minLength:12,maxLength:2048},
 const isFile=x=>typeof x==='string'&&/^file_[A-Za-z0-9]{2,100}$/.test(x);
 const goodAccount=c=>c?.connection?.mode==='test'&&
   /^acct_[A-Za-z0-9]{2,100}$/.test(c?.connection?.stripeAccount??'');
+const selectedAccount=c=>['test','live'].includes(c?.connection?.mode)&&
+  /^acct_[A-Za-z0-9]{2,100}$/.test(c?.connection?.stripeAccount??'');
 async function verified(ctx){
   if(!goodAccount(ctx))throw new TypeError('Selected TEST account required');
   const s=await client(ctx);
   const account=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
   if(account?.id!==ctx.connection.stripeAccount||account.livemode!==false)
     throw new TypeError('Stripe TEST account identity unavailable');
+  return s;
+}
+// Mode-aware verification for the converted kit writes
+// (owner-obedience V2 family 11): the same exact-identity proof as
+// verified, with the independent provider mode evidence demanded for
+// the connection's own mode in both directions. brand_get keeps
+// verified (TEST-only) above.
+async function verifiedMode(ctx){
+  if(!selectedAccount(ctx))throw new TypeError('Selected account required');
+  const s=await client(ctx);
+  const live=ctx.connection.mode==='live';
+  const account=live?
+    await readVerifiedLiveAccount(s,ctx.connection.stripeAccount):
+    await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
+  if(account?.id!==ctx.connection.stripeAccount||account.livemode!==live)
+    throw new TypeError('Stripe '+(live?'LIVE':'TEST')+' account identity unavailable');
   return s;
 }
 function dimensions(bytes){
@@ -49,17 +67,17 @@ export function makeBrandKitSave(){
     name:'brand_save_kit',
     read:async(a,ctx)=>{
       if(!a||typeof a!=='object'||Array.isArray(a)||
-        Object.keys(a).some(k=>!['kit','expectedVersion','dryRun','confirm','requestKey'].includes(k))||
+        Object.keys(a).some(k=>!['kit','expectedVersion','dryRun','confirm','requestKey','previewFingerprint'].includes(k))||
         !Number.isSafeInteger(a.expectedVersion)||a.expectedVersion<0||
         a.requestKey!==undefined&&(typeof a.requestKey!=='string'||
           a.requestKey.length<1||a.requestKey.length>128))
         throw new TypeError('Valid brand kit and revision required');
       next=validateBrandKit(a.kit);
-      await verified(ctx);
+      await verifiedMode(ctx);
       if(!ctx.db?.getBrandKit||!ctx.db?.saveBrandKit)
         throw new TypeError('Durable brand kit storage unavailable');
       const old=await ctx.db.getBrandKit({
-        account:ctx.connection.stripeAccount,mode:'test'});
+        account:ctx.connection.stripeAccount,mode:ctx.connection.mode});
       if((old?.version??0)!==a.expectedVersion&&
         JSON.stringify(old?.settings??{})!==JSON.stringify(next))
         throw new TypeError('Brand kit has changed; read current revision');
@@ -70,21 +88,29 @@ export function makeBrandKitSave(){
         const id=next[key];
         if(id!==undefined&&id!==null){
           const file=await s.files.retrieve(id);
-          if(file?.id!==id||file.purpose!==purpose||file.livemode===true)
-            throw new TypeError('Brand asset is not a selected TEST business image');
+          if(file?.id!==id||file.purpose!==purpose||
+            file.livemode!==(ctx.connection.mode==='live'))
+            throw new TypeError('Brand asset is not a selected '+
+              (ctx.connection.mode==='live'?'LIVE':'TEST')+' business image');
         }
       }
       return {...old,metadata:{},id:ctx.connection.stripeAccount};
     },
-    summarize:(old,a)=>'TEST MODE: save public Checkout brand kit revision '+
+    summarize:(old,a,ctx)=>ctx?.connection?.mode==='live'?
+      'LIVE MODE: save public Checkout brand kit revision '+
+      String(a.expectedVersion)+' for '+old.id+
+      '; LIVE kits are separate records from TEST kits'+
+      '; changes affect only future MCP-created hosted pages, which real customers will see, not app-owned pages or account settings.':
+      'TEST MODE: save public Checkout brand kit revision '+
       String(a.expectedVersion)+' for '+old.id+
       '; changes affect only future MCP-created hosted pages, not app-owned pages or account settings.',
     apply:async(a,ctx)=>{
-      await ctx.db.saveBrandKit({account:ctx.connection.stripeAccount,mode:'test',
+      await ctx.db.saveBrandKit({account:ctx.connection.stripeAccount,
+        mode:ctx.connection.mode,
         settings:next,expectedVersion:a.expectedVersion});
     },
     readAfter:async(_a,ctx)=>ctx.db.getBrandKit({
-      account:ctx.connection.stripeAccount,mode:'test'}),
+      account:ctx.connection.stripeAccount,mode:ctx.connection.mode}),
     verify:(_before,after)=>!!after&&after.version>=1&&
       JSON.stringify(after.settings)===JSON.stringify(next)
   });
@@ -94,14 +120,21 @@ export function makeBrandImageUpload({download=downloadEvidence}={}){
   const op=defineWrite({
     name:'brand_upload_image',
     read:async(a,ctx)=>{
-      validateFields(a,uploadArgs,['sourceUrl','filename','kind']);
+      const checked={...a};delete checked.previewFingerprint;
+      validateFields(checked,uploadArgs,['sourceUrl','filename','kind']);
       parseEvidenceUrl(a.sourceUrl);
       if(!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}\.(png|jpg|jpeg)$/.test(a.filename))
         throw new TypeError('Public PNG or JPEG filename required');
-      await verified(ctx);
+      await verifiedMode(ctx);
       return {id:ctx.connection.stripeAccount,metadata:{}};
     },
-    summarize:(_old,a)=>'TEST MODE: import one public '+a.kind+
+    summarize:(_old,a,ctx)=>ctx?.connection?.mode==='live'?
+      'LIVE MODE: import one public '+a.kind+
+      ' image from '+parseEvidenceUrl(a.sourceUrl).hostname+
+      ' to the selected Stripe account; it becomes a real business image on the LIVE account'+
+      ' that hosted Checkout pages, invoices and receipts can show to real customers'+
+      '; no app-owned or account branding changes.':
+      'TEST MODE: import one public '+a.kind+
       ' image from '+parseEvidenceUrl(a.sourceUrl).hostname+
       ' to the selected Stripe account; no app-owned or account branding changes.',
     apply:async(a,ctx,{idempotencyKey})=>{
@@ -119,14 +152,14 @@ export function makeBrandImageUpload({download=downloadEvidence}={}){
       const s=await client(ctx);
       const f=await s.files.create({purpose:a.kind==='icon'?'business_icon':'business_logo',
         file:{data:loaded.buffer,name:a.filename,type:loaded.mime}},{idempotencyKey});
-      if(!isFile(f?.id)||f.livemode===true)
+      if(!isFile(f?.id)||f.livemode!==(ctx.connection.mode==='live'))
         throw new TypeError('Stripe business image identity unverified');
       id=f.id;
     },
     readAfter:async(_a,ctx)=>id?(await client(ctx)).files.retrieve(id):null,
-    verify:(_before,after,a)=>after?.id===id&&after.object==='file'&&
+    verify:(_before,after,a,ctx)=>after?.id===id&&after.object==='file'&&
       after.purpose===(a.kind==='icon'?'business_icon':'business_logo')&&
-      after.size===size&&after.livemode!==true
+      after.size===size&&after.livemode===(ctx?.connection?.mode==='live')
   });
   return {...op,async handler(a,ctx){
     const result=await op.handler(a,ctx);
@@ -144,12 +177,13 @@ const brandFields=Object.fromEntries(['backgroundColor','buttonColor','borderSty
   'termsMessage'].map(k=>[k,string]));
 export const tools=[
   {...preview.tool,name:'brand_preview_checkout',area:'branding',profiles:writeProfiles,
-    description:'Create a guarded TEST Checkout preview through the native hosted session flow.',
+    description:'Create a guarded Checkout preview in the connection mode through the native hosted session flow.',
     inputSchema:{type:'object',properties:{
       customerId:{type:'string',pattern:'^cus_[A-Za-z0-9_]{3,190}$'},
       priceId:{type:'string',pattern:'^price_[A-Za-z0-9_]{3,190}$'},
       branding:{type:'object',properties:brandFields,additionalProperties:false},
       outsideApp:{type:'boolean'},dryRun:{type:'boolean'},confirm:{type:'boolean'},
+      previewFingerprint:{type:'string',maxLength:64},
       requestKey:{type:'string',minLength:1,maxLength:128}},
       required:['customerId','priceId'],additionalProperties:false}},
   {name:'brand_get',area:'branding',writes:false,profiles:allProfiles,
@@ -157,20 +191,22 @@ export const tools=[
     annotations:{readOnlyHint:true},
     inputSchema:{type:'object',properties:{},additionalProperties:false}},
   {...makeBrandImageUpload().tool,area:'branding',profiles:writeProfiles,
-    description:'Import bounded, verified public TEST business logo or square icon.',
+    description:'Import bounded, verified public business logo or square icon in the connection mode.',
     inputSchema:{type:'object',properties:{...uploadArgs,dryRun:{type:'boolean'},
-      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      confirm:{type:'boolean'},previewFingerprint:{type:'string',maxLength:64},
+      requestKey:{type:'string',minLength:1,maxLength:128}},
       required:['sourceUrl','filename','kind'],additionalProperties:false}},
   {...makeBrandKitSave().tool,area:'branding',profiles:writeProfiles,
-    description:'Save versioned selected TEST brand kit for future MCP-created Checkout.',
+    description:'Save versioned selected brand kit for future MCP-created Checkout in the connection mode.',
     inputSchema:{type:'object',properties:{...kitArgs,dryRun:{type:'boolean'},
-      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      confirm:{type:'boolean'},previewFingerprint:{type:'string',maxLength:64},
+      requestKey:{type:'string',minLength:1,maxLength:128}},
       required:['kit','expectedVersion'],additionalProperties:false}}
 ];
 export const handlers={
-  brand_preview_checkout:(a,ctx)=>goodAccount(ctx)&&typeof a?.priceId==='string'?
+  brand_preview_checkout:(a,ctx)=>selectedAccount(ctx)&&typeof a?.priceId==='string'?
     makeCheckoutWrite('checkout_create_payment_link_for_customer').handler(a,ctx):
-    gone('Verified TEST customer and existing price are required'),
+    gone('Verified customer and existing price are required'),
   async brand_get(a,ctx){
     try{
       if(a&&Object.keys(a).length)throw new TypeError('Brand read takes no arguments');
@@ -190,8 +226,8 @@ export const handlers={
         appCreatedPagesAffected:false});
     }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   },
-  brand_upload_image:(a,ctx)=>goodAccount(ctx)?makeBrandImageUpload().handler(a,ctx):
-    gone('TEST account required for brand upload'),
-  brand_save_kit:(a,ctx)=>goodAccount(ctx)?makeBrandKitSave().handler(a,ctx):
-    gone('TEST account required for brand kit saving')
+  brand_upload_image:(a,ctx)=>selectedAccount(ctx)?makeBrandImageUpload().handler(a,ctx):
+    gone('Selected account required for brand upload'),
+  brand_save_kit:(a,ctx)=>selectedAccount(ctx)?makeBrandKitSave().handler(a,ctx):
+    gone('Selected account required for brand kit saving')
 };

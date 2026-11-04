@@ -2,7 +2,8 @@
 // A connected-account Accounts.update contract never licenses own-account writes.
 import {defineWrite,gone} from './write.js';
 import {client,allProfiles,fullProfiles,reply,fail,validateFields} from './billing-shared.js';
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
+import {assertAccountResourceMode} from './account-mode.js';
 import {makeScheduleWrite} from './money-schedule-write.js';
 
 const str=(max=120)=>({type:'string',minLength:1,maxLength:max});
@@ -65,9 +66,11 @@ const validId=(v,p)=>typeof v==='string'&&
 const selected=ctx=>ctx?.connection?.mode==='test'&&
   /^acct_[A-Za-z0-9]{2,100}$/.test(ctx.connection.stripeAccount??'');
 // The payout schedule converted with the Money family (owner-obedience
-// V2 family 1, coordinator ruling 6): this one exposure admits both
-// modes on a selected account; every other branding handler keeps the
-// TEST-only selector until the Branding family converts.
+// V2 family 1, coordinator ruling 6): this exposure admits both modes
+// on a selected account. The Branding family (V2 family 11) now uses
+// the same either-mode selector for the invoice-template and portal
+// writes; the guided handlers and template reads keep the TEST-only
+// selector above.
 const selectedEitherMode=ctx=>['test','live'].includes(ctx?.connection?.mode)&&
   /^acct_[A-Za-z0-9]{2,100}$/.test(ctx.connection.stripeAccount??'');
 async function testAccount(ctx){
@@ -76,6 +79,23 @@ async function testAccount(ctx){
   const account=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
   if(account?.id!==ctx.connection.stripeAccount||account?.livemode!==false)
     throw new TypeError('Selected own TEST account unverified');
+  return {s,account};
+}
+// Mode-aware account verification for the converted branding writes
+// (owner-obedience V2 family 11): the same exact-identity proof as
+// testAccount, with the independent provider mode evidence demanded
+// for the connection's own mode in both directions. The guided
+// handlers and the template reads keep testAccount (TEST-only).
+async function modeAccount(ctx){
+  if(!selectedEitherMode(ctx))
+    throw new TypeError('Exact selected account required');
+  const s=await client(ctx);
+  const live=ctx.connection.mode==='live';
+  const account=live?
+    await readVerifiedLiveAccount(s,ctx.connection.stripeAccount):
+    await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
+  if(account?.id!==ctx.connection.stripeAccount||account?.livemode!==live)
+    throw new TypeError('Selected own '+(live?'LIVE':'TEST')+' account unverified');
   return {s,account};
 }
 function validateGuide(name,a){
@@ -174,20 +194,28 @@ function templateWrite(name,action){
   return defineWrite({
     name,
     read:async(a,ctx)=>{
-      validateFields(a,{templateId:resource,outsideApp:yes},['templateId']);
-      const {s}=await testAccount(ctx);
+      const checked={...a};delete checked.previewFingerprint;
+      validateFields(checked,{templateId:resource,outsideApp:yes},['templateId']);
+      const {s}=await modeAccount(ctx);
       const original=await s.invoiceRenderingTemplates.retrieve(a.templateId);
       safeTemplate(original);
+      assertAccountResourceMode(original,ctx.connection.mode);
       if(action==='archive'&&original.status==='archived')
         throw new TypeError('Rendering template already archived');
       if(action==='unarchive'&&original.status==='active')
         throw new TypeError('Rendering template already active');
       return {...original,metadata:original.metadata??{}};
     },
-    summarize:(before)=>'TEST MODE: '+action+' exact invoice template '+before.id+
+    summarize:(before,_a,ctx)=>ctx?.connection?.mode==='live'?
+      'LIVE MODE: '+action+' exact invoice template '+before.id+
+      ' after explicit confirmation; '+(action==='archive'?
+        'it stops being available for new real invoices':
+        'it becomes available again for new real invoices')+
+      '; no existing invoices are edited.':
+      'TEST MODE: '+action+' exact invoice template '+before.id+
       ' after explicit confirmation; no existing invoices are edited.',
     apply:async(a,ctx,{idempotencyKey})=>{
-      const {s}=await testAccount(ctx);
+      const {s}=await modeAccount(ctx);
       const result=await s.invoiceRenderingTemplates[action](a.templateId,{},{
         idempotencyKey});
       if(result?.id!==a.templateId)throw new TypeError('Template mutation identity mismatch');
@@ -195,8 +223,10 @@ function templateWrite(name,action){
     },
     readAfter:async(_a,ctx)=>expectedId?
       (await client(ctx)).invoiceRenderingTemplates.retrieve(expectedId):null,
-    verify:(_before,after,a)=>after?.id===a.templateId&&
-      after.status===(action==='archive'?'archived':'active')&&after.livemode!==true
+    verify:(_before,after,a,ctx)=>after?.id===a.templateId&&
+      after.status===(action==='archive'?'archived':'active')&&
+      (after.livemode===undefined||
+        after.livemode===(ctx?.connection?.mode==='live'))
   });
 }
 function portalLook(){
@@ -207,7 +237,8 @@ function portalLook(){
   return defineWrite({
     name:'brand_set_portal_look',
     read:async(a,ctx)=>{
-      validateFields(a,props,['configId']);
+      const checked={...a};delete checked.previewFingerprint;
+      validateFields(checked,props,['configId']);
       if(!keys.some(k=>a[k]!==undefined))
         throw new TypeError('Choose a portal appearance field');
       for(const k of ['privacyUrl','termsUrl','defaultReturnUrl'])
@@ -218,9 +249,10 @@ function portalLook(){
         if(typeof approved!=='string'||a.defaultReturnUrl!==approved)
           throw new TypeError('Portal return destination must match owner-configured HTTPS redirect');
       }
-      const {s}=await testAccount(ctx),config=await s.billingPortal.configurations.retrieve(a.configId);
+      const {s}=await modeAccount(ctx),config=await s.billingPortal.configurations.retrieve(a.configId);
       if(config?.id!==a.configId||config?.active!==true)
         throw new TypeError('Active owned portal configuration required');
+      assertAccountResourceMode(config,ctx.connection.mode);
       // Stripe's Portal configuration has no reliable MCP-created marker.
       // Where any active project is bound, the account's Portal could be app
       // managed. Refuse even an outsideApp override until ownership is proven.
@@ -231,11 +263,16 @@ function portalLook(){
         throw new TypeError('App-bound TEST Portal ownership cannot be proven; use Dashboard review');
       return {...config,metadata:config.metadata??{}};
     },
-    summarize:(before,a)=>'TEST MODE: change portal appearance for '+before.id+
+    summarize:(before,a,ctx)=>ctx?.connection?.mode==='live'?
+      'LIVE MODE: change portal appearance for '+before.id+
+      ' fields '+keys.filter(k=>a[k]!==undefined).join(', ')+
+      '; these become publicly visible to real customers in the customer portal immediately'+
+      '; no profiled-app Checkout or account-wide branding is changed.':
+      'TEST MODE: change portal appearance for '+before.id+
       ' fields '+keys.filter(k=>a[k]!==undefined).join(', ')+
       '; no profiled-app Checkout or account-wide branding is changed.',
     apply:async(a,ctx,{idempotencyKey})=>{
-      const {s}=await testAccount(ctx);
+      const {s}=await modeAccount(ctx);
       const profile={
         ...(a.headline!==undefined?{headline:a.headline}:{}),
         ...(a.privacyUrl!==undefined?{privacy_policy_url:a.privacyUrl}:{}),
@@ -250,7 +287,9 @@ function portalLook(){
     },
     readAfter:async(_a,ctx)=>last?
       (await client(ctx)).billingPortal.configurations.retrieve(last):null,
-    verify:(_before,after,a)=>after?.id===a.configId&&after.active===true&&
+    verify:(_before,after,a,ctx)=>after?.id===a.configId&&after.active===true&&
+      (after.livemode===undefined||
+        after.livemode===(ctx?.connection?.mode==='live'))&&
       (a.headline===undefined||after.business_profile?.headline===a.headline)&&
       (a.privacyUrl===undefined||after.business_profile?.privacy_policy_url===a.privacyUrl)&&
       (a.termsUrl===undefined||after.business_profile?.terms_of_service_url===a.termsUrl)&&
@@ -262,7 +301,8 @@ const unarch=templateWrite('brand_unarchive_invoice_template','unarchive');
 const portal=portalLook();
 const schedule=makeScheduleWrite();
 const request={type:'string',minLength:1,maxLength:128};
-const writeProps={dryRun:yes,confirm:yes,requestKey:request};
+const writeProps={dryRun:yes,confirm:yes,requestKey:request,
+  previewFingerprint:{type:'string',maxLength:64}};
 const templateSchema={type:'object',properties:{templateId:resource,outsideApp:yes,...writeProps},
   required:['templateId'],additionalProperties:false};
 export const tools=[
@@ -278,13 +318,13 @@ export const tools=[
     inputSchema:{type:'object',properties:{templateId:resource},
       required:['templateId'],additionalProperties:false}},
   {...arch.tool,area:'branding',profiles:fullProfiles,
-    description:'Preview and explicitly archive a selected TEST invoice template with readback.',
+    description:'Preview and explicitly archive a selected invoice template with readback.',
     inputSchema:templateSchema},
   {...unarch.tool,area:'branding',profiles:fullProfiles,
-    description:'Preview and explicitly restore a selected TEST invoice template with readback.',
+    description:'Preview and explicitly restore a selected invoice template with readback.',
     inputSchema:templateSchema},
   {...portal.tool,area:'branding',profiles:fullProfiles,
-    description:'Guardedly change TEST portal headline and public policy/return URLs; verify.',
+    description:'Guardedly change portal headline and public policy/return URLs in the connection mode; verify.',
     inputSchema:{type:'object',properties:{configId:config,
       headline:str(120),privacyUrl:str(500),termsUrl:str(500),
       defaultReturnUrl:str(500),outsideApp:yes,...writeProps},
@@ -298,14 +338,14 @@ export const handlers={
     (a,ctx)=>selected(ctx)?guide(name,a,ctx):gone('TEST own-account guidance only')])),
   brand_list_invoice_templates:templateList,
   brand_get_invoice_template:templateGet,
-  brand_archive_invoice_template:(a,ctx)=>selected(ctx)?
+  brand_archive_invoice_template:(a,ctx)=>selectedEitherMode(ctx)?
     templateWrite('brand_archive_invoice_template','archive').handler(a,ctx):
-    gone('TEST invoice template required'),
-  brand_unarchive_invoice_template:(a,ctx)=>selected(ctx)?
+    gone('Invoice template requires a selected account'),
+  brand_unarchive_invoice_template:(a,ctx)=>selectedEitherMode(ctx)?
     templateWrite('brand_unarchive_invoice_template','unarchive').handler(a,ctx):
-    gone('TEST invoice template required'),
-  brand_set_portal_look:(a,ctx)=>selected(ctx)?portalLook().handler(a,ctx):
-    gone('TEST portal configuration required'),
+    gone('Invoice template requires a selected account'),
+  brand_set_portal_look:(a,ctx)=>selectedEitherMode(ctx)?portalLook().handler(a,ctx):
+    gone('Portal configuration requires a selected account'),
   setup_set_payout_schedule:(a,ctx)=>selectedEitherMode(ctx)?
     makeScheduleWrite().handler(a,ctx):
     gone('Payout schedule requires a selected account')

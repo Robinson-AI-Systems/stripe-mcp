@@ -111,7 +111,8 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       return record?structuredClone(record):null;
     },
     async saveBrandKit({account,mode,settings,expectedVersion}){
-      if(!accountRows.has(account)||mode!=='test')throw new TypeError('TEST brand account required');
+      if(!accountRows.has(account)||!['test','live'].includes(mode))
+        throw new TypeError((mode==='live'?'LIVE':'TEST')+' brand account required');
       const key=account+'|'+mode,current=brandKits.get(key);
       if(JSON.stringify(current?.settings??null)===JSON.stringify(settings))return structuredClone(current);
       if((current?.version??0)!==expectedVersion)throw new Error('Brand kit revision changed');
