@@ -773,6 +773,25 @@ V3, then V4.
   balance credit/debit item is not part of V2 (ruling 3:
   separate row-35 card). Remaining families:
   Checkout;
+  Family 6 of 13, **Checkout, payment links and portal
+  sessions**, is source-implemented 2026-11-04
+  (OWNER-OBEDIENCE-V2-CHECKOUT): the TEST-only wrapper gate
+  is removed from all nine hosted write operations (checkout
+  payment/setup links, session expiry, payment-link
+  create/update/deactivate/activate, portal session create
+  and configuration update); two further mode gates inside
+  the tools are removed (the `cs_test`-only session-id
+  pattern on expiry, and the brand-kit read hardcoded to
+  TEST mode); every evaluated object and read-back demands
+  the connection's own mode in both directions; and
+  summaries are mode-labeled and disclose in plain words
+  what a live payment link does and what deactivating one
+  does. The hosted-URL aim check is NOT relaxed: a created
+  page's URL is surfaced only when it verifies as
+  Stripe-hosted. No money wiring is touched: these tools
+  create payment surfaces, and any charge flows through
+  Stripe's hosted page under the existing contracts.
+  Remaining families:
   Radar; Identity; Files; Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.

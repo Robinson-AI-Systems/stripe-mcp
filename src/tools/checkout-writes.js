@@ -1,8 +1,10 @@
-// Native TEST hosted payment experiences. Return URLs are owner-configured
-// server values; AI cannot choose redirect origins or receive a client_secret.
-import {defineWrite,gone} from './write.js';
+// Native hosted payment experiences in the connection's own mode.
+// Return URLs are owner-configured server values; AI cannot choose
+// redirect origins or receive a client_secret.
+import {defineWrite} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
-import {modeClient} from './account-mode.js';
+import {modeClient,assertAccountResourceMode} from './account-mode.js';
+import {formatUsd} from '../money.js';
 import {checkoutBranding,validateBrandKit} from '../brand/store.js';
 const p=['everyday','full'],full=['full'];
 const id=prefix=>({type:'string',pattern:'^'+prefix+'_[A-Za-z0-9_]{3,190}$'});
@@ -14,26 +16,26 @@ const brandProp={type:'object',additionalProperties:false,properties:Object.from
   ['backgroundColor','buttonColor','borderStyle','fontFamily','displayName',
     'logoFileId','iconFileId','submitMessage','termsMessage'].map(k=>[k,{type:'string'}]))};
 const defs=[
-  {name:'checkout_create_payment_link_for_customer',desc:'Create a one-time hosted TEST payment page for an existing customer.',
+  {name:'checkout_create_payment_link_for_customer',desc:'Create a one-time hosted payment page for an existing customer.',
     props:{customerId:id('cus'),priceId:id('price'),amountCents:money,productName:txt(120),branding:brandProp,...common},
     required:['customerId']},
-  {name:'checkout_create_setup_link',desc:'Create a hosted TEST card and US bank setup page, never a client secret.',
+  {name:'checkout_create_setup_link',desc:'Create a hosted card and US bank setup page, never a client secret.',
     props:{customerId:id('cus'),branding:brandProp,...common},required:['customerId']},
-  {name:'checkout_expire',desc:'Expire an open TEST Checkout session.',
-    props:{sessionId:id('cs_test'),...common},required:['sessionId'],destructive:true},
-  {name:'paylink_create',desc:'Create a reusable TEST payment link for a verified active price.',
+  {name:'checkout_expire',desc:'Expire an open Checkout session.',
+    props:{sessionId:{type:'string',pattern:'^cs_(test|live)_[A-Za-z0-9_]{3,190}$'},...common},required:['sessionId'],destructive:true},
+  {name:'paylink_create',desc:'Create a reusable payment link for a verified active price.',
     props:{priceId:id('price'),quantity:{type:'integer',minimum:1,maximum:100},metadata,...common},
     required:['priceId']},
-  {name:'paylink_update',desc:'Update the safe metadata or promotion-code policy for a TEST payment link.',
+  {name:'paylink_update',desc:'Update the safe metadata or promotion-code policy for a payment link.',
     props:{linkId:id('plink'),metadata,allowPromotionCodes:{type:'boolean'},...common},
     required:['linkId']},
-  {name:'paylink_deactivate',desc:'Deactivate a reusable TEST payment link after preview.',
+  {name:'paylink_deactivate',desc:'Deactivate a reusable payment link after preview.',
     props:{linkId:id('plink'),...common},required:['linkId']},
-  {name:'paylink_activate',desc:'Reactivate a reusable TEST payment link after preview.',
+  {name:'paylink_activate',desc:'Reactivate a reusable payment link after preview.',
     props:{linkId:id('plink'),...common},required:['linkId']},
-  {name:'portal_create_session',desc:'Create a short-lived hosted TEST customer-portal link.',
+  {name:'portal_create_session',desc:'Create a short-lived hosted customer-portal link.',
     props:{customerId:id('cus'),configId:id('bpc'),...common},required:['customerId']},
-  {name:'portal_update_configuration',desc:'Set verified TEST portal policies including cancellation permissions.',
+  {name:'portal_update_configuration',desc:'Set verified portal policies including cancellation permissions.',
     props:{configId:id('bpc'),paymentMethodUpdate:{type:'boolean'},
       invoiceHistory:{type:'boolean'},subscriptionCancel:{type:'boolean'},
       subscriptionUpdate:{type:'boolean'},...common},
@@ -98,13 +100,18 @@ const safePrice=(price,{oneTime=false}={})=>{
     price.unit_amount<=0)return false;
   return true;
 };
-async function beforeFor(def,a,s){
+// Every provider object a write is evaluated against must carry the
+// connection's own mode (owner-obedience V2): a present livemode that
+// disagrees with the connection refuses the read; the read-back in
+// verify applies the same equality to the object the write produced.
+async function beforeFor(def,a,s,mode){
+  const sized=v=>assertAccountResourceMode(v,mode);
   switch(def.name){
     case 'checkout_create_payment_link_for_customer':{
-      const customer=await s.customers.retrieve(a.customerId);
+      const customer=sized(await s.customers.retrieve(a.customerId));
       if(customer.deleted)throw new TypeError('Customer unavailable');
       if(a.priceId){
-        const price=await s.prices.retrieve(a.priceId);
+        const price=sized(await s.prices.retrieve(a.priceId));
         if(!safePrice(price,{oneTime:true}))
           throw new TypeError('One-time Checkout requires an active nonrecurring USD price');
         return {...customer,_price:price};
@@ -113,25 +120,25 @@ async function beforeFor(def,a,s){
     }
     case 'checkout_create_setup_link':
     case 'portal_create_session':{
-      const customer=await s.customers.retrieve(a.customerId);
+      const customer=sized(await s.customers.retrieve(a.customerId));
       if(customer.deleted)throw new TypeError('Customer unavailable');
       if(def.name==='portal_create_session'&&a.configId){
-        const cfg=await s.billingPortal.configurations.retrieve(a.configId);
+        const cfg=sized(await s.billingPortal.configurations.retrieve(a.configId));
         if(cfg.active!==true)throw new TypeError('Portal configuration is inactive');
         return {...customer,_config:cfg};
       }
       return customer;
     }
-    case 'checkout_expire':return s.checkout.sessions.retrieve(a.sessionId);
+    case 'checkout_expire':return sized(await s.checkout.sessions.retrieve(a.sessionId));
     case 'paylink_create':{
-      const price=await s.prices.retrieve(a.priceId);
+      const price=sized(await s.prices.retrieve(a.priceId));
       if(!safePrice(price,a))throw new TypeError('Price is inactive, non-USD or app-owned');
       return price;
     }
     case 'paylink_update':
     case 'paylink_deactivate':
-    case 'paylink_activate':return s.paymentLinks.retrieve(a.linkId);
-    case 'portal_update_configuration':return s.billingPortal.configurations.retrieve(a.configId);
+    case 'paylink_activate':return sized(await s.paymentLinks.retrieve(a.linkId));
+    case 'portal_update_configuration':return sized(await s.billingPortal.configurations.retrieve(a.configId));
     default:throw new TypeError('Unknown hosted operation');
   }
 }
@@ -142,19 +149,79 @@ const featureMap={
 async function checkoutPresentation(a,ctx,s){
   if(typeof ctx.db?.getBrandKit!=='function')
     throw new TypeError('Brand kit storage unavailable; Checkout refused');
+  const mode=ctx?.connection?.mode;
   const saved=await ctx.db.getBrandKit({account:ctx.connection.stripeAccount,
-    mode:'test'});
+    mode});
   const branding=checkoutBranding(saved?.settings??{},a.branding??{});
   const selected=branding.logo??branding.icon;
   if(selected){
     const file=await s.files.retrieve(selected.file);
-    if(file?.id!==selected.file||file?.livemode===true||
+    if(file?.id!==selected.file||file?.livemode!==(mode==='live')||
       file?.purpose!==(branding.logo?'business_logo':'business_icon'))
-      throw new TypeError('Checkout brand image no longer belongs to this TEST account');
+      throw new TypeError('Checkout brand image no longer belongs to this account');
   }
   const kit={...saved?.settings,...a.branding};
   const customText=kit.submitMessage?{submit:{message:kit.submitMessage}}:undefined;
   return {branding,customText};
+}
+// Plain-words consequence the preview states in either mode: what
+// the hosted surface will do if confirmed. In LIVE these mint real,
+// publicly payable pages, so the preview says so and names the
+// verified price; the portal configuration preview names the exact
+// customer powers the new policy grants or removes.
+function consequence(def,b,a,mode){
+  const live=mode==='live';
+  switch(def.name){
+    case 'checkout_create_payment_link_for_customer':{
+      const cents=a.priceId?b._price?.unit_amount:a.amountCents;
+      return 'This creates a hosted payment page for this customer at '+
+        'the verified price of '+formatUsd(cents)+'. Anyone who has '+
+        'the page link can open it and pay'+(live?' with a real card':'')+'.';
+    }
+    case 'checkout_create_setup_link':
+      return 'This creates a hosted page where this customer saves a '+
+        'card or US bank account for future payments. No money is '+
+        'charged and no client secret is returned.';
+    case 'checkout_expire':
+      return 'This expires the open Checkout session; its payment '+
+        'page stops accepting payment right away.';
+    case 'paylink_create':
+      return 'This creates a reusable payment link at the verified '+
+        'price of '+formatUsd(b.unit_amount)+'. Anyone who has the '+
+        'link can pay it'+(live?' with a real card':'')+', as often '+
+        'as they like, until the link is deactivated.';
+    case 'paylink_update':
+      return 'This changes only the link metadata or promotion-code '+
+        'policy; no money moves and the link otherwise stays as it is.';
+    case 'paylink_deactivate':
+      return 'This deactivates the payment link; anyone who opens '+
+        'it after that cannot pay until it is reactivated. Payments '+
+        'already made are unaffected.';
+    case 'paylink_activate':
+      return 'This reactivates the payment link; anyone who has '+
+        'it can pay the verified price again.';
+    case 'portal_create_session':
+      return 'This creates a short-lived hosted customer-portal '+
+        'link for this customer. Through it the customer can do '+
+        'whatever the portal configuration allows: update payment '+
+        'methods, view invoices and, if enabled, manage or cancel '+
+        'subscriptions.';
+    case 'portal_update_configuration':{
+      const powers=[];
+      const say=(key,on,off)=>{if(a[key]!==undefined)
+        powers.push(a[key]?on:off);};
+      say('paymentMethodUpdate','customers can update their payment methods',
+        'customers can no longer update their payment methods');
+      say('invoiceHistory','customers can view their invoice history',
+        'customers can no longer view their invoice history');
+      say('subscriptionCancel','customers CAN cancel their own subscriptions',
+        'customers can no longer cancel their own subscriptions');
+      say('subscriptionUpdate','customers can change their own subscription plans',
+        'customers can no longer change their own subscription plans');
+      return 'This sets the customer-portal policy: '+powers.join('; ')+'.';
+    }
+    default:return '';
+  }
 }
 function build(def){
   let created=null;
@@ -170,16 +237,18 @@ function build(def){
       // failure. Fail closed before recording intent or contacting Stripe.
       if(def.name.startsWith('checkout_create_')||def.name==='portal_create_session')
         ownerUrls(ctx);
-      const s=await modeClient(ctx),before=await beforeFor(def,a,s);
+      const s=await modeClient(ctx),before=await beforeFor(def,a,s,ctx?.connection?.mode);
       if(def.name.startsWith('checkout_create_')){
         const visual=await checkoutPresentation(a,ctx,s);
         return {...before,_checkoutBrand:visual};
       }
       return before;
     },
-    summarize:async(b,a)=>'TEST MODE. '+def.name+' for '+b.id+
+    summarize:async(b,a,ctx)=>(ctx?.connection?.mode==='live'?'LIVE MODE. ':'TEST MODE. ')+
+      def.name+' for '+b.id+
       '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','previewFingerprint','outsideApp'].includes(k))
-        .join(', ')+'. No client secrets or LIVE writes.'+
+        .join(', ')+'. '+consequence(def,b,a,ctx?.connection?.mode)+
+      ' Verify Stripe read-back before marking complete.'+
       (def.destructive?' This may invalidate customer-facing links.':'')+
       (def.name==='portal_update_configuration'?' WARNING: cancellation and plan policies may affect subscriptions.':''),
     targetGuard:(a,_ctx,b)=>{
@@ -237,23 +306,26 @@ function build(def){
       }
     },
     readAfter:async(a,ctx)=>{
-      const s=await modeClient(ctx),n=def.name;
+      const s=await modeClient(ctx),n=def.name,mode=ctx?.connection?.mode;
+      const sized=v=>assertAccountResourceMode(v,mode);
       if(n==='checkout_create_payment_link_for_customer'||n==='checkout_create_setup_link')
-        return created?.id?s.checkout.sessions.retrieve(created.id):null;
-      if(n==='paylink_create')return created?.id?s.paymentLinks.retrieve(created.id):null;
+        return created?.id?sized(await s.checkout.sessions.retrieve(created.id)):null;
+      if(n==='paylink_create')return created?.id?sized(await s.paymentLinks.retrieve(created.id)):null;
       if(n==='portal_create_session'){
         // Stripe has no portal-session GET. Independently verify the selected
         // customer-portal config and the provider-returned session's identity.
         const cfg=created?.configuration;
         if(!created||!cfg)return null;
-        const checked=await s.billingPortal.configurations.retrieve(
-          typeof cfg==='string'?cfg:cfg.id);
+        const checked=sized(await s.billingPortal.configurations.retrieve(
+          typeof cfg==='string'?cfg:cfg.id));
         return {...created,_configReadback:checked};
       }
-      return beforeFor(def,a,s);
+      return beforeFor(def,a,s,mode);
     },
-    verify:async(b,after,a)=>{
+    verify:async(b,after,a,ctx)=>{
       if(!after)return false;
+      if(after.livemode!==undefined&&
+        after.livemode!==(ctx?.connection?.mode==='live'))return false;
       switch(def.name){
         case 'checkout_create_payment_link_for_customer':
         case 'checkout_create_setup_link':
@@ -284,7 +356,6 @@ function build(def){
     }
   });
   return {...op,handler:async(a,ctx)=>{
-    if(ctx?.connection?.mode!=='test')return gone('TEST-only hosted operation');
     const response=await op.handler(a,ctx),part=response.content?.[0];
     if(part?.type!=='text')return response;
     let result;try{result=JSON.parse(part.text);}catch{return response;}

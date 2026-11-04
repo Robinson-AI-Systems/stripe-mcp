@@ -3,10 +3,10 @@
 // helpers; LIVE resolution must go through the verified selected-account
 // path only; and the seam alone must not open LIVE execution in the
 // payment/checkout modules, whose own wrapper refusals stay in place
-// until their family conversions. Payments has since converted
-// (OWNER-OBEDIENCE-V2-PAYMENTS): its bare-LIVE refusal now comes from
-// the LIVE-enablement guard instead of its removed wrapper, while
-// checkout's wrapper refusal remains until its own conversion.
+// until their family conversions. Payments and Checkout have since
+// converted (OWNER-OBEDIENCE-V2-PAYMENTS, OWNER-OBEDIENCE-V2-CHECKOUT):
+// both families' bare-LIVE refusals now come from the LIVE-enablement
+// guard instead of their removed wrappers.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { modeClient } from '../../src/tools/account-mode.js';
 import { client } from '../../src/tools/billing-shared.js';
@@ -61,7 +61,7 @@ describe('V2 shared modeClient seam (fake provider only)', () => {
       db: enabledDb, services: { stripeForConnection: async () => stripe } }))
       .rejects.toThrow(/Independently activated LIVE account required/);
   });
-  it('the seam alone does not open LIVE execution: payments refuse via the LIVE-enablement guard (family converted), checkout\'s wrapper refusal remains', async () => {
+  it('the seam alone does not open LIVE execution: payments and checkout both refuse via the LIVE-enablement guard (both families converted)', async () => {
     const payment = makePaymentWrite('setup_cancel');
     const liveCtx = { connection: { stripeAccount: 'acct_FAKE', mode: 'live', profile: 'full' },
       db: createFakeDb(), services: { stripeForConnection: async () => ({}) } };
@@ -69,7 +69,7 @@ describe('V2 shared modeClient seam (fake provider only)', () => {
       .toMatch(/LIVE changes are not enabled/);
     const checkout = makeCheckoutWrite('paylink_deactivate');
     expect(parse(await checkout.handler({ linkId: 'plink_FAKE1234' }, liveCtx)).error)
-      .toMatch(/TEST-only hosted operation/);
+      .toMatch(/LIVE changes are not enabled/);
   });
   it('payment and checkout argument validation accepts previewFingerprint as a control field', async () => {
     const payment = makePaymentWrite('setup_cancel');
