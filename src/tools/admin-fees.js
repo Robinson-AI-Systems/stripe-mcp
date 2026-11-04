@@ -1,14 +1,19 @@
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
-// G-6d: bounded TEST fee ledger observations, not a Stripe pricing statement.
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
+// G-6d: bounded fee ledger observations, not a Stripe pricing statement.
+// CAP-4 D-7: the gate, the account proof and every payload mode follow
+// the connection's own mode, and each balance transaction is verified
+// against that mode with the standard wrong-mode refusal (the former
+// categorical "LIVE balance data is not allowed" refusal is gone).
 import {client,reply,fail,allProfiles} from './billing-shared.js';
-import {requireAdminTestAccount} from './admin-read-safety.js';
+import {requireAdminAccount} from './admin-read-safety.js';
+import {assertAccountResourceMode} from './account-mode.js';
 const bad=m=>{throw new TypeError(m);};
 const txn=x=>typeof x==='string'&&/^txn_[A-Za-z0-9]{2,100}$/.test(x);
 const minor=x=>Number.isSafeInteger(x)&&Math.abs(x)<=1000000000000;
 const currencies=x=>typeof x==='string'&&/^[a-z]{3}$/.test(x);
 const feeTypes=new Set(['stripe_fee','application_fee','payment_method_passthrough_fee','tax']);
 const dashboardUrl='https://dashboard.stripe.com/';
-function validate(a){
+function validate(a,mode){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>!['from','to','pageLimit','maxPages'].includes(k))||
     !Number.isSafeInteger(a.from)||!Number.isSafeInteger(a.to)||
@@ -18,7 +23,8 @@ function validate(a){
       a.pageLimit<1||a.pageLimit>100))||
     (a.maxPages!==undefined&&(!Number.isInteger(a.maxPages)||
       a.maxPages<1||a.maxPages>5)))
-    bad('Choose an explicit period of at most 31 days and up to five bounded TEST pages');
+    bad('Choose an explicit period of at most 31 days and up to five bounded '+
+      (['test','live'].includes(mode)?mode.toUpperCase():'TEST or LIVE')+' pages');
 }
 function add(table,currency,key,amount){
   const map=table[currency]??(table[currency]={});
@@ -26,13 +32,20 @@ function add(table,currency,key,amount){
   if(!Number.isSafeInteger(map[key])||Math.abs(map[key])>1000000000000)
     bad('Period fees exceed safely reportable value');
 }
-function rowSafe(v,from,to){
+function rowSafe(v,from,to,mode){
   if(v?.object!=='balance_transaction'||!txn(v.id)||
     !Number.isSafeInteger(v.created)||v.created<from||v.created>=to||
     !currencies(v.currency)||!minor(v.amount)||!minor(v.fee)||
     !minor(v.net)||v.amount-v.fee!==v.net)
-    bad('Provider balance transaction was invalid or outside the requested TEST period');
-  if(v.livemode===true)bad('LIVE balance data is not allowed');
+    bad('Provider balance transaction was invalid or outside the requested '+
+      mode.toUpperCase()+' period');
+  // Default (optional-mode) semantics, fitted to the baseline evidence:
+  // the baseline accepted a TEST row with livemode false OR absent and
+  // refused only livemode===true, so a present livemode must equal the
+  // connection mode and an absent one still passes — the baseline TEST
+  // read set is unchanged, and a wrong-mode row now refuses with the
+  // standard mode-mismatch refusal in either direction.
+  assertAccountResourceMode(v,mode);
   const details=v.fee_details;
   if(details!=null&&(!Array.isArray(details)||details.length>30))
     bad('Stripe fee breakdown not safely readable');
@@ -55,16 +68,16 @@ function rowSafe(v,from,to){
       /^[a-z_]{2,50}$/.test(v.reporting_category)?v.reporting_category:null,
     breakdown};
 }
-function unreadable(account){
-  return {account,mode:'test',available:false,complete:false,
+function unreadable(account,mode){
+  return {account,mode,available:false,complete:false,
     sampleTotals:null,byFeeType:null,transactionsScanned:0,
     statementsVerified:false,dashboardUrl,
-    note:'The selected TEST account did not permit this fee ledger read. No zero-fee or complete-statement claim is possible.'};
+    note:'The selected '+mode.toUpperCase()+' account did not permit this fee ledger read. No zero-fee or complete-statement claim is possible.'};
 }
 export const tools=[{
   name:'admin_fees_and_billing',area:'admin',writes:false,profiles:allProfiles,
   annotations:{readOnlyHint:true},
-  description:'Summarize bounded TEST ledger fees by currency/type with honest partial results; Stripe statements need owner verification.',
+  description:'Summarize bounded TEST or LIVE fees by currency/type, honest partial results; statements need owner verification.',
   inputSchema:{type:'object',properties:{
     from:{type:'integer',minimum:946684800,maximum:4102444800},
     to:{type:'integer',minimum:946684800,maximum:4102444800},
@@ -75,14 +88,21 @@ export const tools=[{
 export const handlers={
   async admin_fees_and_billing(a,ctx){
     try{
-      validate(a);
-      const account=requireAdminTestAccount(ctx);
-      const s=await client(ctx);
-      try{await readVerifiedTestAccount(s,account);}
-      catch(e){
+      validate(a,ctx?.connection?.mode);
+      const {account,mode}=requireAdminAccount(ctx);
+      // On the LIVE path the shared client itself performs the verified
+      // account read, so client acquisition and the explicit verified
+      // read share one try: a provider 403/404 from either is the same
+      // unreadable evidence. The TEST client never throws those, so
+      // TEST behavior is unchanged.
+      let s;
+      try{
+        s=await client(ctx);
+        await (mode==='live'?readVerifiedLiveAccount:readVerifiedTestAccount)(s,account);
+      }catch(e){
         if([403,404].includes(e?.statusCode??e?.status)||
           ['permission_denied','resource_missing'].includes(e?.code))
-          return reply(unreadable(account));
+          return reply(unreadable(account,mode));
         throw e;
       }
       const sampleTotals={},byFeeType={},byCategory={},seen=new Set();
@@ -96,7 +116,7 @@ export const handlers={
         catch(e){
           if([403,404].includes(e?.statusCode??e?.status)||
             ['permission_denied','resource_missing'].includes(e?.code)){
-            if(pages===0)return reply(unreadable(account));
+            if(pages===0)return reply(unreadable(account,mode));
             break; // The partial sample remains explicitly incomplete.
           }
           throw e;
@@ -106,7 +126,7 @@ export const handlers={
           (page.has_more&&page.data.length===0))
           bad('Stripe fee ledger pagination is incomplete or invalid');
         for(const raw of page.data){
-          const row=rowSafe(raw,a.from,a.to);
+          const row=rowSafe(raw,a.from,a.to,mode);
           if(seen.has(row.id))bad('Duplicate provider transaction across fee pages');
           seen.add(row.id);
           add(sampleTotals,row.currency,'feeMinor',row.fee);
@@ -142,7 +162,7 @@ export const handlers={
           detailFees!==totals.feeMinor)
           bad('Stripe fee report summaries did not reconcile');
       }
-      return reply({account,mode:'test',available:true,period:{from:a.from,to:a.to},
+      return reply({account,mode,available:true,period:{from:a.from,to:a.to},
         complete,transactionsScanned:seen.size,pagesScanned:pages,
         sampleTotals:Object.entries(sampleTotals).sort().map(([currency,v])=>
           ({currency,grossMinor:v.grossMinor,feeMinor:v.feeMinor,
@@ -160,7 +180,7 @@ export const handlers={
         dashboardUrl,billingFeesStatus:'not_readable',taxFeesStatus:'not_readable',
         radarFeesStatus:'not_readable',
         ownerSteps:['Open the selected Stripe Dashboard Reporting and Billing pages.',
-          'Compare this observed TEST ledger sample with official Stripe statements and invoices.',
+          'Compare this observed '+mode.toUpperCase()+' ledger sample with official Stripe statements and invoices.',
           'Confirm Billing, Tax and Radar charges separately; they are not independently verified here.'],
         note:complete?'Complete filtered ledger enumeration; official Stripe invoices and subscription pricing are not verified.':
           'PARTIAL ledger sample only; amounts must not be represented as complete period charges.'});

@@ -1142,6 +1142,43 @@ file-link write, report-run creation write and the money
 wiring are untouched. Live proof for these reads stands in the
 CAP-5 queue.
 
+**CAP-4 progress — D-7 account and admin reads (2026-11-04):**
+the seventh family, **D-7 (account and admin reads)**, is
+source-implemented (CAP4-D7-ACCOUNT-ADMIN-READS) with one leg
+flagged. `account_get` and `account_list_capabilities` follow
+the connection mode: the account record is proven by the
+mode-matched verified reader and its `livemode` strictly
+equals the connection mode (the baseline always required an
+explicit `livemode===false`, so the TEST read set is
+unchanged). The shared admin gate is mode-aware — a connected
+account in the connection's own mode, verified — so
+`stripe_admin_overview`, `admin_list_requirements`,
+`admin_fees_and_billing` and `admin_review_security` derive
+every section from the selected connection and report its
+actual mode in every payload `mode` field; the census's
+admin names are drift (business health, the attention queue
+and todos are overview sections and derivations, not tools).
+The fees projection's categorical 'LIVE balance data is not
+allowed' refusal is replaced by the standard wrong-mode
+refusal under default semantics (the baseline accepted a
+TEST row with `livemode` false or absent). Every mode-naming
+refusal or note substitutes the connection's mode word, so
+TEST outputs are byte-identical. The guided settings tools
+share the admin gate: under the coordinator's ruling their
+gate follows, the guided list payload reports the connection
+mode, and D-12 still owns that family's full conversion.
+**Flagged:** `stripe_check_key_permissions` remains TEST-only
+— persisting a LIVE probe result requires a `src/db.js`
+decision (`updateKeyPermissions` matches only `test_key_enc`
+and writes the single shared `key_permissions` columns), so
+the leg is stopped for a coordinator ruling rather than
+improvised; baseline pins prove a LIVE connection refuses and
+the probe is never invoked (no cross-mode fallback), and the
+security review's probe re-validation is already mode-aware.
+Live proof for these reads stands in the CAP-5 queue,
+including the LIVE admin-surface rows; the probe's LIVE row
+also waits on the flagged conversion.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

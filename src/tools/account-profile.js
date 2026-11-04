@@ -1,5 +1,10 @@
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
-// G-5a: verified selected TEST Stripe account status, never private owner/PII data.
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
+// G-5a: verified selected Stripe account status, never private owner/PII data.
+// CAP-4 D-7: the read follows the connection mode — the account record
+// is proven by the mode-matched verified reader and its livemode must
+// equal the connection mode (strict semantics: the baseline projection
+// always required an explicit livemode===false, so the TEST read set
+// is unchanged).
 import {guarded,fail,allProfiles} from './billing-shared.js';
 import {denverLocalTime} from './util.js';
 const bad=message=>{throw new TypeError(message);};
@@ -10,9 +15,16 @@ const fields=['id','country','defaultCurrency','chargesEnabled','payoutsEnabled'
 const selectedSchema={type:'array',maxItems:fields.length,uniqueItems:true,
   items:{type:'string',enum:fields}};
 const safeId=x=>accountId(x);
-// Only an explicit Stripe account livemode:false verifies the selected TEST context.
+// Only an explicit Stripe account livemode matching the connection
+// mode verifies the selected context (strict: livemode must be the
+// boolean for the mode, never absent). The TEST specialization keeps
+// its historical name and contract for existing callers.
+export const verifiedAccountRecord=(value,expected,mode)=>
+  ['test','live'].includes(mode)&&safeId(expected)&&
+  value?.object==='account'&&value.id===expected&&
+  value.livemode===(mode==='live');
 export const verifiedTestAccountRecord=(value,expected)=>
-  safeId(expected)&&value?.object==='account'&&value.id===expected&&value.livemode===false;
+  verifiedAccountRecord(value,expected,'test');
 function safeListCount(x){
   if(x===undefined||x===null)return null;
   if(!Array.isArray(x)||x.length>1000)return bad('Account verification requirements unreadable');
@@ -24,11 +36,11 @@ function deadline(x){
     bad('Account deadline unavailable');
   return denverLocalTime(x);
 }
-export function accountSafe(v,expected,{detail='summary',select}={}){
-  if(!verifiedTestAccountRecord(v,expected)||
+export function accountSafe(v,expected,{detail='summary',select,mode='test'}={}){
+  if(!verifiedAccountRecord(v,expected,mode)||
     typeof v.charges_enabled!=='boolean'||typeof v.payouts_enabled!=='boolean'||
     typeof v.details_submitted!=='boolean')
-    bad('Selected TEST Stripe account status unavailable');
+    bad('Selected '+mode.toUpperCase()+' Stripe account status unavailable');
   if(v.country!==undefined&&(typeof v.country!=='string'||!/^[A-Z]{2}$/.test(v.country)))
     bad('Account country invalid');
   if(v.default_currency!==undefined&&
@@ -68,25 +80,31 @@ function restricted(e){
 export const tools=[{
   name:'account_get',area:'account',writes:false,profiles:allProfiles,
   annotations:{readOnlyHint:true},
-  description:'Read verified TEST account payment status and requirement counts; never expose owner PII or bank details.',
+  description:'Read verified TEST or LIVE account status and requirement counts; no PII or bank details.',
   inputSchema:{type:'object',properties:{
     fields:selectedSchema,detail:{type:'string',enum:['summary','full']}
   },additionalProperties:false}
 }];
 export const handlers={
   account_get:async(a,ctx)=>{
-    if(ctx?.connection?.mode!=='test'||!safeId(ctx.connection.stripeAccount))
-      return fail('Select an authorized TEST Stripe account first');
+    const mode=ctx?.connection?.mode;
+    if(!['test','live'].includes(mode)||!safeId(ctx.connection.stripeAccount))
+      return fail('Select an authorized '+
+        (['test','live'].includes(mode)?mode.toUpperCase():'TEST or LIVE')+
+        ' Stripe account first');
     return guarded(ctx,async s=>{
       validate(a);
       let record;
-      try{record=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);}
+      try{record=await (mode==='live'?readVerifiedLiveAccount:readVerifiedTestAccount)(
+        s,ctx.connection.stripeAccount);}
       catch(e){
         if(!restricted(e))throw e;
         return {id:ctx.connection.stripeAccount,available:false,verification:'not_readable',
-          note:'Stripe did not permit this account read. Check TEST key permissions and account details in your Stripe Dashboard.'};
+          note:'Stripe did not permit this account read. Check '+mode.toUpperCase()+
+            ' key permissions and account details in your Stripe Dashboard.'};
       }
-      return accountSafe(record,ctx.connection.stripeAccount,{detail:a.detail,select:a.fields});
+      return accountSafe(record,ctx.connection.stripeAccount,
+        {detail:a.detail,select:a.fields,mode});
     });
   }
 };

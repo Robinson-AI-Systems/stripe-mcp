@@ -1,13 +1,23 @@
 import {describe,it,expect,vi} from 'vitest';
-import {requireAdminTestAccount,validateAdminArgs,parseAdminReply,readAdminTool,verifiedAdminIdentity}
+import {requireAdminAccount,validateAdminArgs,parseAdminReply,readAdminTool,verifiedAdminIdentity}
   from '../../src/tools/admin-read-safety.js';
 const ctx={connection:{mode:'test',stripeAccount:'acct_EFFTEST'}};
-describe('shared TEST administrative read safety',()=>{
-  it('rejects LIVE and invalid selected identities',()=>{
-    expect(requireAdminTestAccount(ctx)).toBe('acct_EFFTEST');
-    for(const c of [null,{}, {connection:{mode:'live',stripeAccount:'acct_EFFTEST'}},
+describe('shared administrative read safety',()=>{
+  it('accepts the connection mode and rejects invalid selected identities',()=>{
+    // CAP-4 D-7: the shared admin gate is mode-aware — a connected
+    // account in the connection's own mode (TEST or LIVE) qualifies.
+    expect(requireAdminAccount(ctx)).toEqual({account:'acct_EFFTEST',mode:'test'});
+    expect(requireAdminAccount({connection:{mode:'live',stripeAccount:'acct_EFFTEST'}}))
+      .toEqual({account:'acct_EFFTEST',mode:'live'});
+    for(const c of [null,{}, {connection:{mode:'other',stripeAccount:'acct_EFFTEST'}},
       {connection:{mode:'test',stripeAccount:'acct_bad-hyphen'}}])
-      expect(()=>requireAdminTestAccount(c)).toThrow(TypeError);
+      expect(()=>requireAdminAccount(c)).toThrow(TypeError);
+    // The refusal names the connection's own mode; TEST is byte-identical
+    // to the historical text.
+    expect(()=>requireAdminAccount({connection:{mode:'test',stripeAccount:'bad'}}))
+      .toThrow('Select a connected TEST Stripe account');
+    expect(()=>requireAdminAccount({connection:{mode:'live',stripeAccount:'bad'}}))
+      .toThrow('Select a connected LIVE Stripe account');
   });
   it('validates argument objects and unknown keys',()=>{
     expect(()=>validateAdminArgs({})).not.toThrow();
