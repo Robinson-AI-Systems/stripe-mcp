@@ -246,13 +246,13 @@ with raw payment method IDs and returned `client_secret` (replaced by
 | --- | --- | --- | --- | --- |
 | `checkout_create_payment_link_for_customer` | A one-time hosted Checkout page for a customer and amount/prices, in the saved brand kit; returns the URL | P | built #39 | E |
 | `checkout_create_setup_link` | Hosted page where a customer saves a card or bank account (replaces `stripe_onboard_customer`'s secret) | P | built #39 | E |
-| `checkout_list` / `checkout_get` / `checkout_list_line_items` | Checkout sessions | — | built #39 | R |
+| `checkout_list` / `checkout_get` / `checkout_list_line_items` | Checkout sessions in the connection's mode | — | built #39 | R |
 | `checkout_expire` | Kill an open Checkout link | C | built #39 | E |
-| `paylink_list` / `paylink_get` | Reusable payment links | — | built #39 | R |
+| `paylink_list` / `paylink_get` | Reusable payment links in the connection's mode | — | built #39 | R |
 | `paylink_create` / `paylink_update` | Create or change a reusable payment link | P | built #39 | E |
 | `paylink_deactivate` / `paylink_activate` | Turn a link off or back on | P | built #39 | E |
 | `portal_create_session` | Customer portal link for one customer | P | built #39 | E |
-| `portal_list_configurations` / `portal_get_configuration` | What the portal lets customers do | — | built #39 | R |
+| `portal_list_configurations` / `portal_get_configuration` | What the portal lets customers do, in the connection's mode | — | built #39 | R |
 | `portal_update_configuration` | Change what the portal allows (cancel, switch plan, update payment method) | C | built #39 | F |
 
 ## Subscriptions (`billing_*`) — 21
