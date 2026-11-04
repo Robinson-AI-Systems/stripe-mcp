@@ -41,7 +41,10 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
 // and the brand-asset file link complete the full confirmed-action
 // sequence in LIVE; the import's public-source, type and size bounds
 // and the link's brand-asset scope guard stay exactly as built.
-const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices','files']);
+// 'reports' joined under owner-obedience V2 family 10 (Reports): the
+// single report-run write completes the full confirmed-action sequence
+// in LIVE; the report reads stay TEST-only under CAP-4.
+const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices','files','reports']);
 // Exact original customer lifecycle names whose LIVE provider-mode, app
 // ownership and independent readback guards have been reviewed. Monetary
 // balance credits/debits are NOT covered by this nonmoney authorization.
