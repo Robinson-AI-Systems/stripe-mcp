@@ -23,7 +23,11 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
   // credit notes): the area was in NEITHER set, so all 14 tools were
   // unreachable through every guarded door in both modes; the family's
   // own card wires the dead family up in TEST as well as LIVE.
-  'invoices']);
+  // 'files' joined under owner-obedience V2 family 9 (Files): the
+  // area was in NEITHER set, so both file writes were unreachable
+  // through every guarded door in both modes; the family's own card
+  // wires the dead family up in TEST as well as LIVE.
+  'invoices','files']);
 // Do not silently mark newly surfaced TEST-only operations as LIVE-ready.
 // 'money' joined under owner-obedience V2 family 1 (Money): the payout
 // operations and the payout schedule complete the full confirmed-action
@@ -33,7 +37,11 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
 // and credit-note operations complete the full confirmed-action sequence
 // in LIVE; the money operations keep rows 20-21 exactly (exact owner
 // approval, shared daily cap with its second override).
-const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices']);
+// 'files' joined under owner-obedience V2 family 9: the evidence import
+// and the brand-asset file link complete the full confirmed-action
+// sequence in LIVE; the import's public-source, type and size bounds
+// and the link's brand-asset scope guard stay exactly as built.
+const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices','files']);
 // Exact original customer lifecycle names whose LIVE provider-mode, app
 // ownership and independent readback guards have been reviewed. Monetary
 // balance credits/debits are NOT covered by this nonmoney authorization.

@@ -4,13 +4,23 @@ export const fileId=v=>typeof v==='string'&&/^file_[A-Za-z0-9]{2,100}$/.test(v);
 export const safePurpose=['dispute_evidence','finance_report_run','business_logo','business_icon'];
 export const publicPurpose=['business_logo','business_icon'];
 const invalid=msg=>{throw new TypeError(msg);};
-export function fileSafe(v,expectId=null) {
+export function fileSafe(v,expectId=null,mode=null) {
+  // When the caller supplies the connection mode (the file-link write
+  // preflight, owner-obedience V2 family 9), a file verifies only in
+  // its own mode: a present livemode must equal that mode. Callers
+  // that supply no mode (the read tools above) keep the historical
+  // check exactly (any livemode===true file is unverified) and the
+  // historical refusal wording.
+  const modeMismatch=['test','live'].includes(mode)
+    ? (typeof v?.livemode==='boolean'&&v.livemode!==(mode==='live'))
+    : v?.livemode===true;
   if(v?.object!=='file'||!fileId(v.id)||
-     (expectId&&v.id!==expectId)||v.livemode===true||
+     (expectId&&v.id!==expectId)||modeMismatch||
      !safePurpose.includes(v.purpose)||
      !Number.isSafeInteger(v.created)||v.created<946684800||v.created>4102444800||
      !Number.isSafeInteger(v.size)||v.size<0||v.size>1000000000)
-    invalid('Verified TEST file metadata or permitted purpose unavailable');
+    invalid('Verified '+(mode==='live'?'LIVE':'TEST')+
+      ' file metadata or permitted purpose unavailable');
   const filename=typeof v.filename==='string'&&v.filename.length<=255&&
     !/[\r\n\0]/.test(v.filename)?v.filename:null;
   const type=typeof v.type==='string'&&/^[a-zA-Z0-9/_.+-]{1,64}$/.test(v.type)?
