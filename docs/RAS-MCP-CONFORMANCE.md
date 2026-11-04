@@ -83,7 +83,7 @@ from the evidence label in its heading:
 | 12. No global credential fallback | conforms (plan level) |
 | 13. Version evolution | conforms (plan level) |
 | 14. Pattern appraisal guardrails | not applicable (remote coding runtime; recorded) |
-| 15. Capability completeness | correctable (census elements 2–4; front-door census line) |
+| 15. Capability completeness | correctable — PARTIAL under the 2026-11-04 grading amendment; re-census filed (element 1 dispositioned: 341 covered / 2 composed / 61 missing / 3 missing-in-LIVE / 8 unverified of 415 operations; elements 2–4 and the front-door census line still owed) |
 | 16. Conformance-correction process | correctable (process running; closes when all rows conform or carry a ruled exception) |
 | 17. Owner-obedience | correctable (four conversions designed; four unclassified items recorded) |
 
@@ -600,6 +600,83 @@ the census first, as a finding), and at each major revision.
 CAP-4's just-in-time card. **Closing proof:** the addendum in this
 repository, plus the census-citing depth line read live at the branded
 origin. Process status: **correctable**.
+
+**Re-census under the capability-completeness grading amendment —
+REOPENED and re-issued, 2026-11-04.** The Standard's
+capability-completeness grading amendment (Library D-001, landed
+2026-11-04 by Library PR #5) reopened this row, and the fleet
+re-census re-ran element (1) two-source under the Critic Step 0
+pattern: a service-first map built only from Stripe's official API
+reference (104 object rows, 415 operations, 13 principal workflows;
+sha256
+`e55b6399b355190233f8c3ea72246cd296645ef23f452f765694b15a352dc81b`),
+and a server inventory built only from this repository's code at
+main `2688228f` (329 registered tools, counted by executing the
+registry; sha256
+`e2f7d58c6415bef630bc06e3f5aaf30077a20543138aff9d586368747a60a93b`),
+reconciled by a separate pass that spot-checked six map rows
+against the reference where they decided dispositions. The full
+reconciliation record is held with the fleet audit's re-census
+files (2026-11-04); its counts stand beside the grade here, as
+the amendment requires:
+
+| Disposition | Operations |
+|---|---|
+| COVERED — native tool | 200 |
+| COVERED — universal door (`api_read` / `api_write`) | 141 |
+| COMPOSED | 2 |
+| OWNER-EXCLUDED | 0 (no recorded ruling excludes a mapped operation) |
+| MISSING | 61 |
+| MISSING in LIVE (covered in TEST only; counts as missing) | 3 |
+| UNVERIFIED | 8 |
+| **Total mapped** | **415** |
+
+**Re-issued grade: correctable — PARTIAL under the amendment,
+capped.** Element (1) (the provider's full reachable surface,
+every item dispositioned) is discharged by the reconciliation.
+The grade cannot read *conforms* while 61 MISSING and 3
+MISSING-in-LIVE operations stand, and missing-with-plan counts as
+missing until the work lands. Elements (2)–(4) stand as written
+above, narrowed on the record: the beside-API surfaces the map
+found (Apps secrets, Financial Connections, Identity) carry
+dispositions in the reconciliation; the server-side substrate —
+this server's own registration records — is dispositioned there
+in its own section; the 13 principal workflows now carry
+through-server step counts with two COMPOSITION-OWED flags
+(manual invoicing, W8; metered-billing setup, W12); and the live
+consumer test remains CAP-5's, as the completion schedule
+states.
+
+**The headline absence is on this server's own records, not
+Stripe's: enrollment has no exit.** No operation removes an
+enrolled Stripe account or an enrolled key, and no operation
+edits or deletes a registered OAuth client — the same
+create-without-delete class the fleet re-census found first in
+Workspace Unleashed by Robinson AI Systems and in Neon
+Unleashed by Robinson AI Systems. Two build cards are filed
+with this change:
+[CAP4-RECENSUS-1-ACCOUNT-DEENROLL](pr-cards/CAP4-RECENSUS-1-ACCOUNT-DEENROLL.md)
+and
+[CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE](pr-cards/CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE.md).
+Every other MISSING item stands in the reconciliation's
+missing-with-plan register: the Connect lifecycle writes (14
+operations) already ride CAP-4 Phase 2 in the completion
+schedule; the rest carry cards TO-BE-FILED by this crew in its
+own sequence.
+
+Row 17 is not reopened by this re-census: its four convertible
+vetoes are owner-ruled conversion work, not completeness
+absences. Where the same facts appear in the reconciliation as
+MISSING-in-LIVE postures, they are counted as absences there
+until the conversions land — the amendment's counting rule, not
+a second verdict on row 17.
+
+**Next step:** unchanged for elements (2)–(4) (census addendum
+with CAP-4's final card; consumer test under CAP-5), plus the
+two RECENSUS cards above in the CAP-4 sequence. **Closing
+proof:** unchanged, plus the reconciliation's missing-with-plan
+register emptied or carrying ruled exceptions. Process status:
+**correctable (PARTIAL under the 2026-11-04 grading amendment)**.
 
 ### 16. Conformance-correction process — bringing a pre-Standard server under the Standard — CORRECTABLE (process running)
 
