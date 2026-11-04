@@ -375,8 +375,8 @@ removing a payout bank account is done in the dashboard, which
 | `dispute_save_evidence` | Confirmed draft evidence with submit:false and exact read-back in the connection's mode (TEST, or LIVE on the owner's full connection); never submitted to bank | P | built #93 | E |
 | `dispute_submit_evidence` | Irreversible confirmed evidence submission in the connection's mode (TEST, or LIVE on the owner's full connection), safe full-field preview | C | built #95 | E |
 | `dispute_accept` | Irreversible ordinary dispute loss in the connection's mode (TEST, or LIVE on the owner's full connection); exact owner-approved money out and $500/day cap | $ | built #96 | E |
-| `file_upload_evidence` | Confirmed TEST upload of public PDF/PNG/JPEG or shared Drive file (10 MiB, SSRF defense); never submits dispute | P | built #92 | E |
-| `file_list` / `file_get` / `file_create_link` | Safe TEST file metadata and confirmed time-limited public BRAND links only; never link private evidence | — / — / P | built #91 | R reads; F link |
+| `file_upload_evidence` | Confirmed upload of public PDF/PNG/JPEG or shared Drive file (10 MiB, SSRF defense) in the connection's mode; never submits dispute | P | built #92 | E |
+| `file_list` / `file_get` / `file_create_link` | Safe TEST file metadata reads and confirmed time-limited public BRAND links in the connection's mode; never link private evidence | — / — / P | built #91 | R reads; F link |
 
 ## Risk and identity (`radar_*`, `identity_*`) — 16
 

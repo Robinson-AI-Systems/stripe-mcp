@@ -1,13 +1,18 @@
 // G-2b1: create time-limited public links for brand logos/icons only.
 // Dispute, financial and identity files MUST NOT become shared links.
-import {defineWrite,gone} from './write.js';
+import {defineWrite} from './write.js';
 import {client,fullProfiles,validateFields} from './billing-shared.js';
 import {fileId,fileSafe,publicPurpose} from './file-reads.js';
 const props={fileId:{type:'string',pattern:'^file_[A-Za-z0-9]{2,100}$'},
   expiresAt:{type:'integer',minimum:946684800,maximum:4102444800},
   outsideApp:{type:'boolean'}};
+// previewFingerprint is a core write-lifecycle control field
+// (owner-obedience V2 shared machinery), not a family argument: the
+// family validator would reject it, so it is stripped before
+// validation and declared in the tool schema instead.
+const fields=a=>{const {previewFingerprint:_control,...rest}=a??{};return rest;};
 function validate(a) {
-  validateFields(a,props,['fileId','expiresAt']);
+  validateFields(fields(a),props,['fileId','expiresAt']);
   if(!fileId(a.fileId))throw new TypeError('Valid file ID required');
   const now=Math.floor(Date.now()/1000);
   if(!Number.isSafeInteger(a.expiresAt)||a.expiresAt<=now+60||
@@ -21,25 +26,31 @@ export function makeFileLinkWrite(){
     read:async(a,ctx)=>{
       validate(a);
       const s=await client(ctx),f=await s.files.retrieve(a.fileId);
-      const safe=fileSafe(f,a.fileId);
+      const safe=fileSafe(f,a.fileId,ctx?.connection?.mode);
       if(!publicPurpose.includes(safe.purpose))
         throw new TypeError('Only public brand assets can receive a shareable link');
       return f;
     },
-    summarize:(before,a)=>'TEST MODE: create a public, expiring URL for '+before.purpose+
+    summarize:(before,a,ctx)=>(ctx?.connection?.mode==='live'?'LIVE MODE':'TEST MODE')+
+      ': create a public, expiring URL for '+before.purpose+
       ' file '+before.id+' (expires '+new Date(a.expiresAt*1000).toISOString()+
-      '). Never use file links for dispute, report or identity documents.',
+      '). Anyone with the URL can fetch the file until it expires.'+
+      ' Never use file links for dispute, report or identity documents.',
     apply:async(a,ctx,{idempotencyKey})=>{
       const result=await (await client(ctx)).fileLinks.create({
         file:a.fileId,expires_at:a.expiresAt},{idempotencyKey});
-      if(result?.object!=='file_link'||!/^link_[A-Za-z0-9]{2,100}$/.test(result.id))
+      if(result?.object!=='file_link'||!/^link_[A-Za-z0-9]{2,100}$/.test(result.id)||
+        (typeof result.livemode==='boolean'&&
+         result.livemode!==(ctx?.connection?.mode==='live')))
         throw new TypeError('Created file link identity unverified');
       newId=result.id;
     },
     readAfter:async(_a,ctx)=>{
       return newId?(await client(ctx)).fileLinks.retrieve(newId):null;
     },
-    verify:(before,after,a)=>after?.object==='file_link'&&after.id===newId&&
+    verify:(before,after,a,ctx)=>after?.object==='file_link'&&after.id===newId&&
+      (typeof after.livemode!=='boolean'||
+       after.livemode===(ctx?.connection?.mode==='live'))&&
       (typeof after.file==='string'?after.file:after.file?.id)===before.id&&
       after.expires_at===a.expiresAt&&after.expired===false&&
       typeof after.url==='string'&&
@@ -66,9 +77,9 @@ export function makeFileLinkWrite(){
 }
 export const tools=[{...makeFileLinkWrite().tool,
   area:'files',profiles:fullProfiles,
-  description:'Create a confirmed, short-lived public link to a TEST brand logo/icon only.',
+  description:'Create a confirmed, short-lived public link to a brand logo/icon file only.',
   inputSchema:{type:'object',properties:{...props,dryRun:{type:'boolean'},
-    confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+    confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128},
+    previewFingerprint:{type:'string',maxLength:64}},
     required:['fileId','expiresAt'],additionalProperties:false}}];
-export const handlers={file_create_link:(a,ctx)=>ctx?.connection?.mode!=='test'?
-  gone('Public file link creation requires TEST mode'):makeFileLinkWrite().handler(a,ctx)};
+export const handlers={file_create_link:(a,ctx)=>makeFileLinkWrite().handler(a,ctx)};

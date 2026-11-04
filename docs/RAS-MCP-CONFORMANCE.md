@@ -832,8 +832,31 @@ V3, then V4.
   field set is not widened: no `client_secret`, verified
   outputs, report IDs, document links or full metadata
   surface in either mode. No money wiring is touched.
-  Remaining families:
-  Files; Reports; Branding (its admission
+  Family 9 of 13, **Files**, is source-implemented 2026-11-04
+  (OWNER-OBEDIENCE-V2-FILES): this family was refused at the
+  dispatcher in BOTH modes (the `files` area was in neither
+  guarded set), so the area is admitted in TEST and LIVE and
+  both operations (evidence import, brand-asset file link)
+  complete the full confirmed-action sequence in the
+  connection's own mode in tests; three further mode gates
+  the census had not enumerated — the evidence import's
+  account read and read-back verification, and the shared
+  `fileSafe` projection the link preflight uses — are
+  mode-parameterized, with the read tools calling the
+  projection without a mode and staying TEST-only and
+  byte-identical; the import's public-source, type and size
+  bounds, the link's brand-asset scope guard, expiry
+  requirement and URL-withholding re-verification are
+  demonstrably unrelaxed; previews are mode-labeled, the
+  link preview states in plain words that anyone with the
+  URL can fetch the file until it expires, and the evidence
+  preview states the import does not attach or submit a
+  dispute (the design card's "names the target dispute"
+  wording is flagged in the card for a coordinator ruling:
+  the tool takes no dispute argument by design). No money
+  wiring is touched: file writes move no money. Remaining
+  families:
+  Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.
 - **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).

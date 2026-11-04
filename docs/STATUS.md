@@ -1,3 +1,71 @@
+## 2026-11-04 — Owner-obedience V2 Files family: source-implemented (source)
+
+Family 9 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-FILES](pr-cards/OWNER-OBEDIENCE-V2-FILES.md)):
+
+- **Dispatcher admission in both modes.** The `files` area
+  was in neither guarded set, so both file writes
+  (`file_upload_evidence`, `file_create_link`) were
+  unreachable through every guarded door in TEST as well as
+  LIVE — the Family 4 both-modes wiring situation. The area
+  is now admitted in both modes, for exactly these two tools
+  and their built profiles (evidence import: everyday/full;
+  file link: full only); `read_only` still refuses both.
+  TEST reachability is itself new for this family.
+- **Handlers converted.** The TEST-only handler gates are
+  gone from both writes. Under a LIVE connection the
+  guarded-write pipeline's existing rules decide: write
+  profile, catalog listing, customer context, a live-enabled
+  and live-connected account, owner-approved LIVE, and a
+  binding preview fingerprint. A bare LIVE connection is
+  refused by the LIVE-enablement guard before anything
+  executes.
+- **Three hidden mode gates converted.** The evidence
+  import's account read refused any live-mode account and
+  its read-back verification hard-required a TEST file; the
+  shared `fileSafe` projection refused any live-mode file,
+  which would have refused every LIVE brand file in the link
+  preflight. All three now demand equality with the
+  connection's own mode, in both directions. The projection
+  takes an optional mode (the Billing discount-projection
+  precedent): the file read tools call it without one, so
+  read behavior is unchanged and the reads stay TEST-only.
+- **Aim checks unrelaxed.** The import's public-source,
+  PDF/PNG/JPEG and 10 MiB bounds stay exactly as built and
+  the import still never attaches or submits a dispute. The
+  link's brand-asset scope guard, mandatory expiry and the
+  post-creation re-read that withholds the URL if
+  verification changes stay byte-for-byte in effect.
+- **Disclosure.** Summaries are mode-labeled. The link
+  preview states in plain words that anyone with the URL
+  can fetch the file until it expires, and shows the exact
+  expiry. The evidence preview states the import does NOT
+  attach or submit a dispute; in LIVE it adds that the file
+  becomes real evidence material on the LIVE account and
+  the dispute flow may later send it to the issuing bank.
+  One design-card wording is flagged in the card for a
+  coordinator ruling: the card asked the preview to "name
+  the target dispute," but the tool takes no dispute
+  argument by design, so the preview names the target
+  storage and account instead. File bytes and download
+  URLs surface nowhere they did not surface in TEST.
+- **No money wiring touched.** `src/tools/write.js`,
+  `src/money.js` and `src/db.js` are byte-untouched.
+- **Proof.** A new 13-test suite
+  (`files-live-conversion`) proves the both-modes admission
+  delta is exactly these two tools (the profiles registry
+  instrument), TEST end-to-end flows with fingerprint
+  binding and drift refusal, and LIVE preview→confirm paths
+  on a fake provider with wrong-mode refusals in both
+  directions; every pre-existing expectation is unchanged;
+  the full unit suite and `npm run check` are green. DB and
+  mock proof are exact-head CI's route on this machine.
+  Live proof — importing real evidence and creating a real
+  brand link under an owner-approved LIVE connection —
+  remains open in the CAP-5 queue; merging is not live
+  acceptance.
+
 ## 2026-11-04 — Owner-obedience V2 Identity family: source-implemented (source)
 
 Family 8 of 13 of conformance row 17's V2 conversion is
