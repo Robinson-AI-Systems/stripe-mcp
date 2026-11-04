@@ -166,11 +166,14 @@ Run these checks in order; do not claim completion from a green GitHub CI check 
 
 ## IN-06 gate: LIVE activation remains disabled
 
-The optional server variable `LIVE_MODE_OWNER_APPROVED` must **not** be set to
-`true` until Chris separately approves using live Stripe accounts (IN-06).
-Its absence denies owner live-activation POSTs. The first step only creates a
-ten-minute pending request; the final step is the protected setup page with
-passphrase, origin check, CSRF, explicit per-account consent and a valid live key.
+LIVE activation stays off until Chris separately approves using live Stripe
+accounts (IN-06), and it is approved per account, never globally. The first
+step only creates a ten-minute pending request; the final step is the
+protected setup page with passphrase, origin check, CSRF, explicit
+per-account consent, a valid enrolled live key, and the confirmation
+fingerprint of the exact evaluated state (owner-obedience V1, 2026-11-03 —
+the former deployment-level `LIVE_MODE_OWNER_APPROVED` flag is removed;
+setting it changes nothing).
 No live key can be uploaded through the current TEST-only setup page. B-8 must
 later wire the first-step tool and live credential onboarding. Do not enter any
 live key, activate this flag or run real money tests without separate approval.
@@ -205,8 +208,10 @@ maximum and does **not** approve any payment or refund.
 To use LIVE, the **account owner** must, in the protected production owner
 page, independently enroll and verify the matching LIVE key and separately
 activate that account using the existing B-8 owner confirmation. Enrollment
-alone leaves LIVE **OFF**. `LIVE_MODE_OWNER_APPROVED` remains an explicit
-owner-managed deployment setting; the coding agent must not set it or
+alone leaves LIVE **OFF**. There is no deployment-level LIVE enablement
+setting (the former `LIVE_MODE_OWNER_APPROVED` flag was removed by the
+owner-obedience V1 conversion, 2026-11-03); activation is the owner's
+per-account fingerprint ceremony only, and the coding agent must not
 activate LIVE without separate owner approval. A LIVE pass requires an
 independently entered owner password, the LIVE checkbox, and a second LIVE
 write checkbox if writes are delegated. A positive LIVE money ceiling

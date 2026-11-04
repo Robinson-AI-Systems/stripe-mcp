@@ -60,4 +60,26 @@ describe('B-2b PostgreSQL atomic two-step LIVE activation (fake key)',()=>{
     expect(await db.consumeLiveEnableIntent({id,allowActivation:true})).toBe(false);
     expect(await db.consumeLiveEnableIntent({id:'invalid',allowActivation:true})).toBe(false);
   });
+  it('owner-obedience V1: consumes only on the expected evaluated credential, and never consumes on a mismatch',async()=>{
+    await rawQuery('UPDATE stripe_accounts SET live_enabled=FALSE, live_key_kind=$1, live_key_last4=$2 WHERE id=$3',
+      ['restricted','FAKE',account]);
+    const fingerprint='LIVE-AAAAA-BBBBB-CCCCC-DDDDD';
+    const id='D'.repeat(32);
+    await intent(id);
+    expect(await db.consumeLiveEnableIntent({id,allowActivation:true,
+      expectedFingerprint:fingerprint,expectedKeyKind:'secret',expectedKeyLast4:'FAKE'})).toBe(false);
+    expect(await db.consumeLiveEnableIntent({id,allowActivation:true,
+      expectedFingerprint:fingerprint,expectedKeyKind:'restricted',expectedKeyLast4:'ZZZZ'})).toBe(false);
+    expect(await db.consumeLiveEnableIntent({id,allowActivation:true,
+      expectedFingerprint:'not-a-fingerprint',expectedKeyKind:'restricted',expectedKeyLast4:'FAKE'})).toBe(false);
+    // A mismatch is a voided confirmation, not a consumed intent.
+    expect((await db.getLiveEnableIntent(id))).not.toBeNull();
+    expect((await db.getStripeAccount(account)).live_enabled).toBe(false);
+    expect(await db.consumeLiveEnableIntent({id,allowActivation:true,
+      expectedFingerprint:fingerprint,expectedKeyKind:'restricted',expectedKeyLast4:'FAKE'})).toBe(true);
+    expect((await db.getStripeAccount(account)).live_enabled).toBe(true);
+    const logs=await rawQuery('SELECT summary FROM change_log WHERE stripe_account = $1 AND tool = $2',
+      [account,'stripe_enable_live']);
+    expect(logs.some(r=>r.summary.includes(fingerprint))).toBe(true);
+  });
 });

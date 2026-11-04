@@ -1,6 +1,14 @@
 # B-2b — two-step owner reauthentication for live activation
 
 Status: **MERGED (#22)**. Internal ten-minute activation intent, independent owner confirmation and atomic audit are implemented and tested. IN-06 remains OFF.
+
+> **Correction note (2026-11-03, OWNER-OBEDIENCE-V1):** the
+> server-side deployment flag this card's flow also required
+> (`LIVE_MODE_OWNER_APPROVED`) has been removed as a convertible veto
+> under conformance row 17. The per-account owner ceremony remains the
+> IN-06 gate and is now bound to a fingerprint of the evaluated state,
+> re-checked atomically at consumption and read back after the write.
+> This card's historical text below is unchanged.
 Dependency: B-1 PR #20 merged; B-2a guarded write engine PR #21 merged.
 Baseline inspected: main `8ac36b8` after #21. Design: `docs/designs/BATCH-B.md` §1 B4, §3 case 6 and §4 B-2.
 Risk area: activation security and owner consent; migration budget: at most one additive intent table.

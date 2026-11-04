@@ -688,6 +688,15 @@ V3, then V4.
   intent), re-check at consumption, journal, read back. IN-06's owner
   approval itself is unchanged — what converts is only the additional
   flag that outranks the owner's completed ceremony.
+  **Source-implemented 2026-11-03 (OWNER-OBEDIENCE-V1):** the flag is
+  removed from both `enable-live` and `add-live-key`; the ceremony is
+  bound to `liveEnableFingerprint` of the evaluated state (account,
+  credential kind and last four, enabled/connected state, environment,
+  intent, expiry); consumption re-checks the expected credential
+  atomically and journals the fingerprint; a read-back is required
+  before success is reported. IN-06 itself is unchanged and no account
+  was enabled. Live proof remains open and closes only at a checked
+  release (CAP-5 queue).
 - **V2 — LIVE write static allowlists and TEST-only handlers**
   (`src/core/profiles.js` and the legacy write handlers). On the
   owner's full, LIVE-consented connection, whole classes of

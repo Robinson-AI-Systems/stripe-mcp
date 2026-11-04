@@ -348,19 +348,56 @@ export function createDb(sql = getProductionSql()) {
     },
     async getLiveEnableIntent(id) {
       if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
-      const rows = await sql`SELECT i.id, i.stripe_account, a.label, i.expires_at
+      const rows = await sql`SELECT i.id, i.stripe_account, a.label, i.expires_at,
+          a.live_enabled, a.live_key_kind, a.live_key_last4,
+          a.live_key_enc IS NOT NULL AS live_connected
         FROM live_enable_intents i JOIN stripe_accounts a ON a.id = i.stripe_account
         WHERE i.id = ${id} AND i.consumed_at IS NULL AND i.expires_at > now()`;
       return rows[0] || null;
     },
-    // Only the origin/CSRF/password-protected owner setup POST may call this.
-    // The caller must also set the explicit owner-controlled IN-06 environment gate.
-    async consumeLiveEnableIntent({ id, allowActivation = false }) {
+    // Only the origin/CSRF/password-protected owner setup POST may call this,
+    // after the owner has confirmed the fingerprint of the evaluated state
+    // (conformance row 17, conversion V1). When the caller supplies the
+    // expected credential identity, the intent is consumed only if the
+    // account still matches it exactly and is still disabled: a changed
+    // fingerprint voids the confirmation instead of activating on stale
+    // facts, and the unconsumed intent lets the owner review the new state.
+    async consumeLiveEnableIntent({ id, allowActivation = false,
+        expectedFingerprint = null, expectedKeyKind = null, expectedKeyLast4 = null }) {
       if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
           allowActivation !== true) return false;
+      const hasExpectation = expectedFingerprint !== null || expectedKeyKind !== null ||
+        expectedKeyLast4 !== null;
+      if (hasExpectation && (typeof expectedFingerprint !== 'string' ||
+          !/^LIVE-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/.test(expectedFingerprint) ||
+          !['restricted', 'secret'].includes(expectedKeyKind) ||
+          typeof expectedKeyLast4 !== 'string' || !/^[A-Za-z0-9]{4}$/.test(expectedKeyLast4)))
+        return false;
+      const summary = hasExpectation
+        ? 'Owner confirmed LIVE activation fingerprint ' + expectedFingerprint +
+          ' for this account (credential ' + expectedKeyKind + ' ending ' + expectedKeyLast4 + ')'
+        : 'Owner independently approved LIVE mode for this account';
       // Intention, live-key check, state flip and audit are one statement. An audit
       // failure rolls back activation instead of creating an unaudited live mode.
-      const rows = await sql`WITH consumed AS (
+      const rows = hasExpectation ? await sql`WITH consumed AS (
+        UPDATE live_enable_intents i SET consumed_at = now()
+          WHERE i.id = ${id} AND i.consumed_at IS NULL AND i.expires_at > now()
+            AND EXISTS (SELECT 1 FROM stripe_accounts a
+              WHERE a.id = i.stripe_account AND a.live_key_enc IS NOT NULL
+                AND a.live_key_kind = ${expectedKeyKind}
+                AND a.live_key_last4 = ${expectedKeyLast4}
+                AND a.live_enabled IS NOT TRUE)
+          RETURNING i.stripe_account
+        ), activated AS (
+        UPDATE stripe_accounts SET live_enabled = TRUE
+          WHERE id = (SELECT stripe_account FROM consumed) AND live_key_enc IS NOT NULL
+            AND live_key_kind = ${expectedKeyKind} AND live_key_last4 = ${expectedKeyLast4}
+            AND live_enabled IS NOT TRUE
+          RETURNING id
+        )
+        INSERT INTO change_log (stripe_account, mode, tool, summary, dry_run)
+          SELECT id, 'live', 'stripe_enable_live', ${summary}, FALSE
+          FROM activated RETURNING id` : await sql`WITH consumed AS (
         UPDATE live_enable_intents SET consumed_at = now()
           WHERE id = ${id} AND consumed_at IS NULL AND expires_at > now()
           RETURNING stripe_account
@@ -370,8 +407,7 @@ export function createDb(sql = getProductionSql()) {
           RETURNING id
         )
         INSERT INTO change_log (stripe_account, mode, tool, summary, dry_run)
-          SELECT id, 'live', 'stripe_enable_live',
-            'Owner independently approved LIVE mode for this account', FALSE
+          SELECT id, 'live', 'stripe_enable_live', ${summary}, FALSE
           FROM activated RETURNING id`;
       return rows.length === 1;
     },

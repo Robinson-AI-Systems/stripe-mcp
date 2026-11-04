@@ -129,7 +129,8 @@ B-8c2 implements two independently password-authenticated TEST-only owner confir
 ## Live enable two-step gate (B-2b, IN-06)
 
 - [ ] Obtain separate, explicit IN-06 approval before using any live Stripe key
-      or setting `LIVE_MODE_OWNER_APPROVED=true`.
+      (per account; there is no deployment-level enablement setting — the
+      former `LIVE_MODE_OWNER_APPROVED` flag was removed 2026-11-03).
 - [ ] Confirm the account has a verified, encrypted LIVE restricted key through
       the future owner-only key entry flow (not provided by current setup).
 - [ ] Request a one-time live-enable intent as a FULL-profile confirmed action;

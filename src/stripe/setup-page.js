@@ -9,6 +9,7 @@ import { randomBytes } from 'node:crypto';
 import {buildSetupReadinessReport} from '../acceptance/setup-readiness-report.js';
 import {OwnerSmokeFailure,ownerSmokeFailureMessage} from '../acceptance/owner-smoke-failure.js';
 import { clientIp, evaluateLogin, secretsMatch, LOCKOUT_WINDOW_MINUTES } from '../core/oauth.js';
+import { liveEnableFingerprint } from '../tools/live-guard.js';
 import { publicOrigin, paramsOf, send, escapeHtml, only } from '../core/http.js';
 
 function parseUsdCents(text) {
@@ -90,10 +91,31 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
     (liveIntent ? '<h2>Approve LIVE account activation</h2>' +
       '<p>Selected account: <strong>' + escapeHtml(liveIntent.label || liveIntent.stripe_account) +
       '</strong> (' + escapeHtml(liveIntent.stripe_account) + '). This will allow REAL Stripe changes if enabled later. Do not proceed unless you intend that.</p>' +
+      '<p>Evaluated facts: LIVE credential ' +
+      (liveIntent.live_key_kind && liveIntent.live_key_last4
+        ? '<strong>' + escapeHtml(liveIntent.live_key_kind) + '</strong> key ending <strong>' +
+          escapeHtml(liveIntent.live_key_last4) + '</strong>'
+        : '<strong>none enrolled</strong>') +
+      '; LIVE is currently <strong>' + (liveIntent.live_enabled ? 'already enabled' : 'disabled') +
+      '</strong>; credential <strong>' + (liveIntent.live_connected ? 'enrolled' : 'not enrolled') +
+      '</strong>; deployment environment <strong>' + escapeHtml(liveIntent.environment || 'local') +
+      '</strong>; this approval expires <strong>' +
+      escapeHtml(new Intl.DateTimeFormat('en-US', { timeZone:'America/Denver',
+        dateStyle:'medium', timeStyle:'short' }).format(new Date(liveIntent.expires_at))) +
+      '</strong> (Denver).</p>' +
+      '<p>What enabling means: connections for this account will be able to act on real ' +
+      'Stripe data and real money under their existing guards. Charges and payouts taken ' +
+      'while LIVE is enabled cannot be undone by switching it off afterwards. ' +
+      'My judgment: proceed only if the account, credential and environment above are ' +
+      'exactly the ones you intend.</p>' +
+      '<p>Confirmation fingerprint: <strong><code>' + escapeHtml(liveIntent.fingerprint || '') +
+      '</code></strong>. Type it exactly below; if any fact above changes, the fingerprint ' +
+      'changes and this confirmation no longer applies.</p>' +
       '<form method="post" autocomplete="off">' + formHidden +
       '<input type="hidden" name="action" value="enable-live">' +
       '<input type="hidden" name="id" value="' + escapeHtml(liveIntent.id) + '">' +
       '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<label>Confirmation fingerprint<input name="liveFingerprint" required autocomplete="off" spellcheck="false" placeholder="LIVE-XXXXX-XXXXX-XXXXX-XXXXX"></label>' +
       '<label><input type="checkbox" name="ownerLiveConsent" value="yes" required> I personally authorize LIVE mode for this exact Stripe account.</label>' +
       '<button type="submit">Approve this LIVE account (final step)</button></form>' : '') +
     (moneyDecisionIntent ? '<h2>Final owner confirmation — ' + escapeHtml(moneyDecisionIntent.mode?.toUpperCase()) + ' ' +
@@ -319,7 +341,7 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
     '<button type="submit">Verify account and save encrypted test key</button></form>' +
     '</details>' +
     '<details class="owner-group" id="live-key-tools"><summary>Enroll an encrypted LIVE credential (owner only)</summary>' +
-    '<p>Only for an existing verified Stripe account on the production server after you separately enable LIVE setup. This securely stores the LIVE key and does NOT activate LIVE or authorize payments. The key never enters an AI tool.</p>' +
+    '<p>Only for an existing verified Stripe account on the production server. This securely stores the LIVE key and does NOT activate LIVE or authorize payments. The key never enters an AI tool.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
     '<input type="hidden" name="action" value="add-live-key">' +
     '<label>Exact enrolled Stripe account<input name="account" required pattern="acct_[A-Za-z0-9]+" maxlength="110" autocomplete="off"></label>' +
@@ -378,6 +400,28 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
     '</body></html>';
 }
 export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload, provisionWebhookSecret, forgetWebhookSecret, runTestSmoke, issueRtcPass, issueOwnerRtcPass, lookupTestReceipt, env = process.env }) {
+  // Owner-obedience V1: evaluate the exact LIVE-enablement state and bind it
+  // to a fingerprint. The account row is re-read here so the disclosure and
+  // the fingerprint always describe current facts, never the intent alone.
+  async function evaluatedLiveIntent(id) {
+    if (typeof id !== 'string' || !id || typeof db.getLiveEnableIntent !== 'function') return null;
+    const intent = await db.getLiveEnableIntent(id);
+    if (!intent) return null;
+    let account = null;
+    try {
+      account = typeof db.getStripeAccount === 'function'
+        ? await db.getStripeAccount(intent.stripe_account) : null;
+    } catch { account = null; }
+    const merged = { ...intent,
+      live_enabled: account?.live_enabled ?? intent.live_enabled ?? false,
+      live_key_kind: account?.live_key_kind ?? intent.live_key_kind ?? null,
+      live_key_last4: account?.live_key_last4 ?? intent.live_key_last4 ?? null,
+      live_connected: account?.live_connected ?? intent.live_connected ?? false,
+      environment: process.env.VERCEL_ENV || 'local' };
+    return { ...merged,
+      fingerprint: liveEnableFingerprint({ intentId: intent.id, account: merged,
+        environment: merged.environment }) };
+  }
   return async function setup(req, res) {
     if (!only(res, req, ['GET','POST'])) return;
     let origin;
@@ -409,8 +453,7 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         ?req.query.show:'';
       const liveId=typeof req.query?.liveEnable==='string'&&
         /^[A-Za-z0-9_-]{32}$/.test(req.query.liveEnable)?req.query.liveEnable:'';
-      const liveIntent = liveId && typeof db.getLiveEnableIntent === 'function'
-        ? await db.getLiveEnableIntent(liveId) : null;
+      const liveIntent = liveId ? await evaluatedLiveIntent(liveId) : null;
       return send(res, 200, htmlPage({ csrf, show, liveIntent,
         nativePrefill:ownerFormSuggestions(req.query) }),
         'text/html; charset=utf-8');
@@ -720,10 +763,10 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       }
     }
     if(p.action==='add-live-key'){
-      if(env.LIVE_MODE_OWNER_APPROVED!=='true'||process.env.VERCEL_ENV!=='production'||
+      if(process.env.VERCEL_ENV!=='production'||
         p.ownerLiveKeyConsent!=='yes'||!/^acct_[A-Za-z0-9]{2,100}$/.test(p.account??''))
         return send(res,403,htmlPage({csrf:cookie,result:
-          'LIVE credential enrollment needs production, explicit owner configuration, account selection and independent consent.'}),
+          'LIVE credential enrollment needs a production deployment, the exact enrolled account and independent owner consent.'}),
           'text/html; charset=utf-8');
       try{
         const saved=await keyStore.storeLiveKey({key:p.key,account:p.account});
@@ -974,25 +1017,57 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         'text/html; charset=utf-8');
     }
     if (p.action === 'enable-live') {
-      // This server-owned gate defaults OFF. Owner consent in a form is
-      // necessary, but never enough to silently authorize IN-06 activation.
-      if (env.LIVE_MODE_OWNER_APPROVED !== 'true') {
-        return send(res, 403, htmlPage({ csrf:cookie, result:
-          'LIVE mode remains disabled until the owner separately authorizes IN-06.' }),
-          'text/html; charset=utf-8');
-      }
+      // Owner-obedience V1 (conformance row 17): no deployment flag outranks
+      // the owner's own ceremony. IN-06 is satisfied by this per-account
+      // sequence itself — passphrase re-entry, account-specific consent, and
+      // confirmation of the fingerprint of the state evaluated right now.
       if (p.ownerLiveConsent !== 'yes') {
         return send(res, 400, htmlPage({ csrf:cookie, result:
           'Explicit account-specific LIVE consent is required.' }), 'text/html; charset=utf-8');
       }
-      const requested = await db.getLiveEnableIntent(p.id);
-      if (!requested) return send(res, 410, htmlPage({ csrf:cookie, result:
+      const evaluated = await evaluatedLiveIntent(p.id);
+      if (!evaluated) return send(res, 410, htmlPage({ csrf:cookie, result:
         'This LIVE activation request expired, was used or was revoked.' }), 'text/html; charset=utf-8');
-      const enabled = await db.consumeLiveEnableIntent({id:p.id,allowActivation:true});
-      return send(res, enabled ? 200 : 409, htmlPage({ csrf:cookie, result:enabled ?
-        'LIVE mode enabled for ' + requested.label + ' (' + requested.stripe_account + ').' :
-        'LIVE mode was not enabled: the account lacks a verified LIVE key or the request is invalid.' }),
-        'text/html; charset=utf-8');
+      const supplied = typeof p.liveFingerprint === 'string' ? p.liveFingerprint.trim() : '';
+      if (!supplied || !secretsMatch(supplied, evaluated.fingerprint)) {
+        return send(res, 409, htmlPage({ csrf:cookie, liveIntent:evaluated, result:
+          'The confirmation fingerprint did not match the evaluated state. Nothing changed and the request is still open: review the current facts below and type the current fingerprint exactly.' }),
+          'text/html; charset=utf-8');
+      }
+      if (evaluated.live_enabled) {
+        return send(res, 409, htmlPage({ csrf:cookie, liveIntent:evaluated, result:
+          'LIVE is already enabled for this account. No change was made.' }),
+          'text/html; charset=utf-8');
+      }
+      if (!evaluated.live_connected || !evaluated.live_key_kind || !evaluated.live_key_last4) {
+        return send(res, 409, htmlPage({ csrf:cookie, liveIntent:evaluated, result:
+          'No verified LIVE credential is enrolled for this account, so there is nothing to enable. Enroll the credential first; this request stays open until it expires.' }),
+          'text/html; charset=utf-8');
+      }
+      const enabled = await db.consumeLiveEnableIntent({ id:p.id, allowActivation:true,
+        expectedFingerprint: evaluated.fingerprint,
+        expectedKeyKind: evaluated.live_key_kind, expectedKeyLast4: evaluated.live_key_last4 });
+      if (!enabled) {
+        const fresh = await evaluatedLiveIntent(p.id);
+        return send(res, 409, htmlPage({ csrf:cookie, liveIntent:fresh, result: fresh ?
+          'The account changed while you were confirming, so the fingerprint you confirmed no longer applies. Nothing was enabled: review the new facts and fingerprint below.' :
+          'LIVE mode was not enabled: the request is no longer valid.' }),
+          'text/html; charset=utf-8');
+      }
+      // Verify by read-back before calling it done.
+      let after = null;
+      try { after = await db.getStripeAccount(evaluated.stripe_account); } catch { after = null; }
+      if (!after || after.live_enabled !== true || after.live_connected !== true) {
+        return send(res, 503, htmlPage({ csrf:cookie, result:
+          'The activation was recorded, but read-back did not confirm the LIVE state for ' +
+          evaluated.stripe_account + '. Treat LIVE as unverified and check the account before relying on it.' }),
+          'text/html; charset=utf-8');
+      }
+      return send(res, 200, htmlPage({ csrf:cookie, result:
+        'LIVE mode enabled for ' + (evaluated.label || evaluated.stripe_account) +
+        ' (' + evaluated.stripe_account + '). Read-back confirms the account is enabled ' +
+        'with its enrolled LIVE credential; confirmation fingerprint ' + evaluated.fingerprint +
+        ' is recorded in the audit log.' }), 'text/html; charset=utf-8');
     }
     return send(res, 400, htmlPage({ csrf:cookie, result:'Unsupported setup action.' }),
       'text/html; charset=utf-8');
