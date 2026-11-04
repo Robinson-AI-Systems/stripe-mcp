@@ -112,9 +112,11 @@ describe('tool registry', () => {
       'connect_update_external_account','connect_delete_external_account',
       'connect_update_capability','connect_create_account_link',
       'connect_create_login_link',
+      'connect_delete_account','connect_reject_account',
+      'connect_unreject_account',
       'api_search','api_describe','api_read','api_write'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(166);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(169);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

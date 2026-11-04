@@ -235,7 +235,9 @@ const auditText=async db=>(await db.listAuditForTest())
 // --- Registration ---------------------------------------------------------
 describe('CAP-4 Connect slice 2 registration',()=>{
   it('registers exactly the eleven lifecycle writes, full profile, defineWrite-v1',()=>{
-    expect(tools.map(t=>t.name)).toEqual([
+    // Slice 3 appended its three terminal writes to this module;
+    // the eleven lifecycle writes keep their exact order and shape.
+    expect(tools.map(t=>t.name).slice(0,11)).toEqual([
       'connect_create_account','connect_update_account',
       'connect_create_person','connect_update_person',
       'connect_delete_person','connect_create_external_account',
@@ -253,8 +255,8 @@ describe('CAP-4 Connect slice 2 registration',()=>{
       expect(t.inputSchema.properties.dryRun.type).toBe('boolean');
       expect(t.inputSchema.properties.confirm.type).toBe('boolean');
     }
-    expect(registry.tools).toHaveLength(340);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(166);
+    expect(registry.tools).toHaveLength(343);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(169);
   });
   it('the guarded doors admit the family in TEST and LIVE',()=>{
     for(const t of registry.tools.filter(x=>x.area==='connect'&&

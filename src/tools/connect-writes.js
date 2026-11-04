@@ -19,6 +19,15 @@
 // minted URL is validated against the exact account, and the URL
 // itself is attached to the confirmed result only: never to the
 // preview, the audit record, a summary or a log.
+// Slice 3 (the terminal operations section below) completes the
+// family in this same module: account delete, reject and unreject
+// under the strongest ceremony the write contract offers — the
+// full lifecycle above plus the exact-account confirmation shape
+// (confirmAccount must repeat the exact connected-account ID,
+// refused before any provider call). The v2 close operation is
+// not built: it exists only on the v2 core surface, which has no
+// dispatch surface here (Connect card fork 4, ruling 3(iv)) —
+// covered-by-design-decision, recorded in the slice-3 JIT card.
 import {defineWrite} from './write.js';
 import {client,fullProfiles,validateMetadata,reply} from
   './billing-shared.js';
@@ -725,6 +734,163 @@ const connectCreateLoginLink=()=>makeLinkOp({
     {idempotencyKey:key})
 });
 
+// --- Terminal operations (slice 3) ---------------------------------------
+// The destructive slice lands last and separately (ruling 3(ii)),
+// with the strongest ceremony the write contract offers: the full
+// defineWrite lifecycle — preview naming the exact connected
+// account and the exact terminal effect, stable replay key,
+// before-state, audit, read-back — PLUS the exact-account
+// confirmation shape: every call must repeat the exact connected-
+// account ID in the confirmAccount argument. A missing or
+// mismatched repeat, and the platform account's own ID offered as
+// the subject, refuse inside read() before the actor verification
+// makes any provider call at all. Reject and unreject have no
+// direct read-back (the Connect card's named decision): the state
+// is verified by retrieving the account after apply and requiring
+// its projected disabled reason to show — or to no longer show —
+// a rejection, mode-verified through slice 1's projection. Delete
+// verifies as slice 2's deletes did: the deleted marker, or the
+// provider's resource_missing for the exact ID.
+const rejectReasons=['credit','fraud_no_intent_to_fulfill',
+  'fraud_other','fraud_payment_method_casher',
+  'fraud_payment_method_tester','other','terms_of_service'];
+function terminalArgs(a,extra,required){
+  validate(a,['account','confirmAccount',...extra,'outsideApp',
+    'dryRun','confirm','requestKey'],
+    ['account','confirmAccount',...required]);
+  accountArg(a);
+  if(a.confirmAccount!==a.account)
+    reject('The confirmation must repeat the exact connected '+
+      'account ID in confirmAccount');
+}
+function terminalSubject(a,ctx){
+  if(a.account===ctx?.connection?.stripeAccount)
+    reject('The platform account itself is never a Connect '+
+      'terminal subject; name an exact connected account');
+}
+function rejectedState(after,ctx){
+  if(after?.id===undefined)return null;
+  let safe;
+  try{safe=connectAccountSafe(after,ctx.connection.mode);}
+  catch{return null;}
+  const dr=safe.requirements?.disabledReason;
+  return typeof dr==='string'&&dr.startsWith('rejected.');
+}
+const connectDeleteAccount=defineWrite({
+  name:'connect_delete_account',
+  read:async(a,ctx)=>{
+    terminalArgs(a,[],[]);
+    terminalSubject(a,ctx);
+    const {s}=await actor(ctx);
+    return connectedAccount(s,a,ctx);
+  },
+  summarize:(before,a,ctx)=>{
+    const safe=connectAccountSafe(before,ctx.connection.mode);
+    return modeName(ctx)+'. Platform account '+
+      ctx.connection.stripeAccount+' (verified actor) PERMANENTLY '+
+      'DELETES connected account '+a.account+' ('+safe.type+
+      ', charges enabled '+safe.chargesEnabled+', payouts enabled '+
+      safe.payoutsEnabled+'). Deletion is final: the connected '+
+      'account is removed and cannot be restored.';
+  },
+  apply:async(a,ctx,{idempotencyKey})=>{
+    const {s}=await actor(ctx);
+    const gone=await s.accounts.del(a.account,{},{idempotencyKey});
+    if(gone?.id!==undefined&&gone.id!==a.account)
+      reject('Provider deleted a different account');
+  },
+  readAfter:async(a,ctx)=>{
+    const {s}=await actor(ctx);
+    try{return await s.accounts.retrieve(a.account);}
+    catch(e){
+      if(e?.code==='resource_missing'||e?.statusCode===404)
+        return {id:a.account,object:'account',deleted:true,
+          account:a.account,livemode:modeBool(ctx)};
+      throw e;
+    }
+  },
+  verify:(_before,after,a)=>after?.deleted===true&&
+    after?.id===a.account,
+  resultId:(_before,_after,a)=>a.account
+});
+const connectRejectAccount=defineWrite({
+  name:'connect_reject_account',
+  read:async(a,ctx)=>{
+    terminalArgs(a,['reason','payoutsAction'],['reason']);
+    if(!rejectReasons.includes(a.reason))
+      reject('Rejection reason must be one of the values Stripe '+
+        'accepts: '+rejectReasons.join(', '));
+    if(a.payoutsAction!==undefined&&
+      !['pause','none'].includes(a.payoutsAction))
+      reject('Payouts action must be pause or none');
+    terminalSubject(a,ctx);
+    const {s}=await actor(ctx);
+    return connectedAccount(s,a,ctx);
+  },
+  summarize:(before,a,ctx)=>{
+    const safe=connectAccountSafe(before,ctx.connection.mode);
+    return modeName(ctx)+'. Platform account '+
+      ctx.connection.stripeAccount+' (verified actor) REJECTS '+
+      'connected account '+a.account+' ('+safe.type+') with the '+
+      'exact Stripe reason '+a.reason+'; payouts action '+
+      (a.payoutsAction??'pause')+'. Before: disabled reason '+
+      (safe.requirements?.disabledReason??'none')+', charges '+
+      'enabled '+safe.chargesEnabled+'. Stripe offers no direct '+
+      'read-back for a rejection: after applying, the account is '+
+      're-read and its disabled reason must show the rejection.';
+  },
+  apply:async(a,ctx,{idempotencyKey})=>{
+    const {s}=await actor(ctx);
+    const v=await s.accounts.reject(a.account,{reason:a.reason,
+      ...(a.payoutsAction!==undefined?
+        {payouts_action:a.payoutsAction}:{})},{idempotencyKey});
+    if(v?.id!==undefined&&v.id!==a.account)
+      reject('Provider rejected a different account');
+  },
+  readAfter:async(a,ctx)=>{
+    const {s}=await actor(ctx);
+    return s.accounts.retrieve(a.account);
+  },
+  verify:(_before,after,a,ctx)=>after?.id===a.account&&
+    rejectedState(after,ctx)===true,
+  resultId:(_before,_after,a)=>a.account
+});
+const connectUnrejectAccount=defineWrite({
+  name:'connect_unreject_account',
+  read:async(a,ctx)=>{
+    terminalArgs(a,[],[]);
+    terminalSubject(a,ctx);
+    const {s}=await actor(ctx);
+    return connectedAccount(s,a,ctx);
+  },
+  summarize:(before,a,ctx)=>{
+    const safe=connectAccountSafe(before,ctx.connection.mode);
+    return modeName(ctx)+'. Platform account '+
+      ctx.connection.stripeAccount+' (verified actor) UNREJECTS '+
+      'connected account '+a.account+' ('+safe.type+'), reversing '+
+      'a rejection this platform previously applied. Before: '+
+      'disabled reason '+
+      (safe.requirements?.disabledReason??'none')+', charges '+
+      'enabled '+safe.chargesEnabled+'. Stripe offers no direct '+
+      'read-back for a reversal: after applying, the account is '+
+      're-read and its disabled reason must no longer show a '+
+      'rejection.';
+  },
+  apply:async(a,ctx,{idempotencyKey})=>{
+    const {s}=await actor(ctx);
+    const v=await s.accounts.unreject(a.account,{},{idempotencyKey});
+    if(v?.id!==undefined&&v.id!==a.account)
+      reject('Provider unrejected a different account');
+  },
+  readAfter:async(a,ctx)=>{
+    const {s}=await actor(ctx);
+    return s.accounts.retrieve(a.account);
+  },
+  verify:(_before,after,a,ctx)=>after?.id===a.account&&
+    rejectedState(after,ctx)===false,
+  resultId:(_before,_after,a)=>a.account
+});
+
 // --- Registration ----------------------------------------------------------
 const createAccount=makeConnectCreateAccount();
 const createPerson=makeConnectCreatePerson();
@@ -842,7 +1008,30 @@ export const tools=[
     description:'Mint a one-time Express login link for one exact connected account; URL shown once, in the result only.',
     inputSchema:{type:'object',properties:{
       account:accountArgSchema,...outside,...flags},
-      required:['account'],additionalProperties:false}}
+      required:['account'],additionalProperties:false}},
+  {...connectDeleteAccount.tool,area:'connect',profiles:fullProfiles,
+    description:'Permanently delete one exact connected account; exact-account confirmation, preview and deleted read-back verified.',
+    inputSchema:{type:'object',properties:{
+      account:accountArgSchema,confirmAccount:accountArgSchema,
+      ...outside,...flags},
+      required:['account','confirmAccount'],
+      additionalProperties:false}},
+  {...connectRejectAccount.tool,area:'connect',profiles:fullProfiles,
+    description:'Reject one exact connected account with a Stripe reason; exact-account confirmation, preview, rejection state read back.',
+    inputSchema:{type:'object',properties:{
+      account:accountArgSchema,confirmAccount:accountArgSchema,
+      reason:{type:'string',enum:rejectReasons},
+      payoutsAction:{type:'string',enum:['pause','none']},
+      ...outside,...flags},
+      required:['account','confirmAccount','reason'],
+      additionalProperties:false}},
+  {...connectUnrejectAccount.tool,area:'connect',profiles:fullProfiles,
+    description:'Reverse a platform rejection of one exact connected account; exact-account confirmation, restored state read back.',
+    inputSchema:{type:'object',properties:{
+      account:accountArgSchema,confirmAccount:accountArgSchema,
+      ...outside,...flags},
+      required:['account','confirmAccount'],
+      additionalProperties:false}}
 ];
 export const handlers={
   connect_create_account:(a,ctx)=>makeConnectCreateAccount().handler(a,ctx),
@@ -858,5 +1047,8 @@ export const handlers={
   connect_create_account_link:(a,ctx)=>
     connectCreateAccountLink().handler(a,ctx),
   connect_create_login_link:(a,ctx)=>
-    connectCreateLoginLink().handler(a,ctx)
+    connectCreateLoginLink().handler(a,ctx),
+  connect_delete_account:connectDeleteAccount.handler,
+  connect_reject_account:connectRejectAccount.handler,
+  connect_unreject_account:connectUnrejectAccount.handler
 };

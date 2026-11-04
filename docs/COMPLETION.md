@@ -57,7 +57,7 @@ service on 2026-11-03:
 | Repository | `Robinson-AI-Systems/stripe-mcp`; `live` at `c95f9cf0160f85f59789a11d1885e422ec84770b`; `main` three commits ahead at `0c34fbe5475f9006023d9066a6e79f5ed5a46d7e` (PRs #303, #304, #305 — owner-obedience V1, V2 shared machinery, and V4, all source-only). |
 | Hosting | Vercel project `stripe-mcp`; production branch is `live`; the latest production deployment is READY at `c95f9cf0`. Only the `live` branch is deployment-enabled in `vercel.json`. |
 | Package/runtime | `@robinson-ai-systems/stripe-mcp` version `0.1.0`; ECMAScript modules; Node engine `>=20` (the Vercel project is configured for Node 24.x); runtime dependencies are the MCP SDK `1.32.1`, Neon serverless `1.0.2`, and Stripe `23.0.0`. |
-| Tool registry | **340 tools** in the source registry at `main`: 174 read-labelled tools and 166 write tools; 336 hand-built tools plus the four `api_*` tools. (Fleet-audit census 2026-11-04 at `main` `0c34fbe5`: the exact expected-name list in `tests/unit/registry.test.js` enumerated 322 unique names and asserted 155 writes; CAP-4 Connect slice 1 then added the seven `connect_*` read registrations and slice 2 the eleven lifecycle writes, and the list now enumerates 340. The deployed health/front-door readouts still name 322 tools at `c95f9cf0` until a checked release carries the new registrations.) Read-only profile counts are read-only 162 / everyday 163 / full 174. Full visibility counts are 162 / 255 / 340. |
+| Tool registry | **343 tools** in the source registry at `main`: 174 read-labelled tools and 169 write tools; 339 hand-built tools plus the four `api_*` tools. (Fleet-audit census 2026-11-04 at `main` `0c34fbe5`: the exact expected-name list in `tests/unit/registry.test.js` enumerated 322 unique names and asserted 155 writes; CAP-4 Connect slice 1 then added the seven `connect_*` read registrations, slice 2 the eleven lifecycle writes and slice 3 the three terminal writes, and the list now enumerates 343. The deployed health/front-door readouts still name 322 tools at `c95f9cf0` until a checked release carries the new registrations.) Read-only profile counts are read-only 162 / everyday 163 / full 174. Full visibility counts are 162 / 255 / 343. |
 | Stripe API inventory source | Vendored Stripe OpenAPI tag `v2556`, API version `2026-09-30.endive`, 398 paths; `node scripts/openapi-find.mjs --verify` passes. |
 | Serving alias | `https://stripe-mcp-psi.vercel.app` serves the application. `/api` and `/api/health` name commit `c95f9cf0`, version `0.1.0+c95f9cf0160f`, 322 tools, status healthy/`online`, and database check `true`. `/api/contract` names the same revision and advertises `/api/health`. |
 | Configured issuer origin | OAuth metadata fetched from the serving alias names `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` as issuer and resource. That hostname does **not** serve the application to an unauthenticated visitor; Vercel Authentication intercepts it. |
@@ -250,6 +250,32 @@ the read families. The first family is source-implemented:
   unreject, v2 close) remains unbuilt and refused. Live proof
   for slice 2 stands in the CAP-5 queue as one lifecycle
   round-trip on the testing surface only.
+- **Connect slice 3 — connected-account terminal operations**
+  ([CAP4-CONNECT-SLICE-3](pr-cards/CAP4-CONNECT-SLICE-3.md)):
+  the three terminal writes (account delete; reject with the
+  pinned reason set; unreject) on the guarded write lifecycle,
+  under the strongest ceremony the write contract offers — the
+  full slice-2 contract plus the exact-account confirmation
+  shape: every call repeats the exact connected-account ID in
+  `confirmAccount`, and a missing or mismatched repeat, or the
+  platform account itself offered as the subject, refuses
+  before any provider call. Reject and unreject verify by
+  state read-back (the re-read account's disabled reason must
+  show, or no longer show, a rejection); delete verifies by
+  the deleted marker or the provider's `resource_missing` for
+  the exact ID, as slice 2's deletes did. The v2 close is
+  covered-by-design-decision under the Connect card's fork 4
+  and ruling 3(iv): it exists only on the v2 core surface,
+  which has no dispatch surface here. Registry 340 → 343
+  tools, 166 → 169 writes; the everyday catalog budget is
+  unmoved at 19,999/20,000. **With slice 3, the Connect family
+  is COMPLETE** in source: all three slices landed, every one
+  of the card's 45 census operations carrying its disposition
+  (canonical v1 built; aliases covered-by-canonical;
+  `account_tokens`/`person_tokens` refused by ruling; the 15
+  v2 core operations covered-by-design-decision). Live proof
+  for slice 3 stands in the CAP-5 queue as one ceremony
+  refusal on the testing surface only.
 - **D-4 — dispute and event reads**
   ([CAP4-D4-DISPUTE-EVENT-READS](pr-cards/CAP4-D4-DISPUTE-EVENT-READS.md)):
   all 5 registry tools (dispute list/get; event list, get and
@@ -438,9 +464,9 @@ Still required:
    complete in source with D-8 §B above; D-7's flagged probe leg
    (`stripe_check_key_permissions`), split into follow-up card
    CAP4-D7b, is likewise source-implemented above; Phase 2
-   Connect lifecycle writes are implemented above (slice 2),
-   and next is the Connect destructive/terminal writes
-   (slice 3); Phase 3 the universal door (D-9);
+   Connect is complete above (slices 1–3; the Connect family
+   is COMPLETE in source); next is Phase 3 the universal
+   door (D-9);
    Phase 4 the payment, billing, Tax-closure, event and
    entitlement product cards; Phase 5 organization context and
    D-10.

@@ -545,7 +545,7 @@ are marked `R`; the rest preview first and confirm before money moves.
 | `workflow_brand_business` | One sentence sets up how a business looks and reads everywhere on Stripe: uploads logo/icon, sets colors (account-wide where allowed), saves the brand kit, statement descriptor, public support details, invoice footer, portal links; previews all of it first and finishes with a test Checkout link to look at. The Stripe version of the Workspace server's `workflow_brand_mailbox` | C | F |
 | `workflow_find` | One search box: an email, name, last 4, amount, app ID or Stripe ID → what it is and the matching records | — | R |
 
-## Connect (`connect_*`) — 7 built reads; 11 built lifecycle writes (slice 2)
+## Connect (`connect_*`) — 7 built reads; 14 built writes (slices 2–3) — family complete
 
 Slice 1 of the CAP-4 Connect card is built: native projected reads for
 connected (third-party) accounts, on the owner's enrolled platform
@@ -563,6 +563,18 @@ audit — identity values never surface. External accounts attach by
 token only. The two link tools are the ruled minting exception: the
 minted URL is shown once, in the confirmed result only, and Stripe
 offers no read-back for a minted link (stated plainly in the tools).
+
+Slice 3 completes the family with the terminal operations under
+the strongest ceremony the write contract offers: the full
+lifecycle above plus the exact-account confirmation shape — every
+call must repeat the exact connected-account ID in `confirmAccount`,
+and a missing or mismatched repeat (or the platform account itself
+offered as the subject) refuses before any provider call. Reject
+and unreject have no direct read-back: the account is re-read after
+applying and its disabled reason must show — or no longer show —
+the rejection. The v2 close is not built: it exists only on the v2
+core surface, which has no dispatch surface here (covered-by-
+design-decision under the Connect card's fork 4).
 
 | Tool | What it does | Safety | Profile |
 | --- | --- | --- | --- |
@@ -584,12 +596,15 @@ offers no read-back for a minted link (stated plainly in the tools).
 | `connect_update_capability` | Request or unrequest one capability on one exact connected account; preview and read-back verified | P | F |
 | `connect_create_account_link` | Mint a one-time account onboarding or update link for one exact connected account; URL shown once, in the result only | P | F |
 | `connect_create_login_link` | Mint a one-time Express login link for one exact connected account; URL shown once, in the result only | P | F |
+| `connect_delete_account` | Permanently delete one exact connected account; exact-account confirmation, preview and deleted read-back verified | P | F |
+| `connect_reject_account` | Reject one exact connected account with a Stripe reason; exact-account confirmation, preview, rejection state read back | P | F |
+| `connect_unreject_account` | Reverse a platform rejection of one exact connected account; exact-account confirmation, restored state read back | P | F |
 
-Not yet built (slice 3 of the same card, still refused exactly as
-before): account reject/delete and the v2 close, transfers
-create/list/get/reverse, application fees list/get/refund — carried over
-from the toolkit, with `$` on transfers and fee refunds and `C` on
-reject/delete when they land.
+Not built, by recorded decision: the v2 close (v2 core surface only,
+covered-by-design-decision under the Connect card's fork 4).
+Still carried over from the toolkit, not part of the Connect card:
+transfers create/list/get/reverse, application fees
+list/get/refund — with `$` on transfers and fee refunds when they land.
 
 ## Everything else in Stripe: the universal tools (`api_*`) — 4
 

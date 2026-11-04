@@ -1161,6 +1161,39 @@ accounts-row flip is D-9's, landing after). Live proof for
 slice 2 stands in the CAP-5 queue as one lifecycle round-trip
 on the testing surface only.
 
+**CAP-4 progress — Connect slice 3 terminal operations
+(2026-11-04):** the third and last Phase 2 unit, **Connect
+slice 3 (connected-account terminal operations)**, is
+source-implemented (CAP4-CONNECT-SLICE-3) under rulings 3
+and 5. Three new native write tools (account delete; reject,
+its `reason` validated against the pinned SDK's seven
+accepted values with the exact reason shown in the preview;
+unreject; registry 340 → 343, writes 166 → 169) run the full
+guarded write contract plus the strongest ceremony the
+contract offers — the exact-account confirmation shape:
+every call repeats the exact connected-account ID in
+`confirmAccount`, and a missing or mismatched repeat, or the
+platform account itself offered as the subject, refuses
+before any provider call (pinned with provider spies).
+Reject and unreject have no direct read-back — the Connect
+card's named decision — and verify by state read-back: the
+re-read account's projected disabled reason must show, or
+no longer show, a rejection, mode-verified; a silent
+provider no-op fails the tool as uncertain. Delete verifies
+by the deleted marker or the provider's `resource_missing`
+for the exact ID, as slice 2's deletes did. The v2 close is
+covered-by-design-decision (card fork 4, ruling 3(iv)): it
+exists only as `POST /v2/core/accounts/{id}/close` on the v2
+core surface, which has no dispatch surface in this server;
+it is not built and not routed through the door. **With
+slice 3 the Connect family is COMPLETE in source** — every
+one of the card's 45 census operations carries its
+disposition. The universal door is untouched by this slice
+(the accounts-row flip is D-9's, landing after, and now
+names slices 1–3). Live proof for slice 3 stands in the
+CAP-5 queue as one ceremony refusal on the testing surface
+only.
+
 **CAP-4 progress — D-4 dispute and event reads (2026-11-04):**
 the fourth family, **D-4 (dispute and event reads)**, is
 source-implemented (CAP4-D4-DISPUTE-EVENT-READS): all 5 registry
