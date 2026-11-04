@@ -63,29 +63,18 @@ const guideSpec={
 };
 const validId=(v,p)=>typeof v==='string'&&
   new RegExp('^'+p+'_[A-Za-z0-9_]{2,190}$').test(v);
-const selected=ctx=>ctx?.connection?.mode==='test'&&
-  /^acct_[A-Za-z0-9]{2,100}$/.test(ctx.connection.stripeAccount??'');
 // The payout schedule converted with the Money family (owner-obedience
 // V2 family 1, coordinator ruling 6): this exposure admits both modes
-// on a selected account. The Branding family (V2 family 11) now uses
-// the same either-mode selector for the invoice-template and portal
-// writes; the guided handlers and template reads keep the TEST-only
-// selector above.
+// on a selected account. The Branding family (V2 family 11) uses the
+// same either-mode selector for the invoice-template and portal
+// writes, and CAP-4 D-12 adopts it for the guided handlers and the
+// template reads as well; no TEST-only selector remains in this module.
 const selectedEitherMode=ctx=>['test','live'].includes(ctx?.connection?.mode)&&
   /^acct_[A-Za-z0-9]{2,100}$/.test(ctx.connection.stripeAccount??'');
-async function testAccount(ctx){
-  if(!selected(ctx))throw new TypeError('Exact selected TEST account required');
-  const s=await client(ctx);
-  const account=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
-  if(account?.id!==ctx.connection.stripeAccount||account?.livemode!==false)
-    throw new TypeError('Selected own TEST account unverified');
-  return {s,account};
-}
-// Mode-aware account verification for the converted branding writes
-// (owner-obedience V2 family 11): the same exact-identity proof as
-// testAccount, with the independent provider mode evidence demanded
-// for the connection's own mode in both directions. The guided
-// handlers and the template reads keep testAccount (TEST-only).
+// Mode-aware account verification (owner-obedience V2 family 11 for
+// the branding writes; CAP-4 D-12 for the guided handlers and template
+// reads): the exact-identity proof, with the independent provider mode
+// evidence demanded for the connection's own mode in both directions.
 async function modeAccount(ctx){
   if(!selectedEitherMode(ctx))
     throw new TypeError('Exact selected account required');
@@ -133,30 +122,44 @@ function observedGuide(name,desired,account){
   return {observed,comparison:spec.section==='billing'?'not_readable':
     exact?'matches_requested_values':'not_confirmed'};
 }
+// Guidance text is mode-templated (CAP-4 D-12): the spec steps are
+// written once with the TEST word, and a LIVE connection receives the
+// same steps naming LIVE — the mode the owner is actually working in.
+// Every other word is unchanged, and TEST output stays byte-identical.
+const stepsFor=(spec,mode)=>mode==='live'?
+  spec.steps.map(s=>s.replace(/\bTEST\b/g,'LIVE')):spec.steps;
+const settingsUrlFor=mode=>mode==='live'?
+  'https://dashboard.stripe.com/settings':settingsRoot;
 async function guide(name,a,ctx){
   try{
     validateGuide(name,a);
-    const {account}=await testAccount(ctx);
+    const {account}=await modeAccount(ctx);
     const safe=Object.fromEntries(Object.entries(a).filter(([k])=>
       !['confirm','dryRun','requestKey'].includes(k)));
     const spec=guideSpec[name],observation=observedGuide(name,safe,account);
-    return reply({done:false,account:ctx.connection.stripeAccount,mode:'test',
+    return reply({done:false,account:ctx.connection.stripeAccount,
+      mode:ctx.connection.mode,
       requested:safe,...observation,changeMade:false,
       requiresOwnerAction:true,ownerConfirmed:false,
-      manualSettingsUrl:settingsRoot,
-      steps:spec.steps,verifyWith:name,
+      manualSettingsUrl:settingsUrlFor(ctx.connection.mode),
+      steps:stepsFor(spec,ctx.connection.mode),verifyWith:name,
       note:'No own-account API mutation was attempted. Readback is an observation, not proof of who changed it.'});
   }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
 }
 const guideTools=Object.entries(guideSpec).map(([name,spec])=>({
   name,area:'branding',profiles:fullProfiles,writes:false,
   annotations:{readOnlyHint:true},
-  description:'Inspect requested TEST own-account settings and return safe Dashboard steps; never claim a write.',
+  description:'Inspect own-account settings in the connection mode; return safe Dashboard steps, never claim a write.',
   inputSchema:{type:'object',properties:spec.props,additionalProperties:false}
 }));
-function safeTemplate(t){
+function safeTemplate(t,mode){
   if(!validId(t?.id,'inr')||t?.object!=='invoice_rendering_template')
     throw new TypeError('Invoice rendering template identity unavailable');
+  // Read callers (CAP-4 D-12) supply the connection mode: a template
+  // carrying provider mode evidence verifies against it (a wrong-mode
+  // member refuses the whole read); no-mode callers — the template
+  // writes — keep the baseline projection exactly.
+  if(mode!==undefined)assertAccountResourceMode(t,mode);
   return {id:t.id,status:t.status??null,nickname:t.nickname??null,
     created:t.created??null,livemode:t.livemode??null};
 }
@@ -171,11 +174,11 @@ function checkedPage(a){
 }
 async function templateList(a,ctx){
   try{
-    const page=checkedPage(a),{s}=await testAccount(ctx);
+    const page=checkedPage(a),{s}=await modeAccount(ctx);
     const response=await s.invoiceRenderingTemplates.list(page);
     if(!Array.isArray(response?.data)||typeof response.has_more!=='boolean')
       throw new TypeError('Template page incomplete');
-    const list=response.data.map(safeTemplate);
+    const list=response.data.map(t=>safeTemplate(t,ctx.connection.mode));
     return reply({account:ctx.connection.stripeAccount,data:list,
       hasMore:response.has_more,next:response.has_more?list.at(-1)?.id??null:null});
   }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
@@ -184,9 +187,10 @@ async function templateGet(a,ctx){
   try{
     if(!a||Object.keys(a).some(k=>k!=='templateId')||
       !validId(a.templateId,'inr'))throw new TypeError('Invoice template ID required');
-    const {s}=await testAccount(ctx);
+    const {s}=await modeAccount(ctx);
     return reply({account:ctx.connection.stripeAccount,
-      template:safeTemplate(await s.invoiceRenderingTemplates.retrieve(a.templateId))});
+      template:safeTemplate(await s.invoiceRenderingTemplates.retrieve(a.templateId),
+        ctx.connection.mode)});
   }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
 }
 function templateWrite(name,action){
@@ -309,12 +313,12 @@ export const tools=[
   ...guideTools,
   {name:'brand_list_invoice_templates',area:'branding',profiles:allProfiles,writes:false,
     annotations:{readOnlyHint:true},
-    description:'List bounded TEST Stripe invoice rendering templates and observed archive status.',
+    description:'List bounded rendering templates and archive status in the connection mode.',
     inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:50},
       starting_after:resource},additionalProperties:false}},
   {name:'brand_get_invoice_template',area:'branding',profiles:allProfiles,writes:false,
     annotations:{readOnlyHint:true},
-    description:'Read safe selected TEST Stripe invoice rendering template identity and status.',
+    description:'Read selected rendering template identity and status in the connection mode.',
     inputSchema:{type:'object',properties:{templateId:resource},
       required:['templateId'],additionalProperties:false}},
   {...arch.tool,area:'branding',profiles:fullProfiles,
@@ -335,7 +339,8 @@ export const tools=[
 ];
 export const handlers={
   ...Object.fromEntries(Object.keys(guideSpec).map(name=>[name,
-    (a,ctx)=>selected(ctx)?guide(name,a,ctx):gone('TEST own-account guidance only')])),
+    (a,ctx)=>selectedEitherMode(ctx)?guide(name,a,ctx):
+      gone('Own-account guidance requires a selected account')])),
   brand_list_invoice_templates:templateList,
   brand_get_invoice_template:templateGet,
   brand_archive_invoice_template:(a,ctx)=>selectedEitherMode(ctx)?
