@@ -18,6 +18,59 @@ failed shard refuses, a missing-name lookalike never counts, a green
 rerun supersedes). No gate weakened: the same six checks, the same
 fail-closed posture, the same atomic marker.
 
+## 2026-11-04 — CAP-4 D-4 dispute and event reads: mode-verified in both modes (source)
+
+CAP-4's fourth family is implemented in source (card
+[CAP4-D4-DISPUTE-EVENT-READS](pr-cards/CAP4-D4-DISPUTE-EVENT-READS.md)),
+next in the frozen Phase 1 sequence after D-2:
+
+- **The conversion.** All 5 registry read tools (dispute list
+  and get; event list, get and the undelivered list) now serve
+  the connection's own mode with per-object mode verification.
+  The handler TEST-only gates in `src/tools/dispute-reads.js`
+  and `src/tools/events-read.js` are gone — the shared
+  mode-aware seam already resolves the provider client — and
+  both projections (`disputeSafe`, `eventSafe`) verify each
+  returned object's `livemode` against the connection mode on
+  the shared-projection precedent (optional mode parameter,
+  required semantics matching the projections' historical hard
+  check; no-mode callers byte-identical). At baseline the
+  family was refusal-only: the gates refused every non-TEST
+  connection before any provider call, and the projections
+  hard-required TEST objects, so no LIVE read could execute in
+  either direction.
+- **Nothing else moved.** Projection shapes are byte-identical
+  in both modes, so the privacy posture holds unchanged:
+  dispute projections keep the minimal verified shape (no
+  evidence contents, no cardholder data) and event projections
+  still project only the embedded data object's ID and type —
+  no raw event payloads — now proven on LIVE fixtures too. The
+  census names the family's fifth tool `event_list_types`; the
+  registry's fifth tool is `event_list_undelivered`, which
+  shares the converted list path — naming drift, recorded in
+  the card. The family's writes (V2, PR #308), the dispute-kit
+  composite (D-8's §B) and the money wiring are byte-untouched.
+  One baseline quirk is preserved exactly and recorded in the
+  card: the dispute list path's projection receives the page
+  mapper's index as its `now` argument, as at baseline.
+- **Proof.** New suite
+  `tests/unit/cap4-d4-dispute-event-reads.test.js`: 17 tests —
+  11 fail at baseline `a8439e2d` (every LIVE happy path, the
+  TEST-object refusals on LIVE connections proven at the
+  projection, both projection mode contracts, the LIVE privacy
+  shape, the descriptions) and all 17 pass after; the 6
+  baseline passes are recorded honestly in the card (the
+  TEST-direction refusals the projections already enforced,
+  the byte-identical TEST output pins, the reachability pin,
+  and the LIVE dispute privacy test, which passes vacuously at
+  baseline because the gate refused everything). The
+  pre-existing `dispute-reads` and `events-read` suites pass
+  unchanged — their baseline LIVE-refusal assertions still
+  fire, now through the LIVE-enablement path. No dispatcher,
+  registry or reachability change (322 tools). Database tests
+  are exact-head CI's route (no local PostgreSQL binaries).
+  Live proof remains open in the CAP-5 queue: one dispute and
+  one event read on the owner's LIVE connection.
 ## 2026-11-04 — CAP-4 Connect slice 1: native projected reads for connected accounts (source)
 
 CAP-4's Phase 2 opens in parallel with the read series (card
