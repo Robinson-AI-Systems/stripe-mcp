@@ -77,7 +77,7 @@ not close any product requirement by itself.
 | Ledger | Reconciled state | What it does—and does not—prove |
 |---|---|---|
 | Original roadmap source | **57 of 57 subsections merged.** | Source implementation exists. It does not prove deployed provider acceptance or finished-product status. |
-| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, Connect slice 1, D-4, and D-5) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
+| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, Connect slice 1, D-4, D-5, and D-6) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
 | Protected provider acceptance queue | **13 PASSED / 30 PENDING of 43.** Of the pending rows, **29 are Stripe-owned** and **1 is Hub-owned optional**. | The 29 Stripe-owned rows include the `STRIPE-TEST` aggregate, so the count is a ledger count, not 29 unrelated features. The Hub row is not a standalone-product gate. |
 | Session planner view | `scripts/session-status.mjs` reports 42 waiting/verification tasks plus the Hub-owned optional task. | This overlaps the queue above: it treats recorded passes as deployment-recheck items. Do not add 42 to 30. The queue dispositions remain 13 passed and 30 pending. |
 | RAS MCP conformance | **17 numbered rows** (14 at the 2026-11-02 pass; rows 15–17 opened 2026-11-03 by the Specification's new sections). | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. Rows 15–17 record the design-conformance compensation: the capability census is incomplete past its API element, the correction process is running, and four owner-facing refusals are designed for conversion to confirmed actions. |
@@ -257,11 +257,33 @@ the read families. The first family is source-implemented:
   stands in the CAP-5 queue (one session read, one line-item
   read, one payment-link read and one portal-configuration
   read on the owner's LIVE connection).
+- **D-6 — report, file and Radar reads**
+  ([CAP4-D6-REPORT-FILE-RADAR-READS](pr-cards/CAP4-D6-REPORT-FILE-RADAR-READS.md)):
+  all 12 registry tools (report type list, report run list/get
+  and the result-file read; file list/get; Radar
+  fraud-warning, review, value-list and list-item reads) serve
+  the connection's own mode with per-object verification. The
+  family was half-converted by V2: `fileSafe` and the Radar
+  projections already took a mode their read callers never
+  passed; reports carried a wrapper gate, a second gate in the
+  result-file module and per-projection hard-checks, each
+  parameterized by its own baseline semantics (strict for the
+  runs, boolean-present for the report type and the result
+  file) so TEST behavior and refusal texts are byte-identical.
+  The census names three radar tools that do not exist; the
+  build also converts a TEST-hardcoded `scope` literal in the
+  report-type list result. The three invariants hold in both
+  modes: no signed report URL is ever exposed, Radar results
+  identify value-list items by ID and type only, and the file
+  purpose bounds are unrelaxed. Live proof for D-6 stands in
+  the CAP-5 queue (one report type/run read, one result-file
+  read, one file list/get and one Radar review plus
+  value-list/items read on the owner's LIVE connection).
 
 Still required:
 
 1. The remaining families in the frozen order: Phase 1 reads
-   D-6, D-7, D-11, D-12 and D-8 last (with the
+   D-7, D-11, D-12 and D-8 last (with the
    composite `workflow_dispute_kit_save` conversion as its own
    sibling unit); Phase 2 Connect lifecycle writes and
    destructive/terminal writes (slice 1 reads are implemented

@@ -1,4 +1,5 @@
-// G-1f — verify a completed TEST report's exact Stripe file without sharing its URL.
+// G-1f — verify a completed report's exact Stripe file, in the
+// connection's own mode, without sharing its URL.
 import {allProfiles,client,fail,ref,local,reply} from './billing-shared.js';
 
 const exactRun = value => typeof value === 'string' && /^frr_[A-Za-z0-9]{2,100}$/.test(value);
@@ -13,9 +14,12 @@ function safeArgs(args) {
   }
 }
 
-function resultFile(run) {
+function resultFile(run,mode) {
+  // The baseline check strictly required livemode===false; the
+  // parameterized form keeps that exact set for TEST (and any
+  // no-mode caller) and requires livemode===true for LIVE.
   if (run?.object !== 'reporting.report_run' || !exactRun(run.id) ||
-      run.livemode !== false || !['pending', 'failed', 'succeeded'].includes(run.status)) {
+      run.livemode !== (mode==='live') || !['pending', 'failed', 'succeeded'].includes(run.status)) {
     invalid('Authenticated TEST report run could not be verified');
   }
   if (run.status !== 'succeeded') {
@@ -28,9 +32,19 @@ function resultFile(run) {
   return {available:true,runId:run.id,runStatus:run.status,fileId};
 }
 
-function safeFile(file,expectedId) {
+function safeFile(file,expectedId,mode) {
+  // The baseline check refused only a livemode===true file. With a
+  // connection mode supplied, a present boolean livemode must equal
+  // that mode (the fileSafe semantics, V2 Files family): the baseline
+  // TEST read set is unchanged exactly (the historical fixture file
+  // carries no livemode and still projects), and a LIVE connection
+  // refuses a TEST file while verifying its own. The file's signed
+  // contents URL is never projected, in either mode.
+  const wrongMode=['test','live'].includes(mode)
+    ? (typeof file?.livemode==='boolean'&&file.livemode!==(mode==='live'))
+    : file?.livemode===true;
   if (file?.object !== 'file' || file.id !== expectedId ||
-      file.purpose !== 'finance_report_run' || file.livemode === true ||
+      file.purpose !== 'finance_report_run' || wrongMode ||
       !date(file.created) || !Number.isSafeInteger(file.size) ||
       file.size < 0 || file.size > 1000000000000) {
     invalid('Stripe report file identity, purpose or size could not be verified');
@@ -49,7 +63,7 @@ function safeFile(file,expectedId) {
 
 export const tools=[{
   name:'report_get_result_file',area:'reports',writes:false,profiles:allProfiles,
-  description:'Verify a completed TEST report file and its metadata; never expose private contents URL.',
+  description:'Verify completed TEST or LIVE report file and metadata; no contents URL.',
   annotations:{readOnlyHint:true},
   inputSchema:{type:'object',properties:{
     runId:{type:'string',pattern:'^frr_[A-Za-z0-9]{2,100}$'}
@@ -58,17 +72,16 @@ export const tools=[{
 
 export const handlers={
   async report_get_result_file(args,ctx) {
-    if (ctx?.connection?.mode !== 'test')
-      return fail('Financial report file reads require TEST mode');
     try {
       safeArgs(args);
       const stripe=await client(ctx);
+      const mode=ctx?.connection?.mode;
       const run=await stripe.reporting.reportRuns.retrieve(args.runId);
       if (run?.id !== args.runId) invalid('Provider returned a different report run');
-      const result=resultFile(run);
+      const result=resultFile(run,mode);
       if (!result.available) return reply(result);
       const file=await stripe.files.retrieve(result.fileId);
-      return reply({...result,...safeFile(file,result.fileId)});
+      return reply({...result,...safeFile(file,result.fileId,mode)});
     } catch(error) {
       if(error instanceof TypeError) return fail(error.message);
       throw error;

@@ -1108,6 +1108,40 @@ not exist — drift, recorded in the card; the family's writes
 money wiring are untouched. Live proof for these reads stands
 in the CAP-5 queue.
 
+**CAP-4 progress — D-6 report, file and Radar reads
+(2026-11-04):** the sixth family, **D-6 (report, file and Radar
+reads)**, is source-implemented (CAP4-D6-REPORT-FILE-RADAR-READS):
+all 12 registry tools (report type list, report run list/get and
+the result-file read; file list/get; Radar fraud-warning, review,
+value-list and list-item reads) now verify every returned object
+against the connection's own mode in both directions. D-6's
+baseline differed from its siblings': the family was
+half-converted by V2 — `fileSafe` (PR #316) and the Radar
+projections (PR #314) were already mode-parameterized, but their
+read callers passed no mode — while reports carried a wrapper
+gate, a second gate in the result-file module and
+per-projection hard-checks. Each projection was parameterized by
+its own baseline semantics, per the D-5 lesson: strict for the
+run projections (baseline `livemode === false` required),
+boolean-present for the report type and result file (baseline
+refused only `livemode === true`; the pre-existing result-file
+fixture carries no `livemode` and still projects), so the TEST
+read set and every refusal text are byte-identical. The build
+also converts an unenumerated TEST-hardcoded output — the
+report-type list's `scope` literal — and records the frozen
+card's radar census drift (three named tools do not exist; the
+registry's six Radar reads are the family) and the G-1g owner
+CSV download's disposition (TEST-bound substrate, never
+returned to MCP, out of scope; the settled CSV disposition is
+unchanged). The family's three invariants are proven in both
+modes: signed report URLs never appear in any result; Radar
+results identify value-list items by ID and type only, with no
+raw values in results or audit text; and the file reads'
+purpose bounds refuse identically in LIVE. The Radar writes,
+file-link write, report-run creation write and the money
+wiring are untouched. Live proof for these reads stands in the
+CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

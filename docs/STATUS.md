@@ -1,3 +1,80 @@
+## 2026-11-04 — CAP-4 D-6 report, file and Radar reads: mode-verified in both modes (source)
+
+CAP-4's sixth family is implemented in source (card
+[CAP4-D6-REPORT-FILE-RADAR-READS](pr-cards/CAP4-D6-REPORT-FILE-RADAR-READS.md)),
+next in the frozen Phase 1 sequence after D-5:
+
+- **The conversion.** All 12 registry read tools (report type
+  list, report run list/get and the result-file read; file
+  list/get; Radar fraud-warning, review, value-list and
+  list-item reads) now serve the connection's own mode with
+  per-object mode verification. Unlike its siblings this
+  family was half-converted by the V2 phase: `fileSafe` (V2
+  Files, PR #316) and the Radar projections (V2 Radar,
+  PR #314) already took a mode — the read callers simply never
+  passed it, and both now do. Reports were the least
+  converted: the wrapper gate in `report-reads.js` and the
+  result-file module's own gate are deleted, and each
+  projection is parameterized by its own baseline semantics —
+  the run projections strict (they hard-required
+  `livemode === false`), the report-type and result-file
+  projections boolean-present (they refused only a
+  `livemode === true` object; the pre-existing suite's
+  result-file fixture carries no `livemode` at all and still
+  projects) — so the TEST read set is byte-identical and
+  every pre-existing refusal text survives verbatim. The
+  result-file read verifies both the run and the file object
+  against the mode, and still returns identity/metadata only.
+- **Drift and an unenumerated gate.** The frozen card's radar
+  trace names three tools that do not exist
+  (`radar_get_value_list`, `radar_list_value_list_items`,
+  `radar_get_value_list_item`); the registry's six Radar reads
+  are the family, recorded as census drift in the card. The
+  hunt also found a TEST-hardcoded output the census missed:
+  `report_list_types` returned
+  `scope: 'complete_TEST_report_type_catalog_sorted_by_id'`,
+  now mode-parameterized with the TEST output byte-identical.
+  No mode-shaped ID pattern and no store-layer refusal exists
+  on these twelve paths. The G-1g owner CSV download is
+  TEST-bound by design, is never returned to MCP, and is
+  dispositioned in the card as out of scope — the settled CSV
+  disposition is unchanged.
+- **Nothing else moved.** The three binding invariants hold
+  in both modes, each proven by a named test: signed report
+  URLs never appear in any result; Radar results identify
+  value-list items by ID and type only (no raw emails, card
+  fingerprints or IPs); and the file reads' purpose bounds
+  are not relaxed — an unlisted purpose refuses on a LIVE
+  connection exactly as on TEST. Projection field sets are
+  unchanged in both modes; the Radar writes, the file-link
+  write, the report-run creation write and the money wiring
+  are byte-untouched. A pre-existing quirk is recorded, not
+  fixed: the result-file projection admits sizes to 1e12
+  while `fileSafe` caps at 1e9. The twelve descriptions were
+  fitted inside this family only, so the everyday catalog
+  holds at 19,998 tokens against the 20,000 cap — exactly
+  the baseline reading; no cap moved, no other family's text
+  touched.
+- **Proof.** New suite
+  `tests/unit/cap4-d6-report-file-radar-reads.test.js`: 18
+  tests — 10 fail at baseline `8c7f780f` (every LIVE happy
+  path, the LIVE boolean-present leg, the wrong-mode
+  refusals whose baseline outcome came from a gate before
+  any provider call, the Radar privacy test's LIVE leg and
+  the descriptions) and all 18 pass after; the 8 baseline
+  passes are accounted honestly in the card (the
+  byte-identical TEST pin, invariant 1's vacuous baseline
+  LIVE leg, the two outcome-identical result-file refusals,
+  the no-livemode result-file pin, invariant 3, and the two
+  V2 projection contract pins). The four pre-existing family
+  suites pass unchanged in assertion. Full unit suite green
+  and `npm run check` exit 0 on the final tree; database
+  proof is exact-head CI's route (no local PostgreSQL
+  binaries). Live proof remains open in the CAP-5 queue: one
+  report type/run read, one result-file read, one file
+  list/get and one Radar review plus value-list/items read
+  on the owner's LIVE connection.
+
 ## 2026-11-04 — CAP-4 D-5 checkout, payment-link and portal reads: mode-verified in both modes (source)
 
 CAP-4's fifth family is implemented in source (card

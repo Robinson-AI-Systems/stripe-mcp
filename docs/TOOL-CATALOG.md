@@ -376,16 +376,16 @@ removing a payout bank account is done in the dashboard, which
 | `dispute_submit_evidence` | Irreversible confirmed evidence submission in the connection's mode (TEST, or LIVE on the owner's full connection), safe full-field preview | C | built #95 | E |
 | `dispute_accept` | Irreversible ordinary dispute loss in the connection's mode (TEST, or LIVE on the owner's full connection); exact owner-approved money out and $500/day cap | $ | built #96 | E |
 | `file_upload_evidence` | Confirmed upload of public PDF/PNG/JPEG or shared Drive file (10 MiB, SSRF defense) in the connection's mode; never submits dispute | P | built #92 | E |
-| `file_list` / `file_get` / `file_create_link` | Safe TEST file metadata reads and confirmed time-limited public BRAND links in the connection's mode; never link private evidence | — / — / P | built #91 | R reads; F link |
+| `file_list` / `file_get` / `file_create_link` | Safe TEST or LIVE file metadata reads in the connection's mode and confirmed time-limited public BRAND links in the connection's mode; never link private evidence | — / — / P | built #91 | R reads; F link |
 
 ## Risk and identity (`radar_*`, `identity_*`) — 16
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `radar_list_fraud_warnings` / `radar_get_fraud_warning` | TEST early fraud warnings, safe amount-free status | — | built #97 | R |
-| `radar_list_reviews` / `radar_get_review` / `radar_approve_review` | Safe TEST reviews; guarded approval in the connection's own mode (V2, source) | — / — / C | reads built #97, approval built #98 | R reads; F approval |
-| `radar_list_value_lists` / `radar_create_value_list` / `radar_delete_value_list` | TEST value list definitions; create/delete in the connection's own mode (V2, source) | — / P / C | read built #97; create built #98; delete built #99 | R read; F writes |
-| `radar_list_list_items` / `radar_add_list_item` / `radar_remove_list_item` | TEST item IDs only (no raw email/card/IP); add/remove in the connection's own mode (V2, source) | — / P / C | list built #97; add/remove built #99 | R read; F writes |
+| `radar_list_fraud_warnings` / `radar_get_fraud_warning` | TEST or LIVE early fraud warnings, safe amount-free status | — | built #97 | R |
+| `radar_list_reviews` / `radar_get_review` / `radar_approve_review` | Safe TEST or LIVE reviews; guarded approval in the connection's own mode (V2, source) | — / — / C | reads built #97, approval built #98 | R reads; F approval |
+| `radar_list_value_lists` / `radar_create_value_list` / `radar_delete_value_list` | TEST or LIVE value list definitions; create/delete in the connection's own mode (V2, source) | — / P / C | read built #97; create built #98; delete built #99 | R read; F writes |
+| `radar_list_list_items` / `radar_add_list_item` / `radar_remove_list_item` | TEST or LIVE item IDs only (no raw email/card/IP); add/remove in the connection's own mode (V2, source) | — / P / C | list built #97; add/remove built #99 | R read; F writes |
 | `identity_list_sessions` / `identity_get_session` | TEST identity status only; no verification evidence or client secret | — | built #100 | F |
 | `identity_create_session` / `identity_cancel_session` | Creation in the connection's mode with verified hosted URL; guarded pending-input cancellation | P / C | create built #100; cancel built #101 | F |
 | `identity_redact_session` | Irreversible redaction request in the connection's mode, separately confirmed; async processing is not erasure | C | built #101 | F |
@@ -433,9 +433,9 @@ app under development, and time travel. Every tool refuses on a live connection.
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `report_list_types` | Complete TEST report type catalog, exact periods, paged | — | built #85 (CI pending) | R |
-| `report_run` / `report_get_run` / `report_list_runs` | Guarded async report request in the connection's mode; TEST run state and result file ID reads | P / — / — | run #86, get/list #85 | F for run; R reads |
-| `report_get_result_file` | Verify a completed TEST run's finance_report_run file metadata only; private contents URL never returned | — | built #88; owner-only browser-only CSV delivery #89 (no AI content or URL) | R |
+| `report_list_types` | Complete TEST or LIVE report type catalog, exact periods, paged | — | built #85 (CI pending) | R |
+| `report_run` / `report_get_run` / `report_list_runs` | Guarded async report request in the connection's mode; TEST or LIVE run state and result file ID reads | P / — / — | run #86, get/list #85 | F for run; R reads |
+| `report_get_result_file` | Verify a completed TEST or LIVE run's finance_report_run file metadata only; private contents URL never returned | — | built #88; owner-only browser-only CSV delivery #89 (no AI content or URL) | R |
 | `account_get` | Verified own TEST account status, requirements count and safe country/currency; no private owner details or bank data | — | built #114 | R |
 | `account_list_capabilities` | TEST own-account capability statuses; explicit unreadable guidance when Stripe refuses an own-account capability-list call | — | built #115 | R |
 | `account_list_payment_method_settings` | Whitelisted native TEST configuration preference and availability reads; 403/404 are unreadable, not disabled | — | built #116 | R |
