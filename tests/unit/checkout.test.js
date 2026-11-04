@@ -7,7 +7,13 @@ const sample={id:'cs_test_FAKE1234',object:'checkout.session',mode:'payment',
   client_secret:'DO_NOT_EXPOSE'};
 const list=x=>({data:[x],has_more:false});
 const stripe={
-  checkout:{sessions:{list:async()=>list(sample),retrieve:async()=>sample,
+  checkout:{sessions:{list:async()=>list(sample),
+    // A cs_live_ id resolves to a LIVE object (real Stripe objects
+    // carry livemode); CAP-4 D-5's mode verification, not the old
+    // cs_test-only ID pattern, is what refuses it on a TEST
+    // connection below.
+    retrieve:async id=>id?.startsWith('cs_live_')?
+      {...sample,id,livemode:true}:sample,
     listLineItems:async()=>list({id:'li_FAKE1234',object:'item',
       price:{id:'price_FAKE1234'},quantity:1,amount_total:1500})}},
   paymentLinks:{list:async()=>list({id:'plink_FAKE1234',active:true,
