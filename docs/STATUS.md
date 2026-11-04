@@ -1,3 +1,45 @@
+## 2026-11-04 — CAP-4 PROD-TAX: Tax-area closure (source) — the zero, re-proven with evidence
+
+CAP-4 Phase 4's fourth product-gap card
+([CAP4-PROD-TAX](pr-cards/CAP4-PROD-TAX.md)) is the
+program's verification card: it claims **zero census
+operations, deliberately**, and closes the Tax area
+with evidence; no native tool is built and no source
+file changes. **The re-sweep at this baseline confirms
+the zero** — 31 pinned operations across the four
+census families (tax, tax_codes, tax_ids including the
+customer-scoped rows, tax_rates), zero unexamined:
+8 GETs native-verified, 10 GETs door-served, and all
+13 POST/DELETE rows D-9-classified (6 allow — the two
+tax_rates rows are the whitelist baseline rows — and
+7 native-owns: the tax family owns calculations and
+the two transaction creates, the customer family owns
+the tax_ids writes). Every claim in the frozen card's
+trace was verified against the current tree and holds:
+the native Tax reads verify each object's `livemode`
+through one shared projection (`tax-native.js` on
+`catalog-mode.js`, whose LIVE branch routes through
+the owner-enabled selected-account seam — no Tax read
+refuses LIVE categorically), and the door mode-verifies
+the GETs no native tool governs. The mode proof cites
+the existing suites by test name (E-4's wrong-mode
+fixture, catalog-extras' wrong-environment refusal,
+the customer LIVE read executing `customer_list_tax_ids`)
+and fills the one genuine gap — no test had exercised
+a tax-native read through the LIVE client route — with
+two legs in the new suite (serves a LIVE object,
+refuses a TEST object, on a LIVE connection). Registry
+unchanged at 343 tools; everyday budget 19,999 /
+20,000 unmoved. New suite 12 tests, all by-design pins
+passing at pristine baseline (this unit changes no
+behavior; two of the pins fill a test-coverage gap in
+already-correct behavior). **No CAP-5 rows are owed**
+— nothing changes behavior — stated in the card in
+the frozen card's own Done-when terms. The closure
+line for the conformance addendum: "Tax — no CAP-4
+gap at the 2026-11-04 census; writes classified in
+D-9; reads natively mode-aware."
+
 ## 2026-11-04 — CAP-4 PROD-EVENTS: event-area coverage completion (source) — the v2 disposition, inherited and re-proven
 
 CAP-4 Phase 4's third product-gap card
