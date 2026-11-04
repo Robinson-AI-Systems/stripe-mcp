@@ -1,3 +1,40 @@
+## 2026-11-03 — Owner-obedience V2 shared machinery: preview-fingerprint binding + mode-aware client seam (source)
+
+Step (1) of the frozen V2 implementation sequence is implemented in
+source (card
+[OWNER-OBEDIENCE-V2-SHARED](pr-cards/OWNER-OBEDIENCE-V2-SHARED.md));
+no family is converted by this card:
+
+- **Preview-fingerprint binding** in the guarded-write lifecycle
+  (`src/core/write.js`, helper `src/core/write-fingerprint.js`):
+  every preview now carries a `WRITE-…` fingerprint of the evaluated
+  before-state and prepared preview facts. A confirmation that
+  presents it is re-verified against a fresh evaluation; drift
+  refuses with the fresh preview and fingerprint disclosed and
+  nothing executed. Uniform across TEST and LIVE (coordinator
+  ruling 5). A direct confirmation with no preview presented behaves
+  exactly as before.
+- **One mode-aware provider-client seam** (`modeClient` in
+  `src/tools/account-mode.js`) replaces the three duplicated
+  TEST-only helpers in `billing-shared.js`, `payment-writes.js` and
+  `checkout-writes.js`. TEST resolution is unchanged; LIVE resolution
+  goes only through the verified selected-account path.
+- **Reachability, stated plainly:** every V2 write family keeps an
+  independent refusal (wrapper and/or dispatcher) — the seam opens
+  none of them. Two caller groups change: the money family's
+  `defineWrite` paths, already dispatcher-admitted and gated by the
+  LIVE write guard, can now resolve a client on an owner-enabled
+  LIVE account, so their unchanged exact-approval and daily-cap
+  contract is reachable end to end (live proof belongs to the Money
+  card); and read-only callers of the shared client gain verified
+  LIVE read resolution on an owner-enabled account (live evidence in
+  the CAP-5 queue). No account is LIVE-enabled today, so neither is
+  exercisable yet.
+- Proof is unit/synthetic only: new named tests in
+  `tests/unit/write-fingerprint.test.js` and
+  `tests/unit/mode-client.test.js`, with the existing write-contract
+  suites green. Next in the frozen sequence: Money (family 1).
+
 ## 2026-11-03 — Owner-obedience V1: LIVE enablement flag converted to a fingerprint-bound ceremony (source)
 
 The first of the four convertible vetoes in conformance row 17 is

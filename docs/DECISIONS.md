@@ -1,3 +1,26 @@
+## 2026-11-03 — Owner-obedience V2: fingerprint confirmation is uniform across modes; shared machinery lands first
+
+- **Ruling (coordinator, 2026-11-03, on the V2 design census):**
+  where the `defineWrite` preview→confirm path is used, the confirm
+  binds to the previewed evaluated state in TEST and LIVE alike —
+  one rule, one review surface, no mode-conditional ceremony. A
+  confirm that follows a preview must present the preview's
+  fingerprint and match a fresh recomputation; drift refuses with a
+  fresh disclosure. Direct confirms with no preview issued keep the
+  prior behavior, and the shared card states that explicitly.
+- **Shared machinery first:** the V2 sequence is frozen with the
+  shared pieces as their own card before the family conversions —
+  the preview-fingerprint binding in `src/core/write.js` and one
+  mode-aware provider-client seam (`modeClient`,
+  `src/tools/account-mode.js`) replacing the three duplicated
+  TEST-only helpers. Family conversions then remove only their own
+  wrapper/dispatcher refusals and parameterize their invariants.
+- **What did not change:** no dispatcher admission, profile, wrapper
+  refusal, money rule, or provider behavior. The money family's
+  exact per-transaction approval and shared daily cap (appendix
+  rows 20–21) are untouched; delegated pass funding is unchanged
+  (a zero-limit pass still cannot move money).
+
 ## 2026-11-03 — Owner-obedience V1 implemented: the LIVE enablement flag converts to a fingerprint-bound owner ceremony
 
 - **What changed:** the deployment-level `LIVE_MODE_OWNER_APPROVED`

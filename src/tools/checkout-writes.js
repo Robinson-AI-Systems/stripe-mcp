@@ -2,6 +2,7 @@
 // server values; AI cannot choose redirect origins or receive a client_secret.
 import {defineWrite,gone} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
+import {modeClient} from './account-mode.js';
 import {checkoutBranding,validateBrandKit} from '../brand/store.js';
 const p=['everyday','full'],full=['full'];
 const id=prefix=>({type:'string',pattern:'^'+prefix+'_[A-Za-z0-9_]{3,190}$'});
@@ -38,16 +39,14 @@ const defs=[
       subscriptionUpdate:{type:'boolean'},...common},
     required:['configId'],full:true}
 ];
-const getStripe=ctx=>{
-  if(ctx?.connection?.mode!=='test'||typeof ctx?.services?.stripeForConnection!=='function')
-    throw new Error('TEST Stripe provider unavailable');
-  return ctx.services.stripeForConnection(ctx.connection);
-};
+// Provider client is the one shared mode-aware seam (modeClient in
+// account-mode.js): TEST resolves exactly as the former local helper
+// did; LIVE resolves only through the verified selected-account path.
 function valid(def,a){
   if(!a||typeof a!=='object'||Array.isArray(a))throw new TypeError('Hosted write arguments required');
   for(const key of def.required)if(a[key]===undefined)throw new TypeError('Missing '+key);
   for(const [key,value] of Object.entries(a)){
-    if(['confirm','dryRun','requestKey'].includes(key))continue;
+    if(['confirm','dryRun','requestKey','previewFingerprint'].includes(key))continue;
     const prop=def.props[key];if(!prop)throw new TypeError('Unsupported '+key);
     if(prop.type==='string'&&(typeof value!=='string'||!value||
       value.length>(prop.maxLength??200)||
@@ -73,7 +72,7 @@ function valid(def,a){
   if(def.name==='checkout_create_payment_link_for_customer'&&a.amountCents&&!a.productName)
     throw new TypeError('Custom amount requires a product description');
   if(['paylink_update','portal_update_configuration'].includes(def.name)&&
-    !Object.keys(a).some(k=>!['linkId','configId','outsideApp','confirm','dryRun','requestKey'].includes(k)))
+    !Object.keys(a).some(k=>!['linkId','configId','outsideApp','confirm','dryRun','requestKey','previewFingerprint'].includes(k)))
     throw new TypeError('Provide at least one setting to change');
 }
 const safeHost=(url,hosts,{allowProviderFragment=false}={})=>{try{
@@ -171,7 +170,7 @@ function build(def){
       // failure. Fail closed before recording intent or contacting Stripe.
       if(def.name.startsWith('checkout_create_')||def.name==='portal_create_session')
         ownerUrls(ctx);
-      const s=await getStripe(ctx),before=await beforeFor(def,a,s);
+      const s=await modeClient(ctx),before=await beforeFor(def,a,s);
       if(def.name.startsWith('checkout_create_')){
         const visual=await checkoutPresentation(a,ctx,s);
         return {...before,_checkoutBrand:visual};
@@ -179,7 +178,7 @@ function build(def){
       return before;
     },
     summarize:async(b,a)=>'TEST MODE. '+def.name+' for '+b.id+
-      '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','outsideApp'].includes(k))
+      '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','previewFingerprint','outsideApp'].includes(k))
         .join(', ')+'. No client secrets or LIVE writes.'+
       (def.destructive?' This may invalidate customer-facing links.':'')+
       (def.name==='portal_update_configuration'?' WARNING: cancellation and plan policies may affect subscriptions.':''),
@@ -196,7 +195,7 @@ function build(def){
       return true;
     },
     apply:async(a,ctx,{idempotencyKey,before})=>{
-      const s=await getStripe(ctx),opts={idempotencyKey},n=def.name;
+      const s=await modeClient(ctx),opts={idempotencyKey},n=def.name;
       if(n==='checkout_create_payment_link_for_customer'||n==='checkout_create_setup_link'){
         const urls=ownerUrls(ctx);
         const line_items=a.priceId?[{price:a.priceId,quantity:1}]:
@@ -238,7 +237,7 @@ function build(def){
       }
     },
     readAfter:async(a,ctx)=>{
-      const s=await getStripe(ctx),n=def.name;
+      const s=await modeClient(ctx),n=def.name;
       if(n==='checkout_create_payment_link_for_customer'||n==='checkout_create_setup_link')
         return created?.id?s.checkout.sessions.retrieve(created.id):null;
       if(n==='paylink_create')return created?.id?s.paymentLinks.retrieve(created.id):null;
@@ -299,11 +298,12 @@ export const tools=defs.map(def=>{
   return {...op.tool,description:def.desc,area:'checkout',
     profiles:def.full?full:p,annotations:{destructiveHint:def.destructive===true},
     inputSchema:{type:'object',properties:{...def.props,dryRun:{type:'boolean'},
-      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128},
+      previewFingerprint:{type:'string',maxLength:64}},
       required:def.required,additionalProperties:false}};
 });
 export const handlers=Object.fromEntries(defs.map(def=>[def.name,async(a,ctx)=>{
-  const s=await getStripe(ctx);
+  const s=await modeClient(ctx);
   return build(def).handler(a,{...ctx,getCustomer:id=>s.customers.retrieve(id)});
 }]));
 export function makeCheckoutWrite(name){
