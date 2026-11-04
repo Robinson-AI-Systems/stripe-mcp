@@ -3,8 +3,8 @@
 // A workflow preview NEVER stands in for independent owner money-out approval.
 import {createHash} from 'node:crypto';
 import {reply,fail} from './billing-shared.js';
-import {collect,nativeRead,verifyContext,validCustomer,deadline,expired,
-  integer,str} from './workflow-read-common.js';
+import {collect,nativeRead,verifyContext,verifyModeContext,modeWord,
+  validCustomer,deadline,expired,integer,str} from './workflow-read-common.js';
 
 const id=p=>({type:'string',pattern:'^'+p+'_[A-Za-z0-9]{2,100}$'});
 const usdAmount={type:'integer',minimum:1,maximum:100000000};
@@ -51,6 +51,19 @@ export const writable=ctx=>{
   if(!['everyday','full'].includes(ctx.connection.profile)||
     typeof ctx.db?.recordChange!=='function')
     throw new TypeError('Guarded TEST write profile and audit database required');
+};
+// CAP-4 D-8 §B: the dispute-kit save's write gate, split beside
+// writable exactly as verifyModeContext sits beside verifyContext.
+// writable is byte-identical and every other write composite keeps
+// it; only workflow_dispute_kit_save opts into writableMode, whose
+// refusal substitutes the connection's mode word (TEST output
+// byte-identical) over the same profile and audit-database checks.
+export const writableMode=ctx=>{
+  verifyModeContext(ctx);
+  if(!['everyday','full'].includes(ctx.connection.profile)||
+    typeof ctx.db?.recordChange!=='function')
+    throw new TypeError('Guarded '+modeWord(ctx)+
+      ' write profile and audit database required');
 };
 export const check=(a,shape,kind)=>{
   if(!a||typeof a!=='object'||Array.isArray(a))

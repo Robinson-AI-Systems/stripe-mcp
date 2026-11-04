@@ -2,13 +2,15 @@
 // The READ (workflow_dispute_kit) serves the connection's own mode
 // (CAP-4 D-8 §A): its handler passes the mode-aware verifier into the
 // shared examine() phase. The SAVE (workflow_dispute_kit_save, D-8 §B)
-// calls examine() with the default legacy TEST verifier, after its own
-// writable() gate — its path is byte-identical in this build.
+// follows the connection mode under the V2 write idiom: its own
+// writableMode() gate, then the same mode-aware examine(), then the
+// already mode-converted guarded native writer. On TEST the save's
+// path is byte-identical to baseline.
 // Never submit dispute evidence to a bank or disclose evidence text in output.
 import {createHash} from 'node:crypto';
 import {allProfiles,reply,fail} from './billing-shared.js';
 import {nativeRead,collect,verifyContext,verifyModeContext,modeWord,deadline,expired} from './workflow-read-common.js';
-import {writable,nativeWrite,readyStep} from './workflow-customer-actions.js';
+import {writableMode,nativeWrite,readyStep} from './workflow-customer-actions.js';
 
 const disputeId={type:'string',pattern:'^du_[A-Za-z0-9]{2,100}$'};
 const invoiceId={type:'string',pattern:'^in_[A-Za-z0-9]{2,100}$'};
@@ -35,7 +37,7 @@ export const tools=[
       required:['disputeId'],additionalProperties:false}},
   {name:'workflow_dispute_kit_save',area:'workflows',profiles:['everyday','full'],
     writes:true,writeContract:'defineWrite-v1',safety:'P',moneySpec:null,
-    description:'Preview and stage only selected TEST dispute draft evidence through guarded native writer.',
+    description:'Preview and stage dispute draft evidence through guarded native writer, either mode.',
     annotations:{destructiveHint:true},inputSchema:{type:'object',
       properties:writeFields,required:['disputeId','evidence'],additionalProperties:false}}
 ];
@@ -152,11 +154,32 @@ async function examine(a,ctx,{verify,word='TEST'}={}){
     note:'Never automatically submit, accept, or expose raw dispute evidence.'};
 }
 async function save(a,ctx){
-  writable(ctx);validate(a,true);
+  writableMode(ctx);validate(a,true,modeWord(ctx));
   const observed=await examine({disputeId:a.disputeId,
     ...(a.invoiceId?{invoiceId:a.invoiceId}:{}),
-    ...(a.app?{app:a.app}:{})},ctx);
-  if(!observed.canStageDraft||!observed.complete)
+    ...(a.app?{app:a.app}:{})},ctx,
+    {verify:verifyModeContext,word:modeWord(ctx)});
+  // Ruling 4 on a LIVE save: the app-agreement route is categorically
+  // unavailable on LIVE (project_record_link stays TEST-gated until
+  // the owner-surface migration), so an app-supplied LIVE examine
+  // always records the app_agreement_link gap, which at baseline
+  // semantics would block staging on the gap alone. On LIVE that
+  // single gap is recorded on the saved kit and its checklist
+  // instead of blocking — no LIVE route is improvised for the link
+  // itself — while every other gap, and every dispute-level staging
+  // fact, still blocks exactly as at baseline. On TEST nothing is
+  // excused: a failed link remains a genuine verification gap.
+  const agreementGapOnly=ctx.connection.mode==='live'&&
+    observed.gaps.length>0&&
+    observed.gaps.every(g=>g.section==='app_agreement_link'&&
+      g.reason==='guarded_profile_route_unavailable');
+  const stageable=observed.canStageDraft||(agreementGapOnly&&
+    observed.dispute.needsResponse===true&&
+    observed.dispute.submissionCount===0&&
+    observed.dispute.deadlineUnix!==null&&
+    observed.dispute.deadlineUnix>Math.floor(Date.now()/1000)&&
+    observed.dispute.pastDue!==true);
+  if(!stageable||(!observed.complete&&!agreementGapOnly))
     throw new TypeError('Original dispute has unmet staging prerequisites');
   const stage={disputeId:a.disputeId,...a.evidence,
     ...(a.outsideApp!==undefined?{outsideApp:a.outsideApp}:{})};
