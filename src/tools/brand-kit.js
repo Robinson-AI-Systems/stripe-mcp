@@ -10,23 +10,12 @@ const kitArgs={kit:{type:'object'},expectedVersion:{type:'integer',minimum:0}};
 const uploadArgs={sourceUrl:{type:'string',minLength:12,maxLength:2048},
   filename:{type:'string',maxLength:110},kind:{type:'string',enum:['logo','icon']}};
 const isFile=x=>typeof x==='string'&&/^file_[A-Za-z0-9]{2,100}$/.test(x);
-const goodAccount=c=>c?.connection?.mode==='test'&&
-  /^acct_[A-Za-z0-9]{2,100}$/.test(c?.connection?.stripeAccount??'');
 const selectedAccount=c=>['test','live'].includes(c?.connection?.mode)&&
   /^acct_[A-Za-z0-9]{2,100}$/.test(c?.connection?.stripeAccount??'');
-async function verified(ctx){
-  if(!goodAccount(ctx))throw new TypeError('Selected TEST account required');
-  const s=await client(ctx);
-  const account=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
-  if(account?.id!==ctx.connection.stripeAccount||account.livemode!==false)
-    throw new TypeError('Stripe TEST account identity unavailable');
-  return s;
-}
-// Mode-aware verification for the converted kit writes
-// (owner-obedience V2 family 11): the same exact-identity proof as
-// verified, with the independent provider mode evidence demanded for
-// the connection's own mode in both directions. brand_get keeps
-// verified (TEST-only) above.
+// Mode-aware verification (owner-obedience V2 family 11 for the kit
+// writes; CAP-4 D-12 for brand_get): the exact-identity proof, with
+// the independent provider mode evidence demanded for the connection's
+// own mode in both directions. No TEST-only verifier remains here.
 async function verifiedMode(ctx){
   if(!selectedAccount(ctx))throw new TypeError('Selected account required');
   const s=await client(ctx);
@@ -187,7 +176,7 @@ export const tools=[
       requestKey:{type:'string',minLength:1,maxLength:128}},
       required:['customerId','priceId'],additionalProperties:false}},
   {name:'brand_get',area:'branding',writes:false,profiles:allProfiles,
-    description:'Read the selected TEST account kit revision and provider-visible branding.',
+    description:'Read kit revision and provider-visible branding in the connection mode.',
     annotations:{readOnlyHint:true},
     inputSchema:{type:'object',properties:{},additionalProperties:false}},
   {...makeBrandImageUpload().tool,area:'branding',profiles:writeProfiles,
@@ -210,14 +199,17 @@ export const handlers={
   async brand_get(a,ctx){
     try{
       if(a&&Object.keys(a).length)throw new TypeError('Brand read takes no arguments');
-      const s=await verified(ctx);
-      const account=await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
-      const kit=await ctx.db.getBrandKit({account:ctx.connection.stripeAccount,mode:'test'});
+      const s=await verifiedMode(ctx);
+      const account=ctx.connection.mode==='live'?
+        await readVerifiedLiveAccount(s,ctx.connection.stripeAccount):
+        await readVerifiedTestAccount(s,ctx.connection.stripeAccount);
+      const kit=await ctx.db.getBrandKit({account:ctx.connection.stripeAccount,
+        mode:ctx.connection.mode});
       const branding=account.settings?.branding??{};
       const safe={primaryColor:branding.primary_color??null,
         secondaryColor:branding.secondary_color??null,
         logoPresent:!!branding.logo,iconPresent:!!branding.icon};
-      return reply({account:ctx.connection.stripeAccount,mode:'test',
+      return reply({account:ctx.connection.stripeAccount,mode:ctx.connection.mode,
         kit:kit?.settings??null,version:kit?.version??0,
         checkoutDefaults:checkoutBranding(kit?.settings??{}),
         accountBranding:safe,

@@ -28,8 +28,9 @@ const asGuide=(key,detail)=>{
     ...(detail==='full'?{steps:DASHBOARD_SETTINGS[key].steps}:{} )};
 };
 
-// A reader is independently scoped to the selected TEST account, and only its
-// deliberately whitelisted projection may appear in the owner verification.
+// A reader is independently scoped to the selected account in the
+// connection's own mode, and only its deliberately whitelisted
+// projection may appear in the owner verification.
 const NATIVE_SETTING_READS=Object.freeze({
   bank_account:[payoutHandlers.money_list_bank_accounts,{limit:5}],
   payout_schedule:[payoutHandlers.money_get_payout_schedule,{}],
@@ -96,7 +97,7 @@ export const tools=[
       detail:{type:'string',enum:['summary','full']}},additionalProperties:false}},
   {name:'admin_check_setting',area:'admin',writes:false,profiles:allProfiles,
     annotations:{readOnlyHint:true},
-    description:'Observe native TEST setting readers when available; Dashboard-only changes remain unverified and read-only.',
+    description:'Observe setting readers in the connection mode; Dashboard-only changes remain unverified and read-only.',
     inputSchema:{type:'object',properties:{
       setting:{type:'string',maxLength:100}},required:['setting'],additionalProperties:false}}
 ];
@@ -105,9 +106,9 @@ export const handlers={
     try{
       // CAP-4 D-7 (coordinator ruling): the guided gate follows the
       // shared mode-aware admin helper, and this payload mode reports
-      // the connection's actual mode. The guided family's full
-      // conversion, descriptions and remaining TEST-shaped text stay
-      // with D-12.
+      // the connection's actual mode. CAP-4 D-12 (annex under the same
+      // ruling) discharged the remainder: both descriptions name the
+      // connection mode and the remaining TEST-shaped text is resolved.
       const {mode}=requireAdminAccount(ctx);validateList(a);
       const keys=Object.keys(DASHBOARD_SETTINGS).sort()
         .filter(k=>a.section===undefined||(DASHBOARD_SECTION[k]??'other')===a.section);

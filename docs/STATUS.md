@@ -1,3 +1,61 @@
+## 2026-11-04 — CAP-4 D-12 brand reads and guided tools: follow the connection mode (source)
+
+CAP-4's ninth family is implemented in source (card
+[CAP4-D12-BRAND-READS-GUIDED](pr-cards/CAP4-D12-BRAND-READS-GUIDED.md)),
+next in the frozen Phase 1 sequence after D-11:
+
+- **The conversion.** All 9 tools serve both modes by
+  adopting the either-mode twins V2 already built for the
+  family's writes — no new idiom. The six guided tools
+  (`brand_set_*`, `setup_set_*`) dispatch on
+  `selectedEitherMode` and read back through `modeAccount`:
+  guidance text is mode-templated (steps are written once
+  with the TEST word; a LIVE connection receives the same
+  steps naming LIVE), the payload `mode` reports the
+  connection mode, the manual settings URL loses its
+  `/test/` segment on LIVE (an unenumerated mode-shaped
+  URL the census missed), and the observed-value read-back
+  verifies against the mode-verified account. The invoice
+  template reads ride `modeAccount`, and `safeTemplate`
+  verifies provider mode evidence when a read caller
+  supplies the mode (default semantics — the baseline list
+  fixture carries no `livemode`, so the baseline TEST read
+  set is unchanged; a wrong-mode member refuses the whole
+  read). `brand_get` rides `verifiedMode` and reads the
+  kit revision from the connection's own mode partition.
+  TEST payloads are byte-identical except one named
+  refusal correction: an unselected account now refuses
+  with 'Own-account guidance requires a selected account'
+  (the old text asserted TEST as a requirement). No
+  branding write handler was modified.
+- **The annex.** Under the D-7 coordinator ruling, this
+  card also discharges what D-7 left of the admin guided
+  tools: `admin_check_setting`'s description names the
+  connection mode, the remaining TEST-shaped text in
+  `admin-guided.js` is resolved, and the suite pins
+  `admin_check_setting`'s full observed flow (identity +
+  native reader) in both modes, which D-7's suite did not
+  cover. The dashboard-map step texts were examined and
+  left: their TEST references direct verification with
+  synthetic TEST artifacts, not the connection's mode.
+- **Proof.** New suite
+  `tests/unit/cap4-d12-brand-reads-guided.test.js`: 25
+  tests — 13 fail at baseline `d2f24c74` (the LIVE happy
+  paths, the corrected refusal text, the wrong-mode
+  template member baseline served unverified, `brand_get`
+  on LIVE, the descriptions) and all 25 pass after; the 12
+  baseline passes are accounted honestly in the card. The
+  pre-existing brand, D-7 and registry suites pass
+  unedited. The everyday catalog holds at 19,997 tokens
+  against the 20,000 cap — net zero, fitted inside this
+  family's own descriptions. Full unit suite green and
+  `npm run check` exit 0 on the final tree; database proof
+  is exact-head CI's route (no local PostgreSQL binaries).
+  Live proof remains open in the CAP-5 queue: one guided
+  brand read-back, one invoice-template list and get, one
+  `brand_get`, and the annex's `admin_check_setting`
+  observed flow on the owner's LIVE connection.
+
 ## 2026-11-04 — CAP-4 D-11 Identity reads: follow the connection mode (source)
 
 CAP-4's eighth family is implemented in source (card

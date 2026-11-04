@@ -454,8 +454,8 @@ watches, then checked by read-back where Stripe exposes the value (Robinson Tool
 | --- | --- | --- | --- | --- |
 | `stripe_admin_overview` | TEST or LIVE verification/capabilities plus native masked payout banks, schedule, payment configurations/domains, webhook/portal summaries and guided states; unreadable remains explicit | — | built #121; expanded #124 | R |
 | `admin_list_requirements` | TEST or LIVE requirement categories and counts, Denver deadlines and private owner Dashboard instructions, never raw personal requirement paths | — | built #121 | R |
-| `admin_list_guided_settings` | Paginated TEST-only structured owner settings map with steps, expected results and real reader references | — | built #120 | R |
-| `admin_check_setting` | TEST-only observed native verification of account, bank, payout schedule, payment configuration/domains, webhooks and portal with partial/unreadable honesty; never claims Dashboard change | — | built #120; native readback #125 | R |
+| `admin_list_guided_settings` | Paginated structured owner settings map in the connection mode with steps, expected results and real reader references | — | built #120 | R |
+| `admin_check_setting` | Observed native verification in the connection mode of account, bank, payout schedule, payment configuration/domains, webhooks and portal with partial/unreadable honesty; never claims Dashboard change | — | built #120; native readback #125 | R |
 | `admin_review_security` | TEST or LIVE masked stored-key metadata, fresh permission-probe availability, scoped connection totals and sanitized webhooks; Dashboard-only 2FA, team, rotation and passes remain unverified | — | built #122 | R |
 | `admin_fees_and_billing` | TEST or LIVE balance-transaction fee amounts by period, currency and type with explicit page completeness; Billing/Tax/Radar subscription invoices require owner Dashboard comparison | — | built #123 | R |
 
@@ -490,7 +490,7 @@ touch:
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `brand_get` | Current account branding (logo, icon, colors), the saved brand kit, and how a sample Checkout page will look (preview link in test mode) | — | N | R |
+| `brand_get` | Current account branding (logo, icon, colors), the saved brand kit for the connection mode, and how a sample Checkout page will look (preview link in the connection mode) | — | N | R |
 | `brand_upload_image` | Upload a logo or icon from a public URL or shared Google Drive link (checks size, square for icons) | P | N | E |
 | `brand_set_account_branding` | Logo, icon, primary and secondary color for receipts, invoices, Checkout and portal (API if Stripe allows it for this account, otherwise guided dashboard step plus check) | C | N | F |
 | `brand_save_kit` | Save the per-page brand kit (colors, corners, font, display name, logo/icon, button wording, terms text) used for every Checkout and payment link this server makes | P | N | E |
@@ -498,7 +498,7 @@ touch:
 | `brand_set_statement_descriptor` | What shows on customers' card and bank statements (22-character limit checked; short prefix for cards) | C | N | F |
 | `brand_set_public_details` | Business name, support email, phone, website, support address shown on receipts and Checkout | C | F | F |
 | `brand_set_invoice_defaults` | Invoice footer, memo, custom fields, payment terms, default tax IDs; numbering shown as a dashboard step if the API does not allow it | C | N | F |
-| `brand_list_invoice_templates` / `brand_get_invoice_template` | Saved invoice templates | — | N | R |
+| `brand_list_invoice_templates` / `brand_get_invoice_template` | Saved invoice templates in the connection mode | — | N | R |
 | `brand_archive_invoice_template` / `brand_unarchive_invoice_template` | Retire or bring back an invoice template | P | N | F |
 | `brand_set_portal_look` | Customer portal headline, privacy and terms links, default return URL | C | N | F |
 | `setup_set_payout_schedule` | Daily / weekly / monthly payouts and delay (same API caveat as account branding; same fallback) | C | N | F |
