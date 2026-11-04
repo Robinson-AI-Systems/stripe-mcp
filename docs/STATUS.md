@@ -1,3 +1,61 @@
+## 2026-11-04 — CAP-4 D-8 §A workflow read composites: follow the connection mode (source)
+
+CAP-4's tenth family is implemented in source (card
+[CAP4-D8-WORKFLOW-READ-COMPOSITES](pr-cards/CAP4-D8-WORKFLOW-READ-COMPOSITES.md)),
+next in the frozen Phase 1 sequence after D-12:
+
+- **The conversion.** All nine registered `writes: false`
+  workflow composites (`workflow_customer_overview`,
+  `workflow_failed_payments`, `workflow_money_snapshot`,
+  `workflow_month_end_close`, `workflow_find`,
+  `workflow_dispute_kit`, `workflow_webhook_health`,
+  `workflow_go_live_checklist`, `workflow_app_readiness`)
+  now verify their context account in the connection's own
+  mode and compose the already-converted native reads in that
+  mode. Four census names are drift (recorded in the card);
+  the census's `workflow_onboarding_checklist` and
+  `workflow_subscription_surgery_plan` have no registered
+  read counterpart. 0 new operations; the registry stays
+  329 tools.
+- **The preservation clause — split route.** `verifyContext`
+  in `workflow-read-common.js` is byte-identical: every write
+  composite enters through `writable()`, which calls it
+  before any composed read, so a mode-aware in-place change
+  would have altered write admission. The read composites
+  instead opt into a new `verifyModeContext` through
+  `nativeRead`/`collect`'s `{verify}` option (legacy default);
+  the shared read phases inside write-owned modules
+  (`examine`, `source`) are parameterized with legacy
+  defaults their write callers keep. New pins prove all six
+  write composites still refuse a LIVE context with the exact
+  baseline gate text, and both write composites' own suites
+  pass unchanged. Money wiring byte-untouched.
+- **Stamps and records.** Every read-path `mode: 'test'`
+  result stamp now stamps the connection's mode; the two
+  write-result stamps stand. The composites persist no local
+  stored records at this baseline; month-end close verifies
+  the composed snapshot's stamp against the connection mode,
+  and provider report runs keep D-6's mode partitioning (a
+  TEST-stamped run is refused under LIVE, never re-stamped).
+- **Named behaviors.** Go-live keeps its internal contract —
+  the TEST readiness matrix plus the LIVE sentinel parity
+  read — so from a LIVE connection it degrades per app to a
+  gap or refuses at the matrix check rather than fabricating
+  a matrix. The dispute kit's app-agreement link stays
+  TEST-gated with the Projects reads (ruling 4) and lands on
+  the LIVE checklist as an honest gap. The readiness read
+  handler's CAP-4 comment is discharged; the Projects write
+  side is untouched. §B (`workflow_dispute_kit_save`) is not
+  converted here — it is the immediate sibling unit.
+- **Checking.** New suite
+  `tests/unit/cap4-d8-workflow-read-composites.test.js`
+  (23 tests; 16 fail at baseline, the 7 baseline passes are
+  the preservation pins and TEST-behavior tests, accounted in
+  the card). Five pre-existing suites' LIVE legs updated to
+  the post-conversion contract, no TEST assertion changed.
+  Everyday catalog 19,997 → 19,999 against the unchanged
+  20,000 cap, fitted inside the family's own descriptions.
+
 ## 2026-11-04 — CAP-4 D-12 brand reads and guided tools: follow the connection mode (source)
 
 CAP-4's ninth family is implemented in source (card

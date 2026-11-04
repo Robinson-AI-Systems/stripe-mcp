@@ -1,7 +1,13 @@
 // W-8: account/profile-scoped readiness across projects.
-// LIVE stays completely unqueried and off until independently authorized.
+// The context gate follows the connection's own mode (CAP-4 D-8 §A).
+// The internal contract is the tool's subject and is preserved: the
+// per-project matrix read must be the TEST readiness matrix and the
+// parity read is the LIVE sentinel, which never contacts the provider.
+// Cross-mode reads do not exist, so from a LIVE connection the TEST
+// matrix cannot be fabricated: each project degrades to a
+// protected_test_read_unavailable gap, or the matrix check refuses.
 import {allProfiles,reply,fail} from './billing-shared.js';
-import {nativeRead,verifyContext,deadline,expired} from './workflow-read-common.js';
+import {nativeRead,verifyModeContext,modeWord,deadline,expired} from './workflow-read-common.js';
 const app=/^[a-z][a-z0-9-]{2,63}$/;
 const endpoint=/^we_[A-Za-z0-9]{2,100}$/;
 const portal=/^bpc_[A-Za-z0-9_]{3,190}$/;
@@ -16,12 +22,12 @@ const fields={
 export const tools=[{
   name:'workflow_go_live_checklist',area:'workflows',profiles:allProfiles,
   writes:false,annotations:{readOnlyHint:true},
-  description:'Review selected TEST project readiness and explicitly unverified LIVE parity, without production writes.',
+  description:'Selected project readiness, unverified LIVE parity, either mode; no production writes.',
   inputSchema:{type:'object',properties:fields,additionalProperties:false}
 }];
 const classifications=new Set(['done','missing','not_readable','needs_you',
   'needs_decision','not_applicable']);
-function validate(a){
+function validate(a,word='TEST'){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>!Object.hasOwn(fields,k))||
     a.apps!==undefined&&(!Array.isArray(a.apps)||a.apps.length<1||
@@ -31,17 +37,17 @@ function validate(a){
     a.portalConfiguration!==undefined&&!portal.test(a.portalConfiguration)||
     a.paymentMethodConfiguration!==undefined&&
       !config.test(a.paymentMethodConfiguration))
-    throw new TypeError('Select up to six bound TEST apps and optional exact settings IDs');
+    throw new TypeError('Select up to six bound '+word+' apps and optional exact settings IDs');
 }
 async function checklist(a,ctx){
-  verifyContext(ctx);validate(a);
+  verifyModeContext(ctx);validate(a,modeWord(ctx));
   if(!ctx.db?.listKnownAppsForAccount)
-    throw new TypeError('Original durable TEST app binding unavailable');
+    throw new TypeError('Original durable '+modeWord(ctx)+' app binding unavailable');
   const list=await ctx.db.listKnownAppsForAccount(ctx.connection.stripeAccount);
   if(!Array.isArray(list)||list.length>100)
     throw new TypeError('Original bound project collection unavailable');
   if(a.apps&&a.apps.some(id=>!list.some(p=>p.id===id)))
-    throw new TypeError('One selected project is not bound to this TEST account');
+    throw new TypeError('One selected project is not bound to this '+modeWord(ctx)+' account');
   const selected=(a.apps?list.filter(p=>a.apps.includes(p.id)):list);
   if(selected.length>6)throw new TypeError('Select up to six bound apps per readiness report');
   const end=deadline(),result=[],gaps=[];
@@ -59,7 +65,7 @@ async function checklist(a,ctx){
       ...(a.paymentMethodConfiguration?{
         paymentMethodConfiguration:a.paymentMethodConfiguration}:{})};
     let test;
-    try{test=await nativeRead('workflow_app_readiness',options,ctx);}
+    try{test=await nativeRead('workflow_app_readiness',options,ctx,{verify:verifyModeContext});}
     catch{gaps.push({app:project.id,reason:'protected_test_read_unavailable'});continue;}
     if(test.app!==project.name||test.account!==ctx.connection.stripeAccount||
       test.mode!=='test'||!Array.isArray(test.rows)||
@@ -70,8 +76,9 @@ async function checklist(a,ctx){
     let live;
     // The existing P-3 live sentinel does not contact the provider:
     // no assumptions about production keys or authorizations leak in.
+    // This internal parity-read pattern is preserved exactly (CAP-4 D-8 §A).
     try{live=await nativeRead('workflow_app_readiness',
-      {...options,mode:'live'},ctx);}
+      {...options,mode:'live'},ctx,{verify:verifyModeContext});}
     catch{gaps.push({app:project.id,reason:'live_sentinel_unavailable'});continue;}
     if(live.mode!=='live'||live.liveProviderQueried!==false||
       live.ready!==false||live.rows?.length!==21||
@@ -104,7 +111,7 @@ async function checklist(a,ctx){
         ownerAction:x.ownerAction??'Inspect original project readiness row'}))
     });
   }
-  return {account:ctx.connection.stripeAccount,mode:'test',
+  return {account:ctx.connection.stripeAccount,mode:ctx.connection.mode,
     complete:gaps.length===0&&!expired(end),projects:result,
     projectCount:result.length,gaps,
     liveParity:'not_verified',liveProviderQueried:false,liveEnabled:false,

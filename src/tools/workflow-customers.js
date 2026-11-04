@@ -1,7 +1,8 @@
-// W-2: read-only TEST receivables and customer operations in plain language.
+// W-2: read-only receivables and customer operations in plain language,
+// in the connection's own mode (CAP-4 D-8 §A).
 // No money write, retry scheduling, hosted-page creation or ownership override.
 import {allProfiles,reply,fail} from './billing-shared.js';
-import {collect,nativeRead,verifyContext,validCustomer,deadline,
+import {collect,nativeRead,verifyModeContext,modeWord,validCustomer,deadline,
   partial,str,integer} from './workflow-read-common.js';
 
 const customerId={type:'string',pattern:'^cus_[A-Za-z0-9]{2,100}$'};
@@ -12,10 +13,10 @@ const definition=(name,description,properties={},required=[])=>({
 });
 export const tools=[
   definition('workflow_failed_payments',
-    'Find unpaid TEST invoices and failed payments with verified retry facts.',
+    'Failed payments and unpaid invoices, verified retry facts, either mode.',
     {customerId}),
   definition('workflow_customer_overview',
-    'Show one TEST customer and verified billing, payment and app record links.',
+    'One customer, verified billing, payment and app links, either mode.',
     {customerId},['customerId'])
 ];
 const reasons={
@@ -28,27 +29,27 @@ const reasons={
   stolen_card:'The reported card cannot be charged',
   payment_intent_authentication_failure:'Authentication failed'
 };
-export function declineReason(payment){
+export function declineReason(payment,word='TEST'){
   const code=payment.declineCode??payment.failureCode;
-  return code?reasons[code]??'Stripe reported a decline; check the payment in your TEST Dashboard':
+  return code?reasons[code]??'Stripe reported a decline; check the payment in your '+word+' Dashboard':
     'Payment requires attention; Stripe did not provide a verified decline code';
 }
-function scope(a,required=false){
+function scope(a,required=false,word='TEST'){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>k!=='customerId')||
     (required&&!validCustomer(a.customerId))||
     (a.customerId!==undefined&&!validCustomer(a.customerId)))
-    throw new TypeError('Supply only an exact TEST customerId when required');
+    throw new TypeError('Supply only an exact '+word+' customerId when required');
 }
 function failure(payment){
   return payment.status==='requires_payment_method'||(
     payment.status==='canceled'&&
     (payment.failureCode!==null&&payment.failureCode!==undefined));
 }
-function summaryPayment(p){
+function summaryPayment(p,word){
   return {id:p.id,status:p.status,customer:p.customer??null,amountMinor:p.amount,
     currency:p.currency,description:str(p.description,120),
-    reason:declineReason(p),failureCode:str(p.failureCode,60),
+    reason:declineReason(p,word),failureCode:str(p.failureCode,60),
     createdAt:p.created_local??null,
     appRecord:p.appRecord??p.appRecordLink??p.recordLink??null};
 }
@@ -68,11 +69,11 @@ function secureInvoices(invoices){
     x.amount_remaining>0&&integer(x.attemptCount)&&x.attemptCount>0);
 }
 export async function failedPayments(a,ctx){
-  verifyContext(ctx);scope(a);
+  verifyModeContext(ctx);scope(a,false,modeWord(ctx));
   const end=deadline(),args={limit:100,...(a.customerId?{customerId:a.customerId}:{})};
-  const invoicePages=await collect('invoice_list',args,ctx,{end});
+  const invoicePages=await collect('invoice_list',args,ctx,{end,verify:verifyModeContext});
   const paymentPages=await collect('payment_list',
-    {limit:100,...(a.customerId?{customer:a.customerId}:{})},ctx,{end});
+    {limit:100,...(a.customerId?{customer:a.customerId}:{})},ctx,{end,verify:verifyModeContext});
   const invoices=secureInvoices(invoicePages.data);
   const payments=paymentPages.data.filter(failure);
   const verified=invoices.every(x=>Number.isSafeInteger(x.attemptCount)&&
@@ -85,11 +86,11 @@ export async function failedPayments(a,ctx){
     {name:'payments',complete:paymentPages.complete,reason:paymentPages.reason}
   ],end);
   return {kind:'failed_payments',account:ctx.connection.stripeAccount,
-    customerId:a.customerId??null,mode:'test',
+    customerId:a.customerId??null,mode:ctx.connection.mode,
     complete:complete&&snapshot.complete,
     counts:{unpaidAttemptedInvoices:invoices.length,failedPaymentIntents:payments.length},
     invoices:invoices.slice(0,25).map(summaryInvoice),
-    failedPayments:payments.slice(0,25).map(summaryPayment),
+    failedPayments:payments.slice(0,25).map(p=>summaryPayment(p,modeWord(ctx))),
     displayTruncated:invoices.length>25||payments.length>25,
     gaps:snapshot.gaps,continuation:snapshot.continuation,
     explanation:'Only attempted, still-open invoices and verified unsuccessful payment intent states are shown. No payment retries or invoice emails are triggered.'};
@@ -106,22 +107,23 @@ function compactInvoice(v){
     hostedInvoiceUrl:v.hosted_invoice_url??null,
     nextRetryAt:v.nextPaymentAttemptLocal??null};
 }
-function compactPayment(v){
+function compactPayment(v,word){
   return {id:v.id,status:v.status,currency:v.currency,amountMinor:v.amount,
     amountReceivedMinor:v.amount_received,
-    failureReason:failure(v)?declineReason(v):null};
+    failureReason:failure(v)?declineReason(v,word):null};
 }
 export async function customerOverview(a,ctx){
-  verifyContext(ctx);scope(a,true);
-  const end=deadline(),customer=await nativeRead('customer_get',{customerId:a.customerId},ctx);
+  verifyModeContext(ctx);scope(a,true,modeWord(ctx));
+  const end=deadline(),customer=await nativeRead('customer_get',
+    {customerId:a.customerId},ctx,{verify:verifyModeContext});
   if(customer.deleted||customer.id!==a.customerId)
-    throw new TypeError('Verified, existing TEST customer required');
+    throw new TypeError('Verified, existing '+modeWord(ctx)+' customer required');
   const invoices=await collect('invoice_list',
-    {customerId:a.customerId,limit:100},ctx,{end});
+    {customerId:a.customerId,limit:100},ctx,{end,verify:verifyModeContext});
   const subscriptions=await collect('billing_list_subscriptions',
-    {customer:a.customerId,status:'all',limit:100},ctx,{end});
+    {customer:a.customerId,status:'all',limit:100},ctx,{end,verify:verifyModeContext});
   const payments=await collect('payment_list',
-    {customer:a.customerId,limit:100},ctx,{end});
+    {customer:a.customerId,limit:100},ctx,{end,verify:verifyModeContext});
   const snapshot=partial([
     {name:'customer_invoices',complete:invoices.complete,reason:invoices.reason},
     {name:'customer_subscriptions',complete:subscriptions.complete,reason:subscriptions.reason},
@@ -129,16 +131,16 @@ export async function customerOverview(a,ctx){
   ],end);
   // The guarded native customer projection contains the already-authorized
   // profile record link. Do not re-derive links from untrusted metadata.
-  return {kind:'customer_overview',mode:'test',
+  return {kind:'customer_overview',mode:ctx.connection.mode,
     account:ctx.connection.stripeAccount,customer,complete:snapshot.complete,
     counts:{invoices:invoices.data.length,subscriptions:subscriptions.data.length,
       payments:payments.data.length},
     invoices:invoices.data.slice(0,20).map(compactInvoice),
     subscriptions:subscriptions.data.slice(0,20).map(compactSubscription),
-    payments:payments.data.slice(0,20).map(compactPayment),
+    payments:payments.data.slice(0,20).map(p=>compactPayment(p,modeWord(ctx))),
     displayTruncated:[invoices,subscriptions,payments].some(x=>x.data.length>20),
     gaps:snapshot.gaps,continuation:snapshot.continuation,
-    explanation:'TEST customer-owned billing records are read-only. App links are copied solely from the guarded existing customer projection; no application catalog or payment state is changed.'};
+    explanation:modeWord(ctx)+' customer-owned billing records are read-only. App links are copied solely from the guarded existing customer projection; no application catalog or payment state is changed.'};
 }
 export const handlers={
   workflow_failed_payments:async(a,ctx)=>{
