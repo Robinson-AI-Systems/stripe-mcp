@@ -1,3 +1,24 @@
+## 2026-11-03 — Owner-obedience V4 implemented: pass/revoke preparation follows the owner's connection, not the mode
+
+- **What changed:** the two preparation tools for pass issuance and
+  connection revocation accept the owner's full connection in
+  either mode. Preparation is stateless and changes nothing — it
+  returns an owner-page handoff whose prefilled values the page
+  re-validates — so the mode condition was a veto of paperwork,
+  not a protection. Issuance and revocation still complete only
+  on the passphrase-authenticated owner page, with every existing
+  consent (including the three separate LIVE consents for pass
+  issuance) unchanged.
+- **Coordinator rulings recorded with the card:** the stateless
+  preparation mechanism is kept (no invented server-side intent);
+  today's caller class (full-profile connections, which the
+  handler cannot distinguish into owner vs delegated pass) is
+  preserved — distinguishing connection types is CAP-3's
+  credential-context work; the adjacent TEST-only
+  `stripe_check_key_permissions` gate is deliberately untouched
+  (it is CAP-4's read-tool item, not part of this conversion).
+- **Evidence class:** source/synthetic. Live proof is queued for
+  the CAP-5 knock test at a checked release.
 ## 2026-11-03 — Owner-obedience V2: fingerprint confirmation is uniform across modes; shared machinery lands first
 
 - **Ruling (coordinator, 2026-11-03, on the V2 design census):**

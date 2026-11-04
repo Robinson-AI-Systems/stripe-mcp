@@ -103,9 +103,9 @@ function pageOf(rows,{account,offset,limit,field,extra={}}) {
 const fail = value => ({ isError:true,content:[{type:'text',text:value}] });
 export const handlers = {
   async stripe_create_pass(args,{connection,registry}) {
-    if(connection?.mode!=='test'||connection?.profile!=='full'||
+    if(!['test','live'].includes(connection?.mode)||connection?.profile!=='full'||
       !/^acct_[A-Za-z0-9]{2,100}$/.test(connection?.stripeAccount??''))
-      return fail('A selected full-profile TEST owner connection is required');
+      return fail('A selected full-profile owner connection is required');
     const a=args??{};
     const mode=a.mode??'test',profile=a.profile??'read_only',
       areas=a.areas??'server',allowWrites=a.allowWrites??false,
@@ -136,11 +136,11 @@ export const handlers = {
     }catch{return fail('Private owner setup URL is not configured');}
   },
   async stripe_revoke_connection(args,{connection}) {
-    if(connection?.mode!=='test'||connection?.profile!=='full'||
+    if(!['test','live'].includes(connection?.mode)||connection?.profile!=='full'||
       !/^acct_[A-Za-z0-9]{2,100}$/.test(connection?.stripeAccount??'')||
       typeof args?.clientId!=='string'||
       !/^[A-Za-z0-9:_-]{1,160}$/.test(args.clientId))
-      return fail('Select an exact client ID from a full-profile TEST owner connection');
+      return fail('Select an exact client ID from a full-profile owner connection');
     try{
       const url=new URL(publicOrigin(process.env)+'/api/stripe/setup');
       url.searchParams.set('revokeAccount',connection.stripeAccount);

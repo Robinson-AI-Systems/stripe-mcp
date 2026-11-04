@@ -626,6 +626,61 @@ describe('R-1 native pass and revoke owner browser handoff',()=>{
         .toMatchObject({isError:true});
     }finally{vi.unstubAllEnvs();}
   });
+  it('owner-obedience V4: prepares pass and revoke handoffs on a LIVE full connection, creating and revoking nothing',async()=>{
+    vi.stubEnv('PUBLIC_BASE_URL',env.PUBLIC_BASE_URL);
+    try{
+      const db=createFakeDb({accounts:[{id:'acct_NATIVE26',label:'Native fixture'}]});
+      await db.createAccessToken({accessToken:'live_token_fixture',refreshToken:'live_refresh_fixture',
+        clientId:'rtc-agent-0123456789abcdef',stripeAccount:'acct_NATIVE26',mode:'live',profile:'full'});
+      const connection={stripeAccount:'acct_NATIVE26',mode:'live',profile:'full'};
+      const stagedLive=await nativeOwner.stripe_create_pass({mode:'live',profile:'everyday',
+        areas:'payments,server',allowWrites:true,moneyLimitCents:200,
+        rateLimitPerMinute:5,hours:48},{connection,registry:nativeRegistry,db});
+      expect(stagedLive.isError).toBeUndefined();
+      const liveValue=JSON.parse(stagedLive.content[0].text);
+      expect(liveValue).toMatchObject({status:'owner_confirmation_required',mode:'live',
+        account:'acct_NATIVE26',profile:'everyday',allowWrites:true,moneyLimitCents:200});
+      expect(JSON.stringify(liveValue)).not.toContain('rtc_pass_');
+      expect(new URL(liveValue.ownerSetupUrl).origin).toBe(env.PUBLIC_BASE_URL);
+      const stagedTest=await nativeOwner.stripe_create_pass({mode:'test'},
+        {connection,registry:nativeRegistry,db});
+      expect(stagedTest.isError).toBeUndefined();
+      expect(JSON.parse(stagedTest.content[0].text).mode).toBe('test');
+      const revoke=await nativeOwner.stripe_revoke_connection(
+        {clientId:'rtc-agent-0123456789abcdef'},{connection,db});
+      expect(revoke.isError).toBeUndefined();
+      const removed=JSON.parse(revoke.content[0].text);
+      expect(removed.revoked).toBe(false);
+      expect(new URL(removed.ownerSetupUrl).searchParams.get('revokeClient'))
+        .toBe('rtc-agent-0123456789abcdef');
+      // Preparation changed nothing: the token survives and no audit rows exist.
+      expect(await db.getAccessToken('live_token_fixture')).not.toBeNull();
+      expect(await db.listAuditForTest()).toHaveLength(0);
+    }finally{vi.unstubAllEnvs();}
+  });
+  it('owner-obedience V4: preparation still refuses the wrong caller and bad shapes in LIVE exactly as in TEST',async()=>{
+    vi.stubEnv('PUBLIC_BASE_URL',env.PUBLIC_BASE_URL);
+    try{
+      const live={stripeAccount:'acct_NATIVE26',mode:'live',profile:'full'};
+      for(const profile of ['read_only','everyday']){
+        expect(await nativeOwner.stripe_create_pass({},
+          {connection:{...live,profile},registry:nativeRegistry})).toMatchObject({isError:true});
+        expect(await nativeOwner.stripe_revoke_connection({clientId:'rtc-agent-1'},
+          {connection:{...live,profile}})).toMatchObject({isError:true});
+      }
+      expect(await nativeOwner.stripe_create_pass({},
+        {connection:{...live,stripeAccount:'not-an-account'},registry:nativeRegistry}))
+        .toMatchObject({isError:true});
+      expect(await nativeOwner.stripe_revoke_connection({clientId:'bad client!'},
+        {connection:live})).toMatchObject({isError:true});
+      expect(await nativeOwner.stripe_create_pass({profile:'read_only',allowWrites:true},
+        {connection:live,registry:nativeRegistry})).toMatchObject({isError:true});
+      expect(await nativeOwner.stripe_create_pass({moneyLimitCents:100},
+        {connection:live,registry:nativeRegistry})).toMatchObject({isError:true});
+      expect(await nativeOwner.stripe_create_pass({hours:721},
+        {connection:live,registry:nativeRegistry})).toMatchObject({isError:true});
+    }finally{vi.unstubAllEnvs();}
+  });
   it('treats attacker query values as inert form suggestions only',async()=>{
     const {handler}=await fixture();
     const response=await page(handler,{account:'<script>alert(1)</script>',

@@ -720,6 +720,13 @@ V3, then V4.
   completes both in LIVE. Conversion: allow preparation on the owner's
   full connection in either mode; the consequential step stays on the
   passphrase-authenticated owner page.
+  **Source-implemented 2026-11-03 (OWNER-OBEDIENCE-V4):** both
+  preparation handlers accept the owner's full connection in either
+  mode (mode membership replaces the TEST-only condition); profile,
+  account/client shape, scope validation, result shapes, and
+  side-effect-freeness are unchanged, and issuance/revocation still
+  complete only on the owner page. Live proof remains open and
+  closes only at a checked release (CAP-5 queue).
 
 **Unclassified items — recorded as defects, not silently labeled:**
 (1) a family of read tools refuses LIVE connections although Stripe

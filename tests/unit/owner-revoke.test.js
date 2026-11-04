@@ -11,10 +11,10 @@ function response(){return {statusCode:200,headers:{},body:null,
   send(v){this.body=v;return this;},json(v){this.body=JSON.stringify(v);return this;}};}
 function req(method,body={},headers={}){return {method,body,headers,
   query:method==='GET'?body:{},socket:{remoteAddress:'192.0.2.14'}};}
-async function createFixture({clock=()=>Date.now()}={}){
+async function createFixture({clock=()=>Date.now(),mode='test'}={}){
   const db=createFakeDb({accounts:[{id:account,label:'Owner fixture'}],clock});
   await db.createAccessToken({accessToken:'test_token_owner_one',refreshToken:'refresh_owner_one',
-    clientId:'client_one',stripeAccount:account,mode:'test',profile:'read_only'});
+    clientId:'client_one',stripeAccount:account,mode,profile:'read_only'});
   await db.createAccessToken({accessToken:'test_token_owner_two',refreshToken:'refresh_owner_two',
     clientId:'client_two',stripeAccount:account,mode:'test',profile:'full'});
   const handler=createSetupHandler({db,keyStore:null,oneTimeStore:null,env});
@@ -76,6 +76,19 @@ describe('B-8b2a owner-only connection removal',()=>{
     expect((await f.db.listAuditForTest()).filter(x=>x.tool==='stripe_revoke_connection'))
       .toHaveLength(1);
     expect((await f.submit(confirm)).statusCode).toBe(410);
+  });
+  it('owner-obedience V4: the same two-phase page flow revokes a LIVE-mode connection',async()=>{
+    const f=await createFixture({mode:'live'});
+    const pending=await f.submit(prepare),id=getId(pending.body);
+    expect(id).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect(await f.db.getAccessToken('test_token_owner_one')).not.toBeNull();
+    const result=await f.submit({action:'confirm-revoke',id,ownerRevokeConsent:'yes',
+      passphrase:env.ADMIN_PASSPHRASE});
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toContain('Connection removed');
+    expect(await f.db.getAccessToken('test_token_owner_one')).toBeNull();
+    expect((await f.db.listAuditForTest()).filter(x=>x.tool==='stripe_revoke_connection'))
+      .toHaveLength(1);
   });
   it('rejects expired and competing simultaneous confirmations without a second audit',async()=>{
     let now=Date.now();
