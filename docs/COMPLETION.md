@@ -77,7 +77,7 @@ not close any product requirement by itself.
 | Ledger | Reconciled state | What it does—and does not—prove |
 |---|---|---|
 | Original roadmap source | **57 of 57 subsections merged.** | Source implementation exists. It does not prove deployed provider acceptance or finished-product status. |
-| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, Connect slice 1, D-4, D-5, D-6, D-7, D-11, D-12, D-8 §A, and D-8 §B) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
+| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, Connect slice 1, D-4, D-5, D-6, D-7, D-11, D-12, D-8 §A, D-8 §B, and D7b) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
 | Protected provider acceptance queue | **13 PASSED / 30 PENDING of 43.** Of the pending rows, **29 are Stripe-owned** and **1 is Hub-owned optional**. | The 29 Stripe-owned rows include the `STRIPE-TEST` aggregate, so the count is a ledger count, not 29 unrelated features. The Hub row is not a standalone-product gate. |
 | Session planner view | `scripts/session-status.mjs` reports 42 waiting/verification tasks plus the Hub-owned optional task. | This overlaps the queue above: it treats recorded passes as deployment-recheck items. Do not add 42 to 30. The queue dispositions remain 13 passed and 30 pending. |
 | RAS MCP conformance | **17 numbered rows** (14 at the 2026-11-02 pass; rows 15–17 opened 2026-11-03 by the Specification's new sections). | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. Rows 15–17 record the design-conformance compensation: the capability census is incomplete past its API element, the correction process is running, and four owner-facing refusals are designed for conversion to confirmed actions. |
@@ -390,14 +390,34 @@ the read families. The first family is source-implemented:
   blocks and TEST refuses on a failed link exactly as at
   baseline. Live proof for the save's LIVE row stands in
   the CAP-5 queue.
+- **D7b — the key-permission probe, per mode**
+  ([CAP4-D7B-KEY-PROBE-PER-MODE](pr-cards/CAP4-D7B-KEY-PROBE-PER-MODE.md)):
+  D-7's flagged leg, split into its own schema-bearing card
+  by the coordinator's probe-split ruling, is converted.
+  The probe's stored record is split per mode: the baseline
+  `key_permissions`/`key_checked_at` columns are the TEST
+  record by construction, new additive
+  `live_key_permissions`/`live_key_checked_at` columns start
+  never-probed, and `db.updateKeyPermissions` matches the
+  mode's own key ciphertext (the LIVE branch under the
+  `live_enabled` gate). The reprobe service verifies and
+  persists in the connection's mode, the handler serves
+  either mode with the both-modes refusal text D-7
+  deferred, and `stripe_whoami` reports the connection
+  mode's own stored record (nulls when never probed, never
+  the other mode's). `admin_review_security`'s LIVE probe
+  section now observes, untouched. Live proof for the
+  probe's LIVE row stands in the CAP-5 queue; the db-suite
+  persistence and legacy-migration proof rides exact-head
+  CI (no local PostgreSQL on the coordinator VM).
 
 Still required:
 
 1. The remaining families in the frozen order: Phase 1 is
-   complete in source with D-8 §B above; next is D-7's flagged probe leg
-   (`stripe_check_key_permissions`), which the coordinator
-   split into follow-up card CAP4-D7b (queued after D-8,
-   before D-9); Phase 2 Connect lifecycle writes and
+   complete in source with D-8 §B above; D-7's flagged probe leg
+   (`stripe_check_key_permissions`), split into follow-up card
+   CAP4-D7b, is likewise source-implemented above; next is
+   Phase 2 Connect lifecycle writes and
    destructive/terminal writes (slice 1 reads are implemented
    above); Phase 3 the universal door (D-9);
    Phase 4 the payment, billing, Tax-closure, event and

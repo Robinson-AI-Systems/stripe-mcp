@@ -1365,6 +1365,34 @@ still blocks and TEST refuses on a failed link exactly as
 at baseline. Live proof for the save's LIVE row stands in
 the CAP-5 queue.
 
+**CAP-4 progress — D7b key-permission probe per mode (2026-11-04):**
+the twelfth family, **D7b (the key-permission probe, per
+mode)**, is source-implemented (CAP4-D7B-KEY-PROBE-PER-MODE),
+closing the leg D-7 flagged and the coordinator split into
+its own schema-bearing card. The probe's stored record is
+split per mode: the baseline `key_permissions`/
+`key_checked_at` columns are the TEST record by construction
+(their only writers were TEST-matched), and new additive
+`live_key_permissions`/`live_key_checked_at` columns start
+never-probed — no data movement, added in `initSchema` the
+repo's additive way. `db.updateKeyPermissions` takes a mode
+(its TEST branch is the baseline statement verbatim; the
+LIVE branch matches `live_key_enc` under the `live_enabled`
+gate), the reprobe service verifies provider identity and
+persists in the connection's mode with the key store's LIVE
+production gate intact, the handler serves either mode with
+the both-modes refusal text D-7 deferred, and
+`stripe_whoami` reports the connection mode's own stored
+record (`keyPermissions`/`keyCheckedAt`, nulls when never
+probed — never the other mode's). `admin_review_security`
+is untouched; its LIVE probe section now observes. The
+card records one premise correction: baseline whoami
+surfaced no probe fields at all — the mode-blindness lived
+in the shared record, and both halves are fixed. Live
+proof for the probe's LIVE row stands in the CAP-5 queue;
+the db-suite persistence and legacy-migration proof rides
+exact-head CI (no local PostgreSQL on the coordinator VM).
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
