@@ -58,7 +58,7 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
      /workflow_call\s*:|\bpush\s*:/.test(promote)||
      !/contents:\s*write/.test(promote)||!/checks:\s*read/.test(promote)||
      !/run:\s*node scripts\/promote-live\.mjs/.test(promote))
-    errors.push('Release workflow must use approved schedules, owner-guarded dispatch and the checked promotion script');
+    errors.push('Release workflow must use approved recovery and checked promotion script');
   // Both release actions are immutable SHAs, not mutable marketplace tags.
   const actions=[...promote.matchAll(/^\s*- uses:\s*actions\/(checkout|setup-node)@([^\s#]+)/gm)];
   if(actions.length!==2||actions.some(([, ,ref])=>!/^[0-9a-f]{40}$/.test(ref)))

@@ -54,7 +54,7 @@ jobs:
         with:
           node-version: 22
       - run: node --test scripts/promote-live.test.mjs
-      - name: Promote a checked main snapshot under the release policy
+      - name: Promote exactly one checked main snapshot per Denver day
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RECOVER_MISSED_DAILY: ${{ inputs.recover_missed_daily }}

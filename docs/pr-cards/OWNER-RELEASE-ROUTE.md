@@ -63,8 +63,9 @@ is the coordinator's call.
   and the owner mode of `run()` (per-head receipt, no daily-marker reads
   or writes deciding the outcome, already-live receipt recording).
 - `scripts/validate-hosting-release.mjs` — the pinned dispatch block and
-  job gate now cover both owner routes; the refusal message names the
-  wider policy.
+  job gate now cover both owner routes; the pinned refusal text is
+  unchanged (`tests/unit/hosting-release-policy.test.js` contains it
+  verbatim).
 - `scripts/promote-live.test.mjs` — four tests appended; the ten
   pre-existing tests are byte-identical.
 - `docs/DAILY-PRODUCTION-PROMOTION.md` — the route recorded beside the
