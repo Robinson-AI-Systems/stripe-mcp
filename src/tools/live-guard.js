@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 // Live-mode decisions are server-side and never accepted from tool arguments.
 // LIVE grants come from the server's separately owner-approved connection, not
 // caller arguments. Preview is allowed before confirm; the original defineWrite
@@ -9,6 +9,33 @@ export function isRecentOwnerVerification({ confirmed, verifiedAt, now = Date.no
   return confirmed === true && Number.isSafeInteger(verifiedAt) &&
     Number.isSafeInteger(now) && verifiedAt <= now &&
     now - verifiedAt <= LIVE_REAUTH_WINDOW_MS;
+}
+
+/** Fingerprint of the exact LIVE-enablement state the owner was shown.
+ * Canonical fields: the one-time intent, the Stripe account, the enrolled
+ * LIVE credential's kind and last4, the current enabled/connected state,
+ * the deployment environment and the intent expiry. Any change to those
+ * facts changes the fingerprint and voids a confirmation given against
+ * the old one. The digest carries no secret: kind and last4 are the same
+ * non-secret identifiers the owner page already displays. */
+export function liveEnableFingerprint({ intentId, account, environment } = {}) {
+  const expires = account?.expires_at ?? account?.expiresAt;
+  const expiryMs = expires instanceof Date ? expires.getTime() : Date.parse(expires);
+  const state = {
+    action: 'stripe_enable_live',
+    intent: typeof intentId === 'string' ? intentId : '',
+    account: typeof account?.stripe_account === 'string' ? account.stripe_account
+      : typeof account?.id === 'string' ? account.id : '',
+    keyKind: typeof account?.live_key_kind === 'string' ? account.live_key_kind : null,
+    keyLast4: typeof account?.live_key_last4 === 'string' ? account.live_key_last4 : null,
+    liveEnabled: account?.live_enabled === true,
+    liveConnected: account?.live_connected === true,
+    environment: typeof environment === 'string' && environment ? environment : 'local',
+    expiresAt: Number.isFinite(expiryMs) ? new Date(expiryMs).toISOString() : null
+  };
+  const hex = createHash('sha256').update(JSON.stringify(state)).digest('hex')
+    .slice(0, 20).toUpperCase();
+  return 'LIVE-' + hex.match(/.{5}/g).join('-');
 }
 
 export async function authorizeLiveWrite({ ctx, env = process.env }) {

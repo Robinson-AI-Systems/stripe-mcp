@@ -297,11 +297,19 @@ Private TEST-only owner approvals are available in code via the protected setup 
 account ID, expiration (10 minutes) and consumption. Creating a pending intent
 **never enables live mode**. The owner setup route displays that account and
 requires the existing protected origin/CSRF/passphrase checks plus an explicit
-owner LIVE consent. Even then, `LIVE_MODE_OWNER_APPROVED` defaults OFF. Atomic
-PostgreSQL consumption enables `stripe_accounts.live_enabled` only when that
-additional IN-06 gate is on and the account has an encrypted live credential;
-the same SQL statement records the security change in `change_log`. The MCP
-dispatcher still exposes only TEST/read-only tools and cannot approve an intent.
+owner LIVE consent. Since the owner-obedience V1 conversion (2026-11-03) there
+is no deployment-level enablement flag: the confirmation page discloses the
+evaluated account, the enrolled credential's kind and last four, the current
+enabled/connected state, the deployment environment and the intent expiry,
+together with a short confirmation fingerprint of that exact evaluated state,
+and the owner must type that fingerprint to confirm. Atomic PostgreSQL
+consumption re-checks the evaluated credential in the same statement, enables
+`stripe_accounts.live_enabled` only on an exact match, and records the
+fingerprint and the security change in `change_log`; any credential or state
+change between review and confirmation voids the confirmation without
+consuming the intent. A post-write read-back confirms the enabled state
+before the page reports success. The MCP dispatcher still exposes only
+TEST/read-only tools and cannot approve an intent.
 
 ### B-3 application-owned Stripe record guard (staged)
 

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { createSetupHandler } from '../../src/stripe/setup-page.js';
 import {handlers as nativeOwner} from '../../src/tools/server.js';
@@ -340,59 +340,121 @@ describe('A-5b owner-only Stripe setup page',()=>{
 });
 
 describe('B-2b owner-only two-step LIVE page (fake database only)', () => {
-  async function intentPage({allow=false,connected=true, clock=()=>Date.now()}={}) {
+  const fingerprintOf=body=>/LIVE-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}/.exec(body)?.[0];
+  async function intentPage({connected=true, clock=()=>Date.now()}={}) {
     const account='acct_FAKE_LIVE_PAGE';
     const db=createFakeDb({accounts:[{id:account,label:'Fixture business',
-      live_connected:connected,live_enabled:false}],clock});
+      live_connected:connected,live_enabled:false,
+      live_key_kind:'restricted',live_key_last4:'FAKE'}],clock});
     const id='L'.repeat(32);
     await db.createLiveEnableIntent({id,account,expiresAt:new Date(clock()+600000)});
-    const handler=createSetupHandler({db,keyStore:null,oneTimeStore:null,
-      env:{...env,LIVE_MODE_OWNER_APPROVED:allow?'true':'false'}});
+    const handler=createSetupHandler({db,keyStore:null,oneTimeStore:null,env});
     const p=await page(handler,{liveEnable:id});
-    return {account,db,id,handler,p,c:cookiePage(p)};
+    return {account,db,id,handler,p,c:cookiePage(p),fingerprint:fingerprintOf(p.body)};
   }
-  const payload=(id,consent='yes',password=env.ADMIN_PASSPHRASE)=>({
-    action:'enable-live',id,ownerLiveConsent:consent,passphrase:password
+  const payload=(id,fingerprint,consent='yes',password=env.ADMIN_PASSPHRASE)=>({
+    action:'enable-live',id,ownerLiveConsent:consent,passphrase:password,
+    liveFingerprint:fingerprint
   });
-  it('does not activate from GET or with the owner approval environment gate OFF', async()=>{
+  it('discloses the evaluated facts and fingerprint on GET without activating', async()=>{
     const x=await intentPage();
     expect(x.p.body).toContain('Fixture business');
-    expect(x.p.body).toContain('LIVE');
+    expect(x.p.body).toContain('FAKE');
+    expect(x.fingerprint).toMatch(/^LIVE-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/);
     expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
-    const response=await submit(x.handler,x.c,payload(x.id));
-    expect(response.statusCode).toBe(403);
+  });
+  it('refuses a wrong or missing fingerprint and leaves the intent open', async()=>{
+    const x=await intentPage();
+    const wrong=await submit(x.handler,x.c,payload(x.id,'LIVE-00000-00000-00000-00000'));
+    expect(wrong.statusCode).toBe(409);
+    expect(wrong.body).toContain(x.fingerprint);
+    const missing=await submit(x.handler,x.c,{action:'enable-live',id:x.id,
+      ownerLiveConsent:'yes',passphrase:env.ADMIN_PASSPHRASE});
+    expect(missing.statusCode).toBe(409);
     expect((await x.db.getLiveEnableIntent(x.id))).not.toBeNull();
     expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
   });
   it('rejects wrong password, missing owner consent, wrong origin and absent CSRF',async()=>{
-    const x=await intentPage({allow:true});
-    expect((await submit(x.handler,x.c,payload(x.id),'https://invalid.test')).statusCode).toBe(403);
-    expect((await submit(x.handler,{cookie:x.c.cookie,csrf:'bad'},payload(x.id))).statusCode).toBe(403);
-    expect((await submit(x.handler,x.c,payload(x.id,'yes','bad'))).statusCode).toBe(401);
-    expect((await submit(x.handler,x.c,payload(x.id,'no'))).statusCode).toBe(400);
+    const x=await intentPage();
+    expect((await submit(x.handler,x.c,payload(x.id,x.fingerprint),'https://invalid.test')).statusCode).toBe(403);
+    expect((await submit(x.handler,{cookie:x.c.cookie,csrf:'bad'},payload(x.id,x.fingerprint))).statusCode).toBe(403);
+    expect((await submit(x.handler,x.c,payload(x.id,x.fingerprint,'yes','bad'))).statusCode).toBe(401);
+    expect((await submit(x.handler,x.c,payload(x.id,x.fingerprint,'no'))).statusCode).toBe(400);
     expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
   });
-  it('consumes only the exact intent once, after owner reauthentication and explicit consent',async()=>{
-    const x=await intentPage({allow:true});
-    const response=await submit(x.handler,x.c,payload(x.id));
+  it('consumes only the exact intent once, after owner reauthentication, explicit consent and the exact fingerprint — no deployment flag involved',async()=>{
+    const x=await intentPage();
+    const response=await submit(x.handler,x.c,payload(x.id,x.fingerprint));
     expect(response.statusCode).toBe(200);
     expect(response.body).toContain('LIVE mode enabled');
+    expect(response.body).toContain('Read-back confirms');
     expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(true);
-    expect((await submit(x.handler,x.c,payload(x.id))).statusCode).toBe(410);
-    expect((await x.db.listAuditForTest()).filter(r=>r.tool==='stripe_enable_live')).toHaveLength(1);
+    expect((await submit(x.handler,x.c,payload(x.id,x.fingerprint))).statusCode).toBe(410);
+    const audits=(await x.db.listAuditForTest()).filter(r=>r.tool==='stripe_enable_live');
+    expect(audits).toHaveLength(1);
+    expect(audits[0].summary).toContain(x.fingerprint);
   });
-  it('fails closed if a LIVE key is not verified, even with owner consent',async()=>{
-    const x=await intentPage({allow:true,connected:false});
-    expect((await submit(x.handler,x.c,payload(x.id))).statusCode).toBe(409);
+  it('a credential change between review and confirmation voids the old fingerprint',async()=>{
+    const x=await intentPage();
+    await x.db.saveLiveKey({account:x.account,ciphertext:'fake-ciphertext',
+      kind:'secret',last4:'ZZZZ'});
+    const stale=await submit(x.handler,x.c,payload(x.id,x.fingerprint));
+    expect(stale.statusCode).toBe(409);
+    const fresh=fingerprintOf(stale.body);
+    expect(fresh).not.toBe(x.fingerprint);
     expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+    expect((await x.db.getLiveEnableIntent(x.id))).not.toBeNull();
+    const confirmed=await submit(x.handler,x.c,payload(x.id,fresh));
+    expect(confirmed.statusCode).toBe(200);
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(true);
+  });
+  it('fails closed if a LIVE key is not verified, even with owner consent and fingerprint',async()=>{
+    const x=await intentPage({connected:false});
+    expect((await submit(x.handler,x.c,payload(x.id,x.fingerprint))).statusCode).toBe(409);
+    expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+    expect((await x.db.getLiveEnableIntent(x.id))).not.toBeNull();
   });
   it('refuses an expired live intent',async()=>{
     let now=Date.UTC(2026,9,10,12);
-    const x=await intentPage({allow:true,clock:()=>now});
+    const x=await intentPage({clock:()=>now});
     now+=600001;
     expect(await x.db.getLiveEnableIntent(x.id)).toBeNull();
-    expect((await submit(x.handler,x.c,payload(x.id))).statusCode).toBe(410);
+    expect((await submit(x.handler,x.c,payload(x.id,x.fingerprint))).statusCode).toBe(410);
     expect((await x.db.getStripeAccount(x.account)).live_enabled).toBe(false);
+  });
+});
+
+describe('owner LIVE credential enrollment (no deployment flag)', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  async function enrollmentFixture() {
+    const db=createFakeDb({accounts:[{id:'acct_FAKELIVEPAGE',label:'Fixture business'}]});
+    const storeLiveKey=vi.fn(async({account})=>({account,mode:'live',
+      kind:'restricted',last4:'FAKE',activated:false}));
+    const handler=createSetupHandler({db,keyStore:{storeLiveKey},oneTimeStore:null,env});
+    const c=cookiePage(await page(handler));
+    return {handler,c,storeLiveKey};
+  }
+  const enroll={action:'add-live-key',account:'acct_FAKELIVEPAGE',
+    key:['sk','live','FAKEFAKE'].join('_'),ownerLiveKeyConsent:'yes',
+    passphrase:env.ADMIN_PASSPHRASE};
+  it('enrolls on production with consent and exact account, without any LIVE_MODE_OWNER_APPROVED setting', async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const {handler,c,storeLiveKey}=await enrollmentFixture();
+    const response=await submit(handler,c,enroll);
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('LIVE remains OFF');
+    expect(storeLiveKey).toHaveBeenCalledTimes(1);
+  });
+  it('still refuses enrollment outside production or without consent', async()=>{
+    vi.stubEnv('VERCEL_ENV','preview');
+    const preview=await enrollmentFixture();
+    expect((await submit(preview.handler,preview.c,enroll)).statusCode).toBe(403);
+    expect(preview.storeLiveKey).not.toHaveBeenCalled();
+    vi.stubEnv('VERCEL_ENV','production');
+    const noConsent=await enrollmentFixture();
+    expect((await submit(noConsent.handler,noConsent.c,
+      {...enroll,ownerLiveKeyConsent:'no'})).statusCode).toBe(403);
+    expect(noConsent.storeLiveKey).not.toHaveBeenCalled();
   });
 });
 

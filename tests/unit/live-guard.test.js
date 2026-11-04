@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { isRecentOwnerVerification, LIVE_REAUTH_WINDOW_MS } from
+import { isRecentOwnerVerification, liveEnableFingerprint, LIVE_REAUTH_WINDOW_MS } from
   '../../src/tools/live-guard.js';
 import { defineWrite } from '../../src/tools/write.js';
 
@@ -89,6 +89,34 @@ describe('B-2 server-owned LIVE write boundary (fake Stripe only)', () => {
     const result=parse(await op.handler(supplied,{...ctx,liveAccessGranted:false}));
     expect(result.done).toBe(false);
     expect(calls.writes).toBe(0);
+  });
+});
+
+describe('owner-obedience V1 LIVE enablement fingerprint', () => {
+  const base = { intentId: 'L'.repeat(32), environment: 'production',
+    account: { stripe_account: 'acct_FAKE_LIVE', live_key_kind: 'restricted',
+      live_key_last4: 'FAKE', live_enabled: false, live_connected: true,
+      expires_at: new Date(Date.UTC(2026, 9, 10, 12, 10)) } };
+  it('is stable for identical evaluated state and carries no secret', () => {
+    const fp = liveEnableFingerprint(base);
+    expect(fp).toMatch(/^LIVE-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/);
+    expect(liveEnableFingerprint(structuredClone(base))).toBe(fp);
+    expect(fp).not.toContain('FAKE');
+  });
+  it('changes when any evaluated fact changes', () => {
+    const fp = liveEnableFingerprint(base);
+    const variants = [
+      { ...base, intentId: 'M'.repeat(32) },
+      { ...base, environment: 'preview' },
+      { ...base, account: { ...base.account, stripe_account: 'acct_OTHER' } },
+      { ...base, account: { ...base.account, live_key_kind: 'secret' } },
+      { ...base, account: { ...base.account, live_key_last4: 'ZZZZ' } },
+      { ...base, account: { ...base.account, live_enabled: true } },
+      { ...base, account: { ...base.account, live_connected: false } },
+      { ...base, account: { ...base.account,
+          expires_at: new Date(Date.UTC(2026, 9, 10, 12, 11)) } }
+    ];
+    for (const variant of variants) expect(liveEnableFingerprint(variant)).not.toBe(fp);
   });
 });
 

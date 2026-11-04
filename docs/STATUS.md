@@ -1,3 +1,32 @@
+## 2026-11-03 — Owner-obedience V1: LIVE enablement flag converted to a fingerprint-bound ceremony (source)
+
+The first of the four convertible vetoes in conformance row 17 is
+implemented in source (card
+[OWNER-OBEDIENCE-V1](pr-cards/OWNER-OBEDIENCE-V1.md)):
+
+- The deployment-level `LIVE_MODE_OWNER_APPROVED` flag no longer gates
+  anything: it is removed from both LIVE credential enrollment
+  (`add-live-key`) and activation (`enable-live`). IN-06 is unchanged —
+  activation still requires the owner's own per-account ceremony:
+  passphrase re-entry, explicit consent, a ten-minute intent, a verified
+  enrolled LIVE credential, and now typing the confirmation fingerprint
+  of the exact evaluated state the page discloses (account, credential
+  kind and last four, enabled/connected state, deployment environment,
+  intent expiry).
+- Consumption re-checks the expected credential in the same atomic
+  statement; a credential or state change between review and
+  confirmation voids the confirmation without consuming the intent, and
+  the audit record carries the fingerprint. The page reports success
+  only after a read-back confirms the account is enabled with a LIVE
+  credential connected.
+- Proof is source/synthetic only: focused unit tests cover disclosure,
+  wrong/missing/stale fingerprints, enrollment without any flag, and
+  the unchanged refusals; a database test covers the expected-state
+  consumption rule against real PostgreSQL in CI. No deployment, no
+  LIVE key, and no account enablement happened. Row 17's V1 closes
+  only on live evidence at a checked release (CAP-5 queue). Next in
+  the conversion order: V2, per family, most destructive first.
+
 ## 2026-11-03 — Design-conformance compensation: conformance record re-baselined and extended to 17 rows
 
 On Chris's direction, the designing to the RAS MCP Specification that

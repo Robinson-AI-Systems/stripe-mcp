@@ -303,8 +303,11 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const account = accountRows.get(id);
       if (!account) return null;
       const saved = encryptedTestKeys.get(id);
+      const liveSaved = encryptedLiveKeys.get(id);
       return structuredClone({ ...account, test_key_kind: saved?.kind || null,
         test_key_last4: saved?.last4 || null, key_permissions: saved?.permissions || {},
+        live_key_kind: liveSaved?.kind || account.live_key_kind || null,
+        live_key_last4: liveSaved?.last4 || account.live_key_last4 || null,
         money_limit_cents: account.money_limit_cents ?? 50000, test_connected: !!saved,
         live_connected: encryptedLiveKeys.has(id)||!!account.live_connected });
     },
@@ -355,19 +358,41 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
     async getLiveEnableIntent(id) {
       const row=liveIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
       const account=row?accountRows.get(row.account):null;
-      return row ? {id:row.id,stripe_account:row.account,label:account.label,
-        expires_at:new Date(row.expiresAt)} : null;
+      if (!row||!account) return null;
+      const liveSaved=encryptedLiveKeys.get(row.account);
+      return {id:row.id,stripe_account:row.account,label:account.label,
+        expires_at:new Date(row.expiresAt),
+        live_enabled:account.live_enabled===true,
+        live_key_kind:liveSaved?.kind||account.live_key_kind||null,
+        live_key_last4:liveSaved?.last4||account.live_key_last4||null,
+        live_connected:!!liveSaved||!!account.live_connected};
     },
-    async consumeLiveEnableIntent({id,allowActivation=false}) {
+    async consumeLiveEnableIntent({id,allowActivation=false,
+        expectedFingerprint=null,expectedKeyKind=null,expectedKeyLast4=null}) {
       if (allowActivation!==true) return false;
       const row=liveIntents.find(x=>x.id===id&&x.consumedAt===null&&x.expiresAt>clock());
       if (!row) return false;
-      row.consumedAt=clock();
       const account=accountRows.get(row.account);
-      if (!account?.live_connected) return false;
+      const hasExpectation=expectedFingerprint!==null||expectedKeyKind!==null||
+        expectedKeyLast4!==null;
+      if (hasExpectation) {
+        // Mirror the real store: a changed evaluated state refuses WITHOUT
+        // consuming the intent, so the owner can review the new facts.
+        const liveSaved=encryptedLiveKeys.get(row.account);
+        const kind=liveSaved?.kind||account?.live_key_kind||null;
+        const last4=liveSaved?.last4||account?.live_key_last4||null;
+        const connected=!!liveSaved||!!account?.live_connected;
+        if (!connected||account?.live_enabled===true||
+            kind!==expectedKeyKind||last4!==expectedKeyLast4) return false;
+      }
+      row.consumedAt=clock();
+      if (!account?.live_connected&&!encryptedLiveKeys.has(row.account)) return false;
       account.live_enabled=true;
       audit.push({stripe_account:row.account,mode:'live',tool:'stripe_enable_live',
-        summary:'Owner independently approved LIVE mode for this account',dry_run:false});
+        summary:hasExpectation
+          ? 'Owner confirmed LIVE activation fingerprint '+expectedFingerprint+
+            ' for this account (credential '+expectedKeyKind+' ending '+expectedKeyLast4+')'
+          : 'Owner independently approved LIVE mode for this account',dry_run:false});
       return true;
     },
     async requestMoneyLimitIntent({id,account,newLimitCents,expiresAt}) {

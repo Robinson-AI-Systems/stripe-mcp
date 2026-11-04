@@ -1,3 +1,27 @@
+## 2026-11-03 — Owner-obedience V1 implemented: the LIVE enablement flag converts to a fingerprint-bound owner ceremony
+
+- **What changed:** the deployment-level `LIVE_MODE_OWNER_APPROVED`
+  flag is removed from both LIVE credential enrollment and final
+  activation. The owner's per-account ceremony is now the whole gate:
+  passphrase re-entry, explicit consent, a ten-minute intent, a
+  verified enrolled LIVE credential, and typing the confirmation
+  fingerprint of the exact evaluated state the setup page discloses
+  (account, credential kind and last four, enabled/connected state,
+  deployment environment, intent expiry). Consumption re-checks the
+  expected credential atomically; a change between review and
+  confirmation voids the confirmation without consuming the intent;
+  the audit record carries the fingerprint; success is reported only
+  after a read-back confirms the enabled state.
+- **What did not change:** IN-06 itself — no account is enabled, no
+  LIVE key was used, and activation remains the owner's own act on the
+  protected production page. The money-out approval, daily cap,
+  passphrase lockout, and every other classified refusal keep their
+  row-17 dispositions.
+- **Evidence class:** source/synthetic (unit + fake-database tests,
+  database expected-state test in CI). Live proof is queued for the
+  CAP-5 knock test at a checked release; row 17's V1 closes only
+  there.
+
 ## 2026-11-03 — Design-conformance compensation: record re-baselined to the current Standard; refusal classification and four conversions
 
 - **Owner direction (main chat, 2026-11-03):** the designing to the

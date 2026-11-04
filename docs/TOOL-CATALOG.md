@@ -648,8 +648,11 @@ The LIVE authorization helper is internal only. It does **not** register or expo
 
 This slice adds **no publicly listed Stripe tool**. The random ten-minute LIVE
 enable intent and separately authenticated owner setup confirmation are internal
-primitives, default-denied by `LIVE_MODE_OWNER_APPROVED` while IN-06 is not
-authorized. `stripe_enable_live` is still an unbuilt/ungated B-8 catalog item;
+primitives, denied until the owner completes the per-account confirmation
+ceremony (passphrase, explicit consent, and — since the owner-obedience V1
+conversion, 2026-11-03 — typing the fingerprint of the exact evaluated state;
+the former `LIVE_MODE_OWNER_APPROVED` deployment flag is removed).
+`stripe_enable_live` is still an unbuilt/ungated B-8 catalog item;
 no model call can reach these internals. Live keys remain unavailable.
 
 ## B-3 app-owned protection (internal, no exposed tools)
