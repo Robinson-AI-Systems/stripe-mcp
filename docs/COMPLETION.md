@@ -77,7 +77,7 @@ not close any product requirement by itself.
 | Ledger | Reconciled state | What it does—and does not—prove |
 |---|---|---|
 | Original roadmap source | **57 of 57 subsections merged.** | Source implementation exists. It does not prove deployed provider acceptance or finished-product status. |
-| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, and Connect slice 1) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
+| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, Connect slice 1, and D-4) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
 | Protected provider acceptance queue | **13 PASSED / 30 PENDING of 43.** Of the pending rows, **29 are Stripe-owned** and **1 is Hub-owned optional**. | The 29 Stripe-owned rows include the `STRIPE-TEST` aggregate, so the count is a ledger count, not 29 unrelated features. The Hub row is not a standalone-product gate. |
 | Session planner view | `scripts/session-status.mjs` reports 42 waiting/verification tasks plus the Hub-owned optional task. | This overlaps the queue above: it treats recorded passes as deployment-recheck items. Do not add 42 to 30. The queue dispositions remain 13 passed and 30 pending. |
 | RAS MCP conformance | **17 numbered rows** (14 at the 2026-11-02 pass; rows 15–17 opened 2026-11-03 by the Specification's new sections). | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. Rows 15–17 record the design-conformance compensation: the capability census is incomplete past its API element, the correction process is running, and four owner-facing refusals are designed for conversion to confirmed actions. |
@@ -229,11 +229,23 @@ the read families. The first family is source-implemented:
   suite. Live proof for slice 1 stands in the CAP-5 queue on the
   testing surface only (one account + person read round against
   a TEST platform's test connected account).
+- **D-4 — dispute and event reads**
+  ([CAP4-D4-DISPUTE-EVENT-READS](pr-cards/CAP4-D4-DISPUTE-EVENT-READS.md)):
+  all 5 registry tools (dispute list/get; event list, get and
+  undelivered list) serve the connection's own mode with
+  per-object verification; the handler TEST-only gates are gone
+  and both projections verify on the shared-projection precedent,
+  with projection shapes and the privacy posture unchanged in
+  both modes. The census names the fifth tool `event_list_types`;
+  the registry's fifth tool is `event_list_undelivered` — naming
+  drift, recorded in the card. Live proof for D-4 stands in the
+  CAP-5 queue (one dispute and one event read on the owner's
+  LIVE connection).
 
 Still required:
 
 1. The remaining families in the frozen order: Phase 1 reads
-   D-4, D-5, D-6, D-7, D-11, D-12 and D-8 last (with the
+   D-5, D-6, D-7, D-11, D-12 and D-8 last (with the
    composite `workflow_dispute_kit_save` conversion as its own
    sibling unit); Phase 2 Connect lifecycle writes and
    destructive/terminal writes (slice 1 reads are implemented

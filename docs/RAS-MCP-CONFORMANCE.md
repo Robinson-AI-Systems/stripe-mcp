@@ -1057,6 +1057,29 @@ door's own classification and exact refusal reason for all 13
 pinned write operations. Live proof for slice 1 stands in the
 CAP-5 queue on the testing surface only.
 
+**CAP-4 progress — D-4 dispute and event reads (2026-11-04):**
+the fourth family, **D-4 (dispute and event reads)**, is
+source-implemented (CAP4-D4-DISPUTE-EVENT-READS): all 5 registry
+tools (dispute list/get; event list, get and the undelivered
+list) now verify every returned object against the connection's
+own mode in both directions, on the same shared-projection
+precedent. D-4's baseline was refusal-only, like D-1's and
+D-2's: handler gates refused every non-TEST connection before
+any provider call, and both projections hard-required
+`livemode===false`. The projections' shapes are byte-identical
+in both modes — dispute projections keep the minimal verified
+shape and event projections keep projecting only the embedded
+data object's ID and type — so the privacy invariant (no
+evidence contents, no customer emails or IPs, no raw event
+payloads in any read output) holds exactly as before, now
+proven on LIVE fixtures too. The census names the family's
+fifth tool `event_list_types`; no such tool exists in the
+registry, whose fifth tool is `event_list_undelivered` — naming
+drift, recorded in the card; the dispute writes (V2, PR #308)
+and the `workflow_dispute_kit_save` composite (D-8's §B) are
+untouched, as is the money wiring. Live proof for these reads
+stands in the CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

@@ -371,7 +371,7 @@ removing a payout bank account is done in the dashboard, which
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `dispute_list` / `dispute_get` | Safe TEST dispute status, amount and Colorado response deadline; no private evidence | — | built #90 | R |
+| `dispute_list` / `dispute_get` | Safe dispute status, amount and Colorado response deadline in the connection's mode; no private evidence | — | built #90 | R |
 | `dispute_save_evidence` | Confirmed draft evidence with submit:false and exact read-back in the connection's mode (TEST, or LIVE on the owner's full connection); never submitted to bank | P | built #93 | E |
 | `dispute_submit_evidence` | Irreversible confirmed evidence submission in the connection's mode (TEST, or LIVE on the owner's full connection), safe full-field preview | C | built #95 | E |
 | `dispute_accept` | Irreversible ordinary dispute loss in the connection's mode (TEST, or LIVE on the owner's full connection); exact owner-approved money out and $500/day cap | $ | built #96 | E |
@@ -396,8 +396,8 @@ Removed pending check: `stripe_list/get/create/delete_radar_rule` (audit bug 9; 
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `event_list` / `event_get` | Safe bounded TEST Event summaries, no embedded customer/payment data | — | built #103 | R |
-| `event_list_undelivered` | TEST Events with provider delivery_success=false; no app processing claim | — | built #103 | R |
+| `event_list` / `event_get` | Safe bounded Event summaries in the connection's mode, no embedded customer/payment data | — | built #103 | R |
+| `event_list_undelivered` | Events in the connection's mode with provider delivery_success=false; no app processing claim | — | built #103 | R |
 | `webhook_list` / `webhook_get` | TEST endpoint status/origin and bounded event subscriptions; paths, query and secrets redacted | — | built #104 | R |
 | `webhook_create` | Guarded TEST endpoint, durable immutable retry; Stripe signing secret only on the independently authenticated one-time owner setup page, never in chat | C | built #109 | F |
 | `webhook_update` | Guarded native TEST URL or description update with exact stale-plan refusal; event subscriptions unchanged | C | built #110 | E |
