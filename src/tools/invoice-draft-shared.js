@@ -1,6 +1,8 @@
-// D-5 TEST invoice draft invariants. Never take provider write authority from caller data.
+// D-5 invoice draft invariants in the connection's own mode.
+// Never take provider write authority from caller data.
 import {APP_METADATA_KEYS} from './app-guard.js';
 import {ref,positiveTotal} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 import {assertManualDraftAccounting,validateItemFamily,
   validateDraftMutation,assertReadbackItemCustomer} from './invoice-draft-accounting.js';
 const methods=new Set(['charge_automatically','send_invoice']);
@@ -9,13 +11,16 @@ export const invoiceText=max=>({type:'string',minLength:1,maxLength:max});
 export const invoiceCents={type:'integer',minimum:1,maximum:100000000};
 export const daysDue={type:'integer',minimum:1,maximum:90};
 export const invoiceMethod={type:'string',enum:[...methods]};
-export function verifiedCustomer(c){
+export function verifiedCustomer(c,mode){
+  if(mode!==undefined)assertAccountResourceMode(c,mode);
   if(!c||c.deleted||!/^cus_[A-Za-z0-9]{2,100}$/.test(c.id??'')||
     !c.metadata||typeof c.metadata!=='object')
-    throw new TypeError('Complete TEST customer metadata required');
+    throw new TypeError('Complete '+(mode==='live'?'LIVE':'TEST')+
+      ' customer metadata required');
   return c;
 }
-export function verifiedDraft(i){
+export function verifiedDraft(i,mode){
+  if(mode!==undefined)assertAccountResourceMode(i,mode);
   if(!i||i.deleted||i.object!=='invoice'||!allStatus.has(i.status)||
     i.status!=='draft'||i.currency!=='usd'||!methods.has(i.collection_method)||
     !/^in_[A-Za-z0-9]{2,100}$/.test(i.id??'')||
@@ -32,7 +37,8 @@ export function verifiedDraft(i){
     throw new TypeError('Draft has unverified additional line items');
   return assertManualDraftAccounting(i);
 }
-export function verifiedInvoiceItem(item,invoice){
+export function verifiedInvoiceItem(item,invoice,mode){
+  if(mode!==undefined)assertAccountResourceMode(item,mode);
   if(!item||item.deleted||item.object!=='invoiceitem'||
     !/^ii_[A-Za-z0-9]{2,100}$/.test(item.id??'')||
     ref(item.invoice)!==invoice.id||ref(item.customer)!==ref(invoice.customer)||
@@ -73,7 +79,7 @@ export function verifyInvoiceLineResult(b,after,a,name){
     (a.description===undefined||after.description===a.description);
   return false;
 }
-export function draftPreview(b,a,name){
+export function draftPreview(b,a,name,mode){
   const old=positiveTotal({...b,total:b.total??0,currency:'usd'});
   if(name==='invoice_create_draft')return {beforeCents:0,afterCents:0,
     explanation:'New empty manual draft; no payment is attempted'};
@@ -86,5 +92,6 @@ export function draftPreview(b,a,name){
     throw new TypeError('Draft total would be invalid USD cents');
   const safe=validateDraftMutation(old,old+delta);
   return {beforeCents:safe.previousCents,afterCents:safe.proposedCents,
-    explanation:'Proposed simple TEST draft total, not finalized or charged'};
+    explanation:'Proposed simple '+(mode==='live'?'LIVE':'TEST')+
+      ' draft total, not finalized or charged'};
 }

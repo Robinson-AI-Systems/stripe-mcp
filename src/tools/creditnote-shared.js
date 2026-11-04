@@ -1,5 +1,12 @@
-// D-5c Stripe credit notes: provider-verified USD preview and allocation.
+// D-5c Stripe credit notes: provider-verified USD preview and
+// allocation in the connection's own mode (owner-obedience V2,
+// family 4). The provider-derived amount and allocation proofs do
+// not relax — only their mode binding converts.
 import {ref,checkId} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
+// Boolean form of the assertAccountResourceMode rule for verify
+// hooks: a present livemode must equal the connection's mode.
+const modeOk=(v,mode)=>v?.livemode===undefined||v.livemode===(mode==='live');
 const reasons=['duplicate','fraudulent','order_change','product_unsatisfactory'];
 export const creditReasons={type:'string',enum:reasons};
 export const creditAllocation={type:'string',
@@ -35,8 +42,9 @@ export function creditParams(a){
     reason:a.reason,...allocationAmount(a.allocation,a.amountCents),
     email_type:'none',...(a.memo?{memo:a.memo}:{})};
 }
-export async function creditPreflight(a,s){
+export async function creditPreflight(a,s,mode){
   const i=await s.invoices.retrieve(checkId(a.invoiceId,'in'));
+  if(mode!==undefined)assertAccountResourceMode(i,mode);
   if(!i||i.object!=='invoice'||i.currency!=='usd'||
     !['open','paid'].includes(i.status)||
     !/^cus_[A-Za-z0-9]{2,100}$/.test(ref(i.customer)??'')||
@@ -55,6 +63,7 @@ export async function creditPreflight(a,s){
   const params=creditParams(a);
   // Pinned Stripe SDK method calls GET /v1/credit_notes/preview with these params.
   const preview=await s.creditNotes.preview(params);
+  if(mode!==undefined)assertAccountResourceMode(preview,mode);
   const p=safeCredit(preview);
   if(p.invoice!==i.id||p.customer!==ref(i.customer)||
     p.amountCents!==a.amountCents)
@@ -69,14 +78,16 @@ export async function creditPreflight(a,s){
     throw new TypeError('Stripe preview allocation differs from requested credit');
   return {...i,_creditPreview:p,_creditParams:params};
 }
-export function creditSummary(b,a){
-  return 'TEST MODE. Issue a USD '+a.allocation+' credit note for invoice '+b.id+
+export function creditSummary(b,a,mode){
+  return (mode==='live'?'LIVE MODE. ':'TEST MODE. ')+
+    'Issue a USD '+a.allocation+' credit note for invoice '+b.id+
     ', customer '+ref(b.customer)+', exactly $'+(a.amountCents/100).toFixed(2)+
     '. No customer email. The independent owner must approve this exact credit'+
     ' before Stripe receives a write. Above the shared $500/account/Denver-day'+
     ' limit requires a second separate owner override.';
 }
-export function creditVerifyIssued(b,after,a,createdId){
+export function creditVerifyIssued(b,after,a,createdId,mode){
+  if(mode!==undefined&&!modeOk(after,mode))return false;
   return after?.object==='credit_note'&&after.id===createdId&&
     ref(after.invoice)===b.id&&ref(after.customer)===ref(b.customer)&&
     after.currency==='usd'&&after.status==='issued'&&

@@ -18,13 +18,22 @@ export function profileCounts(registry,options={}) {
 // Existing native TEST writers from these areas all declare the original
 // defineWrite contract. Their own provider/owner/app/financial checks remain.
 const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer',
-  'disputes','risk','identity','money','webhooks','account','branding','catalog','reports']);
+  'disputes','risk','identity','money','webhooks','account','branding','catalog','reports',
+  // 'invoices' joined under owner-obedience V2 family 4 (Invoices &
+  // credit notes): the area was in NEITHER set, so all 14 tools were
+  // unreachable through every guarded door in both modes; the family's
+  // own card wires the dead family up in TEST as well as LIVE.
+  'invoices']);
 // Do not silently mark newly surfaced TEST-only operations as LIVE-ready.
 // 'money' joined under owner-obedience V2 family 1 (Money): the payout
 // operations and the payout schedule complete the full confirmed-action
 // sequence in LIVE; the synthetic top-up fixture does not (see the name
 // exclusion in isGuardedLiveWrite).
-const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money']);
+// 'invoices' joined under owner-obedience V2 family 4: draft, lifecycle
+// and credit-note operations complete the full confirmed-action sequence
+// in LIVE; the money operations keep rows 20-21 exactly (exact owner
+// approval, shared daily cap with its second override).
+const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices']);
 // Exact original customer lifecycle names whose LIVE provider-mode, app
 // ownership and independent readback guards have been reviewed. Monetary
 // balance credits/debits are NOT covered by this nonmoney authorization.

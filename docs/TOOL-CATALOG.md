@@ -301,7 +301,7 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `invoice_add_line` / `invoice_update_line` / `invoice_remove_line` | Draft invoice lines | P / P / C | built #43 | E |
 | `invoice_delete_draft` | Delete a draft | C | built #45 | E |
 | `invoice_finalize` | Lock a draft so it can be paid or sent | C | built #45 | E |
-| `invoice_send` | TEST invoice.sent event (no real email) | C | built #45 | E |
+| `invoice_send` | Send an open invoice to its customer (TEST emits the event only; LIVE emails the customer) | C | built #45 | E |
 | `invoice_charge_now` | Try to collect an open invoice now (Stripe's "pay") | $ | built #45 | E |
 | `invoice_mark_paid_outside_stripe` | Record a check/cash payment (`paid_out_of_band`) | C | built #45 | E |
 | `invoice_void` | Void an open invoice | C | built #45 | E |

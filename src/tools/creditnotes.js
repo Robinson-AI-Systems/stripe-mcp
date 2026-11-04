@@ -28,7 +28,7 @@ export const handlers={
   creditnote_get:(a,ctx)=>guarded(ctx,async s=>
     safeCredit(await s.creditNotes.retrieve(checkId(a?.creditNoteId,'cn')))),
   creditnote_preview:(a,ctx)=>guarded(ctx,async s=>{
-    const before=await creditPreflight(a,s);
+    const before=await creditPreflight(a,s,ctx?.connection?.mode);
     return {...before._creditPreview,allocation:a.allocation,
       targetInvoice:before.id,ownerMoneyApprovalRequired:true,
       proposedAmountCents:a.amountCents};

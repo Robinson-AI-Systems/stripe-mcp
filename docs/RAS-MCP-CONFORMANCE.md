@@ -738,8 +738,26 @@ V3, then V4.
   and its destination), and the refund's money-out wiring
   (rows 20–21) plus the app-owned-target guard and its refund
   exception are untouched and proven unrelaxed in LIVE.
+  Family 4 of 13, **Invoices & credit notes**, is
+  source-implemented the same day
+  (OWNER-OBEDIENCE-V2-INVOICES): this family was refused at
+  the dispatcher in **both** modes (the `invoices` area was in
+  neither guarded set), so the conversion admits the area in
+  `guardedTestAreas` and `guardedLiveAreas` as well as
+  converting the handlers — TEST reachability is itself new.
+  All fourteen operations (draft create/update and line
+  add/update/remove, lifecycle delete/finalize/send/charge/
+  record-external-payment/void/mark-uncollectible, and credit
+  note create/void) complete the confirmed-action sequence in
+  the connection's mode; every evaluated object and read-back
+  demands that mode; previews are mode-labeled and, in LIVE,
+  sending discloses that Stripe emails the real customer and
+  opens real collection. The credit note's money-out wiring
+  (rows 20–21) is untouched and proven unrelaxed in LIVE:
+  confirm alone moves nothing, and the exact owner approval
+  executes exactly once against the shared daily cap.
   Remaining families:
-  Invoices & credit notes; Billing; Checkout;
+  Billing; Checkout;
   Radar; Identity; Files; Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.

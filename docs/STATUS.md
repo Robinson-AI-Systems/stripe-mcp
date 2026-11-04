@@ -1,3 +1,54 @@
+## 2026-11-03 — Owner-obedience V2 Invoices & credit notes family: source-implemented (source)
+
+Family 4 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-INVOICES](pr-cards/OWNER-OBEDIENCE-V2-INVOICES.md)):
+
+- **Dispatcher admission converted — this family's difference.**
+  The fourteen invoice write tools were refused at the
+  dispatcher in **both** modes (the `invoices` area was in
+  neither guarded set), so the conversion admits the area in
+  `guardedTestAreas` and `guardedLiveAreas` in
+  `src/core/profiles.js` as well as converting the handlers.
+  TEST reachability is itself new and is proven end to end;
+  LIVE admission still requires the owner-approved connection,
+  and the two money operations still need the owner context or
+  a positive money ceiling. No other area's admission changed.
+- **Handlers converted.** The TEST-mode wrapper gates are gone
+  from all fourteen operations (draft create/update, line
+  add/update/remove, lifecycle delete/finalize/send/charge/
+  record-external-payment/void/mark-uncollectible, credit note
+  create/void). Every provider object a write is evaluated
+  against — and every read-back — now demands the connection's
+  own mode in both directions, through the shared seam from
+  PR #304. The manual-invoice invariants (complete USD,
+  automatic collection off, verified customer, draft/open
+  state proofs) and the app-ownership guard are unchanged.
+- **Disclosure.** Previews are mode-labeled and say in plain
+  words what each action does: in LIVE, sending discloses that
+  Stripe emails the real customer at their verified address
+  and opens real collection; finalizing discloses the invoice
+  becomes immutable; voiding and marking uncollectible
+  disclose the receivable is written off. Confirms bind to the
+  shared preview fingerprint in both modes: a drifted
+  confirmation refuses with the fresh preview and fingerprint
+  and executes nothing.
+- **The money gates are unrelaxed.** The money wiring is
+  byte-untouched (`src/tools/write.js`, `src/money.js`,
+  `src/db.js`): `creditnote_create` still executes only
+  through the guarded money contract — rows 20–21 (exact owner
+  approval; the shared $500 daily cap with its second
+  override) — proven in LIVE by confirm-alone moving nothing
+  and using $0 of the day, and an owner approval granted
+  through the decision-intent path executing exactly once and
+  counting against the day. `invoice_charge_now` keeps its
+  provider-derived exact-balance proof; recording an external
+  payment never implies a Stripe charge.
+- **Live proof remains open** (CAP-5 queue): a real LIVE
+  invoice or credit-note action happens only on a real account
+  when the owner elects to act. No account was enabled, no
+  LIVE key was used, and no real money moved.
+
 ## 2026-11-03 — Owner-obedience V2 Payments & refunds family: source-implemented (source)
 
 Family 3 of 13 of conformance row 17's V2 conversion is
