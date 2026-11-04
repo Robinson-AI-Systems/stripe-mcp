@@ -1,3 +1,50 @@
+## 2026-11-04 — CAP-4 D-1 money reads: mode-verified in both modes (source)
+
+CAP-4's second family is implemented in source (card
+[CAP4-D1-MONEY-READS](pr-cards/CAP4-D1-MONEY-READS.md)), next in
+the frozen Phase 1 sequence after D-3:
+
+- **The conversion.** All 10 money read tools (balance, balance
+  transactions, payouts, payout transactions, top-ups, bank
+  accounts, payout schedule) now serve the connection's own mode
+  with per-object mode verification. Three TEST-only gate sites
+  are gone — the `money-reads.js` wrapper and the two
+  `money-bank-reads.js` gates — and every returned object is
+  verified against the connection's mode before projection, in
+  both directions, on the D-3 shared-projection precedent
+  (optional mode parameter; `assertAccountResourceMode`). At
+  baseline these reads had no verification in either direction:
+  refusal was the only thing between them and LIVE, and a LIVE
+  object projected without complaint on a TEST connection.
+- **The embedded check.** `money_list_payout_transactions`'
+  automatic-payout proof rejected any `livemode===true` payout;
+  it is now parameterized to the connection's mode with the same
+  exactness, the manual-payout exclusion standing in both modes,
+  the refusal text naming the connection's mode (TEST wording
+  byte-identical), and the listed transactions verified too.
+- **Bank and schedule.** Account verification follows the
+  connection mode via the verified-account readers (the branding
+  writes' precedent) instead of an identity-only compare; bank
+  summaries verify their own mode; the schedule result's `mode`
+  field — a hardcoded `'test'` literal — now reports the
+  connection's mode (unchanged on TEST, proven byte-identical).
+  The admin overview/guided consumers of these handlers are
+  TEST-scoped and take the converted TEST path unchanged.
+- **Proof.** New suite `tests/unit/cap4-d1-money-reads.test.js`:
+  20 tests — 17 fail at baseline `d547c854` (every LIVE happy
+  path, every TEST-direction wrong-mode refusal, the
+  provider-evidence refusal, the descriptions) and all 20 pass
+  after; the 3 baseline passes are the refusals/identity the
+  baseline already produced, each now produced by verification or
+  unchanged by design. The pre-existing money read suites pass
+  with one fixture completion and no assertion changed. No
+  dispatcher, registry or reachability change (322 tools); no
+  write handler, money gate or money wiring touched. Database
+  tests are exact-head CI's route (no local PostgreSQL binaries).
+  Live proof remains open in the CAP-5 queue: money reads
+  (balance, one payout, one top-up, bank accounts, schedule) on
+  the owner's LIVE connection.
+
 ## 2026-11-04 — CAP-4 D-3 invoice, billing and credit-note reads: mode-verified; the A9 half-open state closes in source (source)
 
 CAP-4's first family is implemented in source (card

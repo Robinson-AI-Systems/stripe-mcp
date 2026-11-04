@@ -995,10 +995,29 @@ that interval these reads were **neither TEST-only nor converted**
 (the derivation's A9 finding). Production never ran the half-open
 code: the deployed build predates PR #304, and `main` was not
 promoted while the interval stood. The remaining read families
-(money, payments, disputes/events, checkout, reports/files/radar,
+(payments, disputes/events, checkout, reports/files/radar,
 account/admin, identity, brand, composites) still refuse LIVE
 behind their own gates and convert under their own CAP-4 cards;
 item (1) closes when the last of them lands or is dispositioned.
+
+**CAP-4 progress — D-1 money reads (2026-11-04):** the second
+family, **D-1 (money reads)**, is source-implemented
+(CAP4-D1-MONEY-READS): all 10 money read tools (balance, balance
+transactions, payouts, payout transactions, top-ups, bank
+accounts, payout schedule) now verify every returned object
+against the connection's own mode in both directions, on the
+same shared-projection precedent. D-1's baseline differed from
+D-3's: the family was never half-open — three TEST-only gates
+refused LIVE outright — but it carried no verification in either
+direction, so a LIVE object projected without complaint on a
+TEST connection, and the automatic-payout proof embedded its own
+TEST check (`livemode===true` refused), now parameterized to the
+connection's mode with the manual-payout exclusion standing in
+both modes. Bank and schedule account verification follows the
+connection mode via the verified-account readers, and the
+schedule result's hardcoded `mode:'test'` literal now reports
+the connection's mode (unchanged on TEST). Live proof for these
+reads stands in the CAP-5 queue.
 
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
