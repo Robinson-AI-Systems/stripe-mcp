@@ -37,6 +37,13 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The unit suite is import-bound (module re-evaluation per isolated file),
+    # so it partitions by file across parallel shards with identical coverage:
+    # every test file runs in exactly one shard (see docs/pr-cards/CI-SPEED.md).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,11 +51,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
-      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- npm test
+      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- npm test -- --shard=${{ matrix.shard }}/3
 
   db:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Files use per-file isolated schemas and run serially within a leg, so
+    # partitioning files across legs (each with its own Postgres service)
+    # preserves execution semantics exactly (see docs/pr-cards/CI-SPEED.md).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:17
@@ -69,7 +83,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
-      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- npm run test:db
+      - run: node scripts/ci-phase.mjs --budget-seconds 180 -- npm run test:db -- --shard=${{ matrix.shard }}/2
         env:
           TEST_DATABASE_URL: postgresql://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
 
@@ -143,6 +157,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # This second install was the only uncached one in CI; it is the
+          # setup long pole measured in docs/pr-cards/CI-SPEED.md.
+          cache: npm
+          cache-dependency-path: k3-candidate/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: k3-candidate
       - name: Prove original Stripe imports/SQL through checksum-verified private core
