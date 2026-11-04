@@ -241,6 +241,6 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     const counts=Object.fromEntries(['read_only','everyday','full'].map(profile=>
       [profile,visibleTools(registry,profile).length]));
     expect(body.profileToolCounts).toEqual(counts);
-    expect(body.tools).toBe(322);
+    expect(body.tools).toBe(329);
   });
 });

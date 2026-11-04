@@ -1036,6 +1036,26 @@ removed or renamed in either mode — so the raw-value privacy
 invariant (no client secrets, no card fingerprints in any read
 output) holds exactly as before, now proven on LIVE fixtures
 too. Live proof for these reads stands in the CAP-5 queue.
+**CAP-4 progress — Connect slice 1 reads (2026-11-04):** the
+first Phase 2 unit, **Connect slice 1 (connected-account
+reads)**, is source-implemented (CAP4-CONNECT-SLICE1-READS)
+under ruling 3's credential posture: the platform acts only via
+the owner's enrolled connection, and the connected account is
+always an explicit exact argument. Seven new native readers
+(connected-account list/get, capability list/get, external-
+account get, person list/get; registry 322 → 329) verify the
+platform actor (identity plus independent mode evidence, both
+modes) and every returned object's mode before projecting safe
+fields only — connected-account data is third-party data: no
+email, tax ID, bank numbers, card fingerprints or person data
+enter a result, and persons follow the Identity family's
+safe-fields posture with the field set pinned by test. The
+remaining Connect slices (lifecycle writes, then
+destructive/terminal) are not built and remain exactly as
+refused as at baseline — the card's suite pins the universal
+door's own classification and exact refusal reason for all 13
+pinned write operations. Live proof for slice 1 stands in the
+CAP-5 queue on the testing surface only.
 
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
