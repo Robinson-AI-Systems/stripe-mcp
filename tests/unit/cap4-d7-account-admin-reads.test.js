@@ -23,8 +23,21 @@
 // a LIVE connection refuses and the probe is never invoked — no
 // cross-mode fallback) as the regression floor for the follow-up
 // conversion once the coordinator rules on LIVE permission
-// persistence. Baseline accounting is recorded in the D-7 card after
-// the pristine-baseline run.
+// persistence. Baseline accounting (pristine-baseline run, recorded
+// in the D-7 card): 16 of these 30 tests fail at baseline — every
+// LIVE happy path, both no-connection gate texts, the mode-named
+// unreadable notes, the fees standard-refusal text, the guided LIVE
+// pins and the descriptions. Fourteen pass at baseline and after,
+// each accounted: the five TEST byte/shape pins (account, TEST
+// requirements, TEST overview summary, TEST fee sample, TEST security
+// review) and the TEST guided-list mode pin, which TEST was already
+// fully serving; the accountSafe no-mode contract and the
+// absent-livemode TEST fee row, the very fixture shape that forced
+// default semantics in the fees projection; the capabilities
+// wrong-mode refusal, outcome-identical at baseline (gate refusal
+// before any provider call; verified-reader refusal after); and the
+// four flagged-probe pins, which hold the baseline contract of the
+// one leg this build deliberately does not convert.
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {handlers as accountHandlers,tools as accountTools,accountSafe}
   from '../../src/tools/account-profile.js';

@@ -184,7 +184,7 @@ money (dollar preview, daily limit, always confirm).
 | --- | --- | --- | --- | --- |
 | `stripe_whoami` | Selected account, TEST mode, profile, masked key, actual shared USD daily limit/used amount, `server_release` (VER-1 checked release identity) | — | built #16, amount status #28, server_release VER-1 | R |
 | `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
-| `stripe_check_key_permissions` | Re-probe encrypted server-only TEST key; compact/full output and optional fields | — | built #29 | R |
+| `stripe_check_key_permissions` | Re-probe encrypted server-only TEST key; compact/full output and optional fields (CAP-4 D-7: mode conversion flagged — LIVE permission persistence awaits a `src/db.js` ruling; still TEST-only) | — | built #29 | R |
 | `stripe_list_connections` | Selected-account AI connection metadata, never credentials | — | built B-8a | R |
 | `stripe_revoke_connection` | Revoke a particular connection; the registered tool prepares an owner-confirmed revocation for the exact account/client ID — no access is revoked until private owner confirmation (the private owner flow is B-8b2a) | C | built B-8b2a | F |
 | `stripe_recent_changes` | Account-scoped audit summaries without raw snapshots (advanced filters later) | — | built B-8a | R |
@@ -436,8 +436,8 @@ app under development, and time travel. Every tool refuses on a live connection.
 | `report_list_types` | Complete TEST or LIVE report type catalog, exact periods, paged | — | built #85 (CI pending) | R |
 | `report_run` / `report_get_run` / `report_list_runs` | Guarded async report request in the connection's mode; TEST or LIVE run state and result file ID reads | P / — / — | run #86, get/list #85 | F for run; R reads |
 | `report_get_result_file` | Verify a completed TEST or LIVE run's finance_report_run file metadata only; private contents URL never returned | — | built #88; owner-only browser-only CSV delivery #89 (no AI content or URL) | R |
-| `account_get` | Verified own TEST account status, requirements count and safe country/currency; no private owner details or bank data | — | built #114 | R |
-| `account_list_capabilities` | TEST own-account capability statuses; explicit unreadable guidance when Stripe refuses an own-account capability-list call | — | built #115 | R |
+| `account_get` | Verified own TEST or LIVE account status, requirements count and safe country/currency; no private owner details or bank data | — | built #114 | R |
+| `account_list_capabilities` | TEST or LIVE own-account capability statuses; explicit unreadable guidance when Stripe refuses an own-account capability-list call | — | built #115 | R |
 | `account_list_payment_method_settings` | Whitelisted native TEST configuration preference and availability reads; 403/404 are unreadable, not disabled | — | built #116 | R |
 | `account_update_payment_method_settings` | TEST direct configuration guarded method preference changes with independent readback; refusal is not completion | C | built #117 | F |
 | `account_list_apple_pay_domains` | Native TEST payment-method domain status for Apple Pay; permission refusals unreadable | — | built #118 | R |
@@ -452,12 +452,12 @@ watches, then checked by read-back where Stripe exposes the value (Robinson Tool
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
-| `stripe_admin_overview` | TEST verification/capabilities plus native masked payout banks, schedule, payment configurations/domains, webhook/portal summaries and guided states; unreadable remains explicit | — | built #121; expanded #124 | R |
-| `admin_list_requirements` | TEST requirement categories and counts, Denver deadlines and private owner Dashboard instructions, never raw personal requirement paths | — | built #121 | R |
+| `stripe_admin_overview` | TEST or LIVE verification/capabilities plus native masked payout banks, schedule, payment configurations/domains, webhook/portal summaries and guided states; unreadable remains explicit | — | built #121; expanded #124 | R |
+| `admin_list_requirements` | TEST or LIVE requirement categories and counts, Denver deadlines and private owner Dashboard instructions, never raw personal requirement paths | — | built #121 | R |
 | `admin_list_guided_settings` | Paginated TEST-only structured owner settings map with steps, expected results and real reader references | — | built #120 | R |
 | `admin_check_setting` | TEST-only observed native verification of account, bank, payout schedule, payment configuration/domains, webhooks and portal with partial/unreadable honesty; never claims Dashboard change | — | built #120; native readback #125 | R |
-| `admin_review_security` | TEST masked stored-key metadata, fresh permission-probe availability, scoped connection totals and sanitized webhooks; Dashboard-only 2FA, team, rotation and passes remain unverified | — | built #122 | R |
-| `admin_fees_and_billing` | TEST balance-transaction fee amounts by period, currency and type with explicit page completeness; Billing/Tax/Radar subscription invoices require owner Dashboard comparison | — | built #123 | R |
+| `admin_review_security` | TEST or LIVE masked stored-key metadata, fresh permission-probe availability, scoped connection totals and sanitized webhooks; Dashboard-only 2FA, team, rotation and passes remain unverified | — | built #122 | R |
+| `admin_fees_and_billing` | TEST or LIVE balance-transaction fee amounts by period, currency and type with explicit page completeness; Billing/Tax/Radar subscription invoices require owner Dashboard comparison | — | built #123 | R |
 
 **Guided settings covered (dashboard-only; full list in `src/data/dashboard-map.js`, every settings page of the
 dashboard):** team members, invitations and roles; two-step login and account security; API keys (create, roll,

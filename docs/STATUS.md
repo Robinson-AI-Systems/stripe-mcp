@@ -1,3 +1,70 @@
+## 2026-11-04 — CAP-4 D-7 account and admin reads: follow the connection mode (source; probe leg flagged)
+
+CAP-4's seventh family is implemented in source (card
+[CAP4-D7-ACCOUNT-ADMIN-READS](pr-cards/CAP4-D7-ACCOUNT-ADMIN-READS.md)),
+next in the frozen Phase 1 sequence after D-6:
+
+- **The conversion.** `account_get` and
+  `account_list_capabilities` follow the connection mode: the
+  account record is proven by the mode-matched verified reader
+  and its `livemode` must equal the connection mode (strict
+  semantics — the baseline always required an explicit
+  `livemode===false`, so the TEST read set is unchanged). The
+  shared admin gate is mode-aware (`requireAdminAccount`: a
+  connected account in the connection's own mode, verified —
+  never TEST specifically), so `stripe_admin_overview`,
+  `admin_list_requirements`, `admin_fees_and_billing` and
+  `admin_review_security` derive every section from the selected
+  connection and every payload `mode` field reports its actual
+  mode. The fees projection's categorical refusal of LIVE
+  balance data is replaced by the standard discipline (each row
+  verified against the connection mode with default semantics —
+  the baseline accepted a TEST row with `livemode` false or
+  absent — and wrong-mode data refuses with the standard
+  mismatch text in both directions). Every refusal or note that
+  names the mode substitutes the connection's mode word, so
+  TEST outputs stay byte-identical.
+- **Drift and the guided consequence.** The census names are
+  drifted again (recorded in the card): `account_get_profile` /
+  `account_get_capabilities` are the registry's `account_get` /
+  `account_list_capabilities`, and three of the six named admin
+  tools do not exist — business health, the attention queue and
+  todos are sections and derivations of the one overview tool.
+  The shared gate is also the guided settings tools' gate
+  (D-12's family): under the coordinator's written ruling the
+  gate carries, the guided list's payload mode reports the
+  connection mode, and two guided notes that became falsehoods
+  on the opened LIVE path are minimally mode-parameterized;
+  D-12 still owns the guided family's full conversion.
+- **Flagged, not converted: the key-permission probe.**
+  `stripe_check_key_permissions` stays TEST-only in this build,
+  deliberately. A LIVE probe result cannot be persisted without
+  changing `src/db.js` — `updateKeyPermissions` matches only
+  `test_key_enc` and writes the single shared
+  `key_permissions` columns — so the conversion is stopped for
+  a coordinator ruling on LIVE permission persistence rather
+  than improvised. Baseline pins hold the contract (a LIVE
+  connection refuses; the probe is never invoked — no
+  cross-mode fallback), and the security review's probe section
+  honestly reports `not_readable` on LIVE meanwhile.
+- **Proof.** New suite
+  `tests/unit/cap4-d7-account-admin-reads.test.js`: 30 tests —
+  16 fail at baseline `5ad33226` and all 30 pass after; the 14
+  baseline passes are accounted honestly in the card (TEST
+  pins, the no-mode contracts, one outcome-identical refusal,
+  and the flagged probe's baseline contract). Four
+  pre-existing suites had their LIVE legs updated to the
+  post-conversion contract (their pinned premise was the
+  abolished TEST-only gate); every TEST assertion is unchanged.
+  The everyday catalog holds at 19,997 tokens against the
+  20,000 cap, fitted inside this family's own descriptions.
+  Full unit suite green and `npm run check` exit 0 on the final
+  tree; database proof is exact-head CI's route (no local
+  PostgreSQL binaries). Live proof remains open in the CAP-5
+  queue: the account, requirements, overview, fees and
+  security reads on the owner's LIVE connection; the probe's
+  LIVE row also waits on the flagged conversion.
+
 ## 2026-11-04 — CAP-4 D-6 report, file and Radar reads: mode-verified in both modes (source)
 
 CAP-4's sixth family is implemented in source (card
