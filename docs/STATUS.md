@@ -1,3 +1,29 @@
+## 2026-11-03 — Owner-obedience V4: pass/revoke preparation works on the owner's full connection in either mode (source)
+
+The fourth conversion in conformance row 17 is implemented in
+source (card
+[OWNER-OBEDIENCE-V4](pr-cards/OWNER-OBEDIENCE-V4.md)):
+
+- The two read-only preparation tools (`stripe_create_pass`,
+  `stripe_revoke_connection` in `src/tools/server.js`) no longer
+  demand a TEST connection: preparation is allowed on the owner's
+  full connection in TEST or LIVE. Profile (`full` only), account
+  and client-ID shape, pass-scope validation, result shapes, and
+  the tools' side-effect-freeness are unchanged — preparation still
+  creates nothing, revokes nothing, writes no audit row, and
+  returns no credential material in either mode.
+- The consequential steps are untouched and remain completable
+  only on the passphrase-authenticated owner page: pass issuance
+  with its separate LIVE consents, and the two-phase
+  `request-revoke` → `confirm-revoke` flow (proven here against a
+  LIVE-mode connection as well).
+- Proof is source/synthetic only: new tests cover LIVE preparation
+  for both tools, the unchanged wrong-caller and bad-shape
+  refusals in LIVE, preparation's creates-nothing property against
+  a seeded token store, and the LIVE-mode page revocation. No
+  deployment, no LIVE key, no real pass issued or revoked. Row
+  17's V4 closes only on live evidence at a checked release
+  (CAP-5 queue).
 ## 2026-11-03 — Owner-obedience V2 shared machinery: preview-fingerprint binding + mode-aware client seam (source)
 
 Step (1) of the frozen V2 implementation sequence is implemented in

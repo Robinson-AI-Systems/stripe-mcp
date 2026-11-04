@@ -1,8 +1,7 @@
 # OWNER-OBEDIENCE-V1 — LIVE enablement confirmed-action conversion
 
-Status: **IMPLEMENTED IN SOURCE** on branch
-`ai/vivienne/owner-obedience-v1` (merge and live proof pending; live
-proof closes only at a checked release, CAP-5 queue). Just-in-time
+Status: **MERGED (#303**, squash `94813299a8bd077e239504c9df8e22ef616f00db`;
+live proof pending — closes only at a checked release, CAP-5 queue). Just-in-time
 card for conformance row 17,
 conversion **V1** in [RAS-MCP-CONFORMANCE](../RAS-MCP-CONFORMANCE.md).
 Baseline inspected: `main`
