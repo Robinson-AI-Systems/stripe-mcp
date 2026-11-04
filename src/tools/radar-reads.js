@@ -1,4 +1,5 @@
-// G-3a: safe TEST Radar reads, never return IP, card, email or raw list-item values.
+// G-3a: safe Radar reads in the connection's own mode; never return
+// IP, card, email or raw list-item values.
 import {allProfiles,guarded,fail,pageResult,paging,ref,local} from './billing-shared.js';
 const invalid=m=>{throw new TypeError(m);};
 const exact=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').test(v);
@@ -68,15 +69,15 @@ const def=(name,description,props,required=[])=>({
 const paged=(p='')=>({limit:{type:'integer',minimum:1,maximum:100},
   starting_after:{type:'string',pattern:'^'+p+'_[A-Za-z0-9]{2,100}$'}});
 export const tools=[
-  def('radar_list_fraud_warnings','List TEST early fraud warning IDs, linked charges and actionable flags.',
+  def('radar_list_fraud_warnings','List TEST or LIVE fraud warning IDs, charges, actionable flags.',
     paged('issfr')),
-  def('radar_get_fraud_warning','Get one TEST fraud warning without private customer details.',
+  def('radar_get_fraud_warning','Get TEST or LIVE fraud warning; no customer details.',
     {warningId:{type:'string',pattern:'^issfr_[A-Za-z0-9]{2,100}$'}},['warningId']),
-  def('radar_list_reviews','List open TEST Radar review IDs and linked payment IDs.',paged('prv')),
-  def('radar_get_review','Get TEST Radar review status without address or IP.',
+  def('radar_list_reviews','List open TEST or LIVE review IDs and payment IDs.',paged('prv')),
+  def('radar_get_review','Get TEST or LIVE review status; no address/IP.',
     {reviewId:{type:'string',pattern:'^prv_[A-Za-z0-9]{2,100}$'}},['reviewId']),
-  def('radar_list_value_lists','List TEST Radar value-list definitions without item values.',paged('rsl')),
-  def('radar_list_list_items','List TEST value-list item IDs without sensitive raw values.',
+  def('radar_list_value_lists','List TEST or LIVE value lists; no item values.',paged('rsl')),
+  def('radar_list_list_items','List TEST or LIVE list-item IDs; no raw values.',
     {valueListId:item,...paged('rsli')},['valueListId'])
 ];
 function check(a,allowed,required=[],prefix){
@@ -87,22 +88,21 @@ function check(a,allowed,required=[],prefix){
     invalid('Invalid Radar cursor');
 }
 async function list(a,ctx,path,prefix,shape,more={}){
-  return ctx?.connection?.mode!=='test'?fail('Radar reads require TEST mode'):
-    guarded(ctx,async s=>{
+  return guarded(ctx,async s=>{
       check(a,['limit','starting_after',...(more.value_list?['valueListId']:[])],
         more.value_list?['valueListId']:[],prefix);
+      const mode=ctx?.connection?.mode;
       const result=await path(s).list({...paging(a),...more});
-      return pageResult(result,shape);
+      return pageResult(result,v=>shape(v,mode));
     });
 }
 async function get(a,ctx,key,prefix,path,shape){
-  return ctx?.connection?.mode!=='test'?fail('Radar reads require TEST mode'):
-    guarded(ctx,async s=>{
+  return guarded(ctx,async s=>{
       check(a,[key],[key]);
       if(!exact(a[key],prefix))invalid('Exact Radar ID required');
       const value=await path(s).retrieve(a[key]);
       if(value?.id!==a[key])invalid('Radar identity mismatch');
-      return shape(value);
+      return shape(value,ctx?.connection?.mode);
     });
 }
 export const handlers={
@@ -113,8 +113,9 @@ export const handlers={
   radar_list_value_lists:(a,c)=>list(a,c,s=>s.radar.valueLists,'rsl',valueListSafe),
   radar_list_list_items:(a,c)=>{
     if(!exact(a?.valueListId,'rsl'))return fail('Exact Radar value list ID required');
+    const mode=c?.connection?.mode;
     return list(a,c,s=>s.radar.valueListItems,'rsli',v=>{
-      const item=valueItemSafe(v);
+      const item=valueItemSafe(v,mode);
       if(item.valueListId!==a.valueListId)invalid('Foreign Radar value-list item');
       return item;
     },{value_list:a.valueListId});
