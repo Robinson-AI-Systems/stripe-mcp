@@ -897,9 +897,32 @@ V3, then V4.
   Checkout session through Family 6's converted write. The
   guided own-account tools and the brand/template reads are
   not writes and stay TEST-only under CAP-4's ownership.
-  Remaining families:
-  Projects
-  (provider-write half). Each family closes only on live proof.
+  Family 13 of 13, **Projects** (provider-write half), is
+  source-implemented 2026-11-04
+  (OWNER-OBEDIENCE-V2-PROJECTS): under coordinator ruling 4
+  only the provider-write half converts — the dispatcher
+  admits exactly three names (`project_portal_create`,
+  `workflow_project_setup`, `workflow_app_readiness_fix`) in
+  both modes via an exact name set, the `projects` area
+  itself staying out of both area sets, and all three
+  complete the confirmed-action sequence in the connection's
+  own mode in tests; setup verifies the brand kit and portal
+  configurations in the connection's mode, its previews
+  state that the recorded draft is not bound and scoped
+  ownership is not enabled, and the readiness fix's composed
+  native writes inherit their own families' guards. **The
+  binding half does not convert:**
+  `project_bind_profile_account` and
+  `project_enable_scoped_ownership` gain no admission in
+  either mode, their module is byte-untouched and their LIVE
+  refusals are proven identical — they are referred to the
+  owner-surface migration named at
+  `src/tools/app-profiles.js:94`. The readiness read keeps
+  its TEST-only gate exactly (read reachability is CAP-4's);
+  only the fix's internal observation is mode-parameterized.
+  With this family the V2 family sequence is complete in
+  source; the binding half and all live proof remain open.
+  Each family closes only on live proof.
 - **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).
   The one place the owner's explicit ownership acknowledgment — the
   route the general app-ownership guard accepts — is itself refused.

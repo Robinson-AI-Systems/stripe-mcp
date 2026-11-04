@@ -175,6 +175,41 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     expect(isGuardedTestWrite(payout,{mode:'test',profile:'full'})).toBe(true);
     expect(isGuardedTestWrite(topup,{mode:'test',profile:'full'})).toBe(true);
   });
+  it('owner-obedience V2 family 13 (Projects): only the provider-write half is admitted, in both modes (ruling 4)',()=>{
+    const provider=['project_portal_create','workflow_project_setup',
+      'workflow_app_readiness_fix'];
+    const binding=['project_bind_profile_account',
+      'project_enable_scoped_ownership'];
+    const owner={mode:'live',profile:'full',listing:'catalog',
+      context:'customer',rtcLiveOwnerApproved:true,moneyLimitCents:0};
+    for(const name of provider){
+      const t=registry.tools.find(x=>x.name===name);
+      expect(t?.writeContract,name).toBe('defineWrite-v1');
+      expect(isGuardedTestWrite(t,{mode:'test',profile:'full'}),name).toBe(true);
+      expect(isGuardedTestWrite(t,{mode:'test',profile:'read_only'}),name).toBe(false);
+      expect(isGuardedLiveWrite(t,owner),name).toBe(true);
+      expect(isGuardedLiveWrite(t,{...owner,rtcLiveOwnerApproved:false}),name)
+        .toBe(false);
+    }
+    // The binding half changes server-side state and is referred to
+    // the owner-surface migration: it gains no admission here.
+    for(const name of binding){
+      const t=registry.tools.find(x=>x.name===name);
+      expect(isGuardedTestWrite(t,{mode:'test',profile:'full'}),name).toBe(false);
+      expect(isGuardedLiveWrite(t,owner),name).toBe(false);
+    }
+    const testNames=listingForConnection(registry,
+      {mode:'test',profile:'full',listing:'catalog'}).map(t=>t.name);
+    const liveNames=listingForConnection(registry,owner).map(t=>t.name);
+    for(const name of provider){
+      expect(testNames).toContain(name);
+      expect(liveNames).toContain(name);
+    }
+    for(const name of binding){
+      expect(testNames).not.toContain(name);
+      expect(liveNames).not.toContain(name);
+    }
+  });
   it('never publishes internal capability metadata with listed tools',()=>{
     const tool={name:'read',writes:false,profiles:['read_only'],description:'safe'};
     expect(publicToolInfo(tool)).toMatchObject({name:'read',description:'safe',

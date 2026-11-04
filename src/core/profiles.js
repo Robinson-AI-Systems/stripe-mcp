@@ -90,6 +90,21 @@ const guardedLiveAccountWrites=new Set([
 const guardedLiveBrandingWrites=new Set([
   'setup_set_payout_schedule'
 ]);
+// Owner-obedience V2 family 13 (Projects), coordinator ruling 4:
+// only the provider-write half converts — portal creation, the
+// guided setup steps and the readiness fix create or verify
+// provider objects. The binding half
+// (project_bind_profile_account, project_enable_scoped_ownership)
+// changes server-side binding state, creates nothing at Stripe,
+// and is referred to the owner-surface migration that
+// src/tools/app-profiles.js already anticipates; it gains NO
+// admission here. The projects area is therefore deliberately
+// NOT added to either area set: these three exact names are the
+// whole admission delta, in both modes.
+const guardedProjectProviderWrites=new Set([
+  'project_portal_create','workflow_project_setup',
+  'workflow_app_readiness_fix'
+]);
 // An entire workflow can delegate multiple original protected native writes.
 // Expose only these audited original whole-job operations to the independently
 // authenticated TEST full owner profile through stripe_call; never everyday,
@@ -103,6 +118,7 @@ export function isGuardedTestWrite(tool,connection){
   return connection?.mode==='test'&&tool?.writes===true&&
     tool?.writeContract==='defineWrite-v1'&&
     (guardedTestAreas.has(tool.area)||
+      (tool.area==='projects'&&guardedProjectProviderWrites.has(tool.name))||
       (tool.area==='server'&&tool.name==='stripe_undo_change')||
       (tool.area==='workflows'&&connection?.profile==='full'&&
         fullOwnerWorkflowWrites.has(tool.name))||
@@ -143,6 +159,7 @@ export function isGuardedLiveWrite(tool,connection){
     tool?.name!=='money_create_topup'&&tool?.name!=='money_cancel_topup'&&
     tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
     (guardedLiveAreas.has(tool.area)||
+      (tool.area==='projects'&&guardedProjectProviderWrites.has(tool.name))||
       (tool.area==='server'&&tool.name==='stripe_undo_change')||
       (tool.area==='customers'&&guardedLiveCustomerWrites.has(tool.name))||
       (tool.area==='account'&&guardedLiveAccountWrites.has(tool.name))||

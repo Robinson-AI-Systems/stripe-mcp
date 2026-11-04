@@ -520,9 +520,9 @@ Optional, for any app you build whose own code runs Stripe billing. See `docs/de
 | `project_bind_profile_account` / `project_enable_scoped_ownership` | Separate owner-confirmed TEST app/account binding and explicit legacy-to-scoped activation | C | Built P-1/P-2 | F |
 | `project_draft_profile` | Draft app contract and APP-NEEDS text from explicit safe observed findings; unknown events reported, no code fetched or cross-repo commit | — | Built P-4 | R |
 | `workflow_app_readiness` | Is Stripe set up for this project (test or live; a profile or an inline spec for a project being built)? Every need: done / fixed (with confirm) / needs you (link + clicks) / needs a decision; prints the exact permission list for the project's own restricted key | C* (only when applying a fix) | N | R |
-| `workflow_app_readiness_fix` | Individually confirmed TEST repair of one observed P-3 gap through its guarded native tool | C | built P-3 | F |
-| `workflow_project_setup` | Preview and individually confirm one durable TEST setup step at a time; wrapped webhook/Portal/payment/branding/catalog, then inactive draft + APP-NEEDS text, no guessed configuration or automatic pending replay | C | Built P-4 | F |
-| `project_portal_create` | New TEST Billing Portal configuration with four explicit owner policy flags, guarded confirmation and provider readback | C | Built P-4 | F |
+| `workflow_app_readiness_fix` | Individually confirmed repair of one observed P-3 gap through its guarded native tool, in the connection's mode (TEST or LIVE) | C | built P-3 | F |
+| `workflow_project_setup` | Preview and individually confirm one durable setup step at a time in the connection's mode; wrapped webhook/Portal/payment/branding/catalog, then inactive draft + APP-NEEDS text, no guessed configuration or automatic pending replay; the draft is never bound and scoped ownership is never enabled here | C | Built P-4 | F |
+| `project_portal_create` | New Billing Portal configuration in the connection's mode with four explicit owner policy flags, guarded confirmation and provider readback | C | Built P-4 | F |
 
 ## Workflows (`workflow_*`) — 16
 
