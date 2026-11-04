@@ -791,8 +791,6 @@ V3, then V4.
   Stripe-hosted. No money wiring is touched: these tools
   create payment surfaces, and any charge flows through
   Stripe's hosted page under the existing contracts.
-  Remaining families:
-  Radar;
   Family 7 of 13, **Radar**, is source-implemented 2026-11-04
   (OWNER-OBEDIENCE-V2-RADAR): no dispatcher change (the `risk`
   area was already a guarded LIVE area); the TEST-only handler
@@ -811,8 +809,31 @@ V3, then V4.
   payments; and the family's privacy invariant is preserved —
   raw item values appear in no preview, result or audit
   record. No money wiring is touched: Radar writes move no
-  money. Remaining families:
-  Identity; Files; Reports; Branding (its admission
+  money.
+  Family 8 of 13, **Identity**, is source-implemented
+  2026-11-04 (OWNER-OBEDIENCE-V2-IDENTITY): the three
+  handler gates (create session, cancel session, redact
+  session) are removed — cancel and redact stay independent
+  operations with separate confirmations — and a fourth,
+  hidden gate in the shared safe projection is
+  mode-parameterized: a session now verifies only in its own
+  mode, while the read tools, which call the projection
+  without a mode, keep the historical TEST-only check exactly
+  (the reads' LIVE reachability is unclassified item (1),
+  owned by CAP-4, and is not claimed here). Every evaluated
+  object and read-back demands the connection's mode in both
+  directions; the state requirements before cancel and
+  redaction are unchanged. The LIVE create preview discloses
+  that a real person will be asked to submit identity
+  documents to Stripe; the redact preview discloses
+  irreversibility, what record is destroyed, and that the
+  business's own retention obligations are the owner's to
+  judge — disclosed, never vetoed. The safe projection's
+  field set is not widened: no `client_secret`, verified
+  outputs, report IDs, document links or full metadata
+  surface in either mode. No money wiring is touched.
+  Remaining families:
+  Files; Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.
 - **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).

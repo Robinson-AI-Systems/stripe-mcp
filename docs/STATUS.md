@@ -1,3 +1,63 @@
+## 2026-11-04 — Owner-obedience V2 Identity family: source-implemented (source)
+
+Family 8 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-IDENTITY](pr-cards/OWNER-OBEDIENCE-V2-IDENTITY.md)):
+
+- **Handlers converted.** The three TEST-only handler gates
+  are gone (`identity_create_session`,
+  `identity_cancel_session`, `identity_redact_session`).
+  Cancel and redact stay independent operations with
+  separate confirmations. Under a LIVE connection the
+  guarded-write pipeline's existing rules decide: full
+  profile, catalog listing, customer context, a live-enabled
+  and live-connected account, owner-approved LIVE, and a
+  binding preview fingerprint. A bare LIVE connection is
+  refused by the LIVE-enablement guard before anything
+  executes.
+- **A hidden fourth gate removed.** The shared safe
+  projection `identitySafe()` required `livemode === false`,
+  so no LIVE session could ever verify. It now takes the
+  connection's mode (the Billing/Radar precedent): a session
+  verifies only in its own mode. The read tools call it
+  without a mode and keep the historical TEST-only check
+  exactly — the reads stay TEST-only under CAP-4's ownership
+  and are not half-claimed by this family.
+- **Mode invariants, both directions.** The create probe's
+  listed sessions, the create response, the target session
+  and every read-back demand the connection's own mode; a
+  wrong-mode object stops the call before any write, or
+  leaves it unconfirmed in the create response.
+- **Privacy not widened.** The projection's field set is
+  exactly what TEST exposed before: no `client_secret`, no
+  verified outputs, no report IDs, no document links, no
+  full metadata — in previews, results or audit, in either
+  mode, proven by sentinel tests including an audit read-back.
+- **Disclosure.** The LIVE create preview states that a real
+  person will be asked to submit identity documents to
+  Stripe; the LIVE cancel preview states the person can no
+  longer complete the verification and that canceling does
+  not erase records; the redact preview states that redaction
+  is irreversible, destroys the collected documents and
+  verified details, that processing is not completed erasure,
+  and that the business's own retention obligations are the
+  owner's to judge — disclosed, never vetoed.
+- **No money wiring touched.** `src/tools/write.js`,
+  `src/money.js` and `src/db.js` are byte-untouched, and
+  `src/core/profiles.js` is unchanged — the `identity` area
+  was already a guarded area in both modes, so no caller's
+  reachability changed beyond this family's three writes.
+- **Proof.** New `tests/unit/identity-live-conversion.test.js`
+  (9 tests: LIVE preview→confirm paths for all three writes,
+  fingerprint drift and fabrication refusals, wrong-mode
+  refusal in both directions, non-redactable-state refusal,
+  privacy sentinels); both pre-existing identity suites pass
+  with every expectation unchanged; the full unit suite and
+  `npm run check` are green. DB and mock proof are exact-head
+  CI's route on this machine. Live proof — a real LIVE
+  verification session under an owner-approved connection —
+  remains open in the CAP-5 queue; merging is not live
+  acceptance.
 ## 2026-11-04 — Owner-obedience V2 Radar family: source-implemented (source)
 
 Family 7 of 13 of conformance row 17's V2 conversion is
