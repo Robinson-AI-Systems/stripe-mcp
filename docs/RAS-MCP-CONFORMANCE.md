@@ -1341,6 +1341,30 @@ gap. §B (`workflow_dispute_kit_save`) remains the
 immediate sibling unit. Live proof for the composite rows
 stands in the CAP-5 queue.
 
+**CAP-4 progress — D-8 §B dispute-kit save (2026-11-04):**
+the eleventh family, **D-8 §B (workflow dispute-kit save)**,
+is source-implemented (CAP4-D8B-DISPUTE-KIT-SAVE), completing
+D-8 and the Phase 1 read+workflow scope. The one write
+composite §A held out follows the connection mode under the
+V2 write idiom, taking the same split route as §A one level
+up: a new `writableMode` sits beside a byte-identical
+`writable` (the mode-aware context verifier and the
+connection's mode word over the same profile and
+audit-database checks), the save's examination is §A's
+converted `examine()` with the mode-aware verifier, and the
+guarded native writer — already mode-converted in V2 — is
+untouched, as are the other five write composites. On TEST
+the behavior is byte-identical; a wrong-mode dispute refuses
+in either direction with nothing persisted. The save
+persists no local record: its persistence is the native
+writer's mode-partitioned Stripe draft, never re-stamped.
+The app-agreement link stays TEST-gated (ruling 4); on
+LIVE its recorded gap is carried on the saved kit and
+checklist without blocking staging, while every other gap
+still blocks and TEST refuses on a failed link exactly as
+at baseline. Live proof for the save's LIVE row stands in
+the CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

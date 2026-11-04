@@ -1112,7 +1112,7 @@
         "CAP-2",
         "CAP-3"
       ],
-      "card": "docs/pr-cards/CAP4-D8-WORKFLOW-READ-COMPOSITES.md",
+      "card": "docs/pr-cards/CAP4-D8B-DISPUTE-KIT-SAVE.md",
       "status": "IN_PROGRESS",
       "migration": "JIT contract before implementation",
       "budget": 650,
