@@ -1,3 +1,41 @@
+## 2026-11-03 — Owner-obedience V2 Payments & refunds family: source-implemented (source)
+
+Family 3 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-PAYMENTS](pr-cards/OWNER-OBEDIENCE-V2-PAYMENTS.md)):
+
+- **Handlers converted.** The TEST-mode wrapper gate is gone
+  from all nine payment write operations (charge a saved
+  method, capture, cancel, payment and charge updates, refund
+  creation, refund update and cancel, setup cancel). The
+  provider client already resolved mode-awarely through the
+  shared seam from PR #304, and dispatcher admission was
+  already correct (the payments area was already a guarded
+  LIVE area), so `profiles.js` is untouched. Every provider
+  object a write is evaluated against — and every read-back —
+  now demands the connection's own mode in both directions.
+- **Disclosure.** Previews are mode-labeled and say in plain
+  words what will happen to the customer's card: the amount a
+  charge takes from the saved method, the amount a capture
+  takes, that a cancellation releases the authorization, and
+  that a refund sends the stated amount back to the customer's
+  original payment method. Confirms bind to the shared preview
+  fingerprint in both modes: a drifted confirmation refuses
+  with the fresh preview and fingerprint and executes nothing.
+- **The refund's money gates are unrelaxed.** The money spec
+  and the `defineWrite` money wiring are untouched — rows
+  20–21 (exact owner approval; the shared $500 daily cap with
+  its second override) and the app-owned-target guard with its
+  refund exception bind exactly as before, proven in LIVE by
+  an owner approval granted through the decision-intent path
+  executing exactly once and counting against the day, and by
+  the unchanged TEST refusal suites. No new money path was
+  created.
+- **Live proof remains open** (CAP-5 queue): a real LIVE
+  charge, capture or refund happens only on a real account
+  when the owner elects to act. No account was enabled, no
+  LIVE key was used, and no real money moved.
+
 ## 2026-11-03 — Owner-obedience V2 Disputes family: source-implemented (source)
 
 Family 2 of 13 of conformance row 17's V2 conversion is

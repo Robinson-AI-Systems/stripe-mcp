@@ -1,7 +1,9 @@
-// Native TEST payment/refund writes. No raw payment methods or client secrets.
-import {defineWrite,gone} from './write.js';
+// Native payment/refund writes in the connection's own mode. No raw
+// payment methods or client secrets.
+import {defineWrite} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
-import {modeClient} from './account-mode.js';
+import {modeClient,assertAccountResourceMode} from './account-mode.js';
+import {formatUsd} from '../money.js';
 const profiles=['everyday','full'], full=['full'];
 const id=p=>({type:'string',pattern:'^'+p+'_[A-Za-z0-9]{2,100}$'});
 const text=n=>({type:'string',minLength:1,maxLength:n});
@@ -9,28 +11,28 @@ const cents={type:'integer',minimum:1,maximum:100000000};
 const metadata={type:'object',additionalProperties:{type:'string'}};
 const own={outsideApp:{type:'boolean'}};
 const defs=[
-  {name:'payment_charge_saved_method',desc:'Charge one verified default saved TEST method, after preview and confirmation.',
+  {name:'payment_charge_saved_method',desc:'Charge one verified default saved payment method, after preview and confirmation.',
     props:{customerId:id('cus'),amountCents:cents,description:text(150),...own},
     required:['customerId','amountCents','description'],money:'in'},
-  {name:'payment_capture',desc:'Capture a verified TEST authorization (full or partial).',
+  {name:'payment_capture',desc:'Capture a verified authorization (full or partial).',
     props:{paymentId:id('pi'),amountCents:cents,...own},required:['paymentId'],money:'in'},
-  {name:'payment_cancel',desc:'Cancel an eligible TEST payment intent.',
+  {name:'payment_cancel',desc:'Cancel an eligible payment intent.',
     props:{paymentId:id('pi'),...own},required:['paymentId']},
-  {name:'payment_update',desc:'Update TEST payment description, receipt email or metadata.',
+  {name:'payment_update',desc:'Update payment description, receipt email or metadata.',
     props:{paymentId:id('pi'),description:text(500),receiptEmail:text(512),metadata,...own},
     required:['paymentId']},
-  {name:'charge_update',desc:'Update TEST charge description, receipt email or metadata.',
+  {name:'charge_update',desc:'Update charge description, receipt email or metadata.',
     props:{chargeId:id('ch'),description:text(500),receiptEmail:text(512),metadata,...own},
     required:['chargeId']},
-  {name:'payment_create_refund',desc:'Refund a verified remaining TEST charge amount; independent owner consent required.',
+  {name:'payment_create_refund',desc:'Refund a verified remaining charge amount; independent owner consent required.',
     props:{chargeId:id('ch'),paymentId:id('pi'),amountCents:cents,
       reason:{type:'string',enum:['duplicate','fraudulent','requested_by_customer']},...own},
     required:[],money:'out'},
-  {name:'payment_update_refund',desc:'Update an existing TEST refund’s metadata.',
+  {name:'payment_update_refund',desc:'Update an existing refund’s metadata.',
     props:{refundId:id('re'),metadata,...own},required:['refundId']},
-  {name:'payment_cancel_refund',desc:'Cancel a TEST refund only in requires_action state.',
+  {name:'payment_cancel_refund',desc:'Cancel a refund only in requires_action state.',
     props:{refundId:id('re'),...own},required:['refundId'],destructive:true},
-  {name:'setup_cancel',desc:'Cancel an eligible TEST setup intent.',
+  {name:'setup_cancel',desc:'Cancel an eligible setup intent.',
     props:{setupId:id('seti'),...own},required:['setupId']}
 ];
 const pattern=(value,prefix)=>typeof value==='string'&&
@@ -76,32 +78,37 @@ const same=(after,args,props)=>props.every(k=>args[k]===undefined||
   (k==='metadata'?Object.entries(args.metadata).every(([name,v])=>after.metadata?.[name]===v)
     :k==='receiptEmail'?after.receipt_email===args[k]
       :after[k]===args[k]));
-async function target(def,a,s){
+// Every provider object a write is evaluated against must carry the
+// connection's own mode (owner-obedience V2): a present livemode that
+// disagrees with the connection refuses the read; the read-back in
+// verify applies the same equality to the object the write produced.
+async function target(def,a,s,mode){
+  const sized=v=>assertAccountResourceMode(v,mode);
   switch(def.name){
     case 'payment_charge_saved_method':{
-      const c=await s.customers.retrieve(a.customerId);
+      const c=sized(await s.customers.retrieve(a.customerId));
       const pm=typeof c.invoice_settings?.default_payment_method==='string'?
         c.invoice_settings.default_payment_method:c.invoice_settings?.default_payment_method?.id;
       if(c.deleted||!pattern(pm,'pm'))
         throw new TypeError('Customer has no verified default saved payment method');
-      const saved=await s.paymentMethods.retrieve(pm);
+      const saved=sized(await s.paymentMethods.retrieve(pm));
       if(saved.customer!==c.id)throw new TypeError('Default method is not attached to this customer');
       return {...c,_defaultMethod:pm};
     }
     case 'payment_capture':
     case 'payment_cancel':
     case 'payment_update':
-      return s.paymentIntents.retrieve(a.paymentId);
+      return sized(await s.paymentIntents.retrieve(a.paymentId));
     case 'charge_update':
-      return s.charges.retrieve(a.chargeId);
+      return sized(await s.charges.retrieve(a.chargeId));
     case 'payment_create_refund':{
       let chargeId=a.chargeId;
       if(a.paymentId){
-        const pi=await s.paymentIntents.retrieve(a.paymentId);
+        const pi=sized(await s.paymentIntents.retrieve(a.paymentId));
         chargeId=typeof pi.latest_charge==='string'?pi.latest_charge:pi.latest_charge?.id;
         if(!pattern(chargeId,'ch'))throw new TypeError('Payment has no refundable charge');
       }
-      const ch=await s.charges.retrieve(chargeId);
+      const ch=sized(await s.charges.retrieve(chargeId));
       const remaining=ch.amount-(ch.amount_refunded??0);
       if(ch.paid!==true||ch.refunded===true||ch.currency!=='usd'||
         !Number.isSafeInteger(remaining)||remaining<=0||remaining>100000000)
@@ -112,23 +119,57 @@ async function target(def,a,s){
     }
     case 'payment_update_refund':
     case 'payment_cancel_refund':{
-      const refund=await s.refunds.retrieve(a.refundId);
-      const charge=await s.charges.retrieve(refund.charge);
+      const refund=sized(await s.refunds.retrieve(a.refundId));
+      const charge=sized(await s.charges.retrieve(refund.charge));
       return {...refund,customer:charge.customer};
     }
     case 'setup_cancel':
-      return s.setupIntents.retrieve(a.setupId);
+      return sized(await s.setupIntents.retrieve(a.setupId));
     default:throw new TypeError('Unknown payment operation');
+  }
+}
+// Plain-words consequence the preview states in either mode: what
+// will happen to the customer's card or payment if confirmed.
+function consequence(def,before,a){
+  switch(def.name){
+    case 'payment_charge_saved_method':
+      return "This will charge the customer's saved payment method "+
+        formatUsd(a.amountCents)+'.';
+    case 'payment_capture':
+      return "This will capture "+formatUsd(a.amountCents??before.amount_capturable)+
+        " from the customer's authorized payment.";
+    case 'payment_cancel':
+      return 'This will cancel the payment intent and release the '+
+        'authorization; the customer will not be charged.';
+    case 'payment_update':
+    case 'charge_update':
+      return 'This changes only the description, receipt email or '+
+        'metadata; no money moves.';
+    case 'payment_create_refund':
+      return 'This will refund '+formatUsd(a.amountCents??before._refundableCents)+
+        " back to the customer's original payment method.";
+    case 'payment_update_refund':
+      return "This changes only the refund's metadata; no money moves.";
+    case 'payment_cancel_refund':
+      return 'This will cancel the pending refund; the money will '+
+        'not go back to the customer.';
+    case 'setup_cancel':
+      return 'This will cancel the setup intent; no payment method '+
+        'will be saved.';
+    default:return '';
   }
 }
 function build(def){
   let created=null;
   const op=defineWrite({
     name:def.name,
-    read:async(a,ctx)=>{validate(def,a);return target(def,a,await modeClient(ctx));},
-    summarize:async(before,a)=>'TEST MODE. '+def.name+' for '+(before.id||'payment')+
+    read:async(a,ctx)=>{validate(def,a);
+      return target(def,a,await modeClient(ctx),ctx?.connection?.mode);},
+    summarize:async(before,a,ctx)=>(ctx?.connection?.mode==='live'?'LIVE MODE. ':'TEST MODE. ')+
+      def.name+' for '+(before.id||'payment')+
       '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','previewFingerprint','outsideApp'].includes(k))
-        .join(', ')+'. Verify Stripe read-back before marking complete.'+
+        .join(', ')+'. '+consequence(def,before,a)+
+      ' Verify Stripe read-back before marking complete.'+
       (def.destructive?' This action may be irreversible.':''),
     money:def.money?async(a,_ctx,b)=>{
       const amount=def.name==='payment_capture'?
@@ -187,10 +228,12 @@ function build(def){
         s.paymentIntents.retrieve(created.id):null;
       if(def.name==='payment_create_refund')return created?.id?
         s.refunds.retrieve(created.id):null;
-      return target(def,a,s);
+      return target(def,a,s,ctx?.connection?.mode);
     },
-    verify:async(_before,after,a)=>{
+    verify:async(_before,after,a,ctx)=>{
       if(!after)return false;
+      if(after.livemode!==undefined&&
+        after.livemode!==(ctx?.connection?.mode==='live'))return false;
       switch(def.name){
         case 'payment_charge_saved_method':
           return after.id===created?.id&&after.status==='succeeded'&&
@@ -210,8 +253,7 @@ function build(def){
       }
     }
   });
-  return {...op,handler:(a,ctx)=>ctx?.connection?.mode==='test'?
-    op.handler(a,ctx):gone('TEST-only payment and refund operation')};
+  return op;
 }
 export const tools=defs.map(def=>{
   const op=build(def);
