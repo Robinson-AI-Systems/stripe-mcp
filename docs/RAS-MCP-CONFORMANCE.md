@@ -1019,6 +1019,24 @@ schedule result's hardcoded `mode:'test'` literal now reports
 the connection's mode (unchanged on TEST). Live proof for these
 reads stands in the CAP-5 queue.
 
+**CAP-4 progress — D-2 payment reads (2026-11-04):** the third
+family, **D-2 (payment reads)**, is source-implemented
+(CAP4-D2-PAYMENT-READS): all 10 payment read tools (payment
+intents, charges, refunds, setup intents — list, get and search
+paths alike) now verify every returned object against the
+connection's own mode in both directions, on the same
+shared-projection precedent. D-2's baseline was refusal-only,
+like D-1's: a module-local client guard refused every non-TEST
+connection before any provider call, and the four projections
+verified nothing, so a LIVE object projected without complaint
+on a TEST connection. The family's writes were converted by V2
+(PR #310) and are untouched here, as is the money wiring. The
+projections' field sets are byte-identical — no field added,
+removed or renamed in either mode — so the raw-value privacy
+invariant (no client secrets, no card fingerprints in any read
+output) holds exactly as before, now proven on LIVE fixtures
+too. Live proof for these reads stands in the CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
