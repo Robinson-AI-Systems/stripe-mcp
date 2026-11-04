@@ -670,11 +670,17 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
           return {decision:'delegated_limit_exceeded',used_cents:used,
             limit_cents:pass.money_limit_cents};
       }
+      // Mirror of reserve_money_out_guarded: with no pass row, the expected
+      // approval mode is the mode stored on the caller's own connection row
+      // (kind 'connector'), never a request value; a missing row keeps the
+      // historical TEST default.
+      const ownerConnection=pass?null:[...tokens.values()].find(
+        t=>t.result_scope===connection&&t.kind==='connector');
       const approval = approvals.find(a => a.account === account && a.key === idempotencyKey);
       if (!approval || approval.amountCents !== amountCents || approval.currency !== currency ||
           approval.approvedAt === null || approval.consumedAt !== null ||
           approval.expiresAt <= clock() || approval.approvedAt < clock() - 600000 ||
-          !approval.target || approval.mode!==(pass?.mode??'test')) {
+          !approval.target || approval.mode!==(pass?.mode??ownerConnection?.mode??'test')) {
         return { decision:'owner_approval_required', used_cents, limit_cents };
       }
       if (used_cents > limit_cents - amountCents &&

@@ -1256,6 +1256,7 @@ export function createDb(sql = getProductionSql()) {
         v_duplicate BOOLEAN;
         v_approval RECORD;
         v_pass RECORD;
+        v_connection_mode TEXT;
         v_pass_used BIGINT;
         v_live_enabled BOOLEAN;
         v_live_connected BOOLEAN;
@@ -1310,6 +1311,16 @@ export function createDb(sql = getProductionSql()) {
             RETURN NEXT; RETURN;
           END IF;
         END IF;
+        -- With no pass row, the caller's own connection supplies the mode an
+        -- approval must carry: the mode stored on that connection's own
+        -- oauth_tokens row (kind 'connector'), looked up by its result
+        -- scope — never a value supplied by the request. A missing row
+        -- leaves v_connection_mode NULL and the historical TEST default in
+        -- the approval comparison below applies unchanged.
+        IF v_pass IS NULL THEN
+          SELECT mode INTO v_connection_mode
+            FROM oauth_tokens WHERE result_scope=p_connection AND kind='connector';
+        END IF;
         SELECT amount_cents, currency, state, local_day INTO v_previous
           FROM money_reservations
           WHERE stripe_account = p_account AND request_key = p_key;
@@ -1338,7 +1349,7 @@ export function createDb(sql = getProductionSql()) {
         IF NOT FOUND OR v_approval.amount_cents <> p_cents OR v_approval.currency <> p_currency
           OR v_approval.approved_at IS NULL OR v_approval.consumed_at IS NOT NULL
           OR v_approval.target IS NULL OR v_approval.target='' OR
-          v_approval.mode IS DISTINCT FROM COALESCE(v_pass.mode,'test')
+          v_approval.mode IS DISTINCT FROM COALESCE(v_pass.mode, v_connection_mode, 'test')
           OR v_approval.expires_at <= now()
           OR v_approval.approved_at < now() - interval '10 minutes' THEN
           decision := 'owner_approval_required';

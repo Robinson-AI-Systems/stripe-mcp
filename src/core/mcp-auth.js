@@ -55,7 +55,11 @@ export async function requireMcpToken(req, res, db, env = process.env) {
   return Object.freeze({ clientId: record.client_id, stripeAccount: record.stripe_account,
     mode: record.mode, profile: record.profile, listing: record.listing, context,
     // The only LIVE write grant is the actual owner-consented persisted OAuth
-    // token bit; no caller-controlled JSON can create it. Money is NOT granted.
+    // token bit; no caller-controlled JSON can create it. The delegated
+    // money ceiling stays 0 on the owner's own connection: the dispatcher's
+    // funded term is satisfied by the owner's identity instead (ruling 1(b),
+    // src/core/profiles.js), while every money-out still needs its own exact
+    // owner approval and counts against the shared daily cap.
     rtcLiveOwnerApproved:record.mode==='live'&&record.allow_writes===true,
     moneyLimitCents:0, resultScope: record.result_scope });
 }

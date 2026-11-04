@@ -20,7 +20,11 @@ export function profileCounts(registry,options={}) {
 const guardedTestAreas=new Set(['customers','payments','checkout','billing','developer',
   'disputes','risk','identity','money','webhooks','account','branding','catalog','reports']);
 // Do not silently mark newly surfaced TEST-only operations as LIVE-ready.
-const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity']);
+// 'money' joined under owner-obedience V2 family 1 (Money): the payout
+// operations and the payout schedule complete the full confirmed-action
+// sequence in LIVE; the synthetic top-up fixture does not (see the name
+// exclusion in isGuardedLiveWrite).
+const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money']);
 // Exact original customer lifecycle names whose LIVE provider-mode, app
 // ownership and independent readback guards have been reviewed. Monetary
 // balance credits/debits are NOT covered by this nonmoney authorization.
@@ -53,6 +57,13 @@ const guardedLiveWebhookWrites=new Set([
 const guardedLiveAccountWrites=new Set([
   'account_update_payment_method_settings','account_add_apple_pay_domain'
 ]);
+// The payout schedule decides when money leaves the account, so its
+// admission converted with the Money family (owner-obedience V2 family 1,
+// coordinator ruling 6) even though this exposure sits in the branding
+// area; the rest of the branding area converts with its own family.
+const guardedLiveBrandingWrites=new Set([
+  'setup_set_payout_schedule'
+]);
 // An entire workflow can delegate multiple original protected native writes.
 // Expose only these audited original whole-job operations to the independently
 // authenticated TEST full owner profile through stripe_call; never everyday,
@@ -72,28 +83,50 @@ export function isGuardedTestWrite(tool,connection){
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
-// Only an independently activated LIVE pass with two-step owner write
-// consent may access original native defineWrite operations. Actual money-out
-// still needs positive owner-selected pass ceiling AND another one-time exact
-// transaction owner approval in the shared atomic SQL guard.
+// Only the owner's own LIVE-consented OAuth connection, or an
+// independently activated LIVE pass with two-step owner write consent,
+// may access original native defineWrite operations. Actual money-out
+// still needs the one-time exact transaction owner approval in the
+// shared atomic SQL guard, and — for a delegated pass — a positive
+// owner-selected pass ceiling as well.
 export function isGuardedLiveWrite(tool,connection){
   const financial=tool?.money===true||tool?.moneySpec==='provider-derived';
   const funded=Number.isSafeInteger(connection?.moneyLimitCents)&&
     connection.moneyLimitCents>0;
+  // Coordinator ruling 1(b) (2026-11-03, owner-obedience V2): on the
+  // owner's own OAuth connection the funded term is satisfied by the
+  // owner's identity. That connection is the one built from the owner's
+  // OAuth token record (src/core/mcp-auth.js and its K-3 mirror) — the
+  // only connection kind that carries a resolved grant context, which
+  // at LIVE is always 'customer' (developer context is refused for
+  // LIVE before a connection exists). Delegated RTC pass connections
+  // (src/core/rtc-http.js) carry no context and keep the funded term
+  // exactly: a pass with moneyLimitCents 0 still cannot move money.
+  // Rows 20-22 are untouched either way: every money-out still needs
+  // the exact per-transaction owner approval and counts against the
+  // shared daily cap with its second override.
+  const ownerOwnConnection=connection?.context==='customer';
   return connection?.mode==='live'&&connection?.rtcLiveOwnerApproved===true&&
     // Original provider-generated synthetic TEST Event recovery has no
     // legitimate LIVE equivalent: never advertise it via the generic door.
-    tool?.name!=='dev_reconcile_original_event'&&tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
+    tool?.name!=='dev_reconcile_original_event'&&
+    // The top-up tools are a synthetic TEST fixture by design ("never
+    // use an unverified real bank"); there is no real-bank LIVE top-up
+    // to convert (coordinator ruling 2), so their LIVE admission stays
+    // exactly as it was — refused here and at their handler.
+    tool?.name!=='money_create_topup'&&tool?.name!=='money_cancel_topup'&&
+    tool?.writes===true&&tool?.writeContract==='defineWrite-v1'&&
     (guardedLiveAreas.has(tool.area)||
       (tool.area==='server'&&tool.name==='stripe_undo_change')||
       (tool.area==='customers'&&guardedLiveCustomerWrites.has(tool.name))||
       (tool.area==='account'&&guardedLiveAccountWrites.has(tool.name))||
+      (tool.area==='branding'&&guardedLiveBrandingWrites.has(tool.name))||
       (tool.area==='webhooks'&&guardedLiveWebhookWrites.has(tool.name))||
       (tool.area==='catalog'&&guardedLiveCatalogWrites.has(tool.name))||
       (tool.area==='workflows'&&connection?.profile==='full'&&
         fullOwnerWorkflowWrites.has(tool.name))||
       (tool.area==='universal'&&connection?.profile==='full'&&tool.name==='api_write'))&&
-    (!financial||funded)&&
+    (!financial||funded||ownerOwnConnection)&&
     isToolAllowed(tool,connection?.profile,{allowWrites:true});
 }
 const compactNames=new Set(['stripe_whoami','stripe_search_tools',
