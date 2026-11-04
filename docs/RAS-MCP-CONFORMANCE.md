@@ -1317,6 +1317,30 @@ is resolved, and the check-setting observed flow is pinned
 end-to-end in both modes. Live proof for these reads and
 guidance rows stands in the CAP-5 queue.
 
+**CAP-4 progress — D-8 §A workflow read composites (2026-11-04):**
+the tenth family, **D-8 §A (workflow read composites)**, is
+source-implemented (CAP4-D8-WORKFLOW-READ-COMPOSITES): all
+nine registered `writes: false` workflow composites now
+serve the connection's own mode, closing Phase 1's read
+sequence. The build takes the frozen card's split route
+under its preservation clause: `verifyContext` in
+`workflow-read-common.js` stays byte-identical because
+every write composite enters through `writable()`, which
+calls it before any composed read — the read composites
+opt into a new `verifyModeContext` via the shared
+plumbing's opt-in verifier option, and the shared read
+phases inside write-owned modules keep legacy defaults for
+their write callers. Result stamps follow the connection
+mode with no re-stamping of any existing record; the
+go-live checklist's internal TEST-matrix plus LIVE-sentinel
+contract is preserved, so its LIVE behavior is an honest
+degradation, never a fabricated matrix; the dispute kit's
+agreement link remains TEST-gated with the Projects reads
+(coordinator ruling 4) and surfaces on LIVE as a recorded
+gap. §B (`workflow_dispute_kit_save`) remains the
+immediate sibling unit. Live proof for the composite rows
+stands in the CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
