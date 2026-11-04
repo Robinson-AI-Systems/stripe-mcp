@@ -1,3 +1,53 @@
+## 2026-11-04 — CAP-4 D-3 invoice, billing and credit-note reads: mode-verified; the A9 half-open state closes in source (source)
+
+CAP-4's first family is implemented in source (card
+[CAP4-D3-INVOICE-BILLING-READS](pr-cards/CAP4-D3-INVOICE-BILLING-READS.md)),
+sequenced first because it closes a verified defect:
+
+- **The defect (A9).** PR #304's seam swap let the invoice,
+  billing and credit-note read handlers execute on LIVE
+  connections, but their projections never verified returned
+  objects' `livemode` — a TEST object projected without complaint
+  on a LIVE connection, and a LIVE object on a TEST connection.
+  For the interval PR #304's merge → this card's merge these reads
+  were neither TEST-only nor converted. Production never ran the
+  half-open code (the deployed build predates PR #304, and `main`
+  was not promoted during the interval); this merge is what makes
+  `main` safe to promote again, and the promotion guard lifts with
+  it.
+- **The fix.** Every returned object is now verified against the
+  connection's own mode before projection, in both directions,
+  across **13 handlers in 3 modules**: the five invoice reads, six
+  billing reads (subscriptions list/get/search, items, schedules
+  list/get — `billing_preview_change` was already verified and is
+  untouched) and the credit-note list/get reads (the preview was
+  already verified under PR #311). The shared projections gained
+  an optional mode parameter on the `discountSafe` precedent:
+  supplied mode verifies, no mode is byte-identical historical
+  behavior, and discounts keep their sentinel semantics. A
+  wrong-mode member refuses the whole read. The TEST-worded tool
+  descriptions are corrected — descriptions are behavior.
+- **The sweep.** Every read handler reachable through the shared
+  billing/invoice seam was read and dispositioned in the card:
+  the 13 defect handlers above; the remaining seam-reachable reads
+  refuse LIVE behind their own gates and belong to later CAP-4
+  families (money D-1, disputes/events D-4, reports/files/radar
+  D-6, account/admin D-7, identity D-11, brand D-12, composites
+  D-8), the Projects reads are dispositioned to the owner-surface
+  migration, and the catalog/webhook/tax/account-settings readers
+  were already mode-aware.
+- **Proof.** New suite `tests/unit/cap4-d3-reads.test.js`: 31
+  tests — 22 fail at baseline `f3dc460b` (exactly the wrong-mode,
+  projection-contract and description assertions) and all 31 pass
+  after; the 9 mode-correct happy-path/shape tests pass at both
+  ends, proving TEST shapes did not move. Full unit suite and
+  `npm run check` green on the branch; database tests are
+  exact-head CI's route (no local PostgreSQL binaries). No
+  dispatcher, registry or reachability change (322 tools); no
+  write handler or money wiring touched. Live proof remains open
+  in the CAP-5 queue, including a wrong-mode-object knock test on
+  the owner's LIVE connection.
+
 ## 2026-11-04 — Owner-obedience V3 catalog `outsideApp` conversion: source-implemented (source)
 
 The last of conformance row 17's four convertible vetoes is
