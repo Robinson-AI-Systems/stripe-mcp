@@ -149,3 +149,7 @@ here.
   in this card are updated. The successor inherits: D-5
   (checkout reads) next in the frozen Phase 1 sequence; Connect
   (Phase 2) proceeds in parallel under its own card.
+
+## Publication addendum (coordinator, 2026-11-04)
+
+Rebased onto `main` at `8b9f4c4` (Connect slice 1, PR #324, included) for publication, the combined tree's everyday catalog measured **20,005 tokens** against the 20,000 budget — Connect slice 1 had fitted its own family to 19,975 on its baseline, and this family's dual-mode descriptions added the rest. Four of this family's five descriptions were tightened (filler removed; both modes and every behavior clause retained, so the description tests' contract is unchanged) and the catalog now fits. No test was weakened and the cap did not move — the same disposition as Connect slice 1's flagged budget trade. The rebased tree was then re-verified in full (unit suite and `npm run check`) before push.

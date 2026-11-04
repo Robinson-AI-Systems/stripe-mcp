@@ -85,15 +85,15 @@ async function list(a,ctx,undelivered){
 }
 export const tools=[
   {name:'event_list',area:'events',writes:false,profiles:allProfiles,
-    description:'List bounded TEST or LIVE Stripe Event summaries, never embedded customer or payment payloads.',
+    description:'List bounded TEST or LIVE Event summaries; no customer or payment payloads.',
     annotations:{readOnlyHint:true},
     inputSchema:{type:'object',properties:listSchema,additionalProperties:false}},
   {name:'event_get',area:'events',writes:false,profiles:allProfiles,
-    description:'Get an exact TEST or LIVE Stripe Event type and safe source IDs; no raw event data.',
+    description:'Get one TEST or LIVE Event type and safe source IDs; no raw event data.',
     annotations:{readOnlyHint:true},
     inputSchema:{type:'object',properties:getSchema,required:['eventId'],additionalProperties:false}},
   {name:'event_list_undelivered',area:'events',writes:false,profiles:allProfiles,
-    description:'List TEST or LIVE Events with Stripe delivery_success=false; not application-processing proof.',
+    description:'List TEST or LIVE Events with delivery_success=false; not processing proof.',
     annotations:{readOnlyHint:true},
     inputSchema:{type:'object',properties:listSchema,additionalProperties:false}}
 ];

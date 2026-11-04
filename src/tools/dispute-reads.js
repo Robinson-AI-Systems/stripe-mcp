@@ -42,7 +42,7 @@ const def=(name,description,props,required=[])=>({
 const limit={type:'integer',minimum:1,maximum:100};
 const cursor={type:'string',pattern:'^du_[A-Za-z0-9]{2,100}$'};
 export const tools=[
-  def('dispute_list','List TEST or LIVE disputes with status, amounts and Colorado evidence deadlines.',
+  def('dispute_list','List TEST or LIVE disputes with status, amounts, Colorado evidence deadlines.',
     {limit,starting_after:cursor}),
   def('dispute_get','Read one TEST or LIVE dispute and its response deadline without private evidence.',
     {disputeId:cursor},['disputeId'])
