@@ -355,14 +355,17 @@ describe('CAP-4 D-8 §A workflow_go_live_checklist + workflow_app_readiness',()=
 describe('CAP-4 D-8 §A write-consumer preservation pins',()=>{
   it('every write composite still meets the exact legacy gate on a LIVE context',async()=>{
     const f=fixture(true);await f.bind();
+    // workflow_dispute_kit_save stood in this list at §A; its own
+    // conversion is D-8 §B (sibling unit), which moves its LIVE
+    // admission to the mode-aware gate — pinned in
+    // cap4-d8b-dispute-kit-save.test.js. The other five write
+    // composites keep the legacy gate exactly.
     const attempts=[
       ['workflow_refund_customer',{customerId:C}],
       ['workflow_brand_business',{brandKit:{backgroundColor:'#112233'}}],
       ['workflow_set_up_catalog',{name:'X',lookupKey:'x_1',
         unitAmountCents:100,currency:'usd',productId:'prod_D8A987'}],
       ['workflow_month_end_report',{month:'2026-03',reportType:TYPE}],
-      ['workflow_dispute_kit_save',{disputeId:DU,
-        evidence:{productDescription:'Washer rental'}}],
       ['workflow_webhook_health_fix',{endpointId:WE,apps:['appliance-desk']}]
     ];
     for(const [name,args] of attempts){
@@ -372,9 +375,10 @@ describe('CAP-4 D-8 §A write-consumer preservation pins',()=>{
     }
   });
   it('the shared read phases keep legacy defaults when called by write paths',async()=>{
-    // dispute_kit_save and webhook_health_fix on TEST still observe
-    // through examine()/source() exactly as at baseline (their own
-    // suites pin the full flows); here the LIVE gate proves the
+    // webhook_health_fix on TEST still observes through source()
+    // exactly as at baseline (its own suite pins the full flow);
+    // dispute_kit_save's examine() call is D-8 §B's conversion and
+    // is pinned in its own suite. Here the LIVE gate proves the
     // defaults were not widened by the read conversions above.
     const t=fixture(false);await t.bind();
     const kit=parse(await t.call('workflow_dispute_kit',{disputeId:DU}));

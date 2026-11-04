@@ -1,3 +1,56 @@
+## 2026-11-04 — CAP-4 D-8 §B dispute-kit save: follows the connection mode (source)
+
+CAP-4's eleventh family is implemented in source (card
+[CAP4-D8B-DISPUTE-KIT-SAVE](pr-cards/CAP4-D8B-DISPUTE-KIT-SAVE.md)),
+the sibling unit coordinator ruling 2 split from D-8 §A.
+**§B completes D-8 and the CAP-4 Phase 1 read+workflow scope.**
+
+- **The conversion.** `workflow_dispute_kit_save` — the one
+  write composite §A held out — now follows the connection
+  mode under the V2 write idiom. Its gate is a split
+  `writableMode` beside a byte-identical `writable` (the
+  §A split route one level up: `verifyModeContext` and the
+  connection's mode word over the same profile and
+  audit-database checks), and its examination is §A's
+  converted `examine()` called with the mode-aware verifier,
+  exactly as the read handler calls it — the dispute, charge,
+  customer and any invoice verify in the connection's mode
+  and selected account before anything is staged, and a
+  wrong-mode dispute refuses with nothing persisted. The
+  guarded native writer (`dispute_save_evidence`) was
+  already mode-converted in V2 and is untouched, as are the
+  other five write composites, whose suites pass unchanged.
+  On TEST every layer reduces to the baseline call and the
+  behavior is byte-identical. The save persists no local
+  record (the §A inventory): its persistence is the native
+  writer's mode-partitioned Stripe draft plus the kit result,
+  whose mode stamp already followed the connection; nothing
+  is re-stamped. No db.js change; money wiring untouched;
+  the registry stays 329 tools.
+- **The agreement gap on LIVE.** `project_record_link`
+  stays TEST-gated (ruling 4), so an app-supplied LIVE
+  examine always records the
+  `app_agreement_link / guarded_profile_route_unavailable`
+  gap. On LIVE that single recorded gap does not block
+  staging — it is carried on the saved kit and its checklist,
+  with no agreement claimed and no LIVE route improvised —
+  while every other gap and every dispute-level staging fact
+  still blocks, and on TEST a failed link still refuses
+  exactly as at baseline (both pinned, as is the baseline
+  wrong-account binding refusal).
+- **Checking.** New suite
+  `tests/unit/cap4-d8b-dispute-kit-save.test.js` (12 tests;
+  6 fail at baseline — the five LIVE legs and the
+  description pin — and 6 pass by design as the TEST
+  contract and partition pins, accounted in the card).
+  §A's write-preservation pin drops this one tool from its
+  legacy-gate list (the D-7 precedent: a LIVE leg updated to
+  the post-conversion contract); the other five attempts are
+  unchanged. Everyday catalog stays 19,999 against the
+  unchanged 20,000 cap — the description refit is net-zero
+  inside the tool's own wording. Live proof for the save's
+  LIVE row stands in the CAP-5 queue.
+
 ## 2026-11-04 — Owner-ordered release route beside the daily promotion (source)
 
 Acting on the owner's fleet-wide release-authority ruling of
