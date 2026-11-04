@@ -1,7 +1,12 @@
 # Completion schedule — Stripe Unleashed by Robinson AI Systems
 
-**Reconciled:** 2026-11-03
-**Code and release baseline:** `c95f9cf0160f85f59789a11d1885e422ec84770b` (`main` = `live`)
+**Reconciled:** 2026-11-03 (baseline corrected 2026-11-04, fleet audit)
+**Code baseline:** `main` at `0c34fbe5475f9006023d9066a6e79f5ed5a46d7e`
+**Release baseline:** `live` at `c95f9cf0160f85f59789a11d1885e422ec84770b`
+`main` is three commits ahead of `live`: PR #303 (owner-obedience V1,
+source), PR #304 (owner-obedience V2 shared machinery, source), and
+PR #305 (owner-obedience V4, source). None of the three is deployed;
+every live proof in this schedule is still measured at `c95f9cf0`.
 **Product verdict:** **not finished yet.** Stripe Unleashed by Robinson AI
 Systems is a deployed, TEST-oriented service with a large merged source
 roadmap and one important live connection proof. It is not yet the finished
@@ -49,10 +54,10 @@ service on 2026-11-03:
 
 | Fact | Checked state |
 |---|---|
-| Repository | `Robinson-AI-Systems/stripe-mcp`; `main` and `live` both at `c95f9cf0160f85f59789a11d1885e422ec84770b`. |
+| Repository | `Robinson-AI-Systems/stripe-mcp`; `live` at `c95f9cf0160f85f59789a11d1885e422ec84770b`; `main` three commits ahead at `0c34fbe5475f9006023d9066a6e79f5ed5a46d7e` (PRs #303, #304, #305 — owner-obedience V1, V2 shared machinery, and V4, all source-only). |
 | Hosting | Vercel project `stripe-mcp`; production branch is `live`; the latest production deployment is READY at `c95f9cf0`. Only the `live` branch is deployment-enabled in `vercel.json`. |
 | Package/runtime | `@robinson-ai-systems/stripe-mcp` version `0.1.0`; ECMAScript modules; Node engine `>=20` (the Vercel project is configured for Node 24.x); runtime dependencies are the MCP SDK `1.32.1`, Neon serverless `1.0.2`, and Stripe `23.0.0`. |
-| Tool registry | **322 tools** in the local registry and the deployed health/front-door readouts: 167 read-labelled tools and 155 write tools; 318 hand-built tools plus the four `api_*` tools. Read-only profile counts are read-only 155 / everyday 156 / full 167. Full visibility counts are 155 / 248 / 322. |
+| Tool registry | **322 tools** in the registry at both heads and in the deployed health/front-door readouts: 167 read-labelled tools and 155 write tools; 318 hand-built tools plus the four `api_*` tools. (Fleet-audit census 2026-11-04 at `main` `0c34fbe5`: the exact expected-name list in `tests/unit/registry.test.js` enumerates 322 unique names and asserts 155 writes; the three commits since `c95f9cf0` changed handlers and shared machinery, not registrations.) Read-only profile counts are read-only 155 / everyday 156 / full 167. Full visibility counts are 155 / 248 / 322. |
 | Stripe API inventory source | Vendored Stripe OpenAPI tag `v2556`, API version `2026-09-30.endive`, 398 paths; `node scripts/openapi-find.mjs --verify` passes. |
 | Serving alias | `https://stripe-mcp-psi.vercel.app` serves the application. `/api` and `/api/health` name commit `c95f9cf0`, version `0.1.0+c95f9cf0160f`, 322 tools, status healthy/`online`, and database check `true`. `/api/contract` names the same revision and advertises `/api/health`. |
 | Configured issuer origin | OAuth metadata fetched from the serving alias names `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` as issuer and resource. That hostname does **not** serve the application to an unauthenticated visitor; Vercel Authentication intercepts it. |
@@ -386,9 +391,10 @@ CAP-3's human identity, Stripe App, executable tenant grants, migration,
 God Mode, and My Connection work; CAP-4's frozen and implemented workflow
 gaps (with the capability-census addendum filed first); CAP-5's full
 independent acceptance and client matrix; the developer-boundary live
-pair; the four owner-obedience conversions (LIVE enablement flag, LIVE
-write allowlists, catalog `outsideApp` ban, pass/revoke preparation
-gate), each live-proven; the 29 Stripe-owned protected acceptance rows;
+pair; the four owner-obedience conversions (LIVE enablement flag and
+pass/revoke preparation gate source-implemented; LIVE write
+allowlists in progress in shared machinery; catalog `outsideApp` ban
+designed but not built), each still to be live-proven; the 29 Stripe-owned protected acceptance rows;
 the branded-domain/identity and public front-door completion; and the
 production-readiness gate. Only after those are complete—and separately,
 only with Chris's authorization for launch or per-account LIVE use—can it
