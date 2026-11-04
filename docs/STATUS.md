@@ -1,3 +1,52 @@
+## 2026-11-04 — Owner-ordered release route beside the daily promotion (source)
+
+Acting on the owner's fleet-wide release-authority ruling of
+2026-11-04 — the once-a-day cap binds the automatic promotion
+only, every additional release carries his authority (in
+advance with conditions, in the moment, or by any scheme he
+specifies), and release machinery encodes his permission
+scheme, never its own numeric cap on owner-ordered
+releases — the Daily live promotion workflow gains a second
+owner-only dispatch path beside missed-daily recovery
+(card [OWNER-RELEASE-ROUTE](pr-cards/OWNER-RELEASE-ROUTE.md)):
+
+- **The route.** `workflow_dispatch` input `owner_release`
+  (boolean, default false). The job gate and
+  `scripts/promote-live.mjs` both require the actor and the
+  triggering actor to be `christcr2012`; a non-owner
+  dispatch refuses closed with the same shape as an
+  unguarded recovery dispatch. The owner path runs the
+  identical checked promotion — the six required exact-head
+  checks (`check`, `unit`, `db`, `mock`, `rtc-reference`,
+  `ci`), fast-forward only, branch-moved re-checks, atomic
+  push and read-back — and never consumes, writes or
+  deletes the day's `live-promotion/<Denver day>` marker.
+  Each owner-ordered release writes its own durable
+  receipt, `owner-release/<Denver day>-<main short SHA>`,
+  atomically with the live advance; a re-run at the same
+  head no-ops on that receipt, and an owner order for an
+  already-live head records the receipt without moving
+  live. The elapsed-midnight condition remains a property
+  of recovery only and does not gate the owner's order.
+- **The policy pin moves with it.**
+  `scripts/validate-hosting-release.mjs` now pins the
+  two-input dispatch block and both owner-gated dispatch
+  clauses exactly; unguarded variants of either input fail
+  CI's release-policy check.
+- **Proof.** `scripts/promote-live.test.mjs` grows from 10
+  to 14 tests with the 10 pre-existing tests byte-identical:
+  owner authorization including the no-time-gate pin at
+  exact Denver midnight, workflow shape, hosting-policy
+  mutations of the owner clause, and a real-git end-to-end
+  run in which a consumed daily marker stands the automatic
+  path down while the owner path promotes past it, receipts
+  per head, and refuses failing checks, pending checks and
+  a diverged live without writing a receipt.
+  `node scripts/validate-hosting-release.mjs` exits 0. The
+  PR stops for the Stripe coordinator's review before
+  merging; the first live owner-ordered release through the
+  route is the coordinator's to schedule after merge.
+
 ## 2026-11-04 — CAP-4 D-8 §A workflow read composites: follow the connection mode (source)
 
 CAP-4's tenth family is implemented in source (card

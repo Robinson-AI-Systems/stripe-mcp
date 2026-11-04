@@ -21,7 +21,12 @@ on:
         type: boolean
         required: true
         default: false
-# All recovery paths share the same checked atomic daily promoter.
+      owner_release:
+        description: 'Owner-only checked release ordered by the owner'
+        type: boolean
+        required: false
+        default: false
+# All recovery and owner-ordered paths share the same checked atomic promoter.
 permissions:
   contents: write
   checks: read
@@ -35,7 +40,8 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'schedule' ||
-       (github.event_name == 'workflow_dispatch' && inputs.recover_missed_daily == true && github.actor == 'christcr2012' && github.triggering_actor == 'christcr2012'))
+       (github.event_name == 'workflow_dispatch' && inputs.recover_missed_daily == true && github.actor == 'christcr2012' && github.triggering_actor == 'christcr2012') ||
+       (github.event_name == 'workflow_dispatch' && inputs.owner_release == true && github.actor == 'christcr2012' && github.triggering_actor == 'christcr2012'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -48,8 +54,9 @@ jobs:
         with:
           node-version: 22
       - run: node --test scripts/promote-live.test.mjs
-      - name: Promote exactly one checked main snapshot per Denver day
+      - name: Promote a checked main snapshot under the release policy
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RECOVER_MISSED_DAILY: ${{ inputs.recover_missed_daily }}
+          OWNER_RELEASE: ${{ inputs.owner_release }}
         run: node scripts/promote-live.mjs

@@ -203,3 +203,128 @@ test('successful no-change run records a receipt and suppresses later developmen
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('owner-ordered release requires explicit owner and carries no time-of-day gate', async () => {
+  const { authorizedReleaseInvocation, isOwnerReleaseInvocation, ownerReleaseMarker } =
+    await import('./promote-live.mjs');
+  const env = { GITHUB_REPOSITORY: 'example/repo', GITHUB_REF: 'refs/heads/main',
+    GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR: 'christcr2012',
+    GITHUB_TRIGGERING_ACTOR: 'christcr2012', OWNER_RELEASE: 'true', GITHUB_TOKEN: 'fixture' };
+  // 2026-12-14T07:00:00Z is exactly Denver midnight: missed-daily recovery is
+  // refused there by the elapsed-midnight rule, but the owner's own order is
+  // not time-gated — his authority, not the clock, is the gate.
+  const midnight = new Date('2026-12-14T07:00:00Z');
+  assert.equal(isOwnerReleaseInvocation(env), true);
+  assert.equal(authorizedReleaseInvocation(env, 'example/repo', midnight), true);
+  assert.equal(authorizedReleaseInvocation({ ...env, OWNER_RELEASE: 'false' }, 'example/repo', midnight), false);
+  for (const change of [{ GITHUB_ACTOR: 'other' }, { GITHUB_TRIGGERING_ACTOR: 'other' },
+    { GITHUB_TRIGGERING_ACTOR: undefined }, { OWNER_RELEASE: undefined },
+    { GITHUB_EVENT_NAME: 'schedule' }, { GITHUB_EVENT_NAME: 'push' }])
+    assert.equal(isOwnerReleaseInvocation({ ...env, ...change }), false);
+  for (const change of [{ GITHUB_REF: 'refs/heads/live' }, { GITHUB_REPOSITORY: 'other/repo' },
+    { GITHUB_TOKEN: '' }, { GITHUB_ACTOR: 'other' }])
+    assert.equal(authorizedReleaseInvocation({ ...env, ...change }, 'example/repo', midnight), false);
+  const head = 'abcdef0123456789abcdef0123456789abcdef01';
+  assert.equal(ownerReleaseMarker(head, new Date('2026-11-04T12:00:00Z')),
+    'owner-release/2026-11-04-abcdef01');
+});
+
+test('owner release dispatch is owner-gated in the workflow beside recovery', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/promote-live.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /owner_release:/);
+  assert.match(workflow, /inputs\.owner_release == true && github\.actor == 'christcr2012' && github\.triggering_actor == 'christcr2012'/);
+  assert.match(workflow, /OWNER_RELEASE: \$\{\{ inputs\.owner_release \}\}/);
+});
+
+test('unguarded owner-release dispatch fails hosting policy', async () => {
+  const { releasePolicyViolations } = await import('./validate-hosting-release.mjs');
+  const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+  const good = { vercel: read('vercel.json'), ci: read('.github/workflows/ci.yml'),
+    targets: read('.github/workflows/pr-target.yml'), promote: read('.github/workflows/promote-live.yml') };
+  assert.deepEqual(releasePolicyViolations(good), []);
+  for (const promote of [
+    good.promote.replace('inputs.owner_release == true', 'true'),
+    good.promote.replace("(github.event_name == 'workflow_dispatch' && inputs.owner_release == true && github.actor == 'christcr2012'",
+      "(github.event_name == 'workflow_dispatch' && inputs.owner_release == true && github.actor == 'other'"),
+    good.promote.replace('OWNER_RELEASE: ${{ inputs.owner_release }}', 'OWNER_RELEASE: true'),
+    good.promote.replace("description: 'Owner-only checked release ordered by the owner'", "description: 'Release'")
+  ]) assert.match(releasePolicyViolations({ ...good, promote }).join(' '), /Release workflow/);
+});
+
+test('owner-ordered release promotes past a consumed daily marker and receipts per head', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'owner-release-'));
+  const cwd = process.cwd(), fetchBefore = globalThis.fetch;
+  const keys = ['GITHUB_REPOSITORY', 'GITHUB_REF', 'GITHUB_EVENT_NAME', 'GITHUB_TOKEN',
+    'GITHUB_ACTOR', 'GITHUB_TRIGGERING_ACTOR', 'OWNER_RELEASE', 'RECOVER_MISSED_DAILY'];
+  const before = keys.map(k => process.env[k]);
+  const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: 'pipe' }).trim();
+  const { ownerReleaseMarker } = await import('./promote-live.mjs');
+  try {
+    git('init', '--bare', join(dir, 'remote.git'));
+    git('init', '-b', 'main');
+    git('config', 'user.email', 'test@example.invalid');
+    git('config', 'user.name', 'Release test');
+    git('remote', 'add', 'origin', join(dir, 'remote.git'));
+    writeFileSync(join(dir, 'fixture.txt'), 'first');
+    git('add', 'fixture.txt'); git('commit', '-m', 'first');
+    git('push', 'origin', 'main', 'main:live');
+    const original = git('rev-parse', 'HEAD');
+    // The day's automatic promotion already happened: the daily marker is
+    // consumed at the original head while main has since advanced.
+    git('push', 'origin', 'main:refs/tags/live-promotion/' + denverDay());
+    writeFileSync(join(dir, 'fixture.txt'), 'second');
+    git('commit', '-am', 'second'); git('push', 'origin', 'main');
+    const second = git('rev-parse', 'HEAD');
+    process.chdir(dir);
+    const policy = { repository: 'example/repo', requiredChecks: ['ci'] };
+    const greenFor = sha => async () => ({ ok: true, json: async () => ({ total_count: 1,
+      check_runs: [{ ...good, head_sha: sha }] }) });
+    Object.assign(process.env, { GITHUB_REPOSITORY: 'example/repo', GITHUB_REF: 'refs/heads/main',
+      GITHUB_EVENT_NAME: 'schedule', GITHUB_TOKEN: 'fixture' });
+    globalThis.fetch = greenFor(second);
+    // The automatic path stands down on the consumed marker: live stays put.
+    await run(policy, { attempts: 1, pause: async () => {} });
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], original);
+    // A non-owner dispatch carrying owner_release is refused closed.
+    Object.assign(process.env, { GITHUB_EVENT_NAME: 'workflow_dispatch',
+      GITHUB_ACTOR: 'other', GITHUB_TRIGGERING_ACTOR: 'other', OWNER_RELEASE: 'true' });
+    await assert.rejects(run(policy, { attempts: 1, pause: async () => {} }), /Scheduled/);
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], original);
+    // The owner's dispatch promotes the checked head past the consumed
+    // marker and writes only its own per-head receipt.
+    Object.assign(process.env, { GITHUB_ACTOR: 'christcr2012', GITHUB_TRIGGERING_ACTOR: 'christcr2012' });
+    await run(policy, { attempts: 1, pause: async () => {} });
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], second);
+    assert.equal(git('ls-remote', 'origin', 'refs/tags/' + ownerReleaseMarker(second)).split(/\s+/)[0], second);
+    assert.equal(git('ls-remote', 'origin', 'refs/tags/live-promotion/' + denverDay()).split(/\s+/)[0], original);
+    // Re-running the same owner release at the same head is a no-op.
+    await run(policy, { attempts: 1, pause: async () => {} });
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], second);
+    // A further owner-ordered head with a failing check is refused.
+    writeFileSync(join(dir, 'fixture.txt'), 'third');
+    git('commit', '-am', 'third'); git('push', 'origin', 'main');
+    const third = git('rev-parse', 'HEAD');
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ total_count: 1,
+      check_runs: [{ ...good, head_sha: third, conclusion: 'failure' }] }) });
+    await assert.rejects(run(policy, { attempts: 1, pause: async () => {} }), /check failed/);
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], second);
+    // Pending checks exhaust the release window without moving live.
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ total_count: 1,
+      check_runs: [{ ...good, head_sha: third, status: 'in_progress', conclusion: null }] }) });
+    await assert.rejects(run(policy, { attempts: 2, pause: async () => {} }), /window exhausted/);
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], second);
+    // A diverged live branch refuses even under an owner order, and no
+    // receipt is written for the unreleased head.
+    git('checkout', '-b', 'side', original);
+    writeFileSync(join(dir, 'fixture.txt'), 'divergent');
+    git('commit', '-am', 'divergent'); git('push', '--force', 'origin', 'HEAD:live');
+    git('checkout', 'main');
+    globalThis.fetch = greenFor(third);
+    await assert.rejects(run(policy, { attempts: 1, pause: async () => {} }), /diverged/);
+    assert.equal(git('ls-remote', 'origin', 'refs/tags/' + ownerReleaseMarker(third)), '');
+  } finally {
+    process.chdir(cwd); globalThis.fetch = fetchBefore;
+    keys.forEach((key, i) => { if (before[i] === undefined) delete process.env[key]; else process.env[key] = before[i]; });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
