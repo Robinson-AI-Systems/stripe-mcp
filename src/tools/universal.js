@@ -11,6 +11,7 @@ import {financialDecision,isSafeMetadataUpdate}
   from '../stripe/money-operations.js';
 import {preferredNative} from '../stripe/hand-built-map.js';
 import {classifyUniversalWrite,companionGet} from '../stripe/universal-policy.js';
+import {classificationFor} from '../stripe/universal-classification.js';
 
 const bad=message=>{throw new TypeError(message);};
 const exact=(a,allowed,required=[])=>{
@@ -109,6 +110,14 @@ function safeWrite(a){
   const {record,path,body,query}=submitted(a);
   if(!['POST','DELETE'].includes(record.method))
     bad('Only pinned POST and DELETE can be written');
+  // CAP-4 D-9: a classified refusal row serves its own class reason
+  // even where an older gate (the sensitive-family screen, the money
+  // heuristic) would have spoken first. Metadata-only updates keep
+  // their baseline route and native redirects keep theirs.
+  const row=classificationFor(record);
+  if(row&&row.disposition!=='allow'&&!row.redirect&&
+    !isSafeMetadataUpdate(record,body))
+    bad(row.reason);
   rejectSecret(record);
   const native=preferredNative(record);
   if(native)bad('Use original independently guarded native tool: '+native);
@@ -127,6 +136,28 @@ function matchesProvider(request,returned){
   return !!returned&&typeof returned==='object'&&
     Object.entries(request).every(([k,v])=>matchesProvider(v,returned[k]));
 }
+// CAP-4 D-9 helpers for the two classified shapes the baseline kinds
+// cannot express. An action POST addresses an action on an item
+// (/v1/billing/alerts/{id}/activate); its read-back target is the item.
+const itemPath=path=>path.slice(0,path.lastIndexOf('/'));
+// A singleton settings object (tax settings) has no resource id of
+// its own: its identity is the account, and its livemode marker is
+// the mode evidence. Anything else fails the caller's checks.
+function settingsObject(fetched,ctx,row){
+  if(!fetched||fetched.object!==row?.objectName)
+    bad('Mode-bound target identity/ownership metadata unavailable');
+  return {...fetched,id:ctx.connection.stripeAccount,
+    metadata:fetched.metadata??{}};
+}
+// Deep body/read-back comparison for classified rows. Baseline rows
+// (and unclassified metadata-only calls) never take this path: their
+// verify logic below is byte-identical to the pre-D-9 behavior.
+function bodyMatches(body,after,row){
+  const omit=new Set(row?.verifyOmit??[]);
+  if(row&&!row.baseline)omit.add('expand');
+  return Object.entries(body).every(([key,value])=>
+    omit.has(key)||matchesProvider(value,after[key]));
+}
 function makeWrite(){
   // Mutable receipt state exists only within this individual tool invocation.
   let command=null,created=null;
@@ -136,10 +167,23 @@ function makeWrite(){
     read:async(a,ctx)=>{
       context(ctx,true);
       command=safeWrite(a);
-      const obj=command.policy.kind==='create'?
-        {id:ctx.connection.stripeAccount,metadata:{},
-          livemode:ctx.connection.mode==='live',
-          _newResource:true}:await get(command.path,ctx);
+      const kind=command.policy.kind,row=command.policy.classification;
+      let obj;
+      if(kind==='create'){
+        obj={id:ctx.connection.stripeAccount,metadata:{},
+          livemode:ctx.connection.mode==='live',_newResource:true};
+      }else if(kind==='settings'){
+        obj=settingsObject(await get(command.path,ctx),ctx,row);
+      }else if(kind==='action'){
+        obj=await get(itemPath(command.path),ctx);
+      }else{
+        obj=await get(command.path,ctx);
+      }
+      // Classified objects whose pinned shape has no metadata surface
+      // cannot carry app-ownership markers; the ownership check below
+      // still runs on the object itself.
+      if(obj&&obj.metadata===undefined&&row&&row.metadataSurface===false)
+        obj={...obj,metadata:{}};
       if(!obj?.id||obj.livemode!==(ctx.connection.mode==='live')||
         typeof obj.metadata!=='object'||obj.metadata===null)
         bad('Mode-bound target identity/ownership metadata unavailable');
@@ -148,14 +192,32 @@ function makeWrite(){
       command.originalId=obj.id;
       return {...obj,_operation:command.record.id};
     },
-    summarize:(_before,_a)=>
-      'Stripe '+command.record.method+' '+command.record.path+
-      ': '+command.policy.notice+
-      '. Real provider costs or irreversible effects may be unknown; independent confirmation and verified readback required. No automatic uncertain retry.',
+    summarize:(_before,_a)=>{
+      const base='Stripe '+command.record.method+' '+command.record.path+
+        ': '+command.policy.notice+
+        '. Real provider costs or irreversible effects may be unknown; independent confirmation and verified readback required. No automatic uncertain retry.';
+      // Radar rows are classified value-level-preview: the exact value
+      // being written is the substance of the preview (derivation
+      // SS B.2). No other family's summary changes.
+      if(command.policy.classification?.previewBody){
+        const text=JSON.stringify(_a.body??{});
+        return base+' Exact request body: '+
+          (text.length>400?text.slice(0,400)+'…':text);
+      }
+      return base;
+    },
     apply:async(a,ctx,{idempotencyKey})=>{
       const cmd=safeWrite(a);
       created=await provider(cmd.record.method,cmd.path,cmd.body,ctx,{
         idempotencyKey,maxNetworkRetries:0});
+      if(cmd.policy.kind==='settings'){
+        // A singleton settings object is verified by its pinned
+        // object type and its livemode marker, not by a resource id.
+        if(created?.object!==cmd.policy.classification?.objectName||
+          created.livemode!==(ctx.connection.mode==='live'))
+          bad('Original Stripe response identity unverified');
+        return;
+      }
       if(typeof created?.id!=='string'||
         created.livemode!==(ctx.connection.mode==='live'))
         bad('Original Stripe response identity unverified');
@@ -169,6 +231,11 @@ function makeWrite(){
         return route?get(route.replace(/\{[^}]+\}/,
           encodeURIComponent(created.id)),ctx):null;
       }
+      if(command.policy.kind==='settings')
+        return settingsObject(await get(command.path,ctx),ctx,
+          command.policy.classification);
+      if(command.policy.kind==='action')
+        return get(itemPath(command.path),ctx);
       if(command.policy.kind==='delete'){
         if(created.deleted!==true)return null;
         try{
@@ -184,13 +251,25 @@ function makeWrite(){
     },
     verify:(before,after,_a,ctx)=>{
       if(!after||after.livemode!==(ctx.connection.mode==='live'))return false;
+      const row=command.policy.classification;
+      if(command.policy.kind==='settings')
+        return after.id===before.id&&bodyMatches(command.body,after,row);
+      if(command.policy.kind==='action'){
+        if(after.id!==before.id)return false;
+        if(row?.expect&&after[row.expect.field]!==row.expect.value)
+          return false;
+        return bodyMatches(command.body,after,row);
+      }
       if(command.policy.kind==='create')
         return after.id===created?.id&&after.id!==before.id&&
-          Object.entries(command.body).every(([key,value])=>
-            matchesProvider(value,after[key]));
+          bodyMatches(command.body,after,row);
       if(command.policy.kind==='delete')
         return after.id===before.id&&after.deleted===true;
       if(after.id!==before.id)return false;
+      // Classified update rows verify by deep body comparison (their
+      // bodies carry nested configuration objects); baseline rows and
+      // metadata-only calls keep the original shallow comparison.
+      if(row&&!row.baseline)return bodyMatches(command.body,after,row);
       return Object.entries(command.body).every(([key,value])=>{
         if(key==='metadata')return Object.entries(value).every(([k,v])=>
           after.metadata?.[k]===v);
