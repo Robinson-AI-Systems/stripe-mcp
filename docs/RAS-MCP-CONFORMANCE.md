@@ -792,7 +792,27 @@ V3, then V4.
   create payment surfaces, and any charge flows through
   Stripe's hosted page under the existing contracts.
   Remaining families:
-  Radar; Identity; Files; Reports; Branding (its admission
+  Radar;
+  Family 7 of 13, **Radar**, is source-implemented 2026-11-04
+  (OWNER-OBEDIENCE-V2-RADAR): no dispatcher change (the `risk`
+  area was already a guarded LIVE area); the TEST-only handler
+  gates are removed from all five writes (review approval,
+  value-list creation, empty-list deletion, list-item add and
+  remove); a fourth, hidden TEST gate in the shared safe
+  projections (`radar-reads.js`) is converted to an optional
+  mode argument, so the write preflights and read-backs verify
+  records in the connection's own mode while the read tools —
+  unchanged, still TEST-only — call them exactly as before;
+  every evaluated object and read-back demands the
+  connection's mode in both directions; previews are
+  mode-labeled and state in plain words that approving a
+  review releases the held payment to be captured and settled
+  and that a live list change blocks or stops blocking real
+  payments; and the family's privacy invariant is preserved —
+  raw item values appear in no preview, result or audit
+  record. No money wiring is touched: Radar writes move no
+  money. Remaining families:
+  Identity; Files; Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.
 - **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).

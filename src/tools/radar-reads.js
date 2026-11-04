@@ -2,9 +2,13 @@
 import {allProfiles,guarded,fail,pageResult,paging,ref,local} from './billing-shared.js';
 const invalid=m=>{throw new TypeError(m);};
 const exact=(v,p)=>typeof v==='string'&&new RegExp('^'+p+'_[A-Za-z0-9]{2,100}$').test(v);
-const checked=(v,p,object)=>{
-  if(!v||v.object!==object||!exact(v.id,p)||v.livemode!==false)
-    invalid('Cannot verify exact TEST Radar record');
+const checked=(v,p,object,mode)=>{
+  // Callers that supply no mode keep the historical TEST-only check
+  // exactly (owner-obedience V2, Radar family): the write modules pass
+  // their connection's mode, so a record verifies only in its own mode.
+  if(!v||v.object!==object||!exact(v.id,p)||v.livemode!==(mode==='live'))
+    invalid('Cannot verify exact '+(mode==='live'?'LIVE':'TEST')+
+      ' Radar record');
   if(!Number.isSafeInteger(v.created)||v.created<946684800)
     invalid('Radar creation timestamp invalid');
   return v;
@@ -14,8 +18,8 @@ const optionalRef=(v,p)=>{
   if(!exact(x,p))invalid('Radar linked payment identity invalid');
   return x;
 };
-export function warningSafe(v){
-  const x=checked(v,'issfr','radar.early_fraud_warning');
+export function warningSafe(v,mode){
+  const x=checked(v,'issfr','radar.early_fraud_warning',mode);
   return {id:x.id,createdAt:local(x.created),
     charge:optionalRef(x.charge,'ch'),
     paymentIntent:optionalRef(x.payment_intent,'pi'),
@@ -24,8 +28,8 @@ export function warningSafe(v){
         'made_with_lost_card','made_with_stolen_card','misc','other'].includes(x.fraud_type)?
         x.fraud_type:null};
 }
-export function reviewSafe(v){
-  const x=checked(v,'prv','review');
+export function reviewSafe(v,mode){
+  const x=checked(v,'prv','review',mode);
   if(typeof x.open!=='boolean')invalid('Radar review state invalid');
   return {id:x.id,createdAt:local(x.created),open:x.open,
     charge:optionalRef(x.charge,'ch'),
@@ -38,8 +42,8 @@ export function reviewSafe(v){
 const types=['card_bin','card_fingerprint','case_sensitive_string','country',
   'customer_id','email','ip_address','sepa_debit_fingerprint','string',
   'us_bank_account_fingerprint'];
-export function valueListSafe(v){
-  const x=checked(v,'rsl','radar.value_list');
+export function valueListSafe(v,mode){
+  const x=checked(v,'rsl','radar.value_list',mode);
   if(!types.includes(x.item_type)||typeof x.alias!=='string'||
     !/^[a-z0-9_]{1,100}$/.test(x.alias)||typeof x.name!=='string'||
     x.name.length>200)invalid('Radar list metadata invalid');
@@ -48,8 +52,8 @@ export function valueListSafe(v){
     itemCount:Number.isSafeInteger(x.list_items?.total_count)?
       x.list_items.total_count:null};
 }
-export function valueItemSafe(v){
-  const x=checked(v,'rsli','radar.value_list_item');
+export function valueItemSafe(v,mode){
+  const x=checked(v,'rsli','radar.value_list_item',mode);
   const list=ref(x.value_list);
   if(!exact(list,'rsl'))invalid('Radar list item does not match a verified list');
   // Raw values can be emails, account IDs and card fingerprints; never echo.

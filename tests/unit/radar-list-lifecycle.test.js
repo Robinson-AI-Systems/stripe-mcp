@@ -1,4 +1,4 @@
-import {describe,it,expect,vi} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
 import {makeRadarDeleteList,makeRadarAddItem,makeRadarRemoveItem,tools,handlers}
   from '../../src/tools/radar-list-lifecycle.js';
 import {registry} from '../../src/tools/index.js';
@@ -95,5 +95,123 @@ describe('G-3c Radar list-item writes, exact guarded handlers',()=>{
     }
     expect(f.s.radar.valueLists.del).not.toHaveBeenCalled();
     expect(f.s.radar.valueListItems.del).not.toHaveBeenCalled();
+  });
+});
+function liveFixture({livemode=true,hasItems=false}={}){
+  const account='acct_FAKE1234';
+  let list={id:listId,object:'radar.value_list',livemode,created:1695680197,
+    name:'Sample',alias:'sample_list',item_type:'email',
+    list_items:{total_count:hasItems?1:0,has_more:false},metadata:{}};
+  let item={id:itemId,object:'radar.value_list_item',livemode,
+    value_list:listId,created:1695680197,value:'secret@example.com'};
+  let deletedList=false,deletedItem=false;
+  const missing=()=>Object.assign(new Error('Not found'),
+    {code:'resource_missing'});
+  const s={
+    accounts:{retrieve:vi.fn(async()=>({id:account,object:'account',livemode:true}))},
+    balance:{retrieve:vi.fn(async()=>({object:'balance',livemode:true}))},
+    radar:{valueLists:{
+      retrieve:vi.fn(async()=>{if(deletedList)throw missing();return {...list};}),
+      del:vi.fn(async()=>{deletedList=true;return {id:listId,deleted:true};})},
+    valueListItems:{
+      list:vi.fn(async()=>({data:hasItems&&!deletedItem?[{...item}]:[],
+        has_more:false})),
+      create:vi.fn(async(_args)=>{deletedItem=false;item={...item,
+        value:_args.value};return {...item};}),
+      retrieve:vi.fn(async()=>{if(deletedItem)throw missing();return {...item};}),
+      del:vi.fn(async()=>{deletedItem=true;return {id:itemId,deleted:true};})}}};
+  const db=createFakeDb({accounts:[{id:account,live_enabled:true,
+    live_connected:true}]});
+  const ctx={db,connectionId:'risk-lifecycle-live',liveAccessGranted:true,
+    connection:{stripeAccount:account,mode:'live',profile:'full',
+      context:'customer',rtcLiveOwnerApproved:true},
+    services:{stripeForConnection:async()=>s}};
+  return {ctx,db,s,
+    drift:()=>{list={...list,alias:'renamed_list'};}};
+}
+describe('G-3c LIVE Radar list lifecycle (owner-obedience V2, family 7)',()=>{
+  afterEach(()=>vi.unstubAllEnvs());
+  it('delete: LIVE preview states the consequence and fingerprint confirm deletes exactly once',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=liveFixture(),a={listId,requestKey:'live-delete'};
+    const preview=parse(await handlers.radar_delete_value_list(
+      {...a,dryRun:true},f.ctx));
+    expect(preview.preview).toContain('LIVE MODE');
+    expect(preview.preview).toContain('EMPTY');
+    expect(preview.preview).toContain('stops no value being blocked');
+    expect(f.s.radar.valueLists.del).not.toHaveBeenCalled();
+    const done=parse(await handlers.radar_delete_value_list(
+      {...a,confirm:true,previewFingerprint:preview.previewFingerprint},f.ctx));
+    expect(done).toMatchObject({done:true,confirmed:true});
+    expect(f.s.radar.valueLists.del).toHaveBeenCalledTimes(1);
+  });
+  it('add: LIVE preview states real payments are refused and never exposes the private value',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=liveFixture({hasItems:true}),value='blockme@example.com',
+      a={listId,value,requestKey:'live-add'};
+    const preview=parse(await handlers.radar_add_list_item({...a,dryRun:true},f.ctx));
+    expect(preview.preview).toContain('LIVE MODE');
+    expect(preview.preview).toContain('Value length '+value.length);
+    expect(preview.preview).toContain('refuses the real customer');
+    expect(JSON.stringify(preview)).not.toContain(value);
+    const done=parse(await handlers.radar_add_list_item(
+      {...a,confirm:true,previewFingerprint:preview.previewFingerprint},f.ctx));
+    expect(done).toMatchObject({done:true,confirmed:true});
+    expect(JSON.stringify(done)).not.toContain(value);
+    expect(f.s.radar.valueListItems.create).toHaveBeenCalledTimes(1);
+    expect(f.s.radar.valueListItems.create).toHaveBeenCalledWith(
+      {value_list:listId,value},{idempotencyKey:expect.any(String)});
+    const audit=await f.db.listRecentChanges(
+      {account:'acct_FAKE1234',mode:'live'});
+    expect(audit[0].summary).not.toContain(value);
+  });
+  it('add: a drifted LIVE confirmation refuses with the fresh fingerprint and executes nothing',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=liveFixture({hasItems:true}),
+      a={listId,value:'blockme@example.com',requestKey:'live-add-drift'};
+    const preview=parse(await handlers.radar_add_list_item({...a,dryRun:true},f.ctx));
+    f.drift();
+    const refused=parse(await handlers.radar_add_list_item(
+      {...a,confirm:true,previewFingerprint:preview.previewFingerprint},f.ctx));
+    expect(refused.done).toBe(false);
+    expect(refused.error).toMatch(/state has changed/);
+    expect(refused.previewFingerprint).not.toBe(preview.previewFingerprint);
+    expect(f.s.radar.valueListItems.create).not.toHaveBeenCalled();
+  });
+  it('remove: LIVE preview states what stops being blocked and fingerprint confirm removes exactly once',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=liveFixture({hasItems:true}),a={itemId,requestKey:'live-remove'};
+    const preview=parse(await handlers.radar_remove_list_item(
+      {...a,dryRun:true},f.ctx));
+    expect(preview.preview).toContain('LIVE MODE');
+    expect(preview.preview).toContain('stops being');
+    expect(preview.preview).toContain('no longer stopped by it');
+    expect(JSON.stringify(preview)).not.toContain('secret@example.com');
+    expect(f.s.radar.valueListItems.del).not.toHaveBeenCalled();
+    const done=parse(await handlers.radar_remove_list_item(
+      {...a,confirm:true,previewFingerprint:preview.previewFingerprint},f.ctx));
+    expect(done).toMatchObject({done:true,confirmed:true});
+    expect(f.s.radar.valueListItems.del).toHaveBeenCalledTimes(1);
+  });
+  it('wrong-mode provider objects are refused in both directions',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const liveSide=liveFixture({livemode:false,hasItems:true});
+    for(const [name,args] of [['radar_delete_value_list',{listId}],
+      ['radar_add_list_item',{listId,value:'x@example.com'}],
+      ['radar_remove_list_item',{itemId}]])
+      await expect(handlers[name]({...args,confirm:true},liveSide.ctx))
+        .rejects.toThrow(/Cannot verify exact LIVE Radar record/);
+    expect(liveSide.s.radar.valueLists.del).not.toHaveBeenCalled();
+    expect(liveSide.s.radar.valueListItems.create).not.toHaveBeenCalled();
+    expect(liveSide.s.radar.valueListItems.del).not.toHaveBeenCalled();
+    const testSide=liveFixture({livemode:true,hasItems:true});
+    const testCtx={db:testSide.db,connectionId:'risk-lifecycle-test',
+      connection:{stripeAccount:'acct_FAKE1234',mode:'test',profile:'full'},
+      services:testSide.ctx.services};
+    for(const [name,args] of [['radar_delete_value_list',{listId}],
+      ['radar_add_list_item',{listId,value:'x@example.com'}],
+      ['radar_remove_list_item',{itemId}]])
+      await expect(handlers[name]({...args,confirm:true},testCtx))
+        .rejects.toThrow(/Cannot verify exact TEST Radar record/);
   });
 });
