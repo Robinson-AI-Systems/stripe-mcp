@@ -1,6 +1,6 @@
 // G-3d: Identity sessions without exposing verification documents, PII or client_secret.
 import {defineWrite} from './write.js';
-import {client,fullProfiles,guarded,fail,paging,pageResult,local,validateFields} from './billing-shared.js';
+import {client,fullProfiles,guarded,paging,pageResult,local,validateFields} from './billing-shared.js';
 import {assertAccountResourceMode} from './account-mode.js';
 const invalid=m=>{throw new TypeError(m);};
 const modeOf=ctx=>ctx?.connection?.mode;
@@ -15,9 +15,9 @@ const types=['document','id_number'];
 // When the caller supplies the connection mode, a session verifies only
 // in its own mode (owner-obedience V2, Identity family): a LIVE session
 // on a LIVE connection verifies with the same safe fields, a wrong-mode
-// session is unavailable. Callers that supply no mode — the read tools,
-// whose LIVE reachability is CAP-4's, not this family's — keep the
-// historical TEST-only check exactly.
+// session is unavailable. The read tools supply the connection mode
+// (CAP-4 D-11); callers that supply no mode keep the historical
+// TEST-only check exactly.
 export function identitySafe(v,mode){
   const expected=['test','live'].includes(mode)?mode==='live':false;
   if(v?.object!=='identity.verification_session'||!exact(v.id)||
@@ -54,12 +54,12 @@ function validate(a,allowed,needed=[]){
     needed.some(x=>a[x]===undefined))invalid('Exact Identity read arguments required');
 }
 export const tools=[
-  {name:'identity_list_sessions',description:'List safe TEST Identity verification statuses without private documents.',
+  {name:'identity_list_sessions',description:'List TEST or LIVE Identity verification statuses without private documents.',
     area:'identity',writes:false,profiles:fullProfiles,annotations:{readOnlyHint:true},
     inputSchema:{type:'object',properties:{
       limit:{type:'integer',minimum:1,maximum:100},
       starting_after:sess},additionalProperties:false}},
-  {name:'identity_get_session',description:'Get a TEST Identity verification state without access secrets or personal data.',
+  {name:'identity_get_session',description:'Get TEST or LIVE Identity verification state without access secrets or personal data.',
     area:'identity',writes:false,profiles:fullProfiles,annotations:{readOnlyHint:true},
     inputSchema:{type:'object',properties:{sessionId:sess},
       required:['sessionId'],additionalProperties:false}},
@@ -69,21 +69,19 @@ export const tools=[
       required:['type'],additionalProperties:false}}
 ];
 export const handlers={
-  identity_list_sessions:(a,ctx)=>ctx?.connection?.mode!=='test'?
-    fail('TEST Identity mode required'):guarded(ctx,async s=>{
+  identity_list_sessions:(a,ctx)=>guarded(ctx,async s=>{
       validate(a,['limit','starting_after']);
       if(a.starting_after!==undefined&&!exact(a.starting_after))
         invalid('Exact Identity cursor required');
       const v=await s.identity.verificationSessions.list(paging(a));
-      return pageResult(v,identitySafe);
+      return pageResult(v,x=>identitySafe(x,modeOf(ctx)));
     }),
-  identity_get_session:(a,ctx)=>ctx?.connection?.mode!=='test'?
-    fail('TEST Identity mode required'):guarded(ctx,async s=>{
+  identity_get_session:(a,ctx)=>guarded(ctx,async s=>{
       validate(a,['sessionId'],['sessionId']);
       if(!exact(a.sessionId))invalid('Exact Identity ID required');
       const v=await s.identity.verificationSessions.retrieve(a.sessionId);
       if(v?.id!==a.sessionId)invalid('Identity session ID mismatch');
-      return identitySafe(v);
+      return identitySafe(v,modeOf(ctx));
     }),
   identity_create_session:(a,ctx)=>makeIdentityCreate().handler(a,ctx)
 };
