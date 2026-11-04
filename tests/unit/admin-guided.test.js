@@ -70,12 +70,19 @@ describe('G-6a owner guided settings and honest account verification',()=>{
     expect(restricted.status).toBe('not_readable');
     expect(restricted.observed).toBe(false);
   });
-  it('LIVE, malformed and indirect read-only gates fail closed',async()=>{
+  it('malformed and indirect read-only gates fail closed; LIVE follows the shared gate',async()=>{
     const f=fixture();
     expect((await handlers.admin_check_setting({setting:'unknown_setting'},f.ctx)).isError)
       .toBe(true);
-    expect((await handlers.admin_check_setting({setting:'two_step_login'},{
-      ...f.ctx,connection:{...f.ctx.connection,mode:'live'}})).isError).toBe(true);
+    // CAP-4 D-7 (coordinator ruling): the guided gate follows the
+    // shared mode-aware admin helper, so a Dashboard-only setting on a
+    // LIVE connection answers with its honest not_readable guide
+    // instead of the old TEST-only gate refusal. D-12 owns the guided
+    // family's full conversion.
+    const liveCheck=await handlers.admin_check_setting({setting:'two_step_login'},{
+      ...f.ctx,connection:{...f.ctx.connection,mode:'live'}});
+    expect(liveCheck.isError).toBeUndefined();
+    expect(JSON.parse(liveCheck.content[0].text).status).toBe('not_readable');
     const response=await dispatchReadOnlyTool({registry,name:'admin_check_setting',
       args:{setting:'account_verification'},connection:f.ctx.connection,services:f.ctx.services,db:{}});
     expect(response.isError).toBeUndefined();

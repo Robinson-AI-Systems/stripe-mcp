@@ -170,13 +170,22 @@ describe('G-6b owner overview and safe requirements',()=>{
     expect(v.sections.account.status).toBe('not_readable');
     expect(v.sections.capabilities.status).toBe('not_readable');
   });
-  it('fail closed on LIVE, invalid schema and foreign account',async()=>{
+  it('fail closed on invalid schema; unconfigured LIVE fails or degrades honestly',async()=>{
     const f=fixture();
     for(const name of ['admin_list_requirements','stripe_admin_overview']){
       expect((await handlers[name]({unknown:true},f.ctx)).isError).toBe(true);
-      expect((await handlers[name]({},{
-        ...f.ctx,connection:{...f.ctx.connection,mode:'live'}})).isError).toBe(true);
     }
+    // CAP-4 D-7: the admin gate follows the connection mode. This
+    // fixture has no configured LIVE account (no db), so requirements
+    // still fail closed, while the overview answers in LIVE mode with
+    // every section honestly unobserved — never a TEST payload.
+    const liveCtx={...f.ctx,connection:{...f.ctx.connection,mode:'live'}};
+    expect((await handlers.admin_list_requirements({},liveCtx)).isError).toBe(true);
+    const liveOverview=parse(await handlers.stripe_admin_overview({},liveCtx));
+    expect(liveOverview.mode).toBe('live');
+    expect(liveOverview.account).toBe(id);
+    expect(Object.values(liveOverview.sections)
+      .every(s=>s.status==='not_readable')).toBe(true);
     const indirect=await dispatchReadOnlyTool({registry,name:'admin_list_requirements',
       args:{},connection:f.ctx.connection,services:f.ctx.services,db:{}});
     expect(indirect.isError).toBeUndefined();

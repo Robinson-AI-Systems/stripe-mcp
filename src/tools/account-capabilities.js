@@ -1,15 +1,19 @@
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
-// G-5b: own-account TEST capability statuses; Connect-only refusal is unreadable, never "disabled".
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
+// G-5b: own-account capability statuses; Connect-only refusal is unreadable, never "disabled".
+// CAP-4 D-7: the gate follows the connection mode and the account is
+// proven by the mode-matched verified reader before any capability is
+// projected. Capability objects carry no livemode of their own; the
+// account-level mode proof is the verification (D-1/D-2 discipline).
 import {client,reply,fail,allProfiles} from './billing-shared.js';
 const bad=m=>{throw new TypeError(m);};
 const accountOk=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
 const capabilityOk=x=>typeof x==='string'&&/^[a-z][a-z0-9_]{1,80}$/.test(x);
 const allowed=['id','status','requested','dueCount','pendingCount'];
 const status=['active','inactive','pending','unrequested'];
-function checkArgs(a){
+function checkArgs(a,mode){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>!['limit','offset','fields','detail'].includes(k)))
-    bad('Only a bounded TEST capability status page is permitted');
+    bad('Only a bounded '+mode.toUpperCase()+' capability status page is permitted');
   if(a.limit!==undefined&&(!Number.isInteger(a.limit)||a.limit<1||a.limit>20))
     bad('Select 1 to 20 capability statuses');
   if(a.offset!==undefined&&(!Number.isInteger(a.offset)||a.offset<0||a.offset>500))
@@ -41,15 +45,15 @@ export function capabilitySafe(v,account,{detail='summary',fields}={}){
   return fields===undefined?projected:Object.fromEntries(Object.entries(projected)
     .filter(([k])=>k==='id'||fields.includes(k)));
 }
-const unreadable=account=>({account,available:false,verification:'not_readable',
+const unreadable=(account,mode)=>({account,available:false,verification:'not_readable',
   capabilities:null,hasMore:null,nextOffset:null,
-  note:'Stripe did not permit native capability listing on this TEST key. This is NOT proof of disabled payment methods. Check capabilities and payment methods in the account Dashboard.'});
+  note:'Stripe did not permit native capability listing on this '+mode.toUpperCase()+' key. This is NOT proof of disabled payment methods. Check capabilities and payment methods in the account Dashboard.'});
 const unsupported=e=>[403,404].includes(e?.statusCode??e?.status)||
   ['permission_denied','resource_missing'].includes(e?.code);
 export const tools=[{
   name:'account_list_capabilities',area:'account',writes:false,profiles:allProfiles,
   annotations:{readOnlyHint:true},
-  description:'Read TEST account capabilities and statuses; unpermitted own-account reads are marked unreadable, not disabled.',
+  description:'Read TEST or LIVE account capabilities and statuses; unpermitted reads marked unreadable, not disabled.',
   inputSchema:{type:'object',properties:{
     limit:{type:'integer',minimum:1,maximum:20},
     offset:{type:'integer',minimum:0,maximum:500},
@@ -60,16 +64,17 @@ export const tools=[{
 }];
 export const handlers={
   async account_list_capabilities(a,ctx){
-    const account=ctx?.connection?.stripeAccount;
-    if(ctx?.connection?.mode!=='test'||!accountOk(account))
-      return fail('Select a configured TEST account');
+    const account=ctx?.connection?.stripeAccount,mode=ctx?.connection?.mode;
+    if(!['test','live'].includes(mode)||!accountOk(account))
+      return fail('Select a configured '+
+        (['test','live'].includes(mode)?mode.toUpperCase():'TEST or LIVE')+' account');
     try{
-      checkArgs(a);
+      checkArgs(a,mode);
       const s=await client(ctx);
-      await readVerifiedTestAccount(s,account);
+      await (mode==='live'?readVerifiedLiveAccount:readVerifiedTestAccount)(s,account);
       let page;
       try{page=await s.accounts.listCapabilities(account);}
-      catch(e){if(unsupported(e))return reply(unreadable(account));throw e;}
+      catch(e){if(unsupported(e))return reply(unreadable(account,mode));throw e;}
       if(page?.object!=='list'||!Array.isArray(page.data)||
         typeof page.has_more!=='boolean'||page.data.length>500||
         page.has_more===true)

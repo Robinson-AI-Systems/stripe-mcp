@@ -7,7 +7,7 @@ import {handlers as domainHandlers} from './account-apple-pay-domains.js';
 import {handlers as webhookHandlers} from './webhooks-read.js';
 import {handlers as portalHandlers} from './checkout.js';
 import {reply,fail,allProfiles} from './billing-shared.js';
-import {requireAdminTestAccount,parseAdminReply,verifiedAdminIdentity} from './admin-read-safety.js';
+import {requireAdminAccount,parseAdminReply,verifiedAdminIdentity} from './admin-read-safety.js';
 const categories=['account','payments','billing','security','tax','developers','other'];
 const bad=message=>{throw new TypeError(message);};
 function validateList(a){
@@ -103,11 +103,16 @@ export const tools=[
 export const handlers={
   async admin_list_guided_settings(a,ctx){
     try{
-      requireAdminTestAccount(ctx);validateList(a);
+      // CAP-4 D-7 (coordinator ruling): the guided gate follows the
+      // shared mode-aware admin helper, and this payload mode reports
+      // the connection's actual mode. The guided family's full
+      // conversion, descriptions and remaining TEST-shaped text stay
+      // with D-12.
+      const {mode}=requireAdminAccount(ctx);validateList(a);
       const keys=Object.keys(DASHBOARD_SETTINGS).sort()
         .filter(k=>a.section===undefined||(DASHBOARD_SECTION[k]??'other')===a.section);
       const offset=a.offset??0,limit=Math.min(a.limit??10,a.detail==='full'?5:20);
-      return reply({account:ctx.connection.stripeAccount,mode:'test',
+      return reply({account:ctx.connection.stripeAccount,mode,
         section:a.section??null,settings:keys.slice(offset,offset+limit)
           .map(k=>asGuide(k,a.detail??'summary')),
         total:keys.length,hasMore:keys.length>offset+limit,
@@ -117,7 +122,7 @@ export const handlers={
   },
   async admin_check_setting(a,ctx){
     try{
-      requireAdminTestAccount(ctx);
+      const {mode}=requireAdminAccount(ctx);
       if(!a||typeof a!=='object'||Array.isArray(a)||
         Object.keys(a).some(k=>k!=='setting')||
         typeof a.setting!=='string'||a.setting.length>100)
@@ -136,14 +141,14 @@ export const handlers={
         if(!verifiedAdminIdentity(identity,ctx.connection.stripeAccount))
           return reply({...guided,account:ctx.connection.stripeAccount,
             status:'not_readable',observed:false,complete:false,
-            note:'Own-account TEST identity could not be independently confirmed.'});
+            note:'Own-account '+mode.toUpperCase()+' identity could not be independently confirmed.'});
         const native=await readNative(lookup.setting,ctx);
         return reply({...guided,account:ctx.connection.stripeAccount,
           status:native?'observed':'not_readable',verification:native?'observed':'not_readable',
           observed:Boolean(native),complete:native?.complete??false,
           ...(native?{detail:native.detail}:{}),
           note:native?
-            'Native TEST data was observed, but this is NOT proof the intended owner Dashboard setting is configured or enabled. Compare to the expected result in Stripe.':
+            'Native '+mode.toUpperCase()+' data was observed, but this is NOT proof the intended owner Dashboard setting is configured or enabled. Compare to the expected result in Stripe.':
             'Native reader was unavailable or refused; no account setting is assumed configured.'});
       }
       const result=await accountHandlers.account_get({detail:'full'},ctx);

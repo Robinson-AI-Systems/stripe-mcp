@@ -1,7 +1,11 @@
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
-// G-6b: independent TEST owner overview and sanitized verification requirements.
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
+// G-6b: independent owner overview and sanitized verification requirements.
+// CAP-4 D-7: the admin gate and every payload mode follow the
+// connection's own mode; each section is still derived only from the
+// selected connection's readers, so a LIVE overview describes the
+// LIVE account's world and a TEST overview stays byte-identical.
 import {client,reply,fail,allProfiles} from './billing-shared.js';
-import {handlers as accountHandlers,verifiedTestAccountRecord} from './account-profile.js';
+import {handlers as accountHandlers,verifiedAccountRecord} from './account-profile.js';
 import {handlers as capabilityHandlers} from './account-capabilities.js';
 import {handlers as payoutHandlers} from './money-bank-reads.js';
 import {handlers as methodHandlers} from './account-payment-settings.js';
@@ -10,7 +14,7 @@ import {handlers as webhookHandlers} from './webhooks-read.js';
 import {handlers as portalHandlers} from './checkout.js';
 import {DASHBOARD_SETTINGS,whereIsSetting} from '../data/dashboard-map.js';
 import {denverLocalTime} from './util.js';
-import {requireAdminTestAccount,validateAdminArgs,readAdminTool,verifiedAdminIdentity} from './admin-read-safety.js';
+import {requireAdminAccount,validateAdminArgs,readAdminTool,verifiedAdminIdentity} from './admin-read-safety.js';
 
 const bad=m=>{throw new TypeError(m);};
 const link='https://dashboard.stripe.com/settings';
@@ -46,9 +50,9 @@ function classify(rows){
   }
   return Object.keys(counts).sort().map(key=>({category:key,label:categories[key],count:counts[key]}));
 }
-function verifiedRequirementRecord(record,id){
-  if(!verifiedTestAccountRecord(record,id))
-    bad('Independent TEST account identity verification failed');
+function verifiedRequirementRecord(record,id,mode){
+  if(!verifiedAccountRecord(record,id,mode))
+    bad('Independent '+mode.toUpperCase()+' account identity verification failed');
   const req=record.requirements;
   const fields=['currently_due','past_due','pending_verification','eventually_due'];
   const sums={};
@@ -62,7 +66,7 @@ function verifiedRequirementRecord(record,id){
       req.current_deadline>4102444800)bad('Requirement deadline was invalid');
     deadlineDenver=denverLocalTime(req.current_deadline);
   }
-  return {account:id,mode:'test',status,observed:status!=='not_readable',
+  return {account:id,mode,status,observed:status!=='not_readable',
     totals:{currentlyDue:sums.currently_due,pastDue:sums.past_due,
       pendingVerification:sums.pending_verification,eventuallyDue:sums.eventually_due},
     groups:{currentlyDue:classify(current),pastDue:classify(past),
@@ -77,11 +81,11 @@ function verifiedRequirementRecord(record,id){
 export const tools=[
   {name:'admin_list_requirements',area:'admin',writes:false,profiles:allProfiles,
     annotations:{readOnlyHint:true},
-    description:'Read safe TEST verification requirement category counts, due dates and owner Dashboard steps without personal data.',
+    description:'Read safe TEST or LIVE verification requirement counts, due dates and Dashboard steps without personal data.',
     inputSchema:{type:'object',properties:{},additionalProperties:false}},
   {name:'stripe_admin_overview',area:'admin',writes:false,profiles:allProfiles,
     annotations:{readOnlyHint:true},
-    description:'Summarize TEST owner account health with observed and unreadable sections kept distinct; never modify settings.',
+    description:'Summarize TEST or LIVE owner account health; observed and unreadable sections distinct; never modify settings.',
     inputSchema:{type:'object',properties:{
       detail:{type:'string',enum:['summary','full']}
     },additionalProperties:false}}
@@ -90,19 +94,25 @@ export const handlers={
   async admin_list_requirements(a,ctx){
     try{
       validateAdminArgs(a);
-      const id=requireAdminTestAccount(ctx);
-      const sdk=await client(ctx);
+      const {account:id,mode}=requireAdminAccount(ctx);
       let record;
-      try{record=await readVerifiedTestAccount(sdk,id);}
-      catch(e){
+      // Client acquisition sits inside the try for the same reason as
+      // the fees read: on the LIVE path the shared client performs the
+      // verified account read itself, and a provider 403/404 from it
+      // is the same not-readable evidence. TEST behavior is unchanged
+      // (the TEST client never throws those).
+      try{
+        const sdk=await client(ctx);
+        record=await (mode==='live'?readVerifiedLiveAccount:readVerifiedTestAccount)(sdk,id);
+      }catch(e){
         if([403,404].includes(e?.statusCode??e?.status)||
           ['permission_denied','resource_missing'].includes(e?.code))
-          return reply({account:id,mode:'test',status:'not_readable',observed:false,
+          return reply({account:id,mode,status:'not_readable',observed:false,
             dashboardUrl:link,groups:null,totals:null,deadlineDenver:null,
-            instructions:'Inspect identity and required documents in the selected Stripe Dashboard; this TEST key could not read the requirements.'});
+            instructions:'Inspect identity and required documents in the selected Stripe Dashboard; this '+mode.toUpperCase()+' key could not read the requirements.'});
         throw e;
       }
-      return reply(verifiedRequirementRecord(record,id));
+      return reply(verifiedRequirementRecord(record,id,mode));
     }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   },
   async stripe_admin_overview(a,ctx){
@@ -110,7 +120,7 @@ export const handlers={
       validateAdminArgs(a,['detail']);
       if(a.detail!==undefined&&!['summary','full'].includes(a.detail))
         bad('Choose a supported owner overview detail');
-      const id=requireAdminTestAccount(ctx);
+      const {account:id,mode}=requireAdminAccount(ctx);
       const sections={};
       const guide=(setting)=>whereIsSetting(setting).url;
       const acc=await readAdminTool(accountHandlers.account_get,{detail:'full'},ctx);
@@ -150,7 +160,7 @@ export const handlers={
         sections[name]={status:'not_readable',observed:false,detail:null,
           dashboardUrl:guide(setting),verifyWith:whereIsSetting(setting).verifyWith};
       }
-      // Reuse the existing registered TEST readers. A reader error is an
+      // Reuse the existing registered readers. A reader error is an
       // unobserved section, never an empty successful inventory.
       const read=(fn,args)=>readAdminTool(fn,args,ctx);
       const [banks,schedule,methods,domains,hooks,portal]=ownAccount?await Promise.all([
@@ -238,7 +248,7 @@ export const handlers={
         nativeUnreadable:nativeSections.filter(s=>!s.observed).length,
         needsManualVerification:guidedSettings.length,
         priorityChecks:ownerWalkthrough.length,
-        note:'These are review tasks, not proof an owner has inspected Stripe Dashboard. All settings require authenticated owner comparison in TEST mode.'
+        note:'These are review tasks, not proof an owner has inspected Stripe Dashboard. All settings require authenticated owner comparison in '+mode.toUpperCase()+' mode.'
       };
       if(a.detail==='summary'){
         // Owner smoke lacks persistent result storage. Project genuine native
@@ -247,19 +257,19 @@ export const handlers={
           .map(([name,value])=>[name,{status:value.status,
             observed:value.observed===true,
             ...(typeof value.complete==='boolean'?{complete:value.complete}:{})}]));
-        return reply({account:id,mode:'test',summaryOnly:true,
+        return reply({account:id,mode,summaryOnly:true,
           sections:statusSections,verificationReadiness,
           ownerWalkthrough:ownerWalkthrough.map(v=>({
             setting:v.setting,status:v.status,ownerConfirmed:v.ownerConfirmed})),
-          note:'Bounded TEST-only status summary. No Dashboard walkthrough confirmed. Full owner overview remains available to scoped MCP connections.'});
+          note:'Bounded '+mode.toUpperCase()+'-only status summary. No Dashboard walkthrough confirmed. Full owner overview remains available to scoped MCP connections.'});
       }
-      return reply({account:id,mode:'test',sections,guidedSettings,
+      return reply({account:id,mode,sections,guidedSettings,
         verificationReadiness,ownerWalkthrough,
         attention:Object.entries(sections).filter(([,v])=>v.status==='needs_attention')
           .map(([k])=>k),
         unreadable:Object.entries(sections).filter(([,v])=>v.status==='not_readable')
           .map(([k])=>k),
-        note:'Unobserved is never healthy. Dashboard-only state is not independently verified; account and capability reads are scoped to the selected TEST account. No settings or money were changed.'});
+        note:'Unobserved is never healthy. Dashboard-only state is not independently verified; account and capability reads are scoped to the selected '+mode.toUpperCase()+' account. No settings or money were changed.'});
     }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   }
 };

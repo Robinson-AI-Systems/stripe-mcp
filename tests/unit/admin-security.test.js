@@ -77,11 +77,18 @@ describe('G-6c TEST owner security review',()=>{
     expect(f.sdk.webhookEndpoints.list).not.toHaveBeenCalled();
     expect(result.note).toMatch(/manual Stripe Dashboard/);
   });
-  it('rejects LIVE and incorrect parameters; indirect dispatch remains read-only',async()=>{
+  it('rejects incorrect parameters; LIVE answers in mode; indirect dispatch remains read-only',async()=>{
     const f=fixture();
     expect((await handlers.admin_review_security({x:1},f.ctx)).isError).toBe(true);
-    expect((await handlers.admin_review_security({},{
-      ...f.ctx,connection:{...f.ctx.connection,mode:'live'}})).isError).toBe(true);
+    // CAP-4 D-7: the security review follows the connection mode. This
+    // fixture configures no LIVE account, so the LIVE review answers
+    // with mode 'live' and an unproven probe section — the TEST-only
+    // permission probe is never invoked for it.
+    const liveReview=parse(await handlers.admin_review_security({},{
+      ...f.ctx,connection:{...f.ctx.connection,mode:'live'}}));
+    expect(liveReview.mode).toBe('live');
+    expect(liveReview.sections.keyPermissions.status).toBe('not_readable');
+    expect(f.ctx.services.stripePermissionReprobe).not.toHaveBeenCalled();
     const out=await dispatchReadOnlyTool({registry,name:'admin_review_security',
       args:{},connection:f.ctx.connection,db:f.ctx.db,services:f.ctx.services});
     expect(out.isError).toBeUndefined();
