@@ -728,8 +728,18 @@ V3, then V4.
   previews disclose finality and the full concession plus the
   dispute fee in both modes, and dispute acceptance's money-out
   wiring (rows 20–21) is untouched and proven unrelaxed in
-  LIVE. Remaining families:
-  Payments; Invoices & credit notes; Billing; Checkout;
+  LIVE. Family 3 of 13, **Payments & refunds**, is
+  source-implemented the same day
+  (OWNER-OBEDIENCE-V2-PAYMENTS): the TEST-mode wrapper gate is
+  removed from all nine payment write operations, every target
+  and read-back invariant demands the connection's own mode in
+  both directions, previews disclose in plain words what will
+  happen to the customer's card (including the refund amount
+  and its destination), and the refund's money-out wiring
+  (rows 20–21) plus the app-owned-target guard and its refund
+  exception are untouched and proven unrelaxed in LIVE.
+  Remaining families:
+  Invoices & credit notes; Billing; Checkout;
   Radar; Identity; Files; Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.
