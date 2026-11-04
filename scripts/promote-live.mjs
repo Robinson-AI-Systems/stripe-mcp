@@ -62,20 +62,37 @@ export function authorizedReleaseInvocation(env, repository, now = new Date()) {
     env.RECOVER_MISSED_DAILY === 'true' && denverMinute(now) >= 1;
 }
 
+// A required check may be posted under its plain job name ('unit') or, when
+// the job runs as a matrix (CI-SPEED, PR #309: unit x3 shards, db x2), under
+// shard names ('unit (1)', 'unit (2)', ...). Group the trusted exact-head
+// runs by their posted name and judge each posted name by its latest run.
+// Pass requires at least one posted name and every posted name's latest run
+// green; the 'ci' summary job in the required list only goes green when
+// every shard completed, so a not-yet-posted shard cannot slip through.
+function latestPerPostedName(runs, name, sha) {
+  const latest = new Map();
+  for (const run of runs) {
+    if (run.app?.slug !== 'github-actions' || run.head_sha !== sha) continue;
+    if (run.name !== name && !(typeof run.name === 'string' &&
+        run.name.startsWith(name + ' (') && run.name.endsWith(')'))) continue;
+    const prior = latest.get(run.name);
+    if (!prior || run.id > prior.id) latest.set(run.name, run);
+  }
+  return [...latest.values()];
+}
+
 export function checksPass(runs, required, sha) {
   return required.every(name => {
-    const run = runs.filter(r => r.name === name && r.app?.slug === 'github-actions' &&
-      r.head_sha === sha).sort((a, b) => b.id - a.id)[0];
-    return run?.status === 'completed' && run.conclusion === 'success';
+    const posted = latestPerPostedName(runs, name, sha);
+    return posted.length > 0 &&
+      posted.every(run => run.status === 'completed' && run.conclusion === 'success');
   });
 }
 
 export function checksFailed(runs, required, sha) {
-  return required.some(name => {
-    const run = runs.filter(r => r.name === name && r.app?.slug === 'github-actions' &&
-      r.head_sha === sha).sort((a, b) => b.id - a.id)[0];
-    return run?.status === 'completed' && run.conclusion !== 'success';
-  });
+  return required.some(name =>
+    latestPerPostedName(runs, name, sha).some(run =>
+      run.status === 'completed' && run.conclusion !== 'success'));
 }
 
 export function decide({ main, live, alreadyToday, ancestor, green }) {
