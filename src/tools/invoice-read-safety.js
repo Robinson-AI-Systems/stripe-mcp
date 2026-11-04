@@ -1,10 +1,14 @@
 // Native invoice read projections never echo raw Stripe provider objects.
 import {ref,local} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 function validCents(n){return Number.isSafeInteger(n)&&Math.abs(n)<=100000000;}
-export function invoicePaymentSafe(payment,invoiceId){
+export function invoicePaymentSafe(payment,invoiceId,mode){
   const inv=ref(payment?.invoice);
   if(!payment||payment.object!=='invoice_payment'||inv!==invoiceId)
     throw new TypeError('Provider payment is not allocated to the requested invoice');
+  // CAP-4 D-3: optional connection mode; a supplied mode verifies the
+  // payment's own livemode, no mode keeps historical behavior.
+  if(['test','live'].includes(mode))assertAccountResourceMode(payment,mode);
   if(!validCents(payment.amount_paid)||payment.amount_paid<0||
     !validCents(payment.amount_requested)||payment.amount_requested<0)
     throw new TypeError('Allocated invoice payment amount unavailable');
@@ -15,10 +19,13 @@ export function invoicePaymentSafe(payment,invoiceId){
     status:payment.status,paymentIntent:ref(payment.payment?.payment_intent),
     charge:ref(payment.payment?.charge),created_local:local(payment.created)};
 }
-export function invoicePreviewReadSafe(invoice,customerId){
+export function invoicePreviewReadSafe(invoice,customerId,mode){
   if(invoice?.object!=='invoice'||invoice.currency!=='usd'||
     !validCents(invoice.total)||!validCents(invoice.amount_due))
     throw new TypeError('Stripe TEST USD preview unavailable');
+  // CAP-4 D-3: a supplied connection mode verifies the preview
+  // invoice's own livemode after the historical shape checks.
+  if(['test','live'].includes(mode))assertAccountResourceMode(invoice,mode);
   const lines=invoice.lines?.data;
   if(!Array.isArray(lines)||invoice.lines?.has_more===undefined)
     throw new TypeError('Stripe invoice preview lines are incomplete');

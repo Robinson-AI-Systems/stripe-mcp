@@ -15,12 +15,16 @@ export const creditAmount={type:'integer',minimum:1,maximum:100000000};
 export const creditMemo={type:'string',minLength:1,maxLength:500};
 const cents=n=>Number.isSafeInteger(n)&&n>=0&&n<=100000000;
 export const validCreditId=id=>/^cn_[A-Za-z0-9]{2,100}$/.test(id??'');
-export function safeCredit(v) {
+export function safeCredit(v,mode) {
   if(!v||v.object!=='credit_note'||!validCreditId(v.id)||
     v.currency!=='usd'||!cents(v.amount)||
     !/^in_[A-Za-z0-9]{2,100}$/.test(ref(v.invoice)??'')||
     !/^cus_[A-Za-z0-9]{2,100}$/.test(ref(v.customer)??''))
     throw new TypeError('Verified USD credit note unavailable');
+  // CAP-4 D-3: optional connection mode; a supplied mode verifies the
+  // note's own livemode. No-mode callers (the write preflight path,
+  // which asserts mode separately) keep historical behavior exactly.
+  if(['test','live'].includes(mode))assertAccountResourceMode(v,mode);
   return {id:v.id,invoice:ref(v.invoice),customer:ref(v.customer),
     currency:'usd',amountCents:v.amount,status:v.status??null,
     number:v.number??null,reason:v.reason??null,

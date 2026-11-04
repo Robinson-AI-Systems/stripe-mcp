@@ -1,4 +1,5 @@
-// D-5c TEST credit note reads and exact Stripe accounting preview.
+// D-5c credit note reads in the connection's own mode (CAP-4 D-3)
+// and exact Stripe accounting preview.
 import {allProfiles,guarded,id,paging,pageResult,checkId} from './billing-shared.js';
 import {safeCredit,creditPreflight,creditReasons,creditAllocation,
   creditAmount,creditMemo} from './creditnote-shared.js';
@@ -10,11 +11,11 @@ const def=(name,description,properties={},required=[])=>({
   inputSchema:{type:'object',properties,required,additionalProperties:false}
 });
 export const tools=[
-  def('creditnote_list','List verified TEST USD credit notes with bounded pagination.',{
+  def('creditnote_list','List verified USD credit notes in the connection mode with bounded pagination.',{
     ...page,invoiceId:id('in'),customerId:id('cus')}),
-  def('creditnote_get','Read one verified TEST USD credit note without secrets.',
+  def('creditnote_get','Read one verified USD credit note in the connection mode without secrets.',
     {creditNoteId:id('cn')},['creditNoteId']),
-  def('creditnote_preview','Preview a TEST credit note with exact refund and credit allocations.',{
+  def('creditnote_preview','Preview a credit note in the connection mode with exact refund and credit allocations.',{
     invoiceId:id('in'),amountCents:creditAmount,reason:creditReasons,
     allocation:creditAllocation,memo:creditMemo
   },['invoiceId','amountCents','reason','allocation'])
@@ -24,9 +25,10 @@ export const handlers={
     await s.creditNotes.list({...paging(a),
       ...(a?.invoiceId?{invoice:checkId(a.invoiceId,'in')}:{}),
       ...(a?.customerId?{customer:checkId(a.customerId,'cus')}:{}),
-    }),safeCredit)),
+    }),v=>safeCredit(v,ctx?.connection?.mode))),
   creditnote_get:(a,ctx)=>guarded(ctx,async s=>
-    safeCredit(await s.creditNotes.retrieve(checkId(a?.creditNoteId,'cn')))),
+    safeCredit(await s.creditNotes.retrieve(checkId(a?.creditNoteId,'cn')),
+      ctx?.connection?.mode)),
   creditnote_preview:(a,ctx)=>guarded(ctx,async s=>{
     const before=await creditPreflight(a,s,ctx?.connection?.mode);
     return {...before._creditPreview,allocation:a.allocation,

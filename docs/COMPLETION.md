@@ -77,7 +77,7 @@ not close any product requirement by itself.
 | Ledger | Reconciled state | What it does—and does not—prove |
 |---|---|---|
 | Original roadmap source | **57 of 57 subsections merged.** | Source implementation exists. It does not prove deployed provider acceptance or finished-product status. |
-| Work index | **59 of 63 units `MERGED`**; CAP-2 and CAP-3 `IN_PROGRESS`; CAP-4 and CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4/CAP-5 card files are intentionally absent until their just-in-time card is written at start. |
+| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family card (D-3) is written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
 | Protected provider acceptance queue | **13 PASSED / 30 PENDING of 43.** Of the pending rows, **29 are Stripe-owned** and **1 is Hub-owned optional**. | The 29 Stripe-owned rows include the `STRIPE-TEST` aggregate, so the count is a ledger count, not 29 unrelated features. The Hub row is not a standalone-product gate. |
 | Session planner view | `scripts/session-status.mjs` reports 42 waiting/verification tasks plus the Hub-owned optional task. | This overlaps the queue above: it treats recorded passes as deployment-recheck items. Do not add 42 to 30. The queue dispositions remain 13 passed and 30 pending. |
 | RAS MCP conformance | **17 numbered rows** (14 at the 2026-11-02 pass; rows 15–17 opened 2026-11-03 by the Specification's new sections). | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. Rows 15–17 record the design-conformance compensation: the capability census is incomplete past its API element, the correction process is running, and four owner-facing refusals are designed for conversion to confirmed actions. |
@@ -170,32 +170,48 @@ Still required to complete CAP-3:
 
 ### CAP-4 — Advanced functional workflow gap closure
 
-**Disposition: `APPROVED`, not started as a carded unit.**
+**Disposition: `IN_PROGRESS` — started 2026-11-04.**
 
-No `docs/pr-cards/CAP-4.md` exists yet. That absence is intentional under
-the index's `WRITE_CARD_AT_START` readiness, but it also means the concrete
-CAP-4 operation set has not been frozen.
+The gap set is derived and frozen: the unified census reconciles
+644 of 644 operations to exactly one destination (349 claimed by
+CAP-4's family cards, 295 dispositioned out with reasons), the
+family sequence is frozen (Phase 1 reads, D-3 first; Phase 2
+Connect in three slices; Phase 3 the universal door; Phase 4 the
+product-gap cards; Phase 5 organization context and the substrate
+unit), and the row 17 unclassified read item is inside the set as
+the read families. The first family is source-implemented:
+
+- **D-3 — invoice, billing and credit-note reads**
+  ([CAP4-D3-INVOICE-BILLING-READS](pr-cards/CAP4-D3-INVOICE-BILLING-READS.md)):
+  all 13 swept handlers verify every returned object against the
+  connection's own mode in both directions. D-3 also closes the
+  A9 half-open state the derivation found: from PR #304's merge
+  until D-3's merge, those reads executed on LIVE connections
+  without verifying returned objects — neither TEST-only nor
+  converted. Production never ran that code (the deployed build
+  predates PR #304 and `main` was not promoted during the
+  interval). Live proof for D-3 stands in the CAP-5 queue,
+  including a wrong-mode-object knock test.
 
 Still required:
 
-1. Satisfy or formally reconcile the CAP-2 and CAP-3 prerequisites, because
-   CAP-4's design depends on CAP-1, CAP-2, and CAP-3.
-2. Derive the active gap set from CAP-1, prioritizing Connect platform and
-   connected-account lifecycle and organization context, then payment,
-   billing, Tax, event, and advanced entitled-product gaps. Before the
-   set is frozen, file the capability-census addendum conformance row 15
-   requires (substrate dispositions, workflow-frequency research, and
-   the consumer test), and take in the two engineering items row 17 left
-   unclassified: the read tools that refuse LIVE data Stripe serves, and
-   the universal door's unclassified non-money operations.
-3. Reconcile that set with original unfinished cards so existing work keeps
-   its original ID and is not double-counted.
-4. Write and freeze the just-in-time CAP-4 card and its request, credential,
-   secret, guard, failure, and recovery contracts.
-5. Implement and test each selected gap through preview, authorized effect,
-   stable replay key, before state, audit, provider read-back, bounded
-   results, and pagination/asynchronous completion—or record a
-   provider-evidenced unavoidable disposition for that gap.
+1. The remaining families in the frozen order: Phase 1 reads D-1,
+   D-2, D-4, D-5, D-6, D-7, D-11, D-12 and D-8 last (with the
+   composite `workflow_dispute_kit_save` conversion as its own
+   sibling unit); Phase 2 Connect reads, lifecycle writes and
+   destructive/terminal writes; Phase 3 the universal door (D-9);
+   Phase 4 the payment, billing, Tax-closure, event and
+   entitlement product cards; Phase 5 organization context and
+   D-10.
+2. The capability-census addendum conformance row 15 requires
+   (beside-API and substrate dispositions and the consumer test)
+   lands with CAP-4's final card; the consumer test itself runs
+   under CAP-5 as CAP-4's closing instrument.
+3. Implement and test each selected gap through preview, authorized
+   effect, stable replay key, before state, audit, provider
+   read-back, bounded results, and pagination/asynchronous
+   completion—or record a provider-evidenced unavoidable
+   disposition for that gap.
 
 ### CAP-5 — Independent acceptance and truthful reporting
 

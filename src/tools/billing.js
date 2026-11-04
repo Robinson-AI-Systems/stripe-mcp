@@ -78,7 +78,9 @@ export const handlers={
     v=>itemSafe(v,c?.connection?.mode))),
   billing_list_schedules:(a,c)=>guarded(c,async s=>providerList(
     await s.subscriptionSchedules.list({...paging(a),
-      ...(a?.customer?{customer:checkId(a.customer,'cus')}:{} )}),scheduleSafe)),
+      ...(a?.customer?{customer:checkId(a.customer,'cus')}:{} )}),
+    v=>scheduleSafe(v,c?.connection?.mode))),
   billing_get_schedule:(a,c)=>guarded(c,async s=>scheduleSafe(
-    await s.subscriptionSchedules.retrieve(checkId(a?.scheduleId,'sub_sched'))))
+    await s.subscriptionSchedules.retrieve(checkId(a?.scheduleId,'sub_sched')),
+    c?.connection?.mode))
 };

@@ -978,6 +978,28 @@ layer; a money-limit flow staged for "TEST-connected" accounts while
 the cap governs LIVE too) — verify, then correct the wording or the
 eligibility.
 
+**CAP-4 progress — D-3 and the A9 half-open interval (2026-11-04):**
+unclassified item (1) is being engineered away family by family
+under CAP-4. Its first family, **D-3 (invoice, billing and
+credit-note reads)**, is source-implemented
+(CAP4-D3-INVOICE-BILLING-READS): all 13 swept handlers now verify
+every returned object against the connection's own mode in both
+directions, on the shared-projection precedent (optional mode;
+no-mode callers byte-identical). The D-3 derivation also found —
+and this record states plainly — that V2's shared machinery above
+had left a **half-open state**: from PR #304's merge until D-3's
+merge, the invoice, billing and credit-note read handlers executed
+on LIVE connections through the mode-aware seam while their
+projections did not verify returned objects' `livemode`, so for
+that interval these reads were **neither TEST-only nor converted**
+(the derivation's A9 finding). Production never ran the half-open
+code: the deployed build predates PR #304, and `main` was not
+promoted while the interval stood. The remaining read families
+(money, payments, disputes/events, checkout, reports/files/radar,
+account/admin, identity, brand, composites) still refuse LIVE
+behind their own gates and convert under their own CAP-4 cards;
+item (1) closes when the last of them lands or is dispositioned.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
