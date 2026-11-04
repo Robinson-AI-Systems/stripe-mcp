@@ -545,7 +545,7 @@ are marked `R`; the rest preview first and confirm before money moves.
 | `workflow_brand_business` | One sentence sets up how a business looks and reads everywhere on Stripe: uploads logo/icon, sets colors (account-wide where allowed), saves the brand kit, statement descriptor, public support details, invoice footer, portal links; previews all of it first and finishes with a test Checkout link to look at. The Stripe version of the Workspace server's `workflow_brand_mailbox` | C | F |
 | `workflow_find` | One search box: an email, name, last 4, amount, app ID or Stripe ID → what it is and the matching records | — | R |
 
-## Connect (`connect_*`) — 7 built reads; lifecycle writes not yet built
+## Connect (`connect_*`) — 7 built reads; 11 built lifecycle writes (slice 2)
 
 Slice 1 of the CAP-4 Connect card is built: native projected reads for
 connected (third-party) accounts, on the owner's enrolled platform
@@ -553,6 +553,16 @@ connection only, with the connected account always an exact argument.
 Projections are safe fields only — no email, tax ID, bank numbers, card
 fingerprints or person data; persons show verification state, role flags
 and requirement field names only.
+
+Slice 2 adds the lifecycle writes on the guarded write lifecycle:
+the platform actor is verified before any connected-account call,
+every preview names the exact account and change set, writes are
+idempotent under a stable request key and verified by provider
+read-back. Person writes name fields only in previews, results and
+audit — identity values never surface. External accounts attach by
+token only. The two link tools are the ruled minting exception: the
+minted URL is shown once, in the confirmed result only, and Stripe
+offers no read-back for a minted link (stated plainly in the tools).
 
 | Tool | What it does | Safety | Profile |
 | --- | --- | --- | --- |
@@ -563,10 +573,20 @@ and requirement field names only.
 | `connect_get_external_account` | Read a payout destination of an exact connected account (TEST or LIVE); last4 only | — | R |
 | `connect_list_persons` | List people of an exact connected account (TEST or LIVE); verification state only | — | R |
 | `connect_get_person` | Read one person of an exact connected account (TEST or LIVE); state and roles only | — | R |
+| `connect_create_account` | Create a connected account under the verified platform account; preview, idempotent apply, read-back | P | F |
+| `connect_update_account` | Update one exact connected account (business profile, type, metadata); preview and read-back verified | P | F |
+| `connect_create_person` | Create a person on one exact connected account; identity values never appear in previews, results or audit | P | F |
+| `connect_update_person` | Update one exact person on a connected account; identity values never appear in previews, results or audit | P | F |
+| `connect_delete_person` | Delete one exact person from a connected account; preview, confirmation and read-back verified | P | F |
+| `connect_create_external_account` | Attach a tokenized bank account or card to one exact connected account; raw bank or card details never accepted | P | F |
+| `connect_update_external_account` | Update one exact external account on a connected account (default-for-currency, metadata); read-back verified | P | F |
+| `connect_delete_external_account` | Remove one exact external account from a connected account; preview, confirmation and read-back verified | P | F |
+| `connect_update_capability` | Request or unrequest one capability on one exact connected account; preview and read-back verified | P | F |
+| `connect_create_account_link` | Mint a one-time account onboarding or update link for one exact connected account; URL shown once, in the result only | P | F |
+| `connect_create_login_link` | Mint a one-time Express login link for one exact connected account; URL shown once, in the result only | P | F |
 
-Not yet built (later slices of the same card, still refused exactly as
-before): account create/update/reject/delete, account links, login links,
-capability requests, external-account and person writes, transfers
+Not yet built (slice 3 of the same card, still refused exactly as
+before): account reject/delete and the v2 close, transfers
 create/list/get/reverse, application fees list/get/refund — carried over
 from the toolkit, with `$` on transfers and fee refunds and `C` on
 reject/delete when they land.

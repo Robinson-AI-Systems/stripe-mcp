@@ -1,3 +1,51 @@
+## 2026-11-04 — CAP-4 Connect slice 2: connected-account lifecycle writes (source)
+
+CAP-4's Phase 2 continues (card
+[CAP4-CONNECT-SLICE-2](pr-cards/CAP4-CONNECT-SLICE-2.md)): the
+eleven Connect lifecycle writes are implemented in source in a
+new module, `src/tools/connect-writes.js`, extending slice 1's
+conventions — the same actor verification (slice 1's
+`platformAccount`, reused, not re-implemented), the same safe
+projections, the same mode discipline — on the guarded
+`defineWrite` lifecycle.
+
+- **The build.** Account create/update; person create/update/
+  delete; external-account create/update/delete (tokenized
+  attachment only — raw bank/card numbers refused by argument
+  shape); capability request/unrequest; and the two ruled
+  minting exceptions, account links and login links. Every tool
+  carries the full write contract: preview naming the exact
+  connected account and exact change set, the verified platform
+  account as actor in preview and audit (a non-platform
+  connection refuses before any connected-account call),
+  stable replay keys, before-state capture, audit record, and
+  provider read-back verification — a mismatch fails the tool
+  as uncertain, never a success. Persons keep slice 1's
+  safe-fields posture in every surface: previews and audit name
+  fields, never identity values. The links carry the recorded
+  exception disposition: Stripe offers no read-back, list or
+  revoke for a minted link, so the minted URL is validated
+  against the exact account at mint, the account is re-read
+  unchanged after minting, and the URL itself appears exactly
+  once — in the confirmed result, never in preview, audit or
+  logs. Registry 329 → 340 tools, 155 → 166 writes; the
+  everyday catalog budget is unmoved at 19,999/20,000 (the
+  budget listing counts reads only). `connect` joins both
+  guarded-door area sets with the family-style comment;
+  money wiring untouched; the universal door untouched (its
+  accounts-row flip is D-9's). Slice 3 (account delete, reject,
+  unreject, v2 close) remains unbuilt and refused.
+- **Proof.** New suite (29 tests, stateful fake provider):
+  per-tool contract checks, actor-refusal provider spies,
+  wrong-mode refusals on write and read-back, sentinel pinning
+  across preview/result/audit, TEST lifecycle round-trips,
+  link once-only counts, LIVE fixture legs. Full unit suite
+  212 files / 2,338 tests green; `npm run check` green.
+  Baseline accounting is in the card: against pristine
+  `8bc4b95b` the new suite is red as tool-missing only. Live
+  proof joins the CAP-5 queue as one lifecycle round-trip on
+  the testing surface only.
+
 ## 2026-11-04 — CAP-4 D7b key-permission probe: per-mode probe records (source)
 
 CAP-4's twelfth family is implemented in source (card

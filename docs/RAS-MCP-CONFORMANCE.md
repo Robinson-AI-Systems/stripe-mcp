@@ -1134,6 +1134,33 @@ door's own classification and exact refusal reason for all 13
 pinned write operations. Live proof for slice 1 stands in the
 CAP-5 queue on the testing surface only.
 
+**CAP-4 progress — Connect slice 2 lifecycle writes
+(2026-11-04):** the second Phase 2 unit, **Connect slice 2
+(connected-account lifecycle writes)**, is source-implemented
+(CAP4-CONNECT-SLICE-2) under rulings 3 and 5. Eleven new native
+write tools (account create/update; person create/update/
+delete; external-account create/update/delete — tokenized
+attachment only; capability request; account-link and
+login-link minting; registry 329 → 340, writes 155 → 166) run
+the full guarded write contract on slice 1's foundations: the
+platform account is verified as the actor via slice 1's own
+verification before any connected-account call, every preview
+names the exact connected account and the exact change set,
+replay keys return the original result, before-state is
+captured and audited, and provider read-backs verify (a
+mismatch fails the tool). Persons keep the safe-fields posture
+in previews, results and audit records — fields are named,
+identity values never surface. The two link tools carry the
+recorded minting-exception disposition: Stripe offers no
+read-back for a minted link, the tools say so plainly, and the
+minted URL appears exactly once, in the confirmed result —
+never in a preview, an audit record or a log. Slice 3
+(account delete, reject, unreject, v2 close) remains unbuilt;
+the universal door is untouched by this slice (the
+accounts-row flip is D-9's, landing after). Live proof for
+slice 2 stands in the CAP-5 queue as one lifecycle round-trip
+on the testing surface only.
+
 **CAP-4 progress — D-4 dispute and event reads (2026-11-04):**
 the fourth family, **D-4 (dispute and event reads)**, is
 source-implemented (CAP4-D4-DISPUTE-EVENT-READS): all 5 registry
