@@ -1,12 +1,22 @@
-// D-5b native TEST invoice lifecycle invariants, all from Stripe read-back.
+// D-5b native invoice lifecycle invariants in the connection's own
+// mode, all from Stripe read-back. The manual-invoice invariants
+// themselves (complete USD invoice, automatic collection off,
+// verified customer) are target/state proofs and do not relax —
+// only their mode wording and mode binding convert (owner-obedience
+// V2, family 4).
 import {ref,checkId} from './billing-shared.js';
 import {verifiedDraft} from './invoice-draft-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 
 const statuses=new Set(['draft','open','paid','void','uncollectible']);
 const methods=new Set(['send_invoice','charge_automatically']);
 const cents=n=>Number.isSafeInteger(n)&&n>=0&&n<=100000000;
+// Boolean form of the assertAccountResourceMode rule for verify
+// hooks: a present livemode must equal the connection's mode.
+const modeOk=(v,mode)=>v?.livemode===undefined||v.livemode===(mode==='live');
 
-export function verifiedLifecycleInvoice(i) {
+export function verifiedLifecycleInvoice(i,mode) {
+  if(mode!==undefined)assertAccountResourceMode(i,mode);
   if(!i||i.object!=='invoice'||i.deleted||
     !/^in_[A-Za-z0-9]{2,100}$/.test(i.id??'')||
     !/^cus_[A-Za-z0-9]{2,100}$/.test(ref(i.customer)??'')||
@@ -14,7 +24,8 @@ export function verifiedLifecycleInvoice(i) {
     i.currency!=='usd'||i.auto_advance!==false||
     !cents(i.total)||!cents(i.amount_due)||!cents(i.amount_remaining)||
     !cents(i.amount_paid??0))
-    throw new TypeError('Complete manual TEST USD invoice required; automatic collection must be off');
+    throw new TypeError('Complete manual '+(mode==='live'?'LIVE':'TEST')+
+      ' USD invoice required; automatic collection must be off');
   if(i.subscription||i.subscription_details||i.parent?.subscription_details)
     throw new TypeError('Application subscription invoice must be handled by its owner');
   if(i.amount_remaining>i.total||i.amount_paid>i.total)
@@ -22,7 +33,9 @@ export function verifiedLifecycleInvoice(i) {
   return i;
 }
 
-export function verifyLifecycleTransition(name,b,after,receipt) {
+export function verifyLifecycleTransition(name,b,after,receipt,mode) {
+  if(mode!==undefined&&(!modeOk(after,mode)||
+    (receipt!==null&&receipt!==undefined&&!modeOk(receipt,mode))))return false;
   if(name==='invoice_delete_draft')
     return after?.missing===true&&after.id===b.id&&
       receipt?.object==='invoice'&&receipt.id===b.id&&receipt.deleted===true;
@@ -55,18 +68,19 @@ export function verifyLifecycleTransition(name,b,after,receipt) {
   }
 }
 
-export async function lifecyclePreflight(name,a,s) {
-  const b=verifiedLifecycleInvoice(await s.invoices.retrieve(checkId(a.invoiceId,'in')));
+export async function lifecyclePreflight(name,a,s,mode) {
+  const b=verifiedLifecycleInvoice(await s.invoices.retrieve(checkId(a.invoiceId,'in')),mode);
   const draft=name==='invoice_delete_draft'||name==='invoice_finalize';
   if(draft&&b.status!=='draft')
     throw new TypeError('Only a manual draft invoice can be deleted or finalized');
   if(!draft&&b.status!=='open')
     throw new TypeError('Only an open invoice can be sent, paid, voided or written off');
-  if(draft)verifiedDraft(b); // verifies additive accounting, no hidden credits
+  if(draft)verifiedDraft(b,mode); // verifies additive accounting, no hidden credits
   if(name==='invoice_send') {
     if(b.collection_method!=='send_invoice'||!b.hosted_invoice_url)
       throw new TypeError('Send requires a finalized manual email-payment invoice');
-    const customer=await s.customers.retrieve(ref(b.customer));
+    const customer=assertAccountResourceMode(
+      await s.customers.retrieve(ref(b.customer)),mode);
     if(customer?.deleted||!customer?.metadata||
       typeof customer.email!=='string'||!customer.email.includes('@'))
       throw new TypeError('Verified invoice customer email required');
@@ -74,13 +88,15 @@ export async function lifecyclePreflight(name,a,s) {
   if(name==='invoice_charge_now'){
     if(b.collection_method!=='charge_automatically'||b.amount_remaining<1)
       throw new TypeError('Charge requires a positive, open automatic-collection invoice');
-    const customer=await s.customers.retrieve(ref(b.customer));
+    const customer=assertAccountResourceMode(
+      await s.customers.retrieve(ref(b.customer)),mode);
     if(customer?.deleted||!customer?.metadata)
       throw new TypeError('Verified invoice customer required');
     const method=ref(b.default_payment_method)||
       ref(customer.invoice_settings?.default_payment_method);
     if(!method)throw new TypeError('A saved default customer payment method is required');
-    const payment=await s.paymentMethods.retrieve(checkId(method,'pm'));
+    const payment=assertAccountResourceMode(
+      await s.paymentMethods.retrieve(checkId(method,'pm')),mode);
     if(ref(payment.customer)!==customer.id)
       throw new TypeError('Invoice method ownership cannot be verified');
     b._paymentMethod=method;
@@ -95,20 +111,26 @@ export async function lifecyclePreflight(name,a,s) {
     throw new TypeError('Automatic-collection draft without payable balance needs review');
   return b;
 }
-export function lifecyclePreview(name,b) {
+export function lifecyclePreview(name,b,mode) {
   const amount=b.amount_remaining;
+  const live=mode==='live';
   const verb={
     invoice_delete_draft:'Permanently delete unfinalized draft',
-    invoice_finalize:'Finalize but explicitly disable automatic collection',
-    invoice_send:'Ask Stripe to issue invoice.sent (TEST mode sends no email)',
+    invoice_finalize:'Finalize but explicitly disable automatic collection'+
+      ' (a finalized invoice is immutable)',
+    invoice_send:live?
+      'Ask Stripe to send this invoice to the customer now':
+      'Ask Stripe to issue invoice.sent (TEST mode sends no email)',
     invoice_charge_now:'Try a one-time saved-method incoming charge of',
     invoice_mark_paid_outside_stripe:'Record externally received money without a Stripe charge of',
-    invoice_void:'Void unpaid open invoice',
+    invoice_void:'Void unpaid open invoice (the receivable is written off)',
     invoice_mark_uncollectible:'Write off unpaid open invoice'
   }[name];
-  return 'TEST MODE. '+verb+' invoice '+b.id+
+  return (live?'LIVE MODE. ':'TEST MODE. ')+verb+' invoice '+b.id+
     '; total $'+(b.total/100).toFixed(2)+' USD, remaining $'+(amount/100).toFixed(2)+
     ' USD; customer '+ref(b.customer)+
     '. Confirmation, stable provider idempotency and independent read-back required.'+
-    (name==='invoice_send'?' This does NOT deliver a real email in TEST mode.':'');
+    (name==='invoice_send'?(live?
+      ' Stripe will email the real customer at their verified address and open real collection on this receivable.':
+      ' This does NOT deliver a real email in TEST mode.'):'');
 }

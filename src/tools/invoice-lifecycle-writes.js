@@ -1,26 +1,36 @@
-// D-5b current-native Stripe invoice lifecycle writes. TEST only; never expose raw invoices.
-import {defineWrite,gone} from './write.js';
+// D-5b current-native Stripe invoice lifecycle writes in the
+// connection's own mode; never expose raw invoices. (Owner-obedience
+// V2, family 4: the TEST-only wrapper gates are converted, not
+// relaxed — the core lifecycle's LIVE guard still refuses an
+// unenabled LIVE connection before any read.)
+import {defineWrite} from './write.js';
 import {client,id,ownership,writeProfiles,validateFields} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 import {lifecyclePreflight,lifecyclePreview,verifyLifecycleTransition}
   from './invoice-lifecycle-shared.js';
 
 const invoice={invoiceId:id('in')};
 const exact={expectedRemainingCents:{type:'integer',minimum:1,maximum:100000000}};
 const defs=[
-  {name:'invoice_delete_draft',description:'Permanently delete a verified one-off TEST draft invoice, with a deletion read-back.',destructive:true},
-  {name:'invoice_finalize',description:'Finalize a manual TEST invoice while keeping automatic collection disabled.'},
-  {name:'invoice_send',description:'Generate a TEST invoice.sent event; Stripe sends no real email in test mode.'},
-  {name:'invoice_charge_now',description:'Charge a TEST open invoice once using the verified saved customer method.',exact:true},
-  {name:'invoice_mark_paid_outside_stripe',description:'Record a verified external TEST invoice payment; never charges a card.',exact:true},
-  {name:'invoice_void',description:'Permanently void an unpaid TEST open invoice after explicit review.',destructive:true},
-  {name:'invoice_mark_uncollectible',description:'Mark an unpaid TEST open invoice uncollectible after explicit review.',destructive:true}
+  {name:'invoice_delete_draft',description:'Permanently delete a verified one-off draft invoice, with a deletion read-back.',destructive:true},
+  {name:'invoice_finalize',description:'Finalize a manual invoice while keeping automatic collection disabled.'},
+  {name:'invoice_send',description:'Send an open invoice to its customer (live mode emails the real customer; test mode only emits the event).'},
+  {name:'invoice_charge_now',description:'Charge an open invoice once using the verified saved customer method.',exact:true},
+  {name:'invoice_mark_paid_outside_stripe',description:'Record a verified external invoice payment; never charges a card.',exact:true},
+  {name:'invoice_void',description:'Permanently void an unpaid open invoice after explicit review.',destructive:true},
+  {name:'invoice_mark_uncollectible',description:'Mark an unpaid open invoice uncollectible after explicit review.',destructive:true}
 ];
 const needExact=d=>d.exact===true;
 function inputs(d){
   return {...invoice,...(needExact(d)?exact:{}),...ownership};
 }
 function check(d,a){
-  validateFields(a,inputs(d),['invoiceId',...(needExact(d)?['expectedRemainingCents']:[])]);
+  // previewFingerprint is a core write-lifecycle control field (V2
+  // shared machinery): strip it before the family validator, exactly
+  // as the already-converted families do; the core re-verifies it
+  // against the freshly evaluated state on confirm.
+  const {previewFingerprint:_control,...fields}=a??{};
+  validateFields(fields,inputs(d),['invoiceId',...(needExact(d)?['expectedRemainingCents']:[])]);
 }
 function prepare(d,a,b){
   if(needExact(d)&&a.expectedRemainingCents!==b.amount_remaining)
@@ -33,15 +43,17 @@ function make(d){
     name:d.name,
     ...(d.name==='invoice_charge_now'?{money:async(_a,_ctx,b)=>({
       amountCents:b.amount_remaining,currency:'usd',direction:'in',
-      targetId:b.id,description:'Charge provider-verified TEST invoice balance'
+      targetId:b.id,description:'Charge provider-verified '+
+        (_ctx?.connection?.mode==='live'?'LIVE':'TEST')+' invoice balance'
     })}:{}),
     read:async(a,ctx)=>{
       check(d,a);
-      const before=await lifecyclePreflight(d.name,a,await client(ctx));
+      const before=await lifecyclePreflight(d.name,a,await client(ctx),
+        ctx?.connection?.mode);
       prepare(d,a,before);
       return before;
     },
-    summarize:b=>lifecyclePreview(d.name,b),
+    summarize:(b,_a,ctx)=>lifecyclePreview(d.name,b,ctx?.connection?.mode),
     targetGuard:(_a,_ctx,b)=>{
       if(b.deleted)return 'Deleted invoice';
       if(!b.customer)return 'Stripe invoice customer is not verified';
@@ -85,14 +97,13 @@ function make(d){
           throw e;
         }
       }
-      return s.invoices.retrieve(a.invoiceId);
+      return assertAccountResourceMode(
+        await s.invoices.retrieve(a.invoiceId),ctx?.connection?.mode);
     },
-    verify:(b,after)=>verifyLifecycleTransition(d.name,b,after,receipt)
+    verify:(b,after,_a,ctx)=>verifyLifecycleTransition(d.name,b,after,receipt,
+      ctx?.connection?.mode)
   });
-  return {...op,handler:(a,ctx)=>
-    ctx?.connection?.mode!=='test'
-      ?gone('Invoice lifecycle writes require TEST mode')
-      :op.handler(a,ctx)};
+  return op;
 }
 export const tools=defs.map(d=>{
   const op=make(d);
@@ -101,14 +112,13 @@ export const tools=defs.map(d=>{
     annotations:{destructiveHint:d.destructive===true},
     inputSchema:{type:'object',properties:{
       ...inputs(d),confirm:{type:'boolean'},dryRun:{type:'boolean'},
+      previewFingerprint:{type:'string',maxLength:64},
       requestKey:{type:'string',minLength:1,maxLength:128}
     },required:['invoiceId',...(needExact(d)?['expectedRemainingCents']:[])],
     additionalProperties:false}};
 });
 export const handlers=Object.fromEntries(defs.map(d=>[
   d.name,async(a,ctx)=>{
-    if(ctx?.connection?.mode!=='test')
-      return gone('Invoice lifecycle writes require TEST mode');
     const s=await client(ctx);
     return make(d).handler(a,{...ctx,getCustomer:id=>s.customers.retrieve(id)});
   }
