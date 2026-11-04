@@ -39,7 +39,9 @@ function exactAccount(a){
 // credential must be the enrolled platform account, with independent
 // mode evidence, before any connected-account call is made (the
 // money bank reads' authenticatedAccount precedent).
-async function platformAccount(s,ctx){
+// Exported for the slice-2 write module (connect-writes.js), which
+// reuses this exact actor verification rather than a parallel shape.
+export async function platformAccount(s,ctx){
   const accountId=ctx?.connection?.stripeAccount;
   if(!acctId(accountId))invalid('Selected Stripe account unavailable');
   if(ctx?.connection?.mode==='live')

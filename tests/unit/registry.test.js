@@ -106,9 +106,15 @@ describe('tool registry', () => {
       'connect_list_accounts','connect_get_account','connect_list_capabilities',
       'connect_get_capability','connect_get_external_account',
       'connect_list_persons','connect_get_person',
+      'connect_create_account','connect_update_account',
+      'connect_create_person','connect_update_person',
+      'connect_delete_person','connect_create_external_account',
+      'connect_update_external_account','connect_delete_external_account',
+      'connect_update_capability','connect_create_account_link',
+      'connect_create_login_link',
       'api_search','api_describe','api_read','api_write'
     ]);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(155);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(166);
     expect(registry.tools.filter(t=>t.writes===true).every(t=>t.writeContract==='defineWrite-v1')).toBe(true);
   });
   it('refuses duplicates across namespaces', () => {

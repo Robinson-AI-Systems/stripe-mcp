@@ -122,8 +122,11 @@ describe('CAP-4 Connect slice 1 registration',()=>{
       expect(t.description).toContain('TEST or LIVE');
       expect(t.name).not.toMatch(/link|token/);
     }
-    expect(registry.tools).toHaveLength(329);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(155);
+    // Registry totals superseded by slice 2 (11 lifecycle writes):
+    // 329+11 tools, 155+11 writes. The slice-1 tools' own pins above
+    // are unchanged.
+    expect(registry.tools).toHaveLength(340);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(166);
   });
 });
 
@@ -375,9 +378,15 @@ describe('CAP-4 Connect slices 2-3 baseline refusals unchanged',()=>{
     expect(r.content[0].text).toContain('Sensitive universal family');
     expect(rawRequest).not.toHaveBeenCalled();
   });
-  it('no native write tool covers any slice 2-3 operation',()=>{
+  it('no native write tool covers any slice 3 operation (slice 2 landed separately)',()=>{
+    // Slice 2 (PR after #324) landed the lifecycle writes; the door
+    // classification pins above are untouched because D-9 owns the
+    // door flip. Slice 3 — account delete, reject, unreject and the
+    // v2 close — still has no native write tool.
     const connectWrites=registry.tools.filter(t=>
-      t.area==='connect'&&t.writes===true);
-    expect(connectWrites).toEqual([]);
+      t.area==='connect'&&t.writes===true).map(t=>t.name);
+    expect(connectWrites).not.toContain('connect_delete_account');
+    expect(connectWrites).not.toContain('connect_reject_account');
+    expect(connectWrites).not.toContain('connect_unreject_account');
   });
 });

@@ -27,7 +27,12 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
   // area was in NEITHER set, so both file writes were unreachable
   // through every guarded door in both modes; the family's own card
   // wires the dead family up in TEST as well as LIVE.
-  'invoices','files']);
+  'invoices','files',
+  // 'connect' joined under CAP-4 Connect slice 2 (lifecycle writes):
+  // the area was in NEITHER set, so the new lifecycle writes would be
+  // unreachable through every guarded door in both modes; the slice's
+  // own card wires the family up in TEST as well as LIVE.
+  'connect']);
 // Do not silently mark newly surfaced TEST-only operations as LIVE-ready.
 // 'money' joined under owner-obedience V2 family 1 (Money): the payout
 // operations and the payout schedule complete the full confirmed-action
@@ -50,7 +55,13 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
 // exposure in this area already converted with the Money family
 // (ruling 6), and the portal look's row 32 ownership refusal does
 // not convert — it stays reachable and intact in both modes.
-const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices','files','reports','branding']);
+// 'connect' joined under CAP-4 Connect slice 2 (lifecycle writes):
+// the account, person, external-account, capability and link writes
+// complete the full confirmed-action sequence in LIVE exactly as in
+// TEST — platform-actor verification, connected-object mode checks
+// and read-back (or the recorded no-read-back link disposition) run
+// identically in both modes; the writes move no money.
+const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices','files','reports','branding','connect']);
 // Exact original customer lifecycle names whose LIVE provider-mode, app
 // ownership and independent readback guards have been reviewed. Monetary
 // balance credits/debits are NOT covered by this nonmoney authorization.
