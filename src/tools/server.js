@@ -14,7 +14,7 @@ export const tools = [
     inputSchema:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:100},
       offset:{type:'integer',minimum:0}},additionalProperties:false},
     annotations:{readOnlyHint:true},writes:false,profiles },
-  { name:'stripe_check_key_permissions', description:'Recheck TEST key read permissions without revealing the Stripe key.',
+  { name:'stripe_check_key_permissions', description:'Recheck TEST or LIVE key read permissions without revealing it.',
     inputSchema:{type:'object',properties:{
       fields:{type:'array',items:{type:'string',enum:['account','mode','permissions','checkedAt','source']},
         maxItems:5,uniqueItems:true},
@@ -64,6 +64,13 @@ const safeCents=value=>{
   const number=Number(value);
   return Number.isSafeInteger(number) && number>=0 ? number : null;
 };
+// A stored probe timestamp (Date or ISO string from the driver) as an
+// ISO string; anything absent or unparseable reports as never probed.
+function probeCheckedAt(value) {
+  if (value === null || value === undefined) return null;
+  const time = value instanceof Date ? value.getTime() : Date.parse(value);
+  return Number.isFinite(time) ? new Date(time).toISOString() : null;
+}
 function local(value) {
   if (value==null) return null;
   const milliseconds=value instanceof Date ? value.getTime() : Date.parse(String(value));
@@ -175,6 +182,13 @@ export const handlers = {
       server_release:serverRelease(),
       keyType:connection.mode === 'test' ? row.test_key_kind : row.live_key_kind,
       keyLast4:connection.mode === 'test' ? row.test_key_last4 : row.live_key_last4,
+      // CAP-4 D7b: the stored probe record is per mode; whoami reports
+      // the connection mode's own record (nulls when that mode was
+      // never probed — never the other mode's result).
+      keyPermissions:connection.mode === 'test'
+        ? (row.key_permissions ?? null) : (row.live_key_permissions ?? null),
+      keyCheckedAt:probeCheckedAt(connection.mode === 'test'
+        ? row.key_checked_at : row.live_key_checked_at),
       stripeApiVersion:STRIPE_API_VERSION,currency:'usd',moneyLimitCents:safeCents(row.money_limit_cents),
       moneyUsedTodayCents:usage ? safeCents(usage.used_cents) : null,
       moneyTrackingStatus:usage ? 'Shared account-wide daily total' : 'Not available',
@@ -196,9 +210,9 @@ export const handlers = {
   },
   async stripe_check_key_permissions(args,{connection,services}) {
     const permissionProbe=services?.stripePermissionReprobe;
-    if (connection?.mode!=='test' || !connection.stripeAccount ||
+    if (!['test','live'].includes(connection?.mode) || !connection.stripeAccount ||
         typeof permissionProbe!=='function') {
-      return fail('Only a configured TEST account with server-side key access may be checked');
+      return fail('Only a configured TEST or LIVE account with server-side key access may be checked');
     }
     const valid=['account','mode','permissions','checkedAt','source'];
     const detail=args?.detail??'compact',fields=args?.fields;
@@ -207,9 +221,10 @@ export const handlers = {
          fields.some(x=>!valid.includes(x)) || new Set(fields).size!==fields.length))) {
       return fail('Invalid fields or detail selection');
     }
-    const result=await permissionProbe({account:connection.stripeAccount,mode:'test'});
+    const result=await permissionProbe({account:connection.stripeAccount,mode:connection.mode});
     const data={account:result.account,mode:result.mode,permissions:result.permissions,
-      checkedAt:result.checkedAt,source:'Fresh TEST key read-only Stripe probes'};
+      checkedAt:result.checkedAt,
+      source:'Fresh '+connection.mode.toUpperCase()+' key read-only Stripe probes'};
     const include=fields??(detail==='compact'
       ? ['account','mode','permissions'] : valid);
     return ok(Object.fromEntries(include.map(key=>[key,data[key]])));

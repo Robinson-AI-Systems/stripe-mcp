@@ -273,7 +273,8 @@ export function createDb(sql = getProductionSql()) {
     },
     async getStripeAccount(accountId) {
       const rows = await sql`SELECT id, label, live_enabled, is_default, test_key_kind, test_key_last4,
-          live_key_kind, live_key_last4, money_limit_cents, key_permissions,
+          live_key_kind, live_key_last4, money_limit_cents, key_permissions, key_checked_at,
+          live_key_permissions, live_key_checked_at,
           test_key_enc IS NOT NULL AS test_connected, live_key_enc IS NOT NULL AS live_connected
           FROM stripe_accounts WHERE id = ${accountId}`;
       return rows[0] || null;
@@ -301,16 +302,31 @@ export function createDb(sql = getProductionSql()) {
         WHERE id=${account} RETURNING id`;
       return rows.length===1;
     },
-    async updateKeyPermissions({account,permissions,expectedCiphertext}) {
+    // CAP-4 D7b: the probe record is per mode. The original
+    // key_permissions/key_checked_at columns are the TEST record by
+    // construction — the only writers that ever touched them were the
+    // TEST enrollment probe (saveTestKey) and this function's TEST
+    // branch, both matched on test_key_enc. The LIVE record lives in
+    // its own columns and starts NULL (never probed); a LIVE update
+    // matches live_key_enc under the same live_enabled gate
+    // getEncryptedKey applies, so neither mode can write or overwrite
+    // the other mode's record.
+    async updateKeyPermissions({account,mode='test',permissions,expectedCiphertext}) {
       if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
           typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !['test','live'].includes(mode) ||
           !permissions || typeof permissions!=='object' || Array.isArray(permissions) ||
           !Object.values(permissions).every(v=>v==='ok'||v==='denied')) {
         throw new TypeError('Verified permission result and account required');
       }
-      const rows=await sql`UPDATE stripe_accounts SET
-        key_permissions=${JSON.stringify(permissions)}::jsonb, key_checked_at=now()
-        WHERE id=${account} AND test_key_enc = ${expectedCiphertext} RETURNING id`;
+      const rows=mode==='test'?
+        await sql`UPDATE stripe_accounts SET
+          key_permissions=${JSON.stringify(permissions)}::jsonb, key_checked_at=now()
+          WHERE id=${account} AND test_key_enc = ${expectedCiphertext} RETURNING id`:
+        await sql`UPDATE stripe_accounts SET
+          live_key_permissions=${JSON.stringify(permissions)}::jsonb, live_key_checked_at=now()
+          WHERE id=${account} AND live_key_enc = ${expectedCiphertext}
+            AND live_enabled = TRUE RETURNING id`;
       return rows.length===1;
     },
     async getEncryptedKey({ account, mode }) {
@@ -921,12 +937,19 @@ export function createDb(sql = getProductionSql()) {
         test_key_last4 TEXT,
         live_key_last4 TEXT,
         key_permissions JSONB,
+        live_key_permissions JSONB,
         live_enabled BOOLEAN NOT NULL DEFAULT FALSE,
         money_limit_cents INTEGER NOT NULL DEFAULT 50000,
         is_default BOOLEAN NOT NULL DEFAULT FALSE,
         added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        key_checked_at TIMESTAMPTZ
+        key_checked_at TIMESTAMPTZ,
+        live_key_checked_at TIMESTAMPTZ
       )`;
+      // CAP-4 D7b: pre-existing tables gain the LIVE probe record
+      // additively; existing key_permissions/key_checked_at rows stay
+      // exactly where they are as the TEST mode's record.
+      await sql`ALTER TABLE stripe_accounts ADD COLUMN IF NOT EXISTS live_key_permissions JSONB`;
+      await sql`ALTER TABLE stripe_accounts ADD COLUMN IF NOT EXISTS live_key_checked_at TIMESTAMPTZ`;
       await sql`CREATE TABLE IF NOT EXISTS oauth_clients (
         client_id TEXT PRIMARY KEY,
         data JSONB NOT NULL,

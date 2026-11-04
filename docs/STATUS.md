@@ -1,3 +1,50 @@
+## 2026-11-04 — CAP-4 D7b key-permission probe: per-mode probe records (source)
+
+CAP-4's twelfth family is implemented in source (card
+[CAP4-D7B-KEY-PROBE-PER-MODE](pr-cards/CAP4-D7B-KEY-PROBE-PER-MODE.md)),
+the follow-up the coordinator's probe-split ruling split out of
+D-7. **The D-7 flagged leg is closed: `stripe_check_key_permissions`
+now probes and persists per mode.**
+
+- **The conversion.** The probe's stored record is split per
+  mode: the baseline `key_permissions`/`key_checked_at` columns
+  are the TEST record by construction (their only writers were
+  TEST-matched), and new additive `live_key_permissions`/
+  `live_key_checked_at` columns start NULL (never probed) — no
+  data movement, added the repo's way in `initSchema`
+  (CREATE + `ADD COLUMN IF NOT EXISTS`). `db.updateKeyPermissions`
+  gains a mode parameter (default TEST; its TEST branch is the
+  baseline statement verbatim) whose LIVE branch matches
+  `live_key_enc` under the same `live_enabled` gate as the LIVE
+  key read. The reprobe service verifies identity and persists
+  in the requested mode (LIVE keeps the key store's production
+  gate — no fallback to the TEST key), the handler passes the
+  connection mode through with a per-mode source label and the
+  both-modes refusal text D-7 deferred, and `stripe_whoami` now
+  reports the connection mode's own stored record
+  (`keyPermissions`/`keyCheckedAt`, nulls when never probed —
+  never the other mode's). One premise correction is recorded
+  in the card: at baseline whoami surfaced no probe fields at
+  all; the mode-blindness lived in the shared record, and both
+  halves are now fixed. `admin_review_security` is untouched —
+  its `safeProbe` was mode-aware since D-7, so its LIVE probe
+  section now observes. Money wiring byte-untouched; the
+  registry stays 329 tools.
+- **Proof.** New suite `cap4-d7b-key-probe-per-mode.test.js`:
+  13 tests (12 fail at the pristine baseline — every LIVE leg
+  and the whoami fields; the TEST persistence pin passes, TEST
+  was already served). The D-7 suite's four probe pins and the
+  B-8b1 suite's two TEST-only pins were updated to the per-mode
+  contract (TEST assertions unchanged). Full unit suite on the
+  final tree: 211 files / 2,309 tests green; `npm run check`
+  green; everyday catalog 19,999 / 20,000 net zero (the probe
+  description refit inside its own wording). The db suite gains
+  the LIVE persistence test and a legacy-shaped-table migration
+  test in `tests/db/key-reprobe.test.js`; local PostgreSQL is
+  absent on this VM, so that proof rides exact-head CI.
+  CAP-5: a LIVE probe against the owner's LIVE key (and the
+  LIVE whoami record read-back) joins the acceptance queue.
+
 ## 2026-11-04 — CAP-4 D-8 §B dispute-kit save: follows the connection mode (source)
 
 CAP-4's eleventh family is implemented in source (card

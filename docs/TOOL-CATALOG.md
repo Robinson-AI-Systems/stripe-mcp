@@ -184,7 +184,7 @@ money (dollar preview, daily limit, always confirm).
 | --- | --- | --- | --- | --- |
 | `stripe_whoami` | Selected account, TEST mode, profile, masked key, actual shared USD daily limit/used amount, `server_release` (VER-1 checked release identity) | — | built #16, amount status #28, server_release VER-1 | R |
 | `stripe_list_accounts` | Stripe accounts this server holds keys for, and which modes each has | — | built #16 | R |
-| `stripe_check_key_permissions` | Re-probe encrypted server-only TEST key; compact/full output and optional fields (CAP-4 D-7: mode conversion flagged — LIVE permission persistence awaits a `src/db.js` ruling; still TEST-only) | — | built #29 | R |
+| `stripe_check_key_permissions` | Re-probe encrypted server-only TEST or LIVE key; compact/full output and optional fields; the result persists to the probed mode's own record (CAP-4 D7b: per-mode probe records; `stripe_whoami` reports the connection mode's own record) | — | built #29 | R |
 | `stripe_list_connections` | Selected-account AI connection metadata, never credentials | — | built B-8a | R |
 | `stripe_revoke_connection` | Revoke a particular connection; the registered tool prepares an owner-confirmed revocation for the exact account/client ID — no access is revoked until private owner confirmation (the private owner flow is B-8b2a) | C | built B-8b2a | F |
 | `stripe_recent_changes` | Account-scoped audit summaries without raw snapshots (advanced filters later) | — | built B-8a | R |
