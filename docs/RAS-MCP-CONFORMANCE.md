@@ -1210,6 +1210,36 @@ not complete erasure. Identity writes and the money wiring
 are untouched. Live proof for these reads stands in the
 CAP-5 queue.
 
+**CAP-4 progress — D-12 brand reads and guided tools (2026-11-04):**
+the ninth family, **D-12 (brand reads and guided tools)**, is
+source-implemented (CAP4-D12-BRAND-READS-GUIDED): all 9
+registry tools now serve the connection's own mode by
+adopting the either-mode twins the V2 Branding family built
+for its writes (`selectedEitherMode`, `modeAccount`,
+`verifiedMode`) — the conversion the V2 card expressly left
+to CAP-4. The six guided tools return Dashboard steps and a
+read-back verification (they do not write; the owner
+performs the change): their guidance text is mode-templated
+so the steps name the mode the owner is actually working
+in, the read-back verifies against the mode-verified
+account, the payload `mode` reports the connection mode,
+and the manual settings URL is mode-templated (an
+unenumerated mode-shaped URL the build found in the
+guidance payload). The invoice-template reads verify
+provider mode evidence with default semantics fitted to
+the baseline read set, and `brand_get` reads the kit
+revision from the connection's own mode partition. TEST
+payloads stay byte-identical except one named refusal
+correction: an unselected account no longer refuses with
+text asserting TEST as a requirement. No branding write
+handler was modified. Under the D-7 ruling's annex, this
+family also discharges the admin guided tools' remainder:
+`admin_check_setting`'s description names the connection
+mode, the remaining TEST-shaped text in `admin-guided.js`
+is resolved, and the check-setting observed flow is pinned
+end-to-end in both modes. Live proof for these reads and
+guidance rows stands in the CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
