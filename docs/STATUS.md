@@ -1,3 +1,58 @@
+## 2026-11-04 — CAP-4 D-11 Identity reads: follow the connection mode (source)
+
+CAP-4's eighth family is implemented in source (card
+[CAP4-D11-IDENTITY-READS](pr-cards/CAP4-D11-IDENTITY-READS.md)),
+next in the frozen Phase 1 sequence after D-7:
+
+- **The conversion.** `identity_list_sessions` and
+  `identity_get_session` follow the connection mode — the
+  smallest conversion in the D-series. The projection already
+  existed: `identitySafe(v, mode)` (V2 Identity, PR #315)
+  takes an optional mode, and the write callers already passed
+  the connection mode; the read callers passed none. Both
+  handler gates (`fail('TEST Identity mode required')` before
+  any provider call) are deleted, the handlers run through
+  the shared mode-aware seam, and both read callers pass
+  `ctx.connection.mode` into the untouched projection — a
+  wrong-mode member refuses the whole list page, and a
+  wrong-mode get refuses after the provider call with the
+  mode-correct text. The hunt for unenumerated gates came up
+  empty, each species recorded in the card: the `vs_` ID
+  pattern carries no mode segment (contrast D-5's real
+  `cs_test_` find), no output is TEST-hardcoded, no other
+  caller omits the mode, and no store-layer refusal exists on
+  either path.
+- **The frozen field set.** The conversion changes mode
+  reachability, never the fields: the projection returns
+  exactly `id`, `type`, `status`, `createdAt`,
+  `redactionStatus`, `actionRequired`, `note` in both modes —
+  verification state and verified metadata only, no document
+  images, no personal data, no `client_secret`, no report
+  IDs, no hosted URL. The suite pins the exact key set in
+  both modes with sentinel document/PII/secret values planted
+  in the fixtures. The V2 disclosure rides along unchanged:
+  redaction is irreversible and is not complete erasure. The
+  2 verification-report GETs are deliberately not claimed —
+  no native read tool exists; they stay door-served.
+- **Proof.** New suite
+  `tests/unit/cap4-d11-identity-reads.test.js`: 10 tests —
+  4 fail at baseline `3b563925` (the LIVE happy paths, the
+  provider-called wrong-mode refusals on LIVE, the both-modes
+  descriptions) and all 10 pass after; the 6 baseline passes
+  are accounted honestly in the card (TEST pins, the
+  outcome-identical LIVE-on-TEST refusals, the unchanged
+  projection's field-set and no-mode contracts, and the
+  privacy assertion whose LIVE leg is vacuous at baseline).
+  The pre-existing Identity suites pass unedited. The
+  everyday catalog holds at 19,997 tokens against the 20,000
+  cap — net zero by the budget script's own reading on both
+  trees, fitted inside this family's own two descriptions.
+  Full unit suite green and `npm run check` exit 0 on the
+  final tree; database proof is exact-head CI's route (no
+  local PostgreSQL binaries). Live proof remains open in the
+  CAP-5 queue: one Identity list read and one session read
+  on the owner's LIVE connection.
+
 ## 2026-11-04 — CAP-4 D-7 account and admin reads: follow the connection mode (source; probe leg flagged)
 
 CAP-4's seventh family is implemented in source (card

@@ -1179,6 +1179,37 @@ Live proof for these reads stands in the CAP-5 queue,
 including the LIVE admin-surface rows; the probe's LIVE row
 also waits on the flagged conversion.
 
+**CAP-4 progress — D-11 Identity reads (2026-11-04):** the
+eighth family, **D-11 (Identity reads)**, is
+source-implemented (CAP4-D11-IDENTITY-READS): both registry
+tools (`identity_list_sessions`, `identity_get_session`) now
+verify every returned session against the connection's own
+mode in both directions. The conversion is the smallest in
+the series — the projection `identitySafe(v, mode)` was
+already mode-parameterized by the V2 Identity family
+(PR #315) and its write callers already passed the connection
+mode; the build deletes the two handler gates that refused
+every non-TEST connection before any provider call and passes
+the connection mode at both read call sites, leaving the
+projection itself byte-untouched. The family's defining
+discipline holds: the field set is frozen — exactly `id`,
+`type`, `status`, `createdAt`, `redactionStatus`,
+`actionRequired`, `note` — verification state and verified
+metadata only, with no document images, personal data,
+`client_secret`, verification-report IDs or hosted URL in
+either mode, pinned by an exact-keys test with sentinel
+document/PII/secret fixture values. The hunt for unenumerated
+gates came up empty, each species recorded in the card (the
+`vs_` ID pattern carries no mode segment; no output is
+TEST-hardcoded; no other caller omits the mode; no
+store-layer refusal exists on either path). The 2
+verification-report GETs are deliberately not claimed — no
+native read tool exists and they stay door-served. The V2
+disclosure is unchanged: redaction is irreversible and is
+not complete erasure. Identity writes and the money wiring
+are untouched. Live proof for these reads stands in the
+CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
