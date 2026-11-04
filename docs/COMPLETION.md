@@ -513,6 +513,37 @@ the read families. The first family is source-implemented:
   appendix. A disposition-verification row (the deployed
   refusal plus the mandate and payment-record door reads)
   stands in the CAP-5 queue.
+- **PROD-BILLING — billing-area coverage completion**
+  ([CAP4-PROD-BILLING](pr-cards/CAP4-PROD-BILLING.md)):
+  Phase 4's second product-gap card closes the billing
+  area by decision and disposition; no native tool is
+  built and no source file changes. The four claimed v2
+  billing meter-event operations take disposition (a):
+  they stay unserved until a v2 dispatch surface is
+  commissioned as its own unit. The evidence is recorded
+  in the card: the pinned catalog holds zero `/v2/`
+  operations (no existing surface can name them), the
+  usage-ingestion consumer is already served natively in
+  v1 by E-3's `meter_record_usage` and its durable
+  identifier ledger, no unit or design commissions a v2
+  dispatch surface, and ruling 3(iv) records the same
+  answer for every v2 row. The card adopts D-9's
+  ingestion rule verbatim (no per-call read-back;
+  idempotency by the event's own identifier), closing the
+  two cards' coordination point without divergence.
+  Meter reads are natively covered in full and the alert
+  list is native (E-3 — a module D-3's billing-shared
+  seam sweep never reached); every remaining
+  billing-family GET is door-sufficient, test-pinned
+  through the real read handler, and the quote PDF GET
+  is native by E-4's design (the authenticated link
+  route). The area sweep re-ran at this baseline: 101
+  operations examined (97 pinned v1 + the 4 claimed
+  v2), zero unclassified (native 60, door 15, D-9 15,
+  row-35 money 7, out 4), reconciling with the census
+  appendix per path. A disposition-verification row
+  (the door GETs on the owner's connection; the v2
+  paths still undispatched) stands in the CAP-5 queue.
 
 Still required:
 
@@ -522,10 +553,11 @@ Still required:
    CAP4-D7b, is likewise source-implemented above; Phase 2
    Connect is complete above (slices 1–3; the Connect family
    is COMPLETE in source); Phase 3 the universal door (D-9)
-   is source-implemented above; Phase 4's payment product card
-   (PROD-PAYMENT) is source-implemented above; next in Phase 4
-   are the billing, Tax-closure, event and entitlement product
-   cards; Phase 5 organization context and D-10.
+   is source-implemented above; Phase 4's payment and billing
+   product cards (PROD-PAYMENT, PROD-BILLING) are
+   source-implemented above; next in Phase 4 are the
+   Tax-closure, event and entitlement product cards;
+   Phase 5 organization context and D-10.
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)
    lands with CAP-4's final card; the consumer test itself runs
