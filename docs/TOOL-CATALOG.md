@@ -386,7 +386,7 @@ removing a payout bank account is done in the dashboard, which
 | `radar_list_reviews` / `radar_get_review` / `radar_approve_review` | Safe TEST or LIVE reviews; guarded approval in the connection's own mode (V2, source) | — / — / C | reads built #97, approval built #98 | R reads; F approval |
 | `radar_list_value_lists` / `radar_create_value_list` / `radar_delete_value_list` | TEST or LIVE value list definitions; create/delete in the connection's own mode (V2, source) | — / P / C | read built #97; create built #98; delete built #99 | R read; F writes |
 | `radar_list_list_items` / `radar_add_list_item` / `radar_remove_list_item` | TEST or LIVE item IDs only (no raw email/card/IP); add/remove in the connection's own mode (V2, source) | — / P / C | list built #97; add/remove built #99 | R read; F writes |
-| `identity_list_sessions` / `identity_get_session` | TEST identity status only; no verification evidence or client secret | — | built #100 | F |
+| `identity_list_sessions` / `identity_get_session` | TEST or LIVE identity status only, verified against the connection's mode; no verification evidence or client secret | — | built #100 | F |
 | `identity_create_session` / `identity_cancel_session` | Creation in the connection's mode with verified hosted URL; guarded pending-input cancellation | P / C | create built #100; cancel built #101 | F |
 | `identity_redact_session` | Irreversible redaction request in the connection's mode, separately confirmed; async processing is not erasure | C | built #101 | F |
 
