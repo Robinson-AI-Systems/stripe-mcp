@@ -1491,6 +1491,47 @@ proof for the probe's LIVE row stands in the CAP-5 queue;
 the db-suite persistence and legacy-migration proof rides
 exact-head CI (no local PostgreSQL on the coordinator VM).
 
+**CAP-4 progress — PROD-PAYMENT payment-area coverage
+completion (2026-11-04):** Phase 4's first product-gap card
+(CAP4-PROD-PAYMENT) closes the payment area by verification
+and disposition; no native tool is built and the registry
+stays at 343 tools. The four operations the census left
+with no native read and no D-card claim are dispositioned:
+`payment_records` list/get take native coverage
+deliberately out — third-party subject, no consuming
+workflow — closing the family as a unit with D-9's
+refused-third-party write rows under one reason, on this
+record's own financial-connections precedent; the guarded
+universal read serves both GETs (single reads
+mode-verified; list items are not individually
+mode-verified at the door, the recorded limitation those
+precedent rows share). The `mandates` GET is
+door-sufficient: the pinned catalog holds no mandate list
+operation, so the door's per-object mode verification is
+complete for the family, proven in both modes and both
+wrong-mode directions. The `confirmation_tokens` GET takes
+no native read — the pinned object is an ephemeral,
+client-issued pre-confirmation snapshot whose field groups
+are payment detail (full payment-method preview incl.
+card fingerprint), billing/shipping PII and customer
+acceptance network data (IP, user agent), with no
+consuming workflow — and the enumeration proved the door
+served it at baseline: the read screen's sensitive-family
+pattern names `tokens`, but the underscore in
+`confirmation_tokens` is a word character, so no word
+boundary precedes `tokens` and the screen never fired; at
+`detail:'full'` the door returned the whole payload under
+credential redaction only. The screen now names the family
+explicitly and refuses before any provider call; no other
+family's screen behavior changes. The area sweep re-ran at
+the unit's baseline: 69 pinned operations across the
+eleven payment families, zero unclassified (native 28,
+door 16, D-9 10, row-35 money 14, out 1), reconciling with
+the census appendix. A disposition-verification row (the
+deployed refusal plus the two door reads) stands in the
+CAP-5 queue; the dispositioned rows join this record's
+addendum accounting through this passage.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

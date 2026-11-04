@@ -1,3 +1,43 @@
+## 2026-11-04 — CAP-4 PROD-PAYMENT: payment-area coverage completion (source) — Phase 4 opens
+
+CAP-4's Phase 4 opens with the payment product-gap card
+([CAP4-PROD-PAYMENT](pr-cards/CAP4-PROD-PAYMENT.md)): the
+payment area is closed with evidence, and — as the card
+expected — the outcome is verification and disposition, not
+new tools. All four claimed operations are dispositioned.
+`payment_records` reads: native coverage deliberately out
+(third-party subject, no consumer — the family closes as a
+unit with D-9's refused-third-party write rows under one
+reason, on the census's financial-connections precedent);
+the guarded universal read serves both GETs. `mandates`
+GET: door-sufficiency — the pinned catalog holds no mandate
+list operation, so the door's per-object mode verification
+is complete for the family, proven in both modes and both
+wrong-mode directions. `confirmation_tokens` GET: no native
+read (the pinned object is an ephemeral client-issued
+pre-confirmation snapshot — full payment-method preview,
+billing/shipping PII, customer acceptance IP and user
+agent — with no consuming workflow), **and** the
+enumeration proved the door served it at baseline: the
+sensitive-family screen's `tokens` pattern cannot match
+`confirmation_tokens` (the underscore is a word character,
+so no word boundary precedes `tokens`), and at
+`detail:'full'` the door returned the whole payload under
+credential redaction only. The screen now names the family
+explicitly — the unit's only source change — refusing
+before any provider call. The area sweep re-ran at this
+baseline: 69 pinned operations across the eleven payment
+families, zero unclassified (native 28, door 16, D-9 10,
+row-35 money 14, out 1), reconciling with the census
+appendix. Registry unchanged at 343 tools; everyday budget
+19,999 / 20,000 unmoved (one token of headroom is also an
+independent bar to any new everyday native read). New suite
+10 tests: the two confirmation-token refusal tests fail at
+pristine baseline as behavior; the eight door pins pass
+there by design and are named as such. A
+disposition-verification row (the deployed refusal plus
+the two door reads) stands in the CAP-5 queue.
+
 ## 2026-11-04 — CAP-4 D-9: the universal door, classified (source) — Phase 3 opens
 
 CAP-4's Phase 3 opens (card
