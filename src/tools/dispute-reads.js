@@ -1,10 +1,13 @@
-// G-2a: expose only minimal, verified TEST dispute identity and response deadlines.
-import {allProfiles,guarded,fail,local,pageResult,paging,ref} from './billing-shared.js';
+// G-2a: expose only minimal, verified dispute identity and response deadlines.
+import {allProfiles,guarded,local,pageResult,paging,ref} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 const id=s=>typeof s==='string'&&/^du_[A-Za-z0-9]{2,100}$/.test(s);
 const validTime=s=>Number.isSafeInteger(s)&&s>=946684800&&s<=4102444800;
 const failShape=s=>{throw new TypeError(s);};
-export function disputeSafe(d,now=Date.now()) {
-  if(d?.object!=='dispute'||!id(d.id)||d.livemode!==false||
+export function disputeSafe(d,now=Date.now(),mode) {
+  const modeGiven=['test','live'].includes(mode);
+  if(modeGiven)assertAccountResourceMode(d,mode,{required:true});
+  if(d?.object!=='dispute'||!id(d.id)||(!modeGiven&&d.livemode!==false)||
      !Number.isSafeInteger(d.amount)||d.amount<0||
      !/^[a-z]{3}$/.test(d.currency)||!validTime(d.created)||
      !['warning_needs_response','warning_under_review','warning_closed',
@@ -39,9 +42,9 @@ const def=(name,description,props,required=[])=>({
 const limit={type:'integer',minimum:1,maximum:100};
 const cursor={type:'string',pattern:'^du_[A-Za-z0-9]{2,100}$'};
 export const tools=[
-  def('dispute_list','List TEST disputes, status, amounts, and Colorado evidence deadlines.',
+  def('dispute_list','List TEST or LIVE disputes with status, amounts and Colorado evidence deadlines.',
     {limit,starting_after:cursor}),
-  def('dispute_get','Read one TEST dispute and response deadline without private evidence.',
+  def('dispute_get','Read one TEST or LIVE dispute and its response deadline without private evidence.',
     {disputeId:cursor},['disputeId'])
 ];
 function validate(a,allowed,required=[]) {
@@ -51,19 +54,19 @@ function validate(a,allowed,required=[]) {
     failShape('Exact dispute read arguments required');
 }
 export const handlers={
-  dispute_list:(a,ctx)=>ctx?.connection?.mode!=='test'?
-    fail('Dispute reads require TEST mode'):guarded(ctx,async s=>{
+  dispute_list:(a,ctx)=>guarded(ctx,async s=>{
       validate(a,['limit','starting_after']);
       if(a.starting_after!==undefined&&!id(a.starting_after))
         failShape('Invalid dispute cursor');
-      return pageResult(await s.disputes.list(paging(a)),disputeSafe);
+      const mode=ctx?.connection?.mode;
+      return pageResult(await s.disputes.list(paging(a)),
+        (d,i)=>disputeSafe(d,i,mode));
     }),
-  dispute_get:(a,ctx)=>ctx?.connection?.mode!=='test'?
-    fail('Dispute reads require TEST mode'):guarded(ctx,async s=>{
+  dispute_get:(a,ctx)=>guarded(ctx,async s=>{
       validate(a,['disputeId'],['disputeId']);
       if(!id(a.disputeId))failShape('Exact dispute ID required');
       const dispute=await s.disputes.retrieve(a.disputeId);
       if(dispute?.id!==a.disputeId)failShape('Dispute identity mismatch');
-      return disputeSafe(dispute);
+      return disputeSafe(dispute,undefined,ctx?.connection?.mode);
     })
 };
