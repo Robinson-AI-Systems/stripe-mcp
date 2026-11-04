@@ -57,7 +57,7 @@ service on 2026-11-03:
 | Repository | `Robinson-AI-Systems/stripe-mcp`; `live` at `c95f9cf0160f85f59789a11d1885e422ec84770b`; `main` three commits ahead at `0c34fbe5475f9006023d9066a6e79f5ed5a46d7e` (PRs #303, #304, #305 — owner-obedience V1, V2 shared machinery, and V4, all source-only). |
 | Hosting | Vercel project `stripe-mcp`; production branch is `live`; the latest production deployment is READY at `c95f9cf0`. Only the `live` branch is deployment-enabled in `vercel.json`. |
 | Package/runtime | `@robinson-ai-systems/stripe-mcp` version `0.1.0`; ECMAScript modules; Node engine `>=20` (the Vercel project is configured for Node 24.x); runtime dependencies are the MCP SDK `1.32.1`, Neon serverless `1.0.2`, and Stripe `23.0.0`. |
-| Tool registry | **322 tools** in the registry at both heads and in the deployed health/front-door readouts: 167 read-labelled tools and 155 write tools; 318 hand-built tools plus the four `api_*` tools. (Fleet-audit census 2026-11-04 at `main` `0c34fbe5`: the exact expected-name list in `tests/unit/registry.test.js` enumerates 322 unique names and asserts 155 writes; the three commits since `c95f9cf0` changed handlers and shared machinery, not registrations.) Read-only profile counts are read-only 155 / everyday 156 / full 167. Full visibility counts are 155 / 248 / 322. |
+| Tool registry | **329 tools** in the source registry at `main`: 174 read-labelled tools and 155 write tools; 325 hand-built tools plus the four `api_*` tools. (Fleet-audit census 2026-11-04 at `main` `0c34fbe5`: the exact expected-name list in `tests/unit/registry.test.js` enumerated 322 unique names and asserted 155 writes; CAP-4 Connect slice 1 then added the seven `connect_*` read registrations, and the list now enumerates 329. The deployed health/front-door readouts still name 322 tools at `c95f9cf0` until a checked release carries the new registrations.) Read-only profile counts are read-only 162 / everyday 163 / full 174. Full visibility counts are 162 / 255 / 329. |
 | Stripe API inventory source | Vendored Stripe OpenAPI tag `v2556`, API version `2026-09-30.endive`, 398 paths; `node scripts/openapi-find.mjs --verify` passes. |
 | Serving alias | `https://stripe-mcp-psi.vercel.app` serves the application. `/api` and `/api/health` name commit `c95f9cf0`, version `0.1.0+c95f9cf0160f`, 322 tools, status healthy/`online`, and database check `true`. `/api/contract` names the same revision and advertises `/api/health`. |
 | Configured issuer origin | OAuth metadata fetched from the serving alias names `https://stripe-mcp-chris-projects-de6cd1bf.vercel.app` as issuer and resource. That hostname does **not** serve the application to an unauthenticated visitor; Vercel Authentication intercepts it. |
@@ -77,7 +77,7 @@ not close any product requirement by itself.
 | Ledger | Reconciled state | What it does—and does not—prove |
 |---|---|---|
 | Original roadmap source | **57 of 57 subsections merged.** | Source implementation exists. It does not prove deployed provider acceptance or finished-product status. |
-| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, then D-2) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
+| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, and Connect slice 1) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
 | Protected provider acceptance queue | **13 PASSED / 30 PENDING of 43.** Of the pending rows, **29 are Stripe-owned** and **1 is Hub-owned optional**. | The 29 Stripe-owned rows include the `STRIPE-TEST` aggregate, so the count is a ledger count, not 29 unrelated features. The Hub row is not a standalone-product gate. |
 | Session planner view | `scripts/session-status.mjs` reports 42 waiting/verification tasks plus the Hub-owned optional task. | This overlaps the queue above: it treats recorded passes as deployment-recheck items. Do not add 42 to 30. The queue dispositions remain 13 passed and 30 pending. |
 | RAS MCP conformance | **17 numbered rows** (14 at the 2026-11-02 pass; rows 15–17 opened 2026-11-03 by the Specification's new sections). | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. Rows 15–17 record the design-conformance compensation: the capability census is incomplete past its API element, the correction process is running, and four owner-facing refusals are designed for conversion to confirmed actions. |
@@ -213,14 +213,31 @@ the read families. The first family is source-implemented:
   Live proof for D-2 stands in the CAP-5 queue (one charge, one
   intent, one refund, one setup intent on the owner's LIVE
   connection).
+- **Connect slice 1 — connected-account reads**
+  ([CAP4-CONNECT-SLICE1-READS](pr-cards/CAP4-CONNECT-SLICE1-READS.md)):
+  Phase 2 opens in parallel under coordinator ruling 3 (the
+  platform acts only via the owner's enrolled connection; the
+  connected account is always an explicit exact argument). Seven
+  new native read tools (connected-account list/get, capability
+  list/get, external-account get, person list/get) verify the
+  platform actor and every returned object's mode before
+  projecting safe fields only — no email, tax ID, bank numbers,
+  card fingerprints or person data; persons follow the Identity
+  safe-fields posture. Registry 322 → 329 tools. Slices 2
+  (lifecycle writes) and 3 (destructive/terminal) remain exactly
+  as refused as at baseline, pinned per operation in the card's
+  suite. Live proof for slice 1 stands in the CAP-5 queue on the
+  testing surface only (one account + person read round against
+  a TEST platform's test connected account).
 
 Still required:
 
 1. The remaining families in the frozen order: Phase 1 reads
    D-4, D-5, D-6, D-7, D-11, D-12 and D-8 last (with the
    composite `workflow_dispute_kit_save` conversion as its own
-   sibling unit); Phase 2 Connect reads, lifecycle writes and
-   destructive/terminal writes; Phase 3 the universal door (D-9);
+   sibling unit); Phase 2 Connect lifecycle writes and
+   destructive/terminal writes (slice 1 reads are implemented
+   above); Phase 3 the universal door (D-9);
    Phase 4 the payment, billing, Tax-closure, event and
    entitlement product cards; Phase 5 organization context and
    D-10.

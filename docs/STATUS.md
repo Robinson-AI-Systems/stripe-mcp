@@ -1,3 +1,62 @@
+## 2026-11-04 — CAP-4 Connect slice 1: native projected reads for connected accounts (source)
+
+CAP-4's Phase 2 opens in parallel with the read series (card
+[CAP4-CONNECT-SLICE1-READS](pr-cards/CAP4-CONNECT-SLICE1-READS.md)),
+under coordinator ruling 3 (owner's enrolled connection only;
+connected account always an explicit exact argument; reads first):
+
+- **The build.** Seven new native read tools (area `connect`) —
+  connected-account list/get, capability list/get, external-
+  account get, person list/get — in a new module,
+  `src/tools/connect-reads.js`. At baseline the seven pinned v1
+  GETs had no native reader: six were served by the universal
+  door in raw provider shape (unprojected third-party data), and
+  the person-by-id GET was refused by the door's sensitive-family
+  rule, which names a specialized native reader — this slice is
+  that reader. Registry 322 → 329 tools (writes unchanged at
+  155); profile and listing counts updated by measurement.
+- **The discipline.** Every account-scoped tool takes the exact
+  connected-account ID; the platform account (the connection's
+  own account) is verified as the actor — identity plus
+  independent mode evidence, both modes — before any
+  connected-account provider call; every returned object is
+  verified for identity and mode before projection, in both
+  directions. Projections are safe fields only: no email, tax
+  ID, routing/account numbers, card fingerprints or person data
+  ever enter a result; persons follow the Identity family's
+  posture (verification state, role booleans, requirement field
+  **names** only), pinned by an exact field-set test loaded with
+  PII sentinels.
+- **What did not move.** Slices 2–3 (lifecycle and
+  destructive/terminal writes) remain exactly as refused as at
+  baseline: the new suite pins the universal door's own
+  classification and exact refusal reason for all 13 pinned
+  POST/DELETE operations, and no native write tool exists in
+  area `connect`. The door itself is untouched; its accounts-row
+  reason-text flip is D-9's, recorded in the card. One wording
+  tension is flagged in the card's drift table: the
+  external-accounts **list** row belongs to D-1 (built as the
+  own-account bank read), so slice 1 builds the get-by-id row
+  only.
+- **The budget.** The family first brought the designed
+  everyday-catalog listing budget (fail at ≥20,000 tokens) to
+  20,217; it is fitted honestly to 19,975 without touching the
+  cap — fixed-projection tools opt out of the generic
+  detail/fields listing controls (existing precedent), tighter
+  descriptions, and cursor schemas carrying type+length while
+  handlers enforce the exact cursor patterns. The fitting is
+  recorded in the card's drift table.
+- **Proof.** New suite `tests/unit/cap4-connect-slice1-reads.test.js`:
+  22 tests — every tool's happy path in both owner-connection
+  modes, wrong-mode refusals in both directions, identity and
+  actor refusals spy-proven to precede any connected-account
+  call, privacy sentinel and field-set pins, and the slice 2–3
+  baseline record above. Database tests are exact-head CI's
+  route (no local PostgreSQL binaries). Live proof remains open
+  in the CAP-5 queue: one projected read round on the **testing**
+  surface only (account + person, TEST platform, test connected
+  account) — platform operations on real connected accounts are
+  never an acceptance probe.
 ## 2026-11-04 — CAP-4 D-2 payment reads: mode-verified in both modes (source)
 
 CAP-4's third family is implemented in source (card

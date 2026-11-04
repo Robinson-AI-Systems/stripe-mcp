@@ -545,13 +545,31 @@ are marked `R`; the rest preview first and confirm before money moves.
 | `workflow_brand_business` | One sentence sets up how a business looks and reads everywhere on Stripe: uploads logo/icon, sets colors (account-wide where allowed), saves the brand kit, statement descriptor, public support details, invoice footer, portal links; previews all of it first and finishes with a test Checkout link to look at. The Stripe version of the Workspace server's `workflow_brand_mailbox` | C | F |
 | `workflow_find` | One search box: an email, name, last 4, amount, app ID or Stripe ID → what it is and the matching records | — | R |
 
-## Connect (`connect_*`) — optional, not scheduled (ROADMAP) — 16
+## Connect (`connect_*`) — 7 built reads; lifecycle writes not yet built
 
-Accounts list/get/create/update/reject/delete, account links, login links,
-capabilities list/update, transfers create/list/get/reverse, application fees
-list/get/refund. Built only when YardSync or Cortiware actually needs to take
-payments on behalf of other businesses. Carried over from the toolkit, with
-`$` on transfers and fee refunds and `C` on reject/delete.
+Slice 1 of the CAP-4 Connect card is built: native projected reads for
+connected (third-party) accounts, on the owner's enrolled platform
+connection only, with the connected account always an exact argument.
+Projections are safe fields only — no email, tax ID, bank numbers, card
+fingerprints or person data; persons show verification state, role flags
+and requirement field names only.
+
+| Tool | What it does | Safety | Profile |
+| --- | --- | --- | --- |
+| `connect_list_accounts` | List connected accounts on the platform account (TEST or LIVE); safe fields only | — | R |
+| `connect_get_account` | Read one exact connected account (TEST or LIVE); safe status fields only | — | R |
+| `connect_list_capabilities` | List capability statuses of an exact connected account (TEST or LIVE); names only | — | R |
+| `connect_get_capability` | Read one capability status of an exact connected account (TEST or LIVE); names only | — | R |
+| `connect_get_external_account` | Read a payout destination of an exact connected account (TEST or LIVE); last4 only | — | R |
+| `connect_list_persons` | List people of an exact connected account (TEST or LIVE); verification state only | — | R |
+| `connect_get_person` | Read one person of an exact connected account (TEST or LIVE); state and roles only | — | R |
+
+Not yet built (later slices of the same card, still refused exactly as
+before): account create/update/reject/delete, account links, login links,
+capability requests, external-account and person writes, transfers
+create/list/get/reverse, application fees list/get/refund — carried over
+from the toolkit, with `$` on transfers and fee refunds and `C` on
+reject/delete when they land.
 
 ## Everything else in Stripe: the universal tools (`api_*`) — 4
 
@@ -627,18 +645,19 @@ above so unbuilt names are never dressed as catalog rows:
 
 ## Totals
 
-**Counted from the registry in source on 2026-11-03** (`src/tools/index.js`
+**Counted from the registry in source on 2026-11-04** (`src/tools/index.js`
 loaded and counted programmatically; re-count when the registry changes):
-**322 tools are registered** — 318 hand-built tools plus the 4 universal
+**329 tools are registered** — 325 hand-built tools plus the 4 universal
 `api_*` tools — plus guided settings for every dashboard-only owner setting.
-The universal tools reach every other Stripe operation. No `connect_*` tool
-is registered: the Connect section above is optional and unscheduled, and its
-16 planned names are not part of this count. Declared profile visibility is
-`read_only` 155, `everyday` 248 and `full` 322. A connection is served less
-than the declared visibility: a TEST connection's catalog listing is
-guard-filtered to 155 / 227 / 301 by profile, and in compact mode
-(`docs/designs/BATCH-C.md`) an agent loads only 16 / 16 / 24 of them up front
-and reaches the rest through `stripe_search_tools` / `stripe_call`.
+The universal tools reach every other Stripe operation. Seven `connect_*`
+read tools are registered (Connect slice 1, above); the Connect lifecycle
+and destructive writes are not, and are not part of this count. Declared
+profile visibility is `read_only` 162, `everyday` 255 and `full` 329. A
+connection is served less than the declared visibility: a TEST connection's
+catalog listing is guard-filtered to 162 / 249 / 327 by profile, and in
+compact mode (`docs/designs/BATCH-C.md`) an agent loads only 16 / 16 / 26 of
+them up front and reaches the rest through `stripe_search_tools` /
+`stripe_call`.
 
 ## Implementation notes — B-2 (draft #21)
 

@@ -103,6 +103,9 @@ describe('tool registry', () => {
       'workflow_webhook_health','workflow_webhook_health_fix','workflow_go_live_checklist',
       'workflow_month_end_close','workflow_month_end_report','workflow_find',
       'workflow_set_up_catalog','workflow_brand_business',
+      'connect_list_accounts','connect_get_account','connect_list_capabilities',
+      'connect_get_capability','connect_get_external_account',
+      'connect_list_persons','connect_get_person',
       'api_search','api_describe','api_read','api_write'
     ]);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(155);
