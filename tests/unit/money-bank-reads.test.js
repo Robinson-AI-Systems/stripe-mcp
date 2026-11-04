@@ -15,7 +15,12 @@ function fixture(){
   const s={accounts:{
     retrieve:vi.fn(async()=>own),
     listExternalAccounts:vi.fn(async()=>({object:'list',data:[bank],has_more:false}))
-  }};
+  },
+  // CAP-4 D-1 fixture completion: the account fixture omits
+  // `livemode`, so the verified TEST account reader demands the
+  // independent balance evidence this stub supplies. No assertion
+  // in this suite changes.
+  balance:{retrieve:vi.fn(async()=>({object:'balance',livemode:false}))}};
   const ctx={connection:{mode:'test',profile:'read_only',stripeAccount:account},
     services:{stripeForConnection:async()=>s}};
   return {s,ctx,call:(name,a={})=>handlers[name](a,ctx)};
