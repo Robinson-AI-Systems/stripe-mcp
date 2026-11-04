@@ -122,11 +122,11 @@ describe('CAP-4 Connect slice 1 registration',()=>{
       expect(t.description).toContain('TEST or LIVE');
       expect(t.name).not.toMatch(/link|token/);
     }
-    // Registry totals superseded by slice 2 (11 lifecycle writes):
-    // 329+11 tools, 155+11 writes. The slice-1 tools' own pins above
-    // are unchanged.
-    expect(registry.tools).toHaveLength(340);
-    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(166);
+    // Registry totals superseded by slice 2 (11 lifecycle writes)
+    // and slice 3 (3 terminal writes): 329+11+3 tools, 155+11+3
+    // writes. The slice-1 tools' own pins above are unchanged.
+    expect(registry.tools).toHaveLength(343);
+    expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(169);
   });
 });
 
@@ -378,15 +378,17 @@ describe('CAP-4 Connect slices 2-3 baseline refusals unchanged',()=>{
     expect(r.content[0].text).toContain('Sensitive universal family');
     expect(rawRequest).not.toHaveBeenCalled();
   });
-  it('no native write tool covers any slice 3 operation (slice 2 landed separately)',()=>{
-    // Slice 2 (PR after #324) landed the lifecycle writes; the door
-    // classification pins above are untouched because D-9 owns the
-    // door flip. Slice 3 — account delete, reject, unreject and the
-    // v2 close — still has no native write tool.
+  it('slice 3 landed separately: native write tools now cover account delete, reject and unreject',()=>{
+    // Slice 2 (PR after #324) landed the lifecycle writes and
+    // slice 3 the terminal operations; the door classification
+    // pins above are untouched because D-9 owns the door flip.
+    // The v2 close has no native tool: it exists only on the v2
+    // core surface (Connect card fork 4, ruling 3(iv) —
+    // covered-by-design-decision).
     const connectWrites=registry.tools.filter(t=>
       t.area==='connect'&&t.writes===true).map(t=>t.name);
-    expect(connectWrites).not.toContain('connect_delete_account');
-    expect(connectWrites).not.toContain('connect_reject_account');
-    expect(connectWrites).not.toContain('connect_unreject_account');
+    expect(connectWrites).toContain('connect_delete_account');
+    expect(connectWrites).toContain('connect_reject_account');
+    expect(connectWrites).toContain('connect_unreject_account');
   });
 });
