@@ -17,6 +17,7 @@ import {handlers as universal} from '../../src/tools/universal.js';
 import {registry} from '../../src/tools/index.js';
 import {getOperation} from '../../src/stripe/openapi-index.js';
 import {classifyUniversalWrite} from '../../src/stripe/universal-policy.js';
+import {classificationFor} from '../../src/stripe/universal-classification.js';
 import {financialDecision} from '../../src/stripe/money-operations.js';
 import {preferredNative} from '../../src/stripe/hand-built-map.js';
 
@@ -340,31 +341,34 @@ describe('CAP-4 Connect actor verification',()=>{
   });
 });
 
-// --- Slices 2 and 3 stay exactly as refused --------------------------------
-describe('CAP-4 Connect slices 2-3 baseline refusals unchanged',()=>{
-  const financial='Financial or unclassified money-moving operation requires an original provider-derived amount and separate owner approval; this is an unimplemented capability, not permanent user policy';
-  const gap='Operation needs provider-specific ownership/cost classification and original readback; currently a tracked capability gap, not a permanent end-user restriction';
+// --- D-9 flip: the door redirects the 13 writes to the Connect tools ------
+describe('CAP-4 D-9 Connect accounts-row flip',()=>{
   const expected={
-    PostAccounts:financial,PostAccountsAccount:gap,
-    DeleteAccountsAccount:financial,
-    PostAccountsAccountCapabilitiesCapability:gap,
-    PostAccountsAccountExternalAccounts:financial,
-    PostAccountsAccountExternalAccountsId:gap,
-    DeleteAccountsAccountExternalAccountsId:financial,
-    PostAccountsAccountLoginLinks:financial,
-    PostAccountsAccountPersons:financial,
-    PostAccountsAccountPersonsPerson:gap,
-    DeleteAccountsAccountPersonsPerson:financial,
-    PostAccountsAccountReject:gap,PostAccountsAccountUnreject:gap};
-  it('the universal door still refuses all 13 pinned write operations with the baseline reasons',()=>{
-    for(const [opId,reason] of Object.entries(expected)){
+    PostAccounts:'connect_create_account',
+    PostAccountsAccount:'connect_update_account',
+    DeleteAccountsAccount:'connect_delete_account',
+    PostAccountsAccountCapabilitiesCapability:'connect_update_capability',
+    PostAccountsAccountExternalAccounts:'connect_create_external_account',
+    PostAccountsAccountExternalAccountsId:'connect_update_external_account',
+    DeleteAccountsAccountExternalAccountsId:'connect_delete_external_account',
+    PostAccountsAccountLoginLinks:'connect_create_login_link',
+    PostAccountsAccountPersons:'connect_create_person',
+    PostAccountsAccountPersonsPerson:'connect_update_person',
+    DeleteAccountsAccountPersonsPerson:'connect_delete_person',
+    PostAccountsAccountReject:'connect_reject_account',
+    PostAccountsAccountUnreject:'connect_unreject_account'};
+  it('the universal door refuses all 13 pinned write operations with a native-redirect reason naming the Connect tool (the pre-D-9 baseline reasons are retired by the flip)',()=>{
+    for(const [opId,tool] of Object.entries(expected)){
       const record=getOperation(opId);
       expect(preferredNative(record)).toBeNull();
       const policy=classifyUniversalWrite(record,{},{
         metadataOnly:false,
         moneyLike:financialDecision(record,{}).financial});
       expect(policy.allowed).toBe(false);
-      expect(policy.reason).toBe(reason);
+      expect(policy.reason).toBe(
+        classificationFor(record)?.reason);
+      expect(policy.reason).toContain(tool);
+      expect(policy.reason).not.toContain('tracked capability gap');
     }
   });
   it('the door still refuses the person-by-id GET as a sensitive family (the native reader above is the specialized route)',async()=>{

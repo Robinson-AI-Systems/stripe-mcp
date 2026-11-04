@@ -1,3 +1,57 @@
+## 2026-11-04 — CAP-4 D-9: the universal door, classified (source) — Phase 3 opens
+
+CAP-4's Phase 3 opens (card
+[CAP4-D9-UNIVERSAL-DOOR](pr-cards/CAP4-D9-UNIVERSAL-DOOR.md)):
+the universal write door is classified. The classification
+table is data (`src/stripe/universal-classification.js`, 215
+rows — one per pinned POST/DELETE operation outside the money
+class, each naming ownership, cost, secret, read-back and
+disposition), machine-checked against the pinned catalog by a
+drift test, and the door consults it: 39 rows run generically
+under the existing guarded-write contract (the 10 baseline
+whitelist rows plus 29 new — Terminal locations/readers/
+configurations, billing meter/alert/feedback configuration,
+Tax registrations/locations/settings, Radar value lists and
+items, and a small payment-method/review set, with two new
+classified shapes: item actions verified by expected state and
+the tax settings singleton), 122 rows redirect to the native
+family that owns them by name, and the rest refuse with their
+true class reason — session/secret-minting, apps/secrets
+(row 36), third-party-subject, payload-shape, no-read-back,
+device-action, ingestion, and the money-adjacent customer
+balance transactions (naming rows 20/23/35). The old generic
+line-26 refusal is proven absent from every in-scope refusal
+under both money-heuristic settings; the 92 money rows, the
+metadata-only route and the whitelist paths are byte-identical
+to baseline.
+
+- **The Connect accounts-row flip lands with it.** The frozen
+  card's OTHER-UNIT text for the 13 `v1/accounts` rows is not
+  shipped: Connect slices 1–3 exist now, so each row redirects
+  to its Connect tool by name (and `account_links` names
+  `connect_create_account_link`); the person-by-id GET keeps
+  its native-reader treatment, and billing `meter_events`
+  stays refused as an ingestion class citing E-3's native
+  `meter_record_usage` — the decisions and their evidence are
+  recorded in the card.
+- **Proof.** New suite (24 tests): the completeness/drift
+  partition (307 = 92 money + 215 rows), one case per
+  disposition class, the Terminal family end-to-end through
+  `api_write` (locations, readers — the registration code
+  proven shown-once and absent from the full audit trail —
+  and configurations), plus the action/settings legs. Full
+  unit suite 214 files / 2,394 tests green (baseline 213 /
+  2,370); `npm run check` green. Baseline accounting is in
+  the card: pristine baseline fails at import (the table
+  module is new); baseline + table data only fails 14 of 24
+  as behavior, the 10 passes being data and baseline pins,
+  named. Registry unchanged at 343 tools (169 writes); the
+  everyday catalog budget is unmoved at 19,999/20,000. Live
+  proof (one generic-allow family's door rows plus a refusal
+  sample) joins the CAP-5 queue. **CAP-4 continues with the
+  Phase 4 product-gap cards, Phase 5 (org-context and D-10),
+  and RECENSUS-1/2.**
+
 ## 2026-11-04 — CAP-4 Connect slice 3: connected-account terminal operations (source) — Connect family COMPLETE
 
 CAP-4's Phase 2 closes (card

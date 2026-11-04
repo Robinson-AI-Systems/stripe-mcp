@@ -276,6 +276,31 @@ the read families. The first family is source-implemented:
   v2 core operations covered-by-design-decision). Live proof
   for slice 3 stands in the CAP-5 queue as one ceremony
   refusal on the testing surface only.
+- **D-9 — the universal door, classified**
+  ([CAP4-D9-UNIVERSAL-DOOR](pr-cards/CAP4-D9-UNIVERSAL-DOOR.md)):
+  the door's write classifier is now a data table — 215 rows,
+  one per non-money pinned POST/DELETE operation, each naming
+  ownership, cost, secret, read-back and disposition, drift-
+  checked against the pinned catalog in CI. 39 rows run
+  generically under the existing guarded-write contract
+  (Terminal locations, readers and configurations; billing
+  meters/alerts/feedback configuration; Tax registrations,
+  locations and settings; Radar value lists and items; a
+  small payment-method/review set), 122 redirect to an owning
+  native family by name, and the remainder refuse with their
+  true class reason; the old generic refusal is asserted
+  absent from every in-scope refusal, and the 92 money rows,
+  the metadata-only route and the whitelist paths are
+  byte-identical. The Connect accounts-row flip lands here:
+  all 13 `v1/accounts` rows (plus account links) name their
+  slice 1–3 Connect tools; billing meter events stay refused
+  as an ingestion class, citing E-3's native idempotent
+  route. The Terminal family is the proof family — the
+  registration code is proven shown-once and never journaled.
+  Registry unchanged (343 tools, 169 writes); the door's
+  description and the 19,999/20,000 everyday budget did not
+  move. Live proof for the door rows (one generic-allow
+  family plus a refusal sample) stands in the CAP-5 queue.
 - **D-4 — dispute and event reads**
   ([CAP4-D4-DISPUTE-EVENT-READS](pr-cards/CAP4-D4-DISPUTE-EVENT-READS.md)):
   all 5 registry tools (dispute list/get; event list, get and
@@ -465,11 +490,10 @@ Still required:
    (`stripe_check_key_permissions`), split into follow-up card
    CAP4-D7b, is likewise source-implemented above; Phase 2
    Connect is complete above (slices 1–3; the Connect family
-   is COMPLETE in source); next is Phase 3 the universal
-   door (D-9);
-   Phase 4 the payment, billing, Tax-closure, event and
-   entitlement product cards; Phase 5 organization context and
-   D-10.
+   is COMPLETE in source); Phase 3 the universal door (D-9)
+   is source-implemented above; next is Phase 4 the payment,
+   billing, Tax-closure, event and entitlement product cards;
+   Phase 5 organization context and D-10.
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)
    lands with CAP-4's final card; the consumer test itself runs

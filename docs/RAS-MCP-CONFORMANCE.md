@@ -1194,6 +1194,44 @@ names slices 1–3). Live proof for slice 3 stands in the
 CAP-5 queue as one ceremony refusal on the testing surface
 only.
 
+**CAP-4 progress — D-9 the universal door, classified
+(2026-11-04):** Phase 3's first unit (CAP4-D9-UNIVERSAL-DOOR):
+the universal write door's classifier is now a data table —
+215 rows, one per pinned POST/DELETE operation outside the
+money class, each naming ownership, cost, secret, read-back
+and disposition — machine-checked against the pinned catalog
+so an unclassified operation fails the build instead of
+receiving a silent generic refusal. 39 rows run generically
+under the existing guarded-write contract (Terminal
+locations/readers/configurations; billing meter/alert/
+feedback configuration; Tax registrations, locations and
+settings; Radar value lists and items; a small
+payment-method/review set — including two new classified
+shapes, item actions verified by expected state and the tax
+settings singleton), 122 rows redirect to an owning native
+family by name, and the remainder refuse with their true
+class reason (session/secret-minting, apps/secrets per row
+36, third-party-subject, payload-shape, no-read-back,
+device-action, ingestion, money-adjacent). The old generic
+refusal is proven absent from every in-scope refusal, and the
+92 money rows, the metadata-only route and the whitelist
+paths are byte-identical to baseline. The Connect
+accounts-row flip lands here: the 13 `v1/accounts` rows (plus
+account links) name their slice 1–3 Connect tools instead of
+the frozen card's other-unit text; billing meter events stay
+refused as an ingestion class, citing E-3's native
+idempotent route. The Terminal family is the proof family:
+the reader registration code is proven shown-once — it
+appears only in the caller's own confirmed call — and absent
+from the audit trail, previews and results. This row's
+door-coverage accounting is unaffected (the 141 operations
+were counted as door-covered; what changed is the truth of
+their dispositions). Registry unchanged at 343 tools; the
+door's own description and the 19,999-token everyday budget
+did not move. Live proof for the door rows (one
+generic-allow family plus a refusal sample) stands in the
+CAP-5 queue.
+
 **CAP-4 progress — D-4 dispute and event reads (2026-11-04):**
 the fourth family, **D-4 (dispute and event reads)**, is
 source-implemented (CAP4-D4-DISPUTE-EVENT-READS): all 5 registry
