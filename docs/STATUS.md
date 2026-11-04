@@ -1,3 +1,50 @@
+## 2026-11-04 — CAP-4 PROD-BILLING: billing-area coverage completion (source) — the v2 decision, recorded
+
+CAP-4 Phase 4's second product-gap card
+([CAP4-PROD-BILLING](pr-cards/CAP4-PROD-BILLING.md)) closes
+the billing area by decision and disposition; no native
+tool is built and no source file changes. **The v2
+dispatch question is decided (disposition (a)): the four
+v2 billing meter-event POSTs stay unserved until a v2
+dispatch surface is commissioned as its own unit.** The
+evidence: the pinned catalog holds 559 operations and zero
+`/v2/` paths, so no existing surface can even name the
+operations; the one metering consumer (usage ingestion)
+is already served natively in v1 by E-3's
+`meter_record_usage` and its durable identifier ledger;
+no unit, design or roadmap entry commissions a v2
+dispatch surface or asks for the v2 submission shapes;
+and ruling 3(iv) records the identical answer for every
+v2 row, applied the same way by the Connect slices. The
+ingestion-rule coordination point closes without
+divergence: this card **adopts D-9's ingestion rule
+verbatim** (no per-call read-back; idempotency by the
+event's own identifier; E-3 owns the surface natively).
+Meter and alert reads: meters are natively covered in
+full and the alert list is native (both E-3, which D-3's
+billing-shared seam sweep never reached); the remaining
+billing-family GETs — alert by id, credit grant by id,
+credit balance summary and transactions, feedback
+options, and the undecided by-id/list GETs in the invoice,
+quote and subscription families — are **door-sufficient**,
+test-pinned through the real `api_read` handler (by-id
+reads refuse a wrong-mode object in both directions).
+The quote PDF GET is native by E-4's design
+(`quote_get_pdf_link`'s authenticated URL; the binary is
+not a JSON door read). The area sweep re-ran at this
+baseline: 101 operations examined (97 pinned v1 + the 4
+claimed v2), zero unclassified (native 60, door 15, D-9
+15, row-35 money 7, out 4), reconciling with the census
+appendix per path — including exactly 11 door-served GETs
+among the appendix's 27 D-3 subjects, each decided here.
+Registry unchanged at 343 tools; everyday budget
+19,999 / 20,000 unmoved. New suite 17 tests, all by-design
+pins passing at pristine baseline (this unit changes no
+behavior; the pins make the dispositions rest on
+re-runnable facts). A disposition-verification row (the
+door GETs on the owner's connection; the v2 paths still
+undispatched) stands in the CAP-5 queue.
+
 ## 2026-11-04 — CAP-4 PROD-PAYMENT: payment-area coverage completion (source) — Phase 4 opens
 
 CAP-4's Phase 4 opens with the payment product-gap card

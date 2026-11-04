@@ -1532,6 +1532,49 @@ deployed refusal plus the two door reads) stands in the
 CAP-5 queue; the dispositioned rows join this record's
 addendum accounting through this passage.
 
+**CAP-4 progress — PROD-BILLING billing-area coverage
+completion (2026-11-04):** Phase 4's second product-gap
+card (CAP4-PROD-BILLING) closes the billing area by
+decision and disposition; no native tool is built, no
+source file changes, and the registry stays at 343 tools.
+The four claimed v2 billing meter-event operations take
+disposition (a) — unserved until a v2 dispatch surface is
+commissioned as its own unit — on recorded evidence: the
+pinned catalog holds zero `/v2/` operations, so no
+existing surface can dispatch them; the usage-ingestion
+consumer is already served natively in v1 by E-3's
+`meter_record_usage` with its durable identifier ledger;
+no unit, design or roadmap entry commissions a v2
+dispatch surface; and ruling 3(iv) records the same
+answer for every v2 row (the Connect slices applied it
+identically). The card adopts D-9's ingestion rule
+verbatim — meter-event ingestion has no meaningful
+per-call read-back and its idempotency is by the event's
+own identifier, not by request — so the v1 and v2
+surfaces state one rule and the two cards' coordination
+point closes without divergence. On reads: meter reads
+are natively covered in full and the alert list is
+native (E-3's catalog-metered module, which D-3's
+billing-shared seam sweep never reached); the remaining
+billing-family GETs — alert by id, credit grant by id,
+credit balance summary and transactions, feedback
+options, and the undecided by-id/list GETs in the
+invoice, quote and subscription families — are
+door-sufficient, pinned through the real read handler
+(by-id reads refuse a wrong-mode object in both
+directions; list reads carry the door's recorded
+limitation); the quote PDF GET is native by E-4's design
+(the authenticated link route — the binary is not a JSON
+door read). The area sweep re-ran at the unit's
+baseline: 101 operations examined (97 pinned v1 + the 4
+claimed v2), zero unclassified (native 60, door 15,
+D-9 15, row-35 money 7, out 4), reconciling with the
+census appendix per path. A disposition-verification
+row (the door GETs on the owner's connection; the v2
+paths still undispatched) stands in the CAP-5 queue;
+the dispositioned rows join this record's addendum
+accounting through this passage.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
