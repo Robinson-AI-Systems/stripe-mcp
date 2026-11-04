@@ -494,7 +494,7 @@ touch:
 | `brand_upload_image` | Upload a logo or icon from a public URL or shared Google Drive link (checks size, square for icons) | P | N | E |
 | `brand_set_account_branding` | Logo, icon, primary and secondary color for receipts, invoices, Checkout and portal (API if Stripe allows it for this account, otherwise guided dashboard step plus check) | C | N | F |
 | `brand_save_kit` | Save the per-page brand kit (colors, corners, font, display name, logo/icon, button wording, terms text) used for every Checkout and payment link this server makes | P | N | E |
-| `brand_preview_checkout` | Make a test-mode Checkout page with the kit so Chris can look at it on his phone | P | N | E |
+| `brand_preview_checkout` | Make a Checkout page with the kit in the connection mode (a live page takes real cards) so Chris can look at it on his phone | P | N | E |
 | `brand_set_statement_descriptor` | What shows on customers' card and bank statements (22-character limit checked; short prefix for cards) | C | N | F |
 | `brand_set_public_details` | Business name, support email, phone, website, support address shown on receipts and Checkout | C | F | F |
 | `brand_set_invoice_defaults` | Invoice footer, memo, custom fields, payment terms, default tax IDs; numbering shown as a dashboard step if the API does not allow it | C | N | F |

@@ -44,7 +44,13 @@ const guardedTestAreas=new Set(['customers','payments','checkout','billing','dev
 // 'reports' joined under owner-obedience V2 family 10 (Reports): the
 // single report-run write completes the full confirmed-action sequence
 // in LIVE; the report reads stay TEST-only under CAP-4.
-const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices','files','reports']);
+// 'branding' joined under owner-obedience V2 family 11 (Branding): the
+// brand kit, image import, invoice templates and portal look complete
+// the full confirmed-action sequence in LIVE; the payout schedule's
+// exposure in this area already converted with the Money family
+// (ruling 6), and the portal look's row 32 ownership refusal does
+// not convert — it stays reachable and intact in both modes.
+const guardedLiveAreas=new Set(['payments','checkout','billing','developer','disputes','risk','identity','money','invoices','files','reports','branding']);
 // Exact original customer lifecycle names whose LIVE provider-mode, app
 // ownership and independent readback guards have been reviewed. Monetary
 // balance credits/debits are NOT covered by this nonmoney authorization.

@@ -873,10 +873,32 @@ V3, then V4.
   contents and no file URL. The report reads keep their own
   TEST gates and are not converted (unclassified item (1),
   owned by CAP-4). No money wiring is touched.
-    Remaining families:
-  Branding (its admission
-
-  excludes the payout schedule, already converted); Projects
+  Family 11 of 13, **Branding**, is source-implemented
+  2026-11-04 (OWNER-OBEDIENCE-V2-BRANDING): the `branding`
+  area joins `guardedLiveAreas` (the payout schedule's
+  exposure in this area already converted with Money,
+  ruling 6, and is untouched), the TEST-only account
+  verifiers in both modules become mode-aware, and all six
+  writes (brand kit save, image upload, Checkout preview,
+  invoice template archive/unarchive, portal look) complete
+  the confirmed-action sequence in the connection's own
+  mode in tests. Two further mode gates are converted: the
+  kit store itself refused any non-TEST save — it is keyed
+  by account+mode, so LIVE kits are now separate records,
+  disclosed in the preview — and the kit's brand-file check
+  demands the file's mode equal the connection's. **Row 32
+  does not convert:** the portal look's ownership refusal
+  (any actively bound app refuses the write even with
+  `outsideApp`) is byte-untouched and proven firing in both
+  modes; the public-HTTPS validation and the
+  owner-configured return-destination match are likewise
+  unrelaxed. `brand_preview_checkout`'s write registration
+  was confirmed correct at build time: it persists a real
+  Checkout session through Family 6's converted write. The
+  guided own-account tools and the brand/template reads are
+  not writes and stay TEST-only under CAP-4's ownership.
+  Remaining families:
+  Projects
   (provider-write half). Each family closes only on live proof.
 - **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).
   The one place the owner's explicit ownership acknowledgment — the

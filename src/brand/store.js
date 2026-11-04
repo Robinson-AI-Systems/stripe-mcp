@@ -79,9 +79,13 @@ export function createBrandKitStore(sql){
         version:Number(rows[0].version),updatedAt:rows[0].updated_at}:null;
     },
     async saveBrandKit({account,mode,settings,expectedVersion}){
-      if(!accountValid(account)||mode!=='test'||
+      // Kits are keyed by account AND mode: TEST and LIVE kits are
+      // separate records (owner-obedience V2 family 11). Either mode
+      // may be saved for a selected account; any other mode refuses.
+      if(!accountValid(account)||!modeValid(mode)||
         !Number.isSafeInteger(expectedVersion)||expectedVersion<0)
-        throw new TypeError('Only selected TEST account with a known kit revision may be changed');
+        throw new TypeError('Only selected '+(mode==='live'?'LIVE':'TEST')+
+          ' account with a known kit revision may be changed');
       const canonical=validateBrandKit(settings),value=JSON.stringify(canonical);
       // INSERT and UPDATE must be separate: a 0-version SELECT prevents any
       // ON CONFLICT UPDATE for version>0. Explicit branches preserve both
