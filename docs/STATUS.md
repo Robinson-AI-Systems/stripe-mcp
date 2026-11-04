@@ -1,3 +1,23 @@
+## 2026-11-04 — Daily-promotion gate repaired: matrix shard check names (source)
+
+The checked daily promoter could not pass its own six-check gate on
+any head since PR #309 sharded CI: the `unit` job now posts check
+runs as `unit (1)`…`unit (3)` and `db` as `db (1)`…`db (2)`, while
+`scripts/promote-live.mjs` matched only the plain names, so every
+attempt waited out its ten-minute window and refused. Proven live
+2026-11-04: the owner-ordered make-up recovery run `41817404830`
+(dispatched after GitHub's schedule silently dropped the night's
+attempts) failed exactly this way at main `8b9f4c4`, `live` unchanged
+— the defect had been masked since 2026-11-03 because that day's
+promotion was the owner's one-time manual fast-forward, not the
+workflow. The matcher now groups trusted exact-head runs by posted
+name (plain or shard form) and judges each posted name by its latest
+run; the required `ci` summary check still proves every shard ran.
+Promoter tests 10/10 including the shard cases (all-green passes, a
+failed shard refuses, a missing-name lookalike never counts, a green
+rerun supersedes). No gate weakened: the same six checks, the same
+fail-closed posture, the same atomic marker.
+
 ## 2026-11-04 — CAP-4 Connect slice 1: native projected reads for connected accounts (source)
 
 CAP-4's Phase 2 opens in parallel with the read series (card

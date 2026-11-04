@@ -34,6 +34,23 @@ test('requires successful latest exact-head trusted checks', () => {
   assert.equal(checksFailed([{ ...good, status: 'in_progress', conclusion: null }], ['ci'], main), false);
   assert.equal(checksFailed([{ ...good, head_sha: live, conclusion: 'failure' }], ['ci'], main), false);
 });
+test('matrix shard check names satisfy a required check only when every shard is green', () => {
+  const shard = (id, suffix, extra = {}) => ({ ...good, id, name: `unit ${suffix}`, ...extra });
+  const shards = [shard(11, '(1)'), shard(12, '(2)'), shard(13, '(3)')];
+  assert.equal(checksPass(shards, ['unit'], main), true);
+  assert.equal(checksPass(shards.slice(0, 2), ['unit'], main), true,
+    'posted-set semantics: the ci summary job in the required list proves every shard ran');
+  assert.equal(checksPass([shard(11, '(1)'), shard(12, '(2)', { conclusion: 'failure' })], ['unit'], main), false);
+  assert.equal(checksFailed([shard(11, '(1)'), shard(12, '(2)', { conclusion: 'failure' })], ['unit'], main), true);
+  assert.equal(checksPass([shard(11, '(1)', { status: 'in_progress', conclusion: null })], ['unit'], main), false);
+  assert.equal(checksFailed([shard(11, '(1)', { status: 'in_progress', conclusion: null })], ['unit'], main), false);
+  // A newer green rerun of one shard supersedes its older failure.
+  assert.equal(checksPass([shard(11, '(1)', { conclusion: 'failure' }), shard(21, '(1)')], ['unit'], main), true);
+  // Shard names of a different job never count ('unit2 (1)' is not 'unit').
+  assert.equal(checksPass([{ ...good, id: 31, name: 'unit2 (1)' }], ['unit'], main), false);
+  // Plain names still work alongside shards for other required checks.
+  assert.equal(checksPass([good, ...shards], ['ci', 'unit'], main), true);
+});
 test('one checked fast-forward daily; reruns and unchanged heads skip', () => {
   const state = { main, live, ancestor: true, green: true, alreadyToday: false };
   assert.equal(decide(state), 'promote');
