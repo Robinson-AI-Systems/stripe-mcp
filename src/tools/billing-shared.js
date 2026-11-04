@@ -1,6 +1,7 @@
 // Shared current-native TEST subscription projections and provider preflights.
 import {denverLocalTime} from './util.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
+import {modeClient} from './account-mode.js';
 
 export const allProfiles=['read_only','everyday','full'];
 export const writeProfiles=['everyday','full'];
@@ -31,10 +32,12 @@ export function pageResult(p,shape){
 }
 export const reply=value=>({content:[{type:'text',text:JSON.stringify(value)}]});
 export const fail=text=>({isError:true,content:[{type:'text',text}]});
+// Kept name for the many existing importers; the implementation is the
+// one shared mode-aware seam (modeClient in account-mode.js): TEST
+// resolves exactly as this helper always did, LIVE resolves only
+// through the verified selected-account path.
 export async function client(ctx){
-  if(ctx?.connection?.mode!=='test'||typeof ctx.services?.stripeForConnection!=='function')
-    throw new Error('TEST Stripe provider unavailable');
-  return ctx.services.stripeForConnection(ctx.connection);
+  return modeClient(ctx);
 }
 export async function guarded(ctx,fn){
   try{return reply(await fn(await client(ctx)));}

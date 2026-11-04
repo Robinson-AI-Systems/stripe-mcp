@@ -1,4 +1,5 @@
 // Reusable, provider-agnostic write lifecycle. No Stripe SDK imports.
+import { writePreviewFingerprint } from './write-fingerprint.js';
 const reply = (value, isError = false) => ({
   ...(isError ? { isError: true } : {}),
   content: [{ type: 'text', text: JSON.stringify(value) }]
@@ -30,7 +31,8 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     writes: true, writeContract: 'defineWrite-v1',
     inputSchema: { type: 'object',
       properties: { dryRun: { type: 'boolean' }, confirm: { type: 'boolean' },
-        requestKey: { type: 'string', maxLength: 128 } },
+        requestKey: { type: 'string', maxLength: 128 },
+        previewFingerprint: { type: 'string', maxLength: 64 } },
       additionalProperties: true } });
   async function handler(args, ctx) {
     const connection = ctx?.connection;
@@ -48,7 +50,8 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
     }
     if (!args || typeof args !== 'object' || Array.isArray(args) ||
       (args.dryRun !== undefined && typeof args.dryRun !== 'boolean') ||
-      (args.confirm !== undefined && typeof args.confirm !== 'boolean')) {
+      (args.confirm !== undefined && typeof args.confirm !== 'boolean') ||
+      (args.previewFingerprint !== undefined && typeof args.previewFingerprint !== 'string')) {
       return respond({ done: false, error: 'Invalid write arguments or confirmation flags' }, true);
     }
     if (connection.mode === 'live') {
@@ -78,15 +81,27 @@ export function defineWrite({ name, read, summarize, apply, readAfter, verify, i
       return respond({ done: false, error: 'Safe preview unavailable: action refused' }, true);
     }
     const summary = prepared ? prepared.previewLine + '\n' + summaryText : summaryText;
+    // The preview is bound to the evaluated state it was computed from.
+    // A confirmation that follows a preview presents this fingerprint; it
+    // is re-verified against the fresh evaluation on the confirm call.
+    // A direct confirmation with no preview presented keeps the plain
+    // confirm contract (uniform rule, owner-obedience V2 shared card).
+    const previewFingerprint = writePreviewFingerprint({ tool: name,
+      account: connection.stripeAccount, mode: connection.mode, before, prepared });
     const preview = { done: false, mode: connection.mode, preview: summary,
-      needsConfirmation: args.confirm !== true };
+      needsConfirmation: args.confirm !== true, previewFingerprint };
     if (args.dryRun === true) {
       await ctx.db.recordChange({ account: connection.stripeAccount, mode: connection.mode,
         connection: ctx.connectionId ?? null, tool: name, summary, dryRun: true });
       return respond(preview);
     }
     if (args.confirm !== true) {
-      return respond({ ...preview, prompt: 'Review the preview and explicitly set confirm: true' });
+      return respond({ ...preview, prompt: 'Review the preview, then confirm with confirm: true and the previewFingerprint shown' });
+    }
+    if (args.previewFingerprint !== undefined && args.previewFingerprint !== previewFingerprint) {
+      return respond({ done: false,
+        error: 'The evaluated state has changed since that preview was issued; nothing was executed. Review the fresh preview and confirm again with its fingerprint',
+        preview: summary, previewFingerprint, needsConfirmation: true }, true);
     }
     const key = idempotency(connection, name, args);
     if (typeof key !== 'string' || !key.startsWith('rmcp_')) {

@@ -20,6 +20,23 @@ export async function selectedAccountClient(ctx){
   else await readVerifiedTestAccount(s,connection.stripeAccount);
   return s;
 }
+/** The one shared mode-aware provider client for the legacy families
+ * (owner-obedience V2 shared seam; replaces the TEST-only helpers that
+ * were duplicated in billing-shared.js, payment-writes.js and
+ * checkout-writes.js). TEST resolution is exactly the historical
+ * behavior: the connection's own service client, no extra provider
+ * read, and the historical refusal when the service is unavailable.
+ * LIVE resolution goes only through selectedAccountClient above:
+ * production deployment, an independently enabled and connected
+ * account, and a verified provider account/mode read before any
+ * provider object is touched. Any other mode is refused. */
+export async function modeClient(ctx){
+  const mode=ctx?.connection?.mode;
+  if(mode==='live')return selectedAccountClient(ctx);
+  if(mode!=='test'||typeof ctx?.services?.stripeForConnection!=='function')
+    throw new Error('TEST Stripe provider unavailable');
+  return ctx.services.stripeForConnection(ctx.connection);
+}
 export function assertAccountResourceMode(v,mode,{required=false}={}){
   if(!['test','live'].includes(mode)||!v||typeof v!=='object'||
     (required||v.livemode!==undefined)&&

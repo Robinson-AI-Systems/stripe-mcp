@@ -1,6 +1,7 @@
 // Native TEST payment/refund writes. No raw payment methods or client secrets.
 import {defineWrite,gone} from './write.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
+import {modeClient} from './account-mode.js';
 const profiles=['everyday','full'], full=['full'];
 const id=p=>({type:'string',pattern:'^'+p+'_[A-Za-z0-9]{2,100}$'});
 const text=n=>({type:'string',minLength:1,maxLength:n});
@@ -34,16 +35,14 @@ const defs=[
 ];
 const pattern=(value,prefix)=>typeof value==='string'&&
   new RegExp('^'+prefix+'_[A-Za-z0-9]{2,100}$').test(value);
-const getStripe=ctx=>{
-  if(ctx?.connection?.mode!=='test'||typeof ctx?.services?.stripeForConnection!=='function')
-    throw new Error('TEST Stripe provider unavailable');
-  return ctx.services.stripeForConnection(ctx.connection);
-};
+// Provider client is the one shared mode-aware seam (modeClient in
+// account-mode.js): TEST resolves exactly as the former local helper
+// did; LIVE resolves only through the verified selected-account path.
 function validate(def,a){
   if(!a||typeof a!=='object'||Array.isArray(a))throw new TypeError('Write arguments required');
   for(const k of def.required)if(a[k]===undefined)throw new TypeError('Missing '+k);
   for(const [k,v] of Object.entries(a)){
-    if(['confirm','dryRun','requestKey'].includes(k))continue;
+    if(['confirm','dryRun','requestKey','previewFingerprint'].includes(k))continue;
     const prop=def.props[k];
     if(!prop)throw new TypeError('Unsupported write parameter '+k);
     if(prop.type==='string'&&(typeof v!=='string'||v.length>(prop.maxLength??110)||
@@ -126,9 +125,9 @@ function build(def){
   let created=null;
   const op=defineWrite({
     name:def.name,
-    read:async(a,ctx)=>{validate(def,a);return target(def,a,await getStripe(ctx));},
+    read:async(a,ctx)=>{validate(def,a);return target(def,a,await modeClient(ctx));},
     summarize:async(before,a)=>'TEST MODE. '+def.name+' for '+(before.id||'payment')+
-      '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','outsideApp'].includes(k))
+      '; fields: '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','previewFingerprint','outsideApp'].includes(k))
         .join(', ')+'. Verify Stripe read-back before marking complete.'+
       (def.destructive?' This action may be irreversible.':''),
     money:def.money?async(a,_ctx,b)=>{
@@ -157,7 +156,7 @@ function build(def){
       return true;
     },
     apply:async(a,ctx,{idempotencyKey,before})=>{
-      const s=await getStripe(ctx),opts={idempotencyKey};
+      const s=await modeClient(ctx),opts={idempotencyKey};
       const payload=Object.fromEntries(
         ['description','receiptEmail','metadata'].filter(k=>a[k]!==undefined)
           .map(k=>[k==='receiptEmail'?'receipt_email':k,a[k]]));
@@ -183,7 +182,7 @@ function build(def){
       }
     },
     readAfter:async(a,ctx)=>{
-      const s=await getStripe(ctx);
+      const s=await modeClient(ctx);
       if(def.name==='payment_charge_saved_method')return created?.id?
         s.paymentIntents.retrieve(created.id):null;
       if(def.name==='payment_create_refund')return created?.id?
@@ -219,12 +218,13 @@ export const tools=defs.map(def=>{
   return {...op.tool,area:'payments',profiles:def.name==='payment_cancel_refund'?full:profiles,
     description:def.desc,moneyOut:def.money==='out',
     inputSchema:{type:'object',properties:{...def.props,dryRun:{type:'boolean'},
-      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+      confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128},
+      previewFingerprint:{type:'string',maxLength:64}},
       required:def.required,additionalProperties:false},
     annotations:{destructiveHint:def.destructive===true}};
 });
 export const handlers=Object.fromEntries(defs.map(def=>[def.name,async(a,ctx)=>{
-  const s=await getStripe(ctx);
+  const s=await modeClient(ctx);
   return build(def).handler(a,{...ctx,getCustomer:id=>s.customers.retrieve(id)});
 }]));
 export function makePaymentWrite(name){
