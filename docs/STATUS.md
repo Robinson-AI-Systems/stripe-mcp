@@ -1,3 +1,56 @@
+## 2026-11-04 — Owner-obedience V2 Radar family: source-implemented (source)
+
+Family 7 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-RADAR](pr-cards/OWNER-OBEDIENCE-V2-RADAR.md)):
+
+- **Handlers converted.** The TEST-only handler gates are gone
+  from all five Radar writes (review approval, value-list
+  creation, empty-list deletion, list-item add and remove).
+  Under a LIVE connection the guarded-write pipeline's existing
+  rules decide: full profile, catalog listing, customer
+  context, a live-enabled and live-connected account,
+  owner-approved LIVE, and a binding preview fingerprint. A
+  bare LIVE connection is refused by the LIVE-enablement guard
+  before anything executes.
+- **One hidden mode gate removed.** The shared safe
+  projections in `radar-reads.js` required every verified
+  record to be a TEST record, which would have refused every
+  LIVE object in the write preflights and read-backs even with
+  the handler gates gone. They now take the caller's mode (the
+  Billing discount-projection precedent); the read tools call
+  them without one, so read behavior is unchanged and the
+  Radar reads stay TEST-only.
+- **Mode invariants, both directions.** Every evaluated
+  object — the review, its linked charge or payment intent,
+  the parent list, the list item, the created list and item —
+  and every read-back demands the connection's own mode. A
+  TEST object under a LIVE connection, or the reverse, stops
+  the call before any write.
+- **Disclosure.** Summaries are mode-labeled and state the
+  plain-words consequence: approving a review releases the
+  held payment to be captured and settled; in LIVE, a block
+  rule using a changed list refuses real customers at
+  checkout; removing an item or deleting the (verified empty)
+  list states what stops being blocked. Raw item values —
+  customer emails, card fingerprints, IP addresses — still
+  appear in no preview, result or audit record.
+- **No money wiring touched.** `src/tools/write.js`,
+  `src/money.js` and `src/db.js` are byte-untouched, and
+  `src/core/profiles.js` is unchanged — the `risk` area was
+  already a guarded LIVE area, so no caller's reachability
+  changed.
+- **Proof.** The two Radar write suites gain 9 LIVE tests
+  (preview→confirm paths for all five operations, fingerprint
+  drift refusal, wrong-mode object refusal in both directions,
+  and the raw-value privacy checks); every pre-existing
+  expectation is unchanged; the full unit suite and
+  `npm run check` are green. DB and mock proof are exact-head
+  CI's route on this machine. Live proof — approving a real
+  LIVE review and changing a real LIVE value list under an
+  owner-approved connection — remains open in the CAP-5 queue;
+  merging is not live acceptance.
+
 ## 2026-11-04 — Owner-obedience V2 Checkout family: source-implemented (source)
 
 Family 6 of 13 of conformance row 17's V2 conversion is

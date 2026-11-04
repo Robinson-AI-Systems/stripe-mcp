@@ -1,10 +1,17 @@
-// G-3c: guarded Radar list removal and value-item lifecycle, TEST only.
+// G-3c: guarded Radar list removal and value-item lifecycle, in the
+// connection's own mode.
 // User-supplied item values never appear in previews, results or audit.
 import {isIP} from 'node:net';
-import {defineWrite,gone} from './write.js';
+import {defineWrite} from './write.js';
 import {client,fullProfiles,validateFields,ref} from './billing-shared.js';
 import {valueListSafe,valueItemSafe} from './radar-reads.js';
 const invalid=m=>{throw new TypeError(m);};
+const modeOf=ctx=>ctx?.connection?.mode;
+const modeLabel=ctx=>modeOf(ctx)==='live'?'LIVE':'TEST';
+// previewFingerprint is a core control field (owner-obedience V2
+// shared machinery); the family validator must not reject it.
+const stripControl=a=>{if(!a||typeof a!=='object'||Array.isArray(a))return a;
+  const {previewFingerprint:_f,...rest}=a;return rest;};
 const listId={type:'string',pattern:'^rsl_[A-Za-z0-9]{2,100}$'};
 const itemId={type:'string',pattern:'^rsli_[A-Za-z0-9]{2,100}$'};
 const ownership={outsideApp:{type:'boolean'}};
@@ -13,10 +20,10 @@ const addArgs={listId,value:{type:'string',minLength:1,maxLength:200},...ownersh
 const removeArgs={itemId,...ownership};
 const listClient=(s,id)=>s.radar.valueLists.retrieve(id);
 async function readList(a,ctx,props,needed=['listId']){
-  validateFields(a,props,needed);
+  validateFields(stripControl(a),props,needed);
   const s=await client(ctx),v=await listClient(s,a.listId);
-  if(v?.id!==a.listId)valueListSafe(v); // checked below also rejects absent/foreign
-  valueListSafe(v);
+  if(v?.id!==a.listId)valueListSafe(v,modeOf(ctx)); // checked below also rejects absent/foreign
+  valueListSafe(v,modeOf(ctx));
   if(v.id!==a.listId)invalid('Radar list identity mismatch');
   return v;
 }
@@ -32,7 +39,8 @@ function validateValue(type,value){
     invalid('Six to eight numeric BIN digits required');
 }
 const controls={dryRun:{type:'boolean'},confirm:{type:'boolean'},
-  requestKey:{type:'string',minLength:1,maxLength:128}};
+  requestKey:{type:'string',minLength:1,maxLength:128},
+  previewFingerprint:{type:'string',maxLength:64}};
 const isGone=e=>e?.code==='resource_missing'||e?.raw?.code==='resource_missing';
 export function makeRadarDeleteList(){
   let receipt=null;
@@ -41,15 +49,17 @@ export function makeRadarDeleteList(){
     read:async(a,ctx)=>{
       const list=await readList(a,ctx,listArgs);
       if(list.list_items?.total_count!==0||list.list_items?.has_more===true)
-        invalid('Only empty verified TEST Radar lists may be deleted');
+        invalid('Only empty verified '+modeLabel(ctx)+' Radar lists may be deleted');
       const page=await (await client(ctx)).radar.valueListItems.list({
         value_list:list.id,limit:1});
       if(!Array.isArray(page?.data)||page.data.length!==0||
         page.has_more!==false)invalid('Radar list emptiness could not be verified');
       return list;
     },
-    summarize:b=>'TEST MODE. IRREVERSIBLY delete verified EMPTY value list '+b.id+
-      ', alias '+b.alias+'. No rules referencing this list may remain.',
+    summarize:(b,_a,ctx)=>modeLabel(ctx)+' MODE. IRREVERSIBLY delete verified EMPTY value list '+b.id+
+      ', alias '+b.alias+'. The list is empty, so deleting it stops no value'+
+      ' being blocked or allowed by itself; no rules referencing this list'+
+      ' may remain.',
     apply:async(a,ctx,{idempotencyKey})=>{
       const result=await (await client(ctx)).radar.valueLists.del(
         a.listId,{}, {idempotencyKey});
@@ -74,22 +84,26 @@ export function makeRadarAddItem(){
       validateValue(list.item_type,a.value);
       return list;
     },
-    summarize:(b,a)=>'TEST MODE. Add one '+b.item_type+' value to Radar list '+
-      b.id+'. Value length '+a.value.length+
-      '; actual value is private and never written to preview or audit.',
+    summarize:(b,a,ctx)=>modeLabel(ctx)+' MODE. Add one '+b.item_type+' value to Radar list '+
+      b.id+' (alias '+b.alias+'). Value length '+a.value.length+
+      '; actual value is private and never written to preview or audit.'+
+      (modeOf(ctx)==='live'?' In LIVE mode, rules using this list act on real'+
+      ' payments matching this value: a block rule refuses the real customer'+
+      ' at checkout, and an allow rule lets them through.':''),
     apply:async(a,ctx,{idempotencyKey})=>{
       const result=await (await client(ctx)).radar.valueListItems.create({
         value_list:a.listId,value:a.value},{idempotencyKey});
       if(!/^rsli_[A-Za-z0-9]{2,100}$/.test(result?.id??'')||
-        result.object!=='radar.value_list_item'||result.livemode!==false||
+        result.object!=='radar.value_list_item'||
+        result.livemode!==(modeOf(ctx)==='live')||
         ref(result.value_list)!==a.listId)
         invalid('Radar item creation response identity unavailable');
       createdId=result.id;
     },
     readAfter:async(_a,ctx)=>createdId?
       (await client(ctx)).radar.valueListItems.retrieve(createdId):null,
-    verify:(b,a,args)=>!!createdId&&a?.id===createdId&&
-      valueItemSafe(a).valueListId===b.id&&a.value===args.value
+    verify:(b,a,args,ctx)=>!!createdId&&a?.id===createdId&&
+      valueItemSafe(a,modeOf(ctx)).valueListId===b.id&&a.value===args.value
   });
 }
 export function makeRadarRemoveItem(){
@@ -97,19 +111,22 @@ export function makeRadarRemoveItem(){
   return defineWrite({
     name:'radar_remove_list_item',
     read:async(a,ctx)=>{
-      validateFields(a,removeArgs,['itemId']);
+      validateFields(stripControl(a),removeArgs,['itemId']);
       const s=await client(ctx),item=await s.radar.valueListItems.retrieve(a.itemId);
-      if(item?.id!==a.itemId)valueItemSafe(item);
-      const safe=valueItemSafe(item);
+      if(item?.id!==a.itemId)valueItemSafe(item,modeOf(ctx));
+      const safe=valueItemSafe(item,modeOf(ctx));
       const list=await listClient(s,safe.valueListId);
-      valueListSafe(list);
+      valueListSafe(list,modeOf(ctx));
       if(list.id!==safe.valueListId)
         invalid('Radar parent value list identity mismatch');
       return {...item,metadata:list.metadata??{},customer:null,
         _parentId:safe.valueListId};
     },
-    summarize:b=>'TEST MODE. IRREVERSIBLY remove item '+b.id+
-      ' from verified Radar list '+b._parentId+'. Actual private item value hidden.',
+    summarize:(b,_a,ctx)=>modeLabel(ctx)+' MODE. IRREVERSIBLY remove item '+b.id+
+      ' from verified Radar list '+b._parentId+'. Actual private item value hidden.'+
+      (modeOf(ctx)==='live'?' In LIVE mode the removed value stops being'+
+      ' blocked or allowed by rules using this list, so matching real'+
+      ' customers are no longer stopped by it.':''),
     apply:async(a,ctx,{idempotencyKey})=>{
       const result=await (await client(ctx)).radar.valueListItems.del(
         a.itemId,{}, {idempotencyKey});
@@ -127,11 +144,11 @@ export function makeRadarRemoveItem(){
 }
 const specs=[
   {make:makeRadarDeleteList,name:'radar_delete_value_list',props:listArgs,
-    required:['listId'],description:'Irreversibly delete an independently verified EMPTY TEST Radar list.'},
+    required:['listId'],description:'Irreversibly delete an independently verified EMPTY Radar list.'},
   {make:makeRadarAddItem,name:'radar_add_list_item',props:addArgs,
-    required:['listId','value'],description:'Add a TEST Radar list item with safe preview and verified private value.'},
+    required:['listId','value'],description:'Add a Radar list item with safe preview and verified private value.'},
   {make:makeRadarRemoveItem,name:'radar_remove_list_item',props:removeArgs,
-    required:['itemId'],description:'Remove a TEST Radar list item with verified parent and deletion tombstone.'}
+    required:['itemId'],description:'Remove a Radar list item with verified parent and deletion tombstone.'}
 ];
 export const tools=specs.map(s=>({...s.make().tool,
   area:'risk',profiles:fullProfiles,safety:s.name==='radar_add_list_item'?'P':'C',
@@ -139,5 +156,4 @@ export const tools=specs.map(s=>({...s.make().tool,
   inputSchema:{type:'object',properties:{...s.props,...controls},required:s.required,
     additionalProperties:false}}));
 export const handlers=Object.fromEntries(specs.map(s=>[s.name,(a,ctx)=>
-  ctx?.connection?.mode!=='test'?gone('Radar list changes require TEST mode'):
   s.make().handler(a,ctx)]));
