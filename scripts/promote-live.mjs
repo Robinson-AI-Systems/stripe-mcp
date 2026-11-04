@@ -1,6 +1,8 @@
-// GitHub Actions' sole daily live promotion path.
-// Atomic branch+daily-marker push: even a rerun cannot promote twice in one
-// America/Denver calendar day. No force push, no Vercel credentials, no LIVE keys.
+// GitHub Actions' sole live promotion path: the daily schedule and its
+// recovery under the daily marker, plus owner-ordered releases under their
+// own per-head receipts. Atomic branch+receipt push: even a rerun cannot
+// promote twice over the same receipt. No force push, no Vercel credentials,
+// no LIVE keys.
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 
@@ -44,6 +46,13 @@ function git(args){
 }
 export const denverDay = denverDate;
 
+// The durable receipt of one owner-ordered release: the Denver day plus the
+// released head, so every owner release is recorded individually and a rerun
+// at the same head is recognizable without touching the daily marker.
+export function ownerReleaseMarker(main, instant = new Date()) {
+  return 'owner-release/' + denverDate(instant) + '-' + main.slice(0, 8);
+}
+
 export function denverMinute(now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Denver', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
@@ -52,10 +61,25 @@ export function denverMinute(now = new Date()) {
     Number(parts.find(p => p.type === 'minute')?.value);
 }
 
+// An owner-ordered release: the owner directs an additional checked release
+// beyond the one automatic daily promotion. His authority is the gate — the
+// actor and the triggering actor must both be the owner and the dispatch
+// must carry owner_release. No time-of-day condition applies: the
+// elapsed-midnight rule belongs to missed-daily recovery semantics, not to
+// the owner's own order (owner ruling, 2026-11-04: the daily cap binds
+// automatic releases only; the machinery encodes his permission scheme,
+// never its own cap on owner-ordered releases).
+export function isOwnerReleaseInvocation(env) {
+  return env.GITHUB_EVENT_NAME === 'workflow_dispatch' &&
+    env.GITHUB_ACTOR === 'christcr2012' && env.GITHUB_TRIGGERING_ACTOR === 'christcr2012' &&
+    env.OWNER_RELEASE === 'true';
+}
+
 export function authorizedReleaseInvocation(env, repository, now = new Date()) {
   if (env.GITHUB_REPOSITORY !== repository ||
     env.GITHUB_REF !== 'refs/heads/main' || !env.GITHUB_TOKEN) return false;
   if (env.GITHUB_EVENT_NAME === 'schedule') return true;
+  if (isOwnerReleaseInvocation(env)) return true;
   // No default dispatch or automated production override; GitHub owner only.
   return env.GITHUB_EVENT_NAME === 'workflow_dispatch' &&
     env.GITHUB_ACTOR === 'christcr2012' && env.GITHUB_TRIGGERING_ACTOR === 'christcr2012' &&
@@ -108,18 +132,27 @@ export async function run(policy = { repository: 'Robinson-AI-Systems/stripe-mcp
   const repo = process.env.GITHUB_REPOSITORY;
   if (!authorizedReleaseInvocation(process.env, policy.repository))
     throw Error('Scheduled or explicitly owner-recovered main only');
+  const owner = isOwnerReleaseInvocation(process.env);
   const deadline = Date.now() + 10 * 60 * 1000;
   const marker = 'live-promotion/' + denverDay();
   const tagged = () => git(['ls-remote', '--tags', 'origin', 'refs/tags/' + marker]) !== '';
+  const ownerTagged = main => git(['ls-remote', '--tags', 'origin',
+    'refs/tags/' + ownerReleaseMarker(main)]) !== '';
   const remoteHead = ref => git(['ls-remote', 'origin', 'refs/heads/' + ref]).split(/\s+/)[0];
   for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt++) {
     if (attempt) await pause();
-    if (tagged()) { console.log('Already promoted today'); return; }
+    // The daily marker stands down only the automatic and recovery paths.
+    // An owner-ordered release carries its own per-head receipt, which
+    // cannot be checked until main has been read below.
+    if (!owner && tagged()) { console.log('Already promoted today'); return; }
     git(['fetch', '--no-tags', 'origin', '+refs/heads/main:refs/remotes/origin/main',
       '+refs/heads/live:refs/remotes/origin/live']);
     const main = git(['rev-parse', 'origin/main']);
     const live = git(['rev-parse', 'origin/live']);
-    if (tagged()) { console.log('Already processed today'); return; }
+    if (!owner && tagged()) { console.log('Already processed today'); return; }
+    if (owner && ownerTagged(main)) {
+      console.log('Owner release already recorded for ' + main); return;
+    }
     let ancestor = false;
     try { git(['merge-base', '--is-ancestor', live, main]); ancestor = true; } catch { /* fail closed */ }
     const runs = [];
@@ -149,6 +182,20 @@ export async function run(policy = { repository: 'Robinson-AI-Systems/stripe-mcp
     // release opportunity. Otherwise a fallback could deploy a later merge
     // even though the primary schedule succeeded with no changes.
     if (main === live) {
+      if (owner) {
+        // The ordered head is already live (for example the daily promotion
+        // carried it first). Record the owner release's own receipt; the
+        // owner path never writes the daily marker and never moves live here.
+        if (remoteHead('main') !== main || remoteHead('live') !== live) continue;
+        try {
+          git(['push', 'origin', main + ':refs/tags/' + ownerReleaseMarker(main)]);
+        } catch (error) {
+          if (!ownerTagged(main)) throw error; // Ref conflict is safe only if another run won.
+        }
+        if (!ownerTagged(main)) throw Error('Owner release receipt read-back failed');
+        console.log('Recorded owner release of already-live ' + main);
+        return;
+      }
       if (tagged()) return;
       if (remoteHead('main') !== main || remoteHead('live') !== live) continue;
       try {
@@ -160,16 +207,20 @@ export async function run(policy = { repository: 'Robinson-AI-Systems/stripe-mcp
       console.log('Recorded checked no-op for ' + denverDay());
       return;
     }
-    const action = decide({ main, live, alreadyToday: tagged(), ancestor,
+    const action = decide({ main, live, alreadyToday: owner ? false : tagged(), ancestor,
       green: checksPass(runs, policy.requiredChecks, main) });
     if (action !== 'promote') return;
-    if (remoteHead('main') !== main || remoteHead('live') !== live || tagged())
+    if (remoteHead('main') !== main || remoteHead('live') !== live ||
+      (owner ? ownerTagged(main) : tagged()))
       continue;
-    // A rerun or racing job cannot advance live twice in a Denver calendar day.
-    // Atomic push refuses both updates if the marker already exists or live diverges.
-    git(['push', '--atomic', 'origin', main + ':refs/heads/live', main + ':refs/tags/' + marker]);
-    if (remoteHead('live') !== main || !tagged()) throw Error('Promotion read-back failed');
-    console.log('Promoted checked main to live for ' + denverDay());
+    // A rerun or racing job cannot advance live twice over the same receipt.
+    // Atomic push refuses both updates if the receipt already exists or live diverges.
+    git(['push', '--atomic', 'origin', main + ':refs/heads/live',
+      main + ':refs/tags/' + (owner ? ownerReleaseMarker(main) : marker)]);
+    if (remoteHead('live') !== main || (owner ? !ownerTagged(main) : !tagged()))
+      throw Error('Promotion read-back failed');
+    console.log(owner ? 'Promoted checked main to live under an owner-ordered release for ' + denverDay()
+      : 'Promoted checked main to live for ' + denverDay());
     return;
   }
   throw Error('Release window exhausted; main kept moving or required checks stayed pending. live unchanged.');
