@@ -70,6 +70,15 @@ export function discountList(v,mode){
 }
 
 export function itemSafe(item,mode){
+  // CAP-4 D-3: when the caller supplies the connection mode, the item
+  // itself — and an expanded price object — must carry that mode; a
+  // wrong-mode object is refused, never projected. No-mode callers
+  // keep the historical behavior exactly.
+  if(['test','live'].includes(mode)){
+    assertAccountResourceMode(item,mode);
+    if(item?.price&&typeof item.price==='object')
+      assertAccountResourceMode(item.price,mode);
+  }
   return {id:item.id,subscription:ref(item.subscription),
     price:ref(item.price),quantity:item.quantity??null,
     unitAmountCents:item.price?.unit_amount??null,currency:item.price?.currency??null,
@@ -84,6 +93,10 @@ export function itemSafe(item,mode){
     currentPeriodEndUnix:item.current_period_end??null};
 }
 export function subscriptionSafe(sub,mode){
+  // CAP-4 D-3: with a connection mode supplied, the subscription's own
+  // livemode must equal it (its items and discounts already verify
+  // through itemSafe/discountList); no mode keeps historical behavior.
+  if(['test','live'].includes(mode))assertAccountResourceMode(sub,mode);
   return {id:sub.id,status:sub.status,customer:ref(sub.customer),
     currency:sub.currency??null,collectionMethod:sub.collection_method??null,
     billingMode:sub.billing_mode?.type??null,defaultPaymentMethod:ref(sub.default_payment_method),
@@ -96,7 +109,10 @@ export function subscriptionSafe(sub,mode){
     moreItems:sub.items?.has_more===true,
     metadata:sub.metadata??{},description:sub.description??null};
 }
-export function scheduleSafe(v){
+export function scheduleSafe(v,mode){
+  // CAP-4 D-3: optional connection mode, same rule as the projections
+  // above; no-mode callers keep the historical behavior exactly.
+  if(['test','live'].includes(mode))assertAccountResourceMode(v,mode);
   return {id:v.id,status:v.status,customer:ref(v.customer),
     subscription:ref(v.subscription),endBehavior:v.end_behavior??null,
     startDate:local(v.start_date),endDate:local(v.end_date),
