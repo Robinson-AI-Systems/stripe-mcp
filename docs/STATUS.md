@@ -1,3 +1,49 @@
+## 2026-11-04 — CAP-4 D-2 payment reads: mode-verified in both modes (source)
+
+CAP-4's third family is implemented in source (card
+[CAP4-D2-PAYMENT-READS](pr-cards/CAP4-D2-PAYMENT-READS.md)),
+next in the frozen Phase 1 sequence after D-1:
+
+- **The conversion.** All 10 payment read tools (payment intents,
+  charges, refunds, setup intents — list, get and search paths)
+  now serve the connection's own mode with per-object mode
+  verification. The module-local TEST-only client guard in
+  `src/tools/payments.js` is replaced by the shared mode-aware
+  seam (`modeClient`), and the four projections (`paymentSafe`,
+  `chargeSafe`, `refundSafe`, `setupSafe`) verify each returned
+  object's `livemode` against the connection mode on the
+  shared-projection precedent (optional mode parameter;
+  no-mode callers byte-identical). Search results verify
+  per-object exactly like list results. At baseline the family
+  was refusal-only: the guard refused every non-TEST connection
+  before any provider call, and no verification existed in either
+  direction — a LIVE object projected without complaint on a
+  TEST connection.
+- **Nothing else moved.** Projection field sets are exactly the
+  historical ones in both modes (pinned by key-set tests), so
+  the privacy invariant holds unchanged: no client secret and no
+  card fingerprint appears in any read output, now proven on
+  LIVE fixtures too. The census names for this family differ
+  from the registry names (naming drift, recorded in the card);
+  the registry names are the ones converted. The family's
+  writes (V2, PR #310) and the money wiring are byte-untouched.
+- **Proof.** New suite `tests/unit/cap4-d2-payment-reads.test.js`:
+  12 tests — 11 fail at baseline `e14e791a` (every LIVE happy
+  path, the wrong-mode refusals in both directions, the
+  projection mode contract, the descriptions) and all 12 pass
+  after; the 1 baseline pass is the field-set test, which pins
+  the historical shapes the conversion must not move and passes
+  by design. The pre-existing `payments` suite passes unchanged
+  (its baseline LIVE-refusal assertion still fires, now through
+  the LIVE-enablement path) and the focused neighbor suites —
+  the V2 payment write suites, `mode-client`, `registry`,
+  `profiles`, the money suites — pass unchanged. No dispatcher,
+  registry or reachability change (322 tools). Database tests
+  are exact-head CI's route (no local PostgreSQL binaries).
+  Live proof remains open in the CAP-5 queue: one charge, one
+  intent, one refund and one setup intent on the owner's LIVE
+  connection.
+
 ## 2026-11-04 — CAP-4 D-1 money reads: mode-verified in both modes (source)
 
 CAP-4's second family is implemented in source (card

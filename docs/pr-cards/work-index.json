@@ -1112,7 +1112,7 @@
         "CAP-2",
         "CAP-3"
       ],
-      "card": "docs/pr-cards/CAP4-D1-MONEY-READS.md",
+      "card": "docs/pr-cards/CAP4-D2-PAYMENT-READS.md",
       "status": "IN_PROGRESS",
       "migration": "JIT contract before implementation",
       "budget": 650,
