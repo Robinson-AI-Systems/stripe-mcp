@@ -1080,6 +1080,34 @@ and the `workflow_dispute_kit_save` composite (D-8's §B) are
 untouched, as is the money wiring. Live proof for these reads
 stands in the CAP-5 queue.
 
+**CAP-4 progress — D-5 checkout, payment-link and portal reads
+(2026-11-04):** the fifth family, **D-5 (checkout reads)**, is
+source-implemented (CAP4-D5-CHECKOUT-READS): all 7 registry
+tools (checkout session list/get/line items, payment-link
+list/get, portal-configuration list/get) now verify every
+returned object against the connection's own mode in both
+directions, on the same shared-projection precedent. D-5's
+baseline was refusal-only at the helper layer — one shared
+helper refused every non-TEST connection before any provider
+call — and the build also converts an unenumerated mode-shaped
+gate the census missed: the session-ID pattern admitted only
+`cs_test_` IDs, refusing every LIVE session before any provider
+call; it now admits the V2 write-side `cs_(test|live)` pattern
+and the returned object is verified. The projections carried no
+livemode check at baseline, so the shared helper's default
+semantics apply (D-4's `{required:true}` was the deliberate
+exception, driven by its projections' historical hard check);
+the session's own `mode` field (payment/subscription) is
+projected untouched and never gated on. The projections' field
+sets are byte-identical in both modes — session reads still
+never carry `client_secret`, now proven on LIVE fixtures too.
+The census names the family with drifted tool names and claims
+an eighth operation (a payment-link line-items read) that does
+not exist — drift, recorded in the card; the family's writes
+(V2, PR #313), including the hosted-URL aim check, and the
+money wiring are untouched. Live proof for these reads stands
+in the CAP-5 queue.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

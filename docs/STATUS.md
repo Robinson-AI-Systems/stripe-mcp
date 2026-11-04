@@ -1,3 +1,70 @@
+## 2026-11-04 — CAP-4 D-5 checkout, payment-link and portal reads: mode-verified in both modes (source)
+
+CAP-4's fifth family is implemented in source (card
+[CAP4-D5-CHECKOUT-READS](pr-cards/CAP4-D5-CHECKOUT-READS.md)),
+next in the frozen Phase 1 sequence after D-4:
+
+- **The conversion.** All 7 registry read tools (checkout
+  session list/get/line items, payment-link list/get and
+  portal-configuration list/get) now serve the connection's own
+  mode with per-object mode verification. The shared helper in
+  `src/tools/checkout.js` that refused every non-TEST
+  connection ('TEST Stripe provider unavailable') resolves
+  through the one shared mode-aware seam (`modeClient`), and
+  all four projections (`checkoutSafe`, `itemSafe`,
+  `paylinkSafe`, `portalSafe`) verify each returned object's
+  `livemode` against the connection mode on the
+  shared-projection precedent (optional mode parameter, the
+  shared helper's default semantics — these projections
+  carried no livemode check at baseline, so that is the
+  semantics under which TEST stays byte-identical; no-mode
+  callers unchanged). The line-item read fetches and verifies
+  the parent session before listing its items.
+- **An unenumerated gate, converted.** The session-ID pattern
+  admitted only `cs_test_` IDs at baseline, refusing every
+  LIVE session before any provider call — a mode-shaped gate
+  the census missed. It now admits `cs_(test|live)_`, the
+  pattern the V2 checkout writes already use, and the returned
+  object is verified; the malformed-ID refusal text is renamed
+  once (`Invalid checkout session id`), recorded in the card.
+  The census also names this family with drifted tool names
+  and claims an eighth operation — a payment-link line-items
+  read that does not exist anywhere in the source — recorded
+  as census drift in the card; the family's actual seventh
+  tool is `portal_get_configuration`. The session's own
+  `mode` field (payment/subscription) is projected untouched
+  and never gated on.
+- **Nothing else moved.** Projection shapes are byte-identical
+  in both modes, so the privacy posture holds unchanged:
+  session reads still never carry `client_secret`, now proven
+  on LIVE fixtures with a sentinel. The family's writes (V2,
+  PR #313) — including the hosted-URL aim check — the admin
+  composites that read portal configurations through these
+  handlers, and the money wiring are byte-untouched. The
+  seven descriptions were fitted inside this family only, so
+  the everyday catalog holds at 19,998 tokens against the
+  20,000 cap (baseline 19,999); no cap moved, no other
+  family's text touched.
+- **Proof.** New suite
+  `tests/unit/cap4-d5-checkout-reads.test.js`: 18 tests — 14
+  fail at baseline `408a2bd3` (every LIVE happy path, the
+  projection refusals on both connection modes, the parent
+  and item verification, the projection mode contract, the
+  descriptions, the renamed malformed-ID text) and all 18
+  pass after; the 4 baseline passes are recorded honestly in
+  the card (the two byte-identical TEST output pins, the
+  registry pin, and the wrong-mode-parent line-item refusal,
+  whose baseline outcome came from the ID pattern the
+  conversion removes). The pre-existing `checkout` suite
+  passes (its fake now returns a livemode-stamped object for
+  a `cs_live_` ID, so its refusal pin runs through mode
+  verification). Full unit suite green and `npm run check`
+  exit 0 on the final tree; database proof is exact-head
+  CI's route (no local PostgreSQL binaries). Live proof
+  remains open in the CAP-5 queue: one session read, one
+  line-item read, one payment-link read and one
+  portal-configuration read on the owner's LIVE connection.
+
 ## 2026-11-04 — Daily-promotion gate repaired: matrix shard check names (source)
 
 The checked daily promoter could not pass its own six-check gate on
