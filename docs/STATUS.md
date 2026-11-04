@@ -1,3 +1,50 @@
+## 2026-11-04 — Owner-obedience V2 Reports family: source-implemented (source)
+
+Family 10 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-REPORTS](pr-cards/OWNER-OBEDIENCE-V2-REPORTS.md)):
+
+- **Dispatcher admission.** The `reports` area joins
+  `guardedLiveAreas` in `src/core/profiles.js` — the only
+  dispatcher change, for exactly the one write (`report_run`,
+  full profile). TEST admission already existed and is
+  unchanged. Proven against the real registry in the new
+  suite: the area carries exactly one write tool, admitted in
+  LIVE only on the owner-approved full connection, and the
+  area's reads are guarded writes in neither mode.
+- **Handler converted.** The TEST-only handler gate in
+  `src/tools/report-run-write.js` is gone; the handler
+  dispatches directly. Under a LIVE connection the
+  guarded-write pipeline's existing rules decide: full
+  profile, catalog listing, a live-enabled and live-connected
+  account, owner-approved LIVE, and a binding preview
+  fingerprint. A bare LIVE connection is refused by the
+  LIVE-enablement guard before anything executes.
+- **Mode invariants, both directions.** The report type's
+  data-available window must be the connection's own mode's
+  window; a created run whose present mode disagrees is
+  never claimed; the read-back verify demands the run's mode
+  equal the connection's mode. The curated type allowlist,
+  the 366-day interval bound and the availability
+  verification are unrelaxed and still fire in LIVE.
+- **Creation is not completion, and no data leaks.** The
+  LIVE preview states the type, the exact interval, and
+  that the output is a financial report file whose contents
+  are the account's real figures; the result reports the run
+  as requested/pending, never finished, and carries only the
+  verified run ID and status — no report contents, no file
+  URL (`downloadUrl: null`), in either mode. The TEST
+  preview text is byte-identical to before.
+- **The reads are not converted.** `report_get_run`,
+  `report_list_runs`, `report_list_types` and
+  `report_get_result_file` keep their own TEST gates and
+  behave byte-identically — read reachability belongs to
+  CAP-4, not this family's write conversion. The one native
+  caller, `workflow_month_end_report`, keeps its own
+  TEST-gated choreography and is unchanged on TEST.
+- **Live proof remains open** (CAP-5 queue): source and
+  synthetic fixtures only. No account was enabled, no LIVE
+  key was used, and no real money moved.
 ## 2026-11-04 — Owner-obedience V2 Files family: source-implemented (source)
 
 Family 9 of 13 of conformance row 17's V2 conversion is

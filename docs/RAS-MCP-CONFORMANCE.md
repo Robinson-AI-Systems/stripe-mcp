@@ -854,9 +854,28 @@ V3, then V4.
   dispute (the design card's "names the target dispute"
   wording is flagged in the card for a coordinator ruling:
   the tool takes no dispute argument by design). No money
-  wiring is touched: file writes move no money. Remaining
-  families:
-  Reports; Branding (its admission
+  wiring is touched: file writes move no money.   Family 10 of 13, **Reports**, is source-implemented
+  2026-11-04 (OWNER-OBEDIENCE-V2-REPORTS): the smallest
+  family — the `reports` area joins `guardedLiveAreas` for
+  exactly the one write, `report_run`, and the handler's
+  TEST-only gate is removed; the report type's
+  data-available window must be the connection's own mode's
+  window, a created run whose present mode disagrees is
+  never claimed, and the read-back demands the run's mode
+  equal the connection's mode, in both directions. The
+  curated type allowlist, the interval bound and the
+  availability verification are unrelaxed. The LIVE preview
+  states the type, the exact interval and that the output is
+  a financial report file whose contents are the account's
+  real figures; creation is never reported as completion —
+  the result reports the run as requested/pending and
+  carries only the verified run ID and status, no report
+  contents and no file URL. The report reads keep their own
+  TEST gates and are not converted (unclassified item (1),
+  owned by CAP-4). No money wiring is touched.
+    Remaining families:
+  Branding (its admission
+
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.
 - **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).

@@ -107,7 +107,12 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
           area==='money'&&liveMoney.has(tool.name)||
           // The payout schedule's branding-area exposure converted with
           // the Money family (ruling 6); no other branding write did.
-          (area==='branding'&&tool.name==='setup_set_payout_schedule');
+          (area==='branding'&&tool.name==='setup_set_payout_schedule')||
+          // Owner-obedience V2 family 10 (Reports): the single
+          // report-run write is LIVE-admitted for an owner-approved
+          // connection; the report reads are not writes and stay
+          // TEST-only under CAP-4.
+          (area==='reports'&&tool.name==='report_run');
         expect(isGuardedLiveWrite(tool,{mode:'live',profile:'full',
           rtcLiveOwnerApproved:true,moneyLimitCents:10000})).toBe(approved);
       }
