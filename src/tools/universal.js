@@ -82,7 +82,12 @@ async function provider(method,path,data,ctx,options={}){
   return currentResult(raw,ctx.connection.mode);
 }
 function rejectSecret(record){
-  if(!record.path.startsWith('/v1/')||/\b(secret|ephemeral_keys|tokens|person|bank_account|files|identity\/verification|issuing\/cardholders)\b/i.test(record.path))
+  // The token-family alternative cannot see confirmation_tokens: the
+  // underscore is a word character, so no \b stands before "tokens".
+  // CAP4-PROD-PAYMENT names the family explicitly; a confirmation
+  // token's full pre-confirmation payment detail is not door-served.
+  if(!record.path.startsWith('/v1/')||/\b(secret|ephemeral_keys|tokens|person|bank_account|files|identity\/verification|issuing\/cardholders)\b/i.test(record.path)||
+    record.path.startsWith('/v1/confirmation_tokens/'))
     bad('Sensitive universal family requires specialized original native reader');
 }
 async function read(a,ctx){
