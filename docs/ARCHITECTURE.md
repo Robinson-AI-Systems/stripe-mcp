@@ -313,7 +313,7 @@ TEST/read-only tools and cannot approve an intent.
 
 ### B-3 application-owned Stripe record guard (staged)
 
-Internal `src/tools/app-guard.js` detects the known Appliance Desk metadata keys from `docs/APP-NEEDS-APPLIANCE-DESK.md` on the target or on its customer. If customer ownership is unknown or cannot be read, writes deny rather than treating the target as unaffiliated. App-owned changes require `outsideApp:true` under the ordinary guarded write contract; app-owned refunds have the documented exception and still require individual authenticated owner money approval. Reads can be marked `appRecord`. This protection is internal; no public write handler is registered yet.
+Internal `src/tools/app-guard.js` detects the known Appliance Desk metadata keys from `docs/APP-NEEDS-APPLIANCE-DESK.md` on the target or on its customer. If customer ownership is unknown or cannot be read, writes deny rather than treating the target as unaffiliated. App-owned changes require `outsideApp:true` under the ordinary guarded write contract; app-owned refunds have the documented exception and still require individual authenticated owner money approval. Reads can be marked `appRecord`. This protection is internal; no public write handler is registered yet. Since 2026-11-04 (OWNER-OBEDIENCE-V3), the catalog writes follow this same contract through the fingerprint ceremony in `src/tools/catalog.js`: a known app-owned product or price — including a price whose parent product is app-owned — is changed only when the owner passes `outsideApp:true` and confirms with the fresh fingerprint bound to the evaluated marker and the exact change; unclear ownership still denies outright.
 
 ### B-4 safely translated Stripe errors (staged)
 

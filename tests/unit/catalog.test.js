@@ -3,6 +3,8 @@ import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 import {isGuardedLiveWrite,listingForConnection} from '../../src/core/profiles.js';
+import {appOverrideFingerprint} from '../../src/tools/app-guard.js';
+import {APP_SEED} from '../../src/apps/profiles.js';
 
 const account='acct_CATALOG123',parse=r=>JSON.parse(r.content[0].text);
 afterEach(()=>vi.unstubAllEnvs());
@@ -189,9 +191,15 @@ describe('E-1 native TEST catalog profile and contract',()=>{
       id:'prod_OWNED123',name:'Owner app product',object:'product',
       livemode:false,active:true,description:null,
       metadata:{agreementId:'agr_123'}});
-    await expect(f.confirm('price_create',{productId:'prod_OWNED123',
-      lookupKey:'owned_month',unitAmountCents:3600,currency:'usd'}))
-      .rejects.toThrow(/app-owned/i);
+    // V3: the read hook no longer throws for a known app-owned product;
+    // the guard refuses with the app-ownership denial as the reason.
+    const ownedCreate=parse(await f.confirm('price_create',{
+      productId:'prod_OWNED123',lookupKey:'owned_month',
+      unitAmountCents:3600,currency:'usd'}));
+    expect(ownedCreate).toMatchObject({done:false,
+      error:'App-owned record or unsafe target'});
+    expect(ownedCreate.reason).toMatch(
+      /Robinson Appliance Rentals owns Stripe record prod_OWNED123 agreement agr_123/);
     expect(f.sdk.prices.create).not.toHaveBeenCalled();
   });
   it('prevents destructive operations on priced products and refuses app metadata',async()=>{
@@ -230,8 +238,14 @@ describe('E-1 native TEST catalog profile and contract',()=>{
       description:null,metadata:{agreementId:'agr_123'}});
     f.prices.set('price_OWNED123',f.mkPrice('price_OWNED123','prod_OWNED123',
       'app_month',3600));
-    await expect(f.confirm('price_update',{priceId:'price_OWNED123',active:false}))
-      .rejects.toThrow(/parent product/i);
+    // V3: the parent product's marker is enforced by the target guard's
+    // denial (guard-refusal shape), not by a read-hook throw.
+    const parentOwned=parse(await f.confirm('price_update',{
+      priceId:'price_OWNED123',active:false}));
+    expect(parentOwned).toMatchObject({done:false,
+      error:'App-owned record or unsafe target'});
+    expect(parentOwned.reason).toMatch(
+      /Robinson Appliance Rentals owns Stripe record prod_OWNED123 agreement agr_123/);
     expect(f.sdk.prices.update).not.toHaveBeenCalled();
   });
   it('requires no inactive prices before product deletion',async()=>{
@@ -388,8 +402,14 @@ describe('E-1 native TEST catalog profile and contract',()=>{
     expect(foreign.calls).toHaveLength(0);
     const owned=fixture({mode:'live'});
     owned.products.get('prod_BASE123').metadata={agreementId:'agr_APP'};
-    await expect(owned.confirm('product_update',{productId:'prod_BASE123',
-      name:'Should not change'})).rejects.toThrow(/Application-owned/);
+    // V3: guard-refusal shape (parsed done:false + denial reason),
+    // replacing the former read-hook throw; provider still never called.
+    const ownedRefusal=parse(await owned.confirm('product_update',{
+      productId:'prod_BASE123',name:'Should not change'}));
+    expect(ownedRefusal).toMatchObject({done:false,
+      error:'App-owned record or unsafe target'});
+    expect(ownedRefusal.reason).toMatch(
+      /Robinson Appliance Rentals owns Stripe record prod_BASE123 agreement agr_APP/);
     expect(owned.sdk.products.update).not.toHaveBeenCalled();
     const uncertain=fixture({mode:'live'});
     uncertain.sdk.products.create.mockImplementationOnce(async()=>
@@ -399,4 +419,225 @@ describe('E-1 native TEST catalog profile and contract',()=>{
     expect(uncertain.sdk.products.create).toHaveBeenCalledTimes(1);
   });
 
+});
+describe('owner-obedience V3 catalog outsideApp conversion',()=>{
+  const FP=/^APP-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/;
+  const fpOf=text=>text?.match(/APP-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}/)?.[0];
+  function ownedFixture(){
+    const f=fixture();
+    f.products.set('prod_OWNED123',{id:'prod_OWNED123',object:'product',
+      livemode:false,active:true,name:'Owned product',description:null,
+      metadata:{agreementId:'agr_123'}});
+    return f;
+  }
+  it('no acknowledgment → still refused, denial naming app, record and screen',async()=>{
+    const f=ownedFixture();
+    const r=parse(await f.confirm('product_update',{
+      productId:'prod_OWNED123',name:'Rename'}));
+    expect(r).toMatchObject({done:false,
+      error:'App-owned record or unsafe target'});
+    expect(r.reason).toContain(
+      'Robinson Appliance Rentals owns Stripe record prod_OWNED123');
+    expect(r.reason).toContain('/desk/agreements');
+    expect(f.sdk.products.update).not.toHaveBeenCalled();
+    // A price carrying its own marker is refused the same way.
+    f.prices.set('price_OWNEDPRICE',f.mkPrice('price_OWNEDPRICE',
+      'prod_BASE123','owned_fee',1200));
+    f.prices.get('price_OWNEDPRICE').metadata={agreementId:'agr_123'};
+    const rp=parse(await f.confirm('price_update',{
+      priceId:'price_OWNEDPRICE',nickname:'New label'}));
+    expect(rp.done).toBe(false);
+    expect(rp.reason).toContain('owns Stripe record price_OWNEDPRICE');
+    expect(f.sdk.prices.update).not.toHaveBeenCalled();
+  });
+  it('acknowledgment alone is not confirmation: confirm without fingerprint refused, fresh fingerprint carried',async()=>{
+    const f=ownedFixture();
+    const preview=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',name:'Renamed',outsideApp:true,
+      dryRun:true,requestKey:'v3-preview'}));
+    expect(preview.done).toBe(false);
+    const fp=fpOf(preview.preview);
+    expect(fp).toMatch(FP);
+    const r=parse(await f.confirm('product_update',{
+      productId:'prod_OWNED123',name:'Renamed',outsideApp:true}));
+    expect(r.done).toBe(false);
+    expect(r.reason).toMatch(/never confirmed/);
+    expect(fpOf(r.reason)).toBe(fp);
+    expect(f.sdk.products.update).not.toHaveBeenCalled();
+  });
+  it('happy path: preview discloses app, record and judgment; fingerprint confirm executes exactly once and is journaled',async()=>{
+    const f=ownedFixture();
+    const preview=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',name:'Renamed by owner',outsideApp:true,
+      dryRun:true,requestKey:'v3-happy'}));
+    expect(preview.preview).toContain('Robinson Appliance Rentals');
+    expect(preview.preview).toContain('prod_OWNED123');
+    expect(preview.preview).toContain('desynchronize');
+    expect(preview.preview).toContain('affect its live behavior');
+    const fp=fpOf(preview.preview);
+    expect(fp).toMatch(FP);
+    const done=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',name:'Renamed by owner',outsideApp:true,
+      outsideAppFingerprint:fp,confirm:true,requestKey:'v3-happy'}));
+    expect(done).toMatchObject({done:true,confirmed:true});
+    expect(f.sdk.products.update).toHaveBeenCalledTimes(1);
+    expect(f.products.get('prod_OWNED123').name).toBe('Renamed by owner');
+    const row=(await f.db.listAuditForTest()).filter(x=>
+      x.tool==='product_update'&&x.dry_run===false).at(-1);
+    expect(row.summary).toContain(fp);
+  });
+  it('marker changed between preview and confirm → refused with a different fresh fingerprint; marker removed → proceeds as ordinary',async()=>{
+    const f=ownedFixture();
+    const preview=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',name:'Renamed',outsideApp:true,
+      dryRun:true,requestKey:'v3-drift'}));
+    const fp=fpOf(preview.preview);
+    f.products.get('prod_OWNED123').metadata={agreementId:'agr_OTHER'};
+    const refused=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',name:'Renamed',outsideApp:true,
+      outsideAppFingerprint:fp,confirm:true,requestKey:'v3-drift'}));
+    expect(refused.done).toBe(false);
+    expect(refused.reason).toMatch(/moved or was never confirmed/);
+    const fresh=fpOf(refused.reason);
+    expect(fresh).toMatch(FP);
+    expect(fresh).not.toBe(fp);
+    expect(f.sdk.products.update).not.toHaveBeenCalled();
+    // The app withdrew its claim: nothing left to override.
+    f.products.get('prod_OWNED123').metadata={};
+    const done=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',name:'Renamed',outsideApp:true,
+      outsideAppFingerprint:fp,confirm:true,requestKey:'v3-drift'}));
+    expect(done).toMatchObject({done:true,confirmed:true});
+    expect(f.sdk.products.update).toHaveBeenCalledTimes(1);
+  });
+  it('wrong-target fingerprint and wrong-change fingerprint → refused',async()=>{
+    const f=ownedFixture();
+    f.products.set('prod_OWNED456',{id:'prod_OWNED456',object:'product',
+      livemode:false,active:true,name:'Other owned product',
+      description:null,metadata:{agreementId:'agr_456'}});
+    const preview=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',name:'Renamed',outsideApp:true,
+      dryRun:true,requestKey:'v3-wrong'}));
+    const fp=fpOf(preview.preview);
+    const wrongTarget=parse(await f.call('product_update',{
+      productId:'prod_OWNED456',name:'Renamed',outsideApp:true,
+      outsideAppFingerprint:fp,confirm:true,requestKey:'v3-wrong'}));
+    expect(wrongTarget.done).toBe(false);
+    const wrongChange=parse(await f.call('product_update',{
+      productId:'prod_OWNED123',description:'A different change',
+      outsideApp:true,outsideAppFingerprint:fp,confirm:true,
+      requestKey:'v3-wrong'}));
+    expect(wrongChange.done).toBe(false);
+    expect(f.sdk.products.update).not.toHaveBeenCalled();
+  });
+  it('price_create ceremony: fingerprint confirm creates the price; a stale fingerprint after the marker moves is refused',async()=>{
+    const f=ownedFixture();
+    const args={productId:'prod_OWNED123',lookupKey:'owned_new_month',
+      unitAmountCents:3600,currency:'usd',interval:'month'};
+    const preview=parse(await f.call('price_create',{...args,
+      outsideApp:true,dryRun:true,requestKey:'v3-price'}));
+    expect(preview.done).toBe(false);
+    expect(preview.preview).toContain('Robinson Appliance Rentals');
+    const fp=fpOf(preview.preview);
+    expect(fp).toMatch(FP);
+    const done=parse(await f.call('price_create',{...args,outsideApp:true,
+      outsideAppFingerprint:fp,confirm:true,requestKey:'v3-price'}));
+    expect(done).toMatchObject({done:true,confirmed:true,
+      resourceId:'price_NEW123'});
+    expect(f.sdk.prices.create).toHaveBeenCalledTimes(1);
+    const g=ownedFixture();
+    const p2=parse(await g.call('price_create',{...args,outsideApp:true,
+      dryRun:true,requestKey:'v3-price-stale'}));
+    const fp2=fpOf(p2.preview);
+    g.products.get('prod_OWNED123').metadata={agreementId:'agr_MOVED'};
+    const stale=parse(await g.call('price_create',{...args,outsideApp:true,
+      outsideAppFingerprint:fp2,confirm:true,requestKey:'v3-price-stale'}));
+    expect(stale.done).toBe(false);
+    expect(g.sdk.prices.create).not.toHaveBeenCalled();
+  });
+  it('unclear ownership stays refused with outsideApp and any fingerprint (aim check untouched)',async()=>{
+    const f=ownedFixture();
+    f.ctx.db.listKnownAppsForAccount=async()=>[
+      {id:'appliance-desk',name:'Robinson Appliance Rentals',
+        status:'active',profile:{...APP_SEED}},
+      {id:'second-app',name:'Second App',status:'active',
+        profile:{...APP_SEED,id:'second-app',name:'Second App'}}];
+    await expect(f.call('product_update',{productId:'prod_OWNED123',
+      name:'Rename',outsideApp:true,
+      outsideAppFingerprint:'APP-AAAAA-AAAAA-AAAAA-AAAAA',
+      confirm:true,requestKey:'v3-unclear'})).rejects.toThrow(/uncertain/i);
+    expect(f.sdk.products.update).not.toHaveBeenCalled();
+  });
+  it('no-op parity: outsideApp on product_create and on an unowned target succeeds without ceremony',async()=>{
+    const f=fixture();
+    const created=parse(await f.confirm('product_create',{
+      name:'Plain product',outsideApp:true}));
+    expect(created).toMatchObject({done:true,resourceId:'prod_NEW123'});
+    const updated=parse(await f.confirm('product_update',{
+      productId:'prod_BASE123',name:'Plain rename',outsideApp:true}));
+    expect(updated.done).toBe(true);
+    expect(f.sdk.products.update).toHaveBeenCalledTimes(1);
+  });
+  it('the flag stays scoped to catalog writes: read tools and other families gain neither argument',async()=>{
+    const f=fixture();
+    // Scoped to the seven writes this conversion touches (other
+    // catalog-area families keep their own schemas) plus catalog reads.
+    const seven=['product_create','product_update','product_archive',
+      'product_unarchive','product_delete','price_create','price_update'];
+    for(const t of registry.tools.filter(x=>x.area==='catalog'&&
+      (seven.includes(x.name)||x.writes===false))){
+      const props=Object.keys(t.inputSchema?.properties??{});
+      if(t.writes)
+        expect(props).toEqual(expect.arrayContaining(
+          ['outsideApp','outsideAppFingerprint']));
+      else expect(props).not.toContain('outsideApp');
+    }
+    for(const t of registry.tools.filter(x=>x.area!=='catalog'))
+      expect(Object.keys(t.inputSchema?.properties??{}))
+        .not.toContain('outsideAppFingerprint');
+    const readRefusal=await f.call('product_get',{productId:'prod_BASE123',
+      outsideApp:true});
+    expect(readRefusal.isError).toBe(true);
+    expect(readRefusal.content[0].text).toMatch(/Unsupported/);
+  });
+  describe('appOverrideFingerprint helper',()=>{
+    const marker={appId:'appliance-desk',key:'agreementId',
+      value:'agr_123',agreementId:'agr_123',via:'object',
+      recordId:'prod_OWNED123'};
+    const base={account:'acct_CATALOG123',mode:'test',
+      tool:'product_update',targetId:'prod_OWNED123',ownership:marker,
+      change:{productId:'prod_OWNED123',name:'Renamed'}};
+    it('is stable across key order, formatted, and never contains the marker value or agreement ID verbatim',()=>{
+      const fp=appOverrideFingerprint(base);
+      expect(fp).toMatch(FP);
+      expect(appOverrideFingerprint({...base,
+        change:{name:'Renamed',productId:'prod_OWNED123'}})).toBe(fp);
+      expect(fp).not.toContain('agr_123');
+    });
+    it('changes when account, mode, tool, target, app, marker key, marker value, agreement ID, record or any change argument changes',()=>{
+      const fp=appOverrideFingerprint(base);
+      const variants=[
+        {...base,account:'acct_OTHER'},
+        {...base,mode:'live'},
+        {...base,tool:'product_archive'},
+        {...base,targetId:'prod_OTHER'},
+        {...base,ownership:{...marker,appId:'other-app'}},
+        {...base,ownership:{...marker,key:'rentalLineId'}},
+        {...base,ownership:{...marker,value:'agr_999'}},
+        {...base,ownership:{...marker,agreementId:'agr_999'}},
+        {...base,ownership:{...marker,recordId:'prod_OTHER'}},
+        {...base,change:{productId:'prod_OWNED123',name:'Other'}},
+        {...base,change:{productId:'prod_OWNED123',name:'Renamed',
+          metadata:{note:'x'}}}];
+      for(const v of variants)
+        expect(appOverrideFingerprint(v)).not.toBe(fp);
+    });
+    it('ignores confirmation artifacts in the change arguments',()=>{
+      const fp=appOverrideFingerprint(base);
+      expect(appOverrideFingerprint({...base,change:{...base.change,
+        dryRun:true,confirm:true,requestKey:'k',outsideApp:true,
+        outsideAppFingerprint:'APP-AAAAA-AAAAA-AAAAA-AAAAA',
+        previewFingerprint:'WRITE-AAAAA-AAAAA'}})).toBe(fp);
+    });
+  });
 });

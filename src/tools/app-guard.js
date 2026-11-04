@@ -1,5 +1,6 @@
 // P-1/P-2: each active app owns only its configured Stripe accounts.
 // Legacy global safety remains until a specifically confirmed scope switch.
+import {createHash} from 'node:crypto';
 import {APP_SEED,resolveAppRecordLink} from '../apps/profiles.js';
 export const APP_METADATA_KEYS=Object.freeze([...APP_SEED.metadata_keys]);
 export const APP_NAME=APP_SEED.name;
@@ -79,6 +80,58 @@ export async function findAppOwnership(before,ctx={}){
     if(!completeCustomer(record))throw Error('Incomplete or deleted customer');
     return ownershipOf(record,apps,'customer',before.id??customer);
   }catch{return {unknown:true,reason:'Customer ownership verification failed'};}
+}
+const canonicalValue=value=>{
+  if(Array.isArray(value))return value.map(canonicalValue);
+  if(value&&typeof value==='object'){
+    const out={};
+    for(const key of Object.keys(value).sort())out[key]=canonicalValue(value[key]);
+    return out;
+  }
+  return value===undefined?null:value;
+};
+// Confirmation artifacts are not part of the previewed change: the card's
+// five exclusions, plus the core write lifecycle's own previewFingerprint
+// (PR #304, which postdates the V3 card's baseline) — a confirm that
+// presents both fingerprints must not change the change it confirms.
+const OVERRIDE_CHANGE_EXCLUDED=new Set(['dryRun','confirm','requestKey',
+  'outsideApp','outsideAppFingerprint','previewFingerprint']);
+/** Fingerprint of the exact app-ownership state the owner was shown for a
+ * catalog outside-app override (owner-obedience V3). Mirrors
+ * liveEnableFingerprint's construction: canonical JSON state, SHA-256,
+ * 20 uppercase hex chars grouped by 5. The digest covers only identifiers
+ * the refusal text already discloses (owning app, record ID, marker
+ * key/value, agreement ID) plus the previewed change's mutable arguments;
+ * it contains no secret. Any change to the account, mode, tool, target,
+ * marker state or previewed change changes the fingerprint and voids a
+ * confirmation given against the old state. */
+export function appOverrideFingerprint({account,mode,tool,targetId,
+  ownership,change}={}){
+  const args={};
+  if(change&&typeof change==='object'&&!Array.isArray(change)){
+    for(const [k,v] of Object.entries(change))
+      if(!OVERRIDE_CHANGE_EXCLUDED.has(k)&&v!==undefined)args[k]=v;
+  }
+  const state={
+    action:'catalog_outside_app_override',
+    account:typeof account==='string'?account:'',
+    mode:typeof mode==='string'?mode:'',
+    tool:typeof tool==='string'?tool:'',
+    targetId:typeof targetId==='string'?targetId:null,
+    marker:ownership?{
+      appId:typeof ownership.appId==='string'?ownership.appId:null,
+      key:typeof ownership.key==='string'?ownership.key:null,
+      value:typeof ownership.value==='string'?ownership.value:null,
+      agreementId:typeof ownership.agreementId==='string'?
+        ownership.agreementId:null,
+      via:typeof ownership.via==='string'?ownership.via:null,
+      recordId:typeof ownership.recordId==='string'?ownership.recordId:null
+    }:null,
+    change:canonicalValue(args)
+  };
+  const hex=createHash('sha256').update(JSON.stringify(state)).digest('hex')
+    .slice(0,20).toUpperCase();
+  return 'APP-'+hex.match(/.{5}/g).join('-');
 }
 export function ownerScreen(marker){
   return marker?.recordLink?.route??
