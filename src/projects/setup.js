@@ -177,10 +177,10 @@ export function normalizedSetup(project){
     typeof b.lookupKey!=='string'||!/^[a-z0-9][a-z0-9_-]{2,99}$/.test(b.lookupKey)))
     fail('Project-owned catalog requires explicit product, integer cents and stable lookup key');
   if(project.portalConfiguration!==undefined&&!/^bpc_[A-Za-z0-9_]{3,190}$/.test(project.portalConfiguration))
-    fail('Select exact existing TEST Portal configuration');
+    fail('Select exact existing Portal configuration');
   if(project.paymentMethodConfiguration!==undefined&&
     !/^pmc_[A-Za-z0-9]{2,100}$/.test(project.paymentMethodConfiguration))
-    fail('Select exact direct TEST payment method configuration');
+    fail('Select exact direct payment method configuration');
   if(project.brandKit!==undefined&&
     (project.applyBrandKit!==true||!obj(project.brandKit)))
     fail('Saving global MCP Checkout brand kit requires explicit owner opt-in');

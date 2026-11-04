@@ -1,3 +1,56 @@
+## 2026-11-04 — Owner-obedience V2 Projects family (provider-write half): source-implemented (source)
+
+Family 13 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-PROJECTS](pr-cards/OWNER-OBEDIENCE-V2-PROJECTS.md)).
+The family's scope is split by coordinator ruling 4:
+
+- **Dispatcher admission.** Exactly the three provider writes
+  change admission — `project_portal_create`,
+  `workflow_project_setup`, `workflow_app_readiness_fix` —
+  via an exact name set consulted by both mode guards. The
+  `projects` area itself joins neither area set: adding it
+  would also admit the binding half, which ruling 4 excludes.
+  TEST admission is itself new (the family was
+  dispatcher-refused in both modes, the Families 4/9 pattern).
+- **Provider-write half converts.** The portal creation, the
+  setup steps and the readiness fix prove the selected account
+  in the connection's own mode, demand every evaluated object's
+  `livemode` equal the connection's mode (creation response,
+  read-back, verify, both directions), and complete the
+  confirmed-action sequence on synthetic fixtures in both
+  modes. Setup verifies the brand kit and portal configurations
+  in the connection's mode; its LIVE preview states plainly
+  that the setup records a draft only — **the profile is not
+  bound and scoped ownership is not enabled** — and a completed
+  LIVE setup still ends unbound with guard scope `legacy`.
+  The readiness fix's internal observations are
+  mode-parameterized; its composed native writes keep their
+  own families' guards.
+- **Binding half does not convert.**
+  `project_bind_profile_account` and
+  `project_enable_scoped_ownership` gain no admission in
+  either mode and appear in neither catalog listing; their
+  module (`src/tools/app-profiles.js`) is byte-untouched, and
+  the new suite proves their LIVE refusals byte-identical and
+  the TEST bind unchanged. They are referred to the
+  owner-surface migration the module already anticipates.
+- **Read reachability unchanged.** The
+  `workflow_app_readiness` read keeps its TEST-only refusal
+  with the identical message — only the fix's internal
+  observation is mode-parameterized — so read conversion stays
+  CAP-4's. Previews are mode-labeled; the money wiring is
+  byte-untouched.
+
+Full unit suite on the final tree (rebased onto PR #318):
+198 files, 2,046 tests, all passed; `npm run check` exit 0.
+Live-connected proof remains in the CAP-5 queue; no account
+was enabled, no LIVE key was used, and no real money moved.
+**With this family the V2 family sequence is complete in
+source** — all twelve buildable families are
+source-implemented; the binding half and all live proof
+remain open.
+
 ## 2026-11-04 — Owner-obedience V2 Branding family: source-implemented (source)
 
 Family 11 of 13 of conformance row 17's V2 conversion is

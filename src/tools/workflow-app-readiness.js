@@ -1,14 +1,16 @@
 // P-3: app-aware 21-row readiness with genuine read evidence and individually guarded fixes.
 // A workflow cannot invent provider state or bypass the native tool's own confirm/audit.
-import {defineWrite,gone} from './write.js';
+import {defineWrite} from './write.js';
 import {client,allProfiles,fullProfiles,reply,fail} from './billing-shared.js';
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
 import {validateProfile} from '../apps/profiles.js';
 import {webhookSafe} from './webhooks-read.js';
 import {safeConfiguration} from './account-payment-settings.js';
 
 const ids=Array.from({length:21},(_,i)=>'S'+(i+1));
-const dashboard='https://dashboard.stripe.com/test/';
+const dashboardBase=mode=>mode==='live'?'https://dashboard.stripe.com/':
+  'https://dashboard.stripe.com/test/';
+const modeLabel=ctx=>ctx?.connection?.mode==='live'?'LIVE':'TEST';
 const acctOk=a=>typeof a==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(a);
 const endpointOk=a=>typeof a==='string'&&/^we_[A-Za-z0-9]{2,100}$/.test(a);
 const portalOk=a=>typeof a==='string'&&/^bpc_[A-Za-z0-9_]{3,190}$/.test(a);
@@ -103,7 +105,8 @@ async function source(a,ctx){
   const p=await ctx.db.getKnownApp(a.app);
   if(!p||p.status!=='active')throw new TypeError('Active application profile unavailable');
   const bound=p.profile.stripe_accounts.includes(ctx.connection.stripeAccount);
-  if(!bound)throw new TypeError('Application profile is not bound to selected TEST account');
+  if(!bound)throw new TypeError('Application profile is not bound to selected '+
+    modeLabel(ctx)+' account');
   return {profile:declared(p.profile),source:'bound_profile',canFix:true,version:p.version};
 }
 const row=(id,status,note,extra={})=>{
@@ -112,17 +115,18 @@ const row=(id,status,note,extra={})=>{
   return {id,title:titles[Number(id.slice(1))-1],status,
     note:String(note).slice(0,320),...extra};
 };
-const dashboardStep=(id,status,note,url,action)=>
-  row(id,status,note,{ownerAction:action,settingsUrl:dashboard+url});
+const dashboardStep=(id,status,note,url,action,base)=>
+  row(id,status,note,{ownerAction:action,settingsUrl:base+url});
 async function observed(fn){
   try{return {ok:true,value:await fn()};}
   catch{return {ok:false,value:null};} // No private provider error escapes.
 }
-export function safePortal(value){
+export function safePortal(value,mode='test'){
   if(value?.object!=='billing_portal.configuration'||
-    !portalOk(value.id)||value.livemode!==false||
+    !portalOk(value.id)||value.livemode!==(mode==='live')||
     typeof value.active!=='boolean')
-    throw new TypeError('Verified TEST Portal configuration unavailable');
+    throw new TypeError('Verified '+(mode==='live'?'LIVE':'TEST')+
+      ' Portal configuration unavailable');
   const fields=['payment_method_update','invoice_history',
     'subscription_cancel','subscription_update'];
   const features={};
@@ -144,53 +148,62 @@ const mapping={allow_cancel:'subscription_cancel',allow_plan_switch:'subscriptio
 async function readiness(a,ctx){
   input(a);
   const account=ctx?.connection?.stripeAccount;
-  if(!acctOk(account)||ctx?.connection?.mode!=='test')
+  // Owner-obedience V2 family 13: observations run in the
+  // connection's own mode (the readiness fix's internal reads depend
+  // on it). The workflow_app_readiness read handler keeps its own
+  // TEST-only gate, so this widening serves the write path only.
+  const cmode=ctx?.connection?.mode;
+  if(!acctOk(account)||!['test','live'].includes(cmode))
     throw new TypeError('Select an enrolled TEST account');
+  const label=cmode==='live'?'LIVE':'TEST',dash=dashboardBase(cmode);
+  const step=(id,status,note,url,action)=>dashboardStep(id,status,note,url,action,dash);
   const spec=await source(a,ctx),mode=a.mode??'test';
   const rows=[];
   if(mode==='live'){
     for(const id of ids)rows.push(id==='S21'?
       row(id,'done','TEST and LIVE resources are isolated; no data copy is scheduled'):
       dashboardStep(id,'needs_you','LIVE provider state was not queried and cannot be inferred from TEST.',
-        'account','Complete separately approved owner LIVE review; production activation stays OFF'));
+        'account','Complete separately approved owner LIVE review; production activation stays OFF',
+        dashboardBase('live')));
     return {account,app:spec.profile.name,source:spec.source,mode:'live',
       ready:false,liveProviderQueried:false,rows,counts:count(rows),
       ownerAction:'Separate approved LIVE account and Dashboard acceptance required'};
   }
   const sdk=await client(ctx);
-  const accountInfo=await observed(()=>readVerifiedTestAccount(sdk,account));
-  if(!accountInfo.ok)throw new TypeError('Independent selected Stripe TEST identity unavailable');
+  const accountInfo=await observed(()=>cmode==='live'?
+    readVerifiedLiveAccount(sdk,account):readVerifiedTestAccount(sdk,account));
+  if(!accountInfo.ok)throw new TypeError('Independent selected Stripe '+label+' identity unavailable');
   const info=accountInfo.value;
   const profile=info.business_profile??{};
   const brand=info.settings?.branding??{};
   rows.push(row('S1',info.charges_enabled===true&&info.details_submitted===true?
-    'done':'needs_you','TEST account read; verify owner identity and required business details in Dashboard',
-    {settingsUrl:dashboard+'account'}));
+    'done':'needs_you',label+' account read; verify owner identity and required business details in Dashboard',
+    {settingsUrl:dash+'account'}));
   rows.push(row('S2','needs_you',
-    'Account name, logo, icon, brand color and actual hosted TEST Checkout presentation all require owner verification',
-    {settingsUrl:dashboard+'settings/branding',
-      ownerAction:'Verify all required assets and inspect an actual TEST hosted Checkout page',
+    'Account name, logo, icon, brand color and actual hosted '+label+' Checkout presentation all require owner verification',
+    {settingsUrl:dash+'settings/branding',
+      ownerAction:'Verify all required assets and inspect an actual '+label+' hosted Checkout page',
       observed:{businessNamePresent:Boolean(info.business_profile?.name),
         logoPresent:Boolean(brand.logo),iconPresent:Boolean(brand.icon),
         primaryColorPresent:Boolean(brand.primary_color)},
       hostedPageVerified:false}));
-  rows.push(dashboardStep('S3',
+  rows.push(step('S3',
     profile.support_email&&profile.support_phone?'done':'needs_you',
     'Public customer support email and phone are required','settings/public-details',
     'Review own-account public details'));
-  rows.push(dashboardStep('S4',
+  rows.push(step('S4',
     typeof info.settings?.payments?.statement_descriptor==='string'&&
     info.settings.payments.statement_descriptor.length>=5?'done':'needs_you',
     'Owner statement descriptor is a Dashboard-controlled own-account setting',
     'settings/public-details','Verify recognizable statement text'));
-  rows.push(dashboardStep('S5','needs_you','Receipt-email delivery preference is Dashboard-only',
+  rows.push(step('S5','needs_you','Receipt-email delivery preference is Dashboard-only',
     'settings/emails','Check customer payment receipt emails'));
-  rows.push(dashboardStep('S6','needs_decision','IN-09: Choose which extra Stripe customer emails do not duplicate app notices',
+  rows.push(step('S6','needs_decision','IN-09: Choose which extra Stripe customer emails do not duplicate app notices',
     'settings/emails','Record owner email policy'));
-  rows.push(dashboardStep('S7','needs_decision',
+  rows.push(step('S7','needs_decision',
     'IN-08: Recommend leave past-due subscription/invoice open after retries because app owns delinquency',
     'settings/billing/automatic','Owner must approve final-failure policy'));
-  rows.push(dashboardStep('S8','needs_decision','IN-08: Smart Retries cadence requires owner decision',
+  rows.push(step('S8','needs_decision','IN-08: Smart Retries cadence requires owner decision',
     'settings/billing/automatic','Approve retry schedule and compare observed Dashboard settings'));
   // Three native provider operations are independently probed; unsupported
   // restricted-key reads always stay not_readable rather than treated as OFF.
@@ -213,8 +226,8 @@ async function readiness(a,ctx){
     unresolved.find(method=>observedMethods[method]?.available===true&&
       observedMethods[method]?.preference!=='on'):null;
   rows.push(!methods.length?row('S9','not_applicable','Project declares no supported card or ACH requirement'):
-    !a.paymentMethodConfiguration?dashboardStep('S9','needs_you',
-      'Choose exact active own TEST payment configuration for all declared methods',
+    !a.paymentMethodConfiguration?step('S9','needs_you',
+      'Choose exact active own '+label+' payment configuration for all declared methods',
       'settings/payment_methods','Identify direct payment-method configuration'):
     !paymentConfig?row('S9','not_readable','Direct Stripe payment configuration unavailable'):
     row('S9',unresolved.length?'missing':'done',
@@ -227,7 +240,7 @@ async function readiness(a,ctx){
   const targetPortal=a.portalConfiguration?
     await observed(()=>sdk.billingPortal.configurations.retrieve(a.portalConfiguration)):null;
   let portal=null;
-  if(targetPortal?.ok){try{portal=safePortal(targetPortal.value);}catch{portal=null;}}
+  if(targetPortal?.ok){try{portal=safePortal(targetPortal.value,cmode);}catch{portal=null;}}
   const rules=spec.profile.portal_rules;
   const features=rules?Object.fromEntries(Object.entries(mapping)
     .filter(([k])=>rules[k]!==undefined)
@@ -235,8 +248,8 @@ async function readiness(a,ctx){
   const mismatches=portal&&features?Object.fromEntries(Object.entries(features)
     .filter(([k,value])=>portal.features[k]!==value)):{};
   rows.push(!rules?row('S10','needs_decision','No Portal terms were selected by the project'):
-    !a.portalConfiguration?dashboardStep('S10','needs_you',
-      'Select exact TEST portal configuration','settings/billing/portal',
+    !a.portalConfiguration?step('S10','needs_you',
+      'Select exact '+label+' portal configuration','settings/billing/portal',
       'Identify portal configuration used by the application'):
     !portal?row('S10','not_readable','Portal configuration unavailable'):
     row('S10',Object.keys(mismatches).length?'missing':'done',
@@ -253,9 +266,9 @@ async function readiness(a,ctx){
   if(webhook?.ok){
     try{
       rawHook=webhook.value;
-      hook=webhookSafe(rawHook,{detail:'full'});
-      if(rawHook?.application||rawHook?.connect||rawHook?.livemode!==false)
-        throw new TypeError('Unsupported connected or LIVE webhook');
+      hook=webhookSafe(rawHook,{detail:'full',mode:cmode});
+      if(rawHook?.application||rawHook?.connect||rawHook?.livemode!==(cmode==='live'))
+        throw new TypeError('Unsupported connected or wrong-mode webhook');
     }catch{hook=null;rawHook=null;}
   }
   const required=spec.profile.webhook_events;
@@ -263,34 +276,34 @@ async function readiness(a,ctx){
   const destinationMatches=Boolean(hook&&spec.profile.webhook_url&&
     rawHook.url===spec.profile.webhook_url);
   rows.push(!required.length?row('S11','not_applicable','Project declared no webhook events'):
-    !a.webhookEndpoint?dashboardStep('S11','needs_you',
-      'Select the existing TEST webhook endpoint used by this application',
+    !a.webhookEndpoint?step('S11','needs_you',
+      'Select the existing '+label+' webhook endpoint used by this application',
       'webhooks','Choose exact endpoint and verify destination privately'):
-    !hook?row('S11','not_readable','Selected own TEST webhook endpoint unreadable'):
+    !hook?row('S11','not_readable','Selected own '+label+' webhook endpoint unreadable'):
     !destinationMatches?row('S11','needs_you',
       'Selected endpoint destination has not been verified against the application webhook URL'):
     row('S11',missing.length?'missing':'done',
-      missing.length?'Required TEST webhook subscriptions missing':
-        'Required event set appears in selected TEST webhook endpoint',
+      missing.length?'Required '+label+' webhook subscriptions missing':
+        'Required event set appears in selected '+label+' webhook endpoint',
       {observed:{endpoint:hook.id,missingEvents:missing,enabledEventCount:rawHook.enabled_events.length},
         ...(missing.length<=8&&missing.length>0&&
           !rawHook.enabled_events.includes('*')?{
           repair:{kind:'webhook',nativeTool:'webhook_add_events',
             args:{endpointId:hook.id,events:missing}}}:{})}));
-  rows.push(dashboardStep('S12','needs_you',
+  rows.push(step('S12','needs_you',
     'Separate LIVE webhook/secret delivery cannot be inferred from TEST','webhooks',
     'After LIVE approval, configure exact seven events and store signing secret privately'));
   rows.push(row('S13','needs_you',
     'Owner must verify the exact declared read/write restricted-key permissions in Stripe Dashboard',
-    {settingsUrl:dashboard+'apikeys',
+    {settingsUrl:dash+'apikeys',
       ownerAction:'Create or inspect app key using exactly these permissions; never share secret bytes in chat',
       requiredPermissions:permissionList(spec.profile.key_permissions),
       permissionVerification:'not_verified'}));
-  rows.push(dashboardStep('S14','needs_you','Phone card-not-present acceptance may need Stripe support',
+  rows.push(step('S14','needs_you','Phone card-not-present acceptance may need Stripe support',
     'account','Confirm phone payment support and separate fraud procedures'));
-  rows.push(dashboardStep('S15','needs_you','Payout destination and schedule require private owner verification',
+  rows.push(step('S15','needs_you','Payout destination and schedule require private owner verification',
     'payouts','Review bank destination without exposing digits'));
-  rows.push(dashboardStep('S16','needs_you','Two-step sign-in and permitted team roles are Dashboard-controlled',
+  rows.push(step('S16','needs_you','Two-step sign-in and permitted team roles are Dashboard-controlled',
     'team','Require 2FA for owner/team members'));
   rows.push(row('S17','not_applicable',
     'Optional paid custom payment domain is not selected; no purchase attempted'));
@@ -305,9 +318,9 @@ async function readiness(a,ctx){
     'Separate TEST and LIVE datasets; no TEST cleanup/copy to LIVE is necessary'));
   const counts=count(rows);
   return {account,app:spec.profile.name,source:spec.source,profileVersion:spec.version??null,
-    mode:'test',ready:rows.every(r=>['done','not_applicable'].includes(r.status)),
-    liveProviderQueried:false,providerObserved:true,rows,counts,
-    action:'Use workflow_app_readiness_fix for one individually confirmed eligible TEST repair; rerun readiness afterward. Dashboard/owner decisions cannot be auto-fixed.'};
+    mode:cmode,ready:rows.every(r=>['done','not_applicable'].includes(r.status)),
+    liveProviderQueried:cmode==='live',providerObserved:true,rows,counts,
+    action:'Use workflow_app_readiness_fix for one individually confirmed eligible '+label+' repair; rerun readiness afterward. Dashboard/owner decisions cannot be auto-fixed.'};
 }
 function count(rows){
   return Object.fromEntries(choices.map(c=>[c,rows.filter(r=>r.status===c).length]));
@@ -315,7 +328,7 @@ function count(rows){
 function verifiedInput(a){
   if(!isPlain(a)||Object.keys(a).some(k=>!['app','target',
     'webhookEndpoint','portalConfiguration','paymentMethodConfiguration',
-    'dryRun','confirm','requestKey'].includes(k))||
+    'dryRun','confirm','requestKey','previewFingerprint'].includes(k))||
     !/^[a-z][a-z0-9-]{2,63}$/.test(a.app??'')||
     !['S9','S10','S11'].includes(a.target))
     throw new TypeError('Exact bound app and one actionable readiness row required');
@@ -337,7 +350,8 @@ function fixWrite(){
       target=match.repair;
       return {id:report.account,metadata:{},row:a.target};
     },
-    summarize:(_old,a)=>'TEST MODE: one distinct guarded '+a.target+
+    summarize:(_old,a,ctx)=>(ctx?.connection?.mode==='live'?'LIVE':'TEST')+
+      ' MODE: one distinct guarded '+a.target+
       ' readiness repair for '+a.app+' via '+target.nativeTool+
       '. No other project rows, LIVE operations, catalog, money or owner policy decisions change.',
     apply:async(a,ctx)=>{
@@ -378,7 +392,7 @@ export const tools=[
       paymentMethodConfiguration:{type:'string',pattern:'^pmc_[A-Za-z0-9]{2,100}$'}},
       additionalProperties:false}},
   {...write.tool,area:'projects',profiles:fullProfiles,
-    description:'Individually confirmed TEST repair of one observed P-3 gap through its guarded native tool.',
+    description:'Individually confirmed repair of one observed P-3 gap through its guarded native tool, in the connection mode.',
     inputSchema:{type:'object',properties:{
       app:{type:'string',pattern:'^[a-z][a-z0-9-]{2,63}$'},
       target:{type:'string',enum:['S9','S10','S11']},
@@ -386,14 +400,22 @@ export const tools=[
       portalConfiguration:{type:'string',pattern:'^bpc_[A-Za-z0-9_]{3,190}$'},
       paymentMethodConfiguration:{type:'string',pattern:'^pmc_[A-Za-z0-9]{2,100}$'},
       dryRun:{type:'boolean'},confirm:{type:'boolean'},
+      previewFingerprint:{type:'string',maxLength:64},
       requestKey:{type:'string',minLength:1,maxLength:128}},
       required:['app','target'],additionalProperties:false}}
 ];
 export const handlers={
   async workflow_app_readiness(a,ctx){
-    try{return reply(await readiness(a,ctx));}
+    // The read keeps its historical TEST-only reachability exactly:
+    // readiness() is mode-parameterized only because the converted
+    // fix's internal observation depends on it. Read reachability
+    // belongs to CAP-4, not to this family's write conversion.
+    try{
+      if(ctx?.connection?.mode!=='test')
+        throw new TypeError('Select an enrolled TEST account');
+      return reply(await readiness(a,ctx));
+    }
     catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   },
-  workflow_app_readiness_fix:(a,ctx)=>ctx?.connection?.mode==='test'?
-    fixWrite().handler(a,ctx):gone('Readiness changes are TEST-only')
+  workflow_app_readiness_fix:(a,ctx)=>fixWrite().handler(a,ctx)
 };

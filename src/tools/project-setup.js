@@ -1,30 +1,39 @@
 // P-4: one confirmed child mutation per durable step, never an untracked batch.
 // An incomplete or uncertain child cannot be replayed automatically.
-import {defineWrite,gone} from './write.js';
+import {defineWrite} from './write.js';
 import {client,allProfiles,fullProfiles,reply,fail} from './billing-shared.js';
-import {readVerifiedTestAccount} from '../stripe/test-account.js';
+import {readVerifiedTestAccount,readVerifiedLiveAccount} from '../stripe/test-account.js';
 import {draftFromFindings,normalizedSetup,appNeeds} from '../projects/setup.js';
 
 const bad=x=>{throw new TypeError(x);};
 const bo={type:'boolean'},reqKey={type:'string',minLength:1,maxLength:128};
+const fingerprint={type:'string',maxLength:64};
 const schema=(p,r=[])=>({type:'object',properties:p,required:r,additionalProperties:false});
 const acct=x=>typeof x==='string'&&/^acct_[A-Za-z0-9]{2,100}$/.test(x);
 const json=r=>{
   try{return JSON.parse(r?.content?.[0]?.text);}catch{return null;}
 };
+// Owner-obedience V2 family 13, provider-write half (ruling 4):
+// the selected account is verified in the connection's own mode —
+// the historical TEST proof in TEST, the independent LIVE account
+// and balance proof in LIVE. Any other mode keeps the historical
+// refusal text.
 async function verified(ctx,{needsDb=false}={}){
-  if(ctx?.connection?.mode!=='test'||!acct(ctx.connection.stripeAccount))
+  const mode=ctx?.connection?.mode;
+  if(!['test','live'].includes(mode)||!acct(ctx?.connection?.stripeAccount))
     bad('Exact selected TEST account required');
   if(needsDb&&(!ctx.db||[
     'getProjectSetupRun','reserveProjectSetupStep','completeProjectSetupStep',
     'createProjectDraft','getKnownApp'].some(k=>typeof ctx.db[k]!=='function')))
     bad('Durable project setup state or draft registry unavailable');
   const sdk=await client(ctx);
-  await readVerifiedTestAccount(sdk,ctx.connection.stripeAccount);
+  if(mode==='live')
+    await readVerifiedLiveAccount(sdk,ctx.connection.stripeAccount);
+  else await readVerifiedTestAccount(sdk,ctx.connection.stripeAccount);
   return sdk;
 }
-function safePortal(o){
-  if(o?.object!=='billing_portal.configuration'||o.livemode!==false||
+function safePortal(o,mode){
+  if(o?.object!=='billing_portal.configuration'||o.livemode!==(mode==='live')||
     !/^bpc_[A-Za-z0-9_]{3,190}$/.test(o.id??'')||
     o.application||o.active!==true)return null;
   return o;
@@ -46,7 +55,7 @@ function portalWrite(){
     read:async(a,ctx)=>{
       if(!a||typeof a!=='object'||Array.isArray(a)||
         Object.keys(a).some(x=>![
-          'portalRules','dryRun','confirm','requestKey'].includes(x))||
+          'portalRules','dryRun','confirm','requestKey','previewFingerprint'].includes(x))||
         !a.portalRules||typeof a.requestKey!=='string'||!a.requestKey||
         a.requestKey.length>128)bad('Explicit portal policy and stable key required');
       const rules=a.portalRules,names=['allow_cancel','allow_plan_switch',
@@ -58,14 +67,20 @@ function portalWrite(){
       await verified(ctx);
       return {id:ctx.connection.stripeAccount,metadata:{}};
     },
-    summarize:(b)=>'TEST '+b.id+
+    summarize:(b,_a,ctx)=>ctx?.connection?.mode==='live'?
+      'LIVE '+b.id+
+      ': create one independent native Billing Portal configuration with explicit four-choice policy.'+
+      ' Guarded confirmation, stable request key and provider readback; the configuration is created'+
+      ' on the LIVE account, where real customers can use it; no app profile is bound to the account'+
+      ' and no app policy is activated.':
+      'TEST '+b.id+
       ': create one independent native Billing Portal configuration with explicit four-choice policy.'+
       ' Guarded confirmation, stable request key and provider readback; no LIVE or app policy activation.',
     apply:async(a,ctx,{idempotencyKey})=>{
       const s=await verified(ctx);
       const created=await s.billingPortal.configurations.create(
         desiredPortal(a.portalRules),{idempotencyKey});
-      if(!safePortal(created))bad('Unsafe Portal creation response');
+      if(!safePortal(created,ctx.connection.mode))bad('Unsafe Portal creation response');
       id=created.id;
     },
     readAfter:async(_a,ctx)=>{
@@ -73,8 +88,8 @@ function portalWrite(){
       const s=await verified(ctx);
       return s.billingPortal.configurations.retrieve(id);
     },
-    verify:(_before,after,a)=>{
-      const p=safePortal(after);
+    verify:(_before,after,a,ctx)=>{
+      const p=safePortal(after,ctx?.connection?.mode);
       if(!p||p.id!==id)return false;
       const expected=desiredPortal(a.portalRules).features;
       return Object.keys(expected).every(k=>
@@ -120,7 +135,7 @@ function setupWrite(){
     name:'workflow_project_setup',
     read:async(a,ctx)=>{
       if(!a||typeof a!=='object'||Array.isArray(a)||
-        Object.keys(a).some(x=>!['project','requestKey','dryRun','confirm'].includes(x))||
+        Object.keys(a).some(x=>!['project','requestKey','dryRun','confirm','previewFingerprint'].includes(x))||
         typeof a.requestKey!=='string'||a.requestKey.length<1||
         a.requestKey.length>100)bad('Exact project and stable requestKey required');
       plan=normalizedSetup(a.project);
@@ -141,10 +156,14 @@ function setupWrite(){
         bad('Independent product readback missing; price cannot be created');
       return {id:account,metadata:{},step};
     },
-    summarize:()=>{
-      return 'TEST project '+plan.profile.id+': confirm ONLY '+step+
+    summarize:(_before,_a,ctx)=>{
+      const live=ctx?.connection?.mode==='live';
+      return (live?'LIVE':'TEST')+' project '+plan.profile.id+': confirm ONLY '+step+
         ' of '+plan.steps.join(' → ')+'. Other steps need separate confirmation.'+
-        ' Pending provider outcomes cannot be automatically replayed; draft never activates ownership.';
+        ' Pending provider outcomes cannot be automatically replayed; draft never activates ownership.'+
+        (live?' Provider objects for this step are created or verified on the LIVE account;'+
+          ' the setup records a draft profile only — it does not bind the profile to the account'+
+          ' and does not enable scoped ownership.':'');
     },
     apply:async(a,ctx)=>{
       const account=ctx.connection.stripeAccount,id=plan.profile.id,digest=plan.digest;
@@ -155,7 +174,7 @@ function setupWrite(){
       if(step==='webhook'){
         outcome=await wrappedChild('webhook_create',{
           url:p.webhookUrl,events:p.webhookEvents,
-          description:'Project '+id+' TEST webhook',requestKey:key,confirm:true},ctx);
+          description:'Project '+id+' '+(ctx.connection.mode==='live'?'LIVE':'TEST')+' webhook',requestKey:key,confirm:true},ctx);
         resultId=receiptId(outcome,'webhook');
       }else if(step==='portal'){
         const name=p.portalConfiguration?'portal_update_configuration':
@@ -181,7 +200,7 @@ function setupWrite(){
           resultId=p.paymentMethodConfiguration;
         }
       }else if(step==='brand'){
-        const existing=await ctx.db.getBrandKit({account,mode:'test'});
+        const existing=await ctx.db.getBrandKit({account,mode:ctx.connection.mode});
         outcome=await wrappedChild('brand_save_kit',{
           kit:p.brandKit,expectedVersion:existing?.version??0,
           requestKey:key,confirm:true},ctx);
@@ -220,7 +239,6 @@ function setupWrite(){
   });
   return {tool:op.tool,handler:async(a,ctx)=>{
     plan=null;step=null;child=null;
-    if(ctx?.connection?.mode!=='test')return gone('Project setup requires TEST mode');
     // A completed setup is an idempotent read, not another provider mutation.
     let checked,run;
     try{
@@ -259,13 +277,15 @@ export const tools=[
     description:'Transform explicitly supplied code findings into review-only project profile and APP-NEEDS text.',
     inputSchema:schema({findings:{type:'object'}},['findings'])},
   {...portalTool,area:'projects',profiles:fullProfiles,safety:'C',
-    description:'Create one confirmed native TEST Billing Portal configuration from exact owner policy.',
+    description:'Create one confirmed native Billing Portal configuration from exact owner policy in the connection mode.',
     inputSchema:schema({portalRules:{type:'object'},
-      requestKey:reqKey,dryRun:bo,confirm:bo},['portalRules','requestKey'])},
+      requestKey:reqKey,dryRun:bo,confirm:bo,previewFingerprint:fingerprint},
+      ['portalRules','requestKey'])},
   {...setup.tool,area:'projects',profiles:fullProfiles,safety:'C',
-    description:'Advance one durable, separately confirmed native TEST project setup step; never activate a draft.',
+    description:'Advance one durable, separately confirmed native project setup step in the connection mode; never activate a draft.',
     inputSchema:schema({project:{type:'object'},requestKey:reqKey,
-      dryRun:bo,confirm:bo},['project','requestKey'])}
+      dryRun:bo,confirm:bo,previewFingerprint:fingerprint},
+      ['project','requestKey'])}
 ];
 export const handlers={
   project_draft_profile(a){
@@ -278,7 +298,6 @@ export const handlers={
         note:'Review and commit text manually in the project repository; no code fetched'});
     }catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   },
-  project_portal_create:(a,ctx)=>ctx?.connection?.mode==='test'?
-    portalWrite().handler(a,ctx):gone('Portal creation is TEST only'),
+  project_portal_create:(a,ctx)=>portalWrite().handler(a,ctx),
   workflow_project_setup:(a,ctx)=>setupWrite().handler(a,ctx)
 };
