@@ -1,3 +1,41 @@
+## 2026-11-03 — Owner-obedience V2 Disputes family: source-implemented (source)
+
+Family 2 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-DISPUTES](pr-cards/OWNER-OBEDIENCE-V2-DISPUTES.md)):
+
+- **Handlers converted.** The TEST-mode wrapper gates are gone
+  from dispute evidence submission, dispute acceptance and
+  dispute evidence drafts. Every `livemode` invariant — the
+  dispute, its charge, each staged evidence file, and every
+  read-back — now demands the connection's own mode in both
+  directions; the provider client already resolves mode-awarely
+  through the shared seam from PR #304, and dispatcher
+  admission was already correct (the disputes area was already
+  a guarded LIVE area), so `profiles.js` is untouched.
+- **Disclosure.** Submission previews are mode-labeled and, in
+  both modes, state the disputed amount and deadline and say
+  plainly that submitted evidence goes to the issuing bank and
+  cannot be edited or withdrawn. Acceptance previews disclose
+  that accepting concedes the full disputed amount plus
+  Stripe's dispute fee, which is not returned. Draft previews
+  state the draft stays revisable until submission. Confirms
+  bind to the shared preview fingerprint in both modes: a
+  drifted confirmation refuses with the fresh preview and
+  fingerprint and executes nothing.
+- **Accept's money gates are unrelaxed.** The money spec and
+  the `defineWrite` money wiring are untouched — rows 20–21
+  (exact owner approval; the shared $500 daily cap with its
+  second override) bind exactly as before, proven in LIVE by
+  an owner approval granted through the decision-intent path
+  closing exactly once and counting against the day, and by
+  the unchanged TEST refusal suites. No new money path was
+  created; submission and drafts move no money.
+- **Live proof remains open** (CAP-5 queue): a real LIVE
+  dispute submission or acceptance happens only when a real
+  dispute exists and the owner elects to act on it. No account
+  was enabled, no LIVE key was used, and no real money moved.
+
 ## 2026-11-03 — Owner-obedience V2 Money family: fully source-implemented, including the money-out execution leg (source)
 
 Family 1 of 13 of conformance row 17's V2 conversion is

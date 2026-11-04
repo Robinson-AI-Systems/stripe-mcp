@@ -720,8 +720,16 @@ V3, then V4.
   the same day (follow-up commit): the reservation now binds a
   non-pass approval's mode to the mode stored on the connection's
   own token row, and the family is fully source-implemented,
-  execution leg included. Remaining families:
-  Disputes; Payments; Invoices & credit notes; Billing; Checkout;
+  execution leg included. Family 2 of 13, **Disputes**, is
+  source-implemented the same day (OWNER-OBEDIENCE-V2-DISPUTES):
+  the three handler gates (submit evidence, accept, save
+  evidence) are removed, every dispute/charge/file/read-back
+  invariant is mode-parameterized, submission and acceptance
+  previews disclose finality and the full concession plus the
+  dispute fee in both modes, and dispute acceptance's money-out
+  wiring (rows 20–21) is untouched and proven unrelaxed in
+  LIVE. Remaining families:
+  Payments; Invoices & credit notes; Billing; Checkout;
   Radar; Identity; Files; Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.

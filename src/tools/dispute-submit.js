@@ -1,28 +1,34 @@
-// G-2d1: final TEST dispute evidence submission is separate from draft saving.
+// G-2d1: final dispute evidence submission is separate from draft saving.
 // Preflight enumerates ALL staged evidence fields without revealing their text.
-import {defineWrite,gone} from './write.js';
+import {defineWrite} from './write.js';
 import {client,writeProfiles,validateFields,ref,local} from './billing-shared.js';
 const id=(kind,v)=>typeof v==='string'&&new RegExp('^'+kind+'_[A-Za-z0-9]{2,100}$').test(v);
 const invalid=message=>{throw new TypeError(message);};
 const props={disputeId:{type:'string',pattern:'^du_[A-Za-z0-9]{2,100}$'},
   outsideApp:{type:'boolean'}};
 function checkArgs(args){
-  validateFields(args,props,['disputeId']);
-  if(!id('du',args.disputeId))invalid('Exact dispute ID required');
+  // previewFingerprint is a core write-lifecycle control field (V2
+  // shared card, ruling 5: uniform across modes); src/core/write.js
+  // consumes it, so it is stripped before field validation and
+  // declared in the tool schema instead.
+  const {previewFingerprint:_control,...fields}=args??{};
+  validateFields(fields,props,['disputeId']);
+  if(!id('du',fields.disputeId))invalid('Exact dispute ID required');
 }
 async function preflight(args,ctx){
   checkArgs(args);
+  const live=ctx?.connection?.mode==='live';
   const s=await client(ctx),d=await s.disputes.retrieve(args.disputeId),details=d?.evidence_details;
-  if(d?.object!=='dispute'||d.id!==args.disputeId||d.livemode!==false||
+  if(d?.object!=='dispute'||d.id!==args.disputeId||d.livemode!==live||
     !['needs_response','warning_needs_response'].includes(d.status)||
     !Number.isSafeInteger(details?.due_by)||details.due_by<=Math.floor(Date.now()/1000)||
     details.past_due===true||details.submission_count!==0||
     !Number.isSafeInteger(d.amount)||d.amount<1||d.currency!=='usd')
-    invalid('Only unsubmitted, unexpired USD TEST disputes can submit evidence');
+    invalid('Only unsubmitted, unexpired USD '+(live?'LIVE':'TEST')+' disputes can submit evidence');
   const chargeId=ref(d.charge);
   if(!id('ch',chargeId))invalid('Exact disputed charge is required');
   const charge=await s.charges.retrieve(chargeId);
-  if(charge?.object!=='charge'||charge.id!==chargeId||charge.livemode!==false||
+  if(charge?.object!=='charge'||charge.id!==chargeId||charge.livemode!==live||
     charge.currency!==d.currency||!Number.isSafeInteger(charge.amount)||
     charge.amount<d.amount)
     invalid('Disputed charge identity or amount cannot be verified');
@@ -41,7 +47,7 @@ async function preflight(args,ctx){
     if(fileId){
       const file=await s.files.retrieve(fileId);
       if(file?.object!=='file'||file.id!==fileId||file.purpose!=='dispute_evidence'||
-        file.livemode===true||!Number.isSafeInteger(file.size)||
+        file.livemode!==live||!Number.isSafeInteger(file.size)||
         file.size<1||file.size>10*1024*1024)
         invalid('Staged evidence file identity or purpose cannot be verified');
     }
@@ -49,9 +55,11 @@ async function preflight(args,ctx){
   }
   if(inventory.length===0||details.has_evidence===false)
     invalid('Stage evidence before submitting the dispute');
-  const summary='TEST ONLY. IRREVERSIBLE evidence submission for '+d.id+
-    '; due '+local(details.due_by)+'; fields: '+inventory.join(', ')+
-    '. Submit ONCE to issuing bank; not a draft and cannot be undone.';
+  const summary=(live?'LIVE MODE':'TEST ONLY')+'. IRREVERSIBLE evidence submission for '+d.id+
+    '; disputed amount $'+(d.amount/100).toFixed(2)+' USD; due '+local(details.due_by)+
+    '; fields: '+inventory.join(', ')+
+    '. Submitting sends this evidence to the issuing bank; once submitted it'+
+    ' cannot be edited or withdrawn. This is not a draft.';
   if(summary.length>1024)invalid('Evidence inventory too large for safe preview; review in Dashboard');
   return {...d,_summary:summary,charge:chargeId,
     metadata:{...(charge.metadata??{}),...(d.metadata??{})},customer:charge.customer??null};
@@ -64,7 +72,8 @@ export function makeDisputeSubmit(){
       await (await client(ctx)).disputes.update(a.disputeId,{submit:true},{idempotencyKey});
     },
     readAfter:async(a,ctx)=>(await client(ctx)).disputes.retrieve(a.disputeId),
-    verify:(b,a)=>a?.object==='dispute'&&a.id===b.id&&a.livemode===false&&
+    verify:(b,a,_args,ctx)=>a?.object==='dispute'&&a.id===b.id&&
+      a.livemode===(ctx?.connection?.mode==='live')&&
       a.currency===b.currency&&a.amount===b.amount&&ref(a.charge)===b.charge&&
       ['under_review','warning_under_review'].includes(a.status)&&
       Number.isSafeInteger(a.evidence_details?.submission_count)&&
@@ -73,12 +82,12 @@ export function makeDisputeSubmit(){
 }
 const op=makeDisputeSubmit();
 export const tools=[{...op.tool,area:'disputes',profiles:writeProfiles,safety:'C',
-  description:'Irreversibly submit staged TEST dispute evidence only after guarded confirmation.',
+  description:'Irreversibly submit staged dispute evidence only after guarded confirmation.',
   annotations:{destructiveHint:true},
   inputSchema:{type:'object',properties:{...props,dryRun:{type:'boolean'},
-    confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+    confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128},
+    previewFingerprint:{type:'string',maxLength:64}},
     required:['disputeId'],additionalProperties:false}}];
 export const handlers={dispute_submit_evidence:(a,ctx)=>
-  ctx?.connection?.mode!=='test'?gone('Dispute evidence submission requires TEST mode'):
   makeDisputeSubmit().handler(a,{...ctx,
     getCustomer:async id=>(await client(ctx)).customers.retrieve(id)})};

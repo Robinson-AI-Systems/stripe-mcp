@@ -1,6 +1,6 @@
-// G-2c: stage evidence in TEST without submitting to a bank.
+// G-2c: stage evidence without submitting to a bank.
 // Safe provider read-back; no private evidence appears in the MCP response.
-import {defineWrite,gone} from './write.js';
+import {defineWrite} from './write.js';
 import {client,writeProfiles,validateFields,ref,local} from './billing-shared.js';
 const id=(name,value)=>typeof value==='string'&&new RegExp(
   '^'+name+'_[A-Za-z0-9]{2,100}$').test(value);
@@ -24,7 +24,12 @@ for(const name of Object.keys(fileFields))
 const fields=Object.keys(textFields).concat(Object.keys(fileFields));
 function invalid(message){throw new TypeError(message);}
 function validate(args){
-  validateFields(args,props,['disputeId']);
+  // previewFingerprint is a core write-lifecycle control field (V2
+  // shared card, ruling 5: uniform across modes); src/core/write.js
+  // consumes it, so it is stripped before field validation and
+  // declared in the tool schema instead.
+  const {previewFingerprint:_control,...clean}=args??{};
+  validateFields(clean,props,['disputeId']);
   if(!id('du',args.disputeId))invalid('Exact dispute ID required');
   if(!fields.some(k=>args[k]!==undefined))
     invalid('Provide at least one evidence field to stage');
@@ -40,15 +45,15 @@ const mapFields=args=>Object.fromEntries([
   ...Object.entries(fileFields).filter(([key])=>args[key]!==undefined)
     .map(([key,field])=>[field,args[key]])
 ]);
-function target(d,idValue) {
-  if(d?.object!=='dispute'||d.id!==idValue||d.livemode!==false||
+function target(d,idValue,live) {
+  if(d?.object!=='dispute'||d.id!==idValue||d.livemode!==live||
     !['needs_response','warning_needs_response'].includes(d.status)||
     d.evidence_details?.past_due===true||
     !Number.isSafeInteger(d.evidence_details?.due_by)||
     d.evidence_details.due_by<=Math.floor(Date.now()/1000)||
     !Number.isSafeInteger(d.evidence_details?.submission_count)||
     d.evidence_details.submission_count!==0)
-    invalid('Only unsubmitted TEST disputes before the evidence deadline may be drafted');
+    invalid('Only unsubmitted '+(live?'LIVE':'TEST')+' disputes before the evidence deadline may be drafted');
   return d;
 }
 export function makeDisputeDraft() {
@@ -57,32 +62,35 @@ export function makeDisputeDraft() {
     name:'dispute_save_evidence',
     read:async(a,ctx)=>{
       validate(a);
+      const live=ctx?.connection?.mode==='live';
       const stripe=await client(ctx),d=target(
-        await stripe.disputes.retrieve(a.disputeId),a.disputeId);
+        await stripe.disputes.retrieve(a.disputeId),a.disputeId,live);
       const charge=ref(d.charge);
       if(!id('ch',charge))invalid('Verified dispute charge required');
       const payment=await stripe.charges.retrieve(charge);
       if(payment?.object!=='charge'||payment.id!==charge||
-        payment.livemode===true)invalid('Dispute charge cannot be verified');
+        payment.livemode!==live)invalid('Dispute charge cannot be verified');
       for(const key of Object.keys(fileFields).filter(k=>a[k]!==undefined)){
         const f=await stripe.files.retrieve(a[key]);
         if(f?.object!=='file'||f.id!==a[key]||
-          f.purpose!=='dispute_evidence'||f.livemode===true||
+          f.purpose!=='dispute_evidence'||f.livemode!==live||
           !Number.isSafeInteger(f.size)||f.size<1||f.size>10*1024*1024)
-          invalid('Uploaded TEST evidence file identity/purpose is invalid');
+          invalid('Uploaded '+(live?'LIVE':'TEST')+' evidence file identity/purpose is invalid');
       }
       // Preserve both direct and charge/customer app ownership markers.
       return {...d,metadata:{...(payment.metadata??{}),...(d.metadata??{})},
         customer:payment.customer??null};
     },
-    summarize:(before,a)=>{
+    summarize:(before,a,ctx)=>{
       const selected=mapFields(a);
       const summaries=Object.entries(selected).map(([key,v])=>
         key+' ('+(key.endsWith('_file')||Object.values(fileFields).includes(key)?
           'verified file '+v:'text '+v.length+' characters')+')');
-      return 'TEST ONLY. Save draft evidence for '+before.id+' (deadline '+
+      return (ctx?.connection?.mode==='live'?'LIVE MODE':'TEST ONLY')+
+        '. Save draft evidence for '+before.id+' (deadline '+
         local(before.evidence_details.due_by)+'), fields: '+summaries.join(', ')+
-        '. Explicit submit:false; nothing is submitted to the bank.';
+        '. Explicit submit:false; nothing is submitted to the bank.'+
+        ' This draft can be revised until the evidence is submitted.';
     },
     apply:async(a,ctx,{idempotencyKey})=>{
       const payload=mapFields(a);
@@ -92,8 +100,9 @@ export function makeDisputeDraft() {
     },
     readAfter:async(a,ctx)=>
       (await client(ctx)).disputes.retrieve(a.disputeId),
-    verify:(before,after)=>after?.object==='dispute'&&
-      after.id===before.id&&after.livemode===false&&
+    verify:(before,after,_args,ctx)=>after?.object==='dispute'&&
+      after.id===before.id&&
+      after.livemode===(ctx?.connection?.mode==='live')&&
       ['needs_response','warning_needs_response'].includes(after.status)&&
       after.evidence_details?.submission_count===0&&
       Object.entries(staged??{}).every(([key,v])=>
@@ -111,11 +120,11 @@ export function makeDisputeDraft() {
   }};
 }
 export const tools=[{...makeDisputeDraft().tool,area:'disputes',profiles:writeProfiles,
-  description:'Stage TEST dispute evidence with submit:false, guarded preview and verified read-back.',
+  description:'Stage dispute evidence with submit:false, guarded preview and verified read-back.',
   inputSchema:{type:'object',properties:{...props,dryRun:{type:'boolean'},
-    confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128}},
+    confirm:{type:'boolean'},requestKey:{type:'string',minLength:1,maxLength:128},
+    previewFingerprint:{type:'string',maxLength:64}},
     required:['disputeId'],additionalProperties:false}}];
-export const handlers={dispute_save_evidence:(a,ctx)=>ctx?.connection?.mode!=='test'?
-  gone('Dispute evidence drafts require TEST mode'):
+export const handlers={dispute_save_evidence:(a,ctx)=>
   makeDisputeDraft().handler(a,{...ctx,
     getCustomer:async id=>(await client(ctx)).customers.retrieve(id)})};

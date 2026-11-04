@@ -1,4 +1,4 @@
-import {describe,it,expect,vi} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
 import {makeDisputeDraft,tools,handlers} from '../../src/tools/dispute-evidence-draft.js';
 import {registry} from '../../src/tools/index.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
@@ -100,5 +100,72 @@ describe('G-2c TEST dispute draft, never submit',()=>{
       ...f.ctx,connection:{...f.ctx.connection,profile:'read_only'}});
     expect(readOnly.isError).toBe(true);
     expect(f.s.disputes.update).not.toHaveBeenCalled();
+  });
+});
+describe('G-2c LIVE dispute draft (owner-obedience V2, family 2)',()=>{
+  afterEach(()=>vi.unstubAllEnvs());
+  const account='acct_FAKE123';
+  function liveFixture({livemode=true}={}){
+    let dispute={...structuredClone(initial),livemode};
+    const s={
+      accounts:{retrieve:vi.fn(async()=>({object:'account',id:account,
+        livemode:true}))},
+      balance:{retrieve:vi.fn(async()=>({object:'balance',livemode:true}))},
+      disputes:{
+        retrieve:vi.fn(async()=>dispute),
+        update:vi.fn(async(_id,params)=>{
+          dispute={...dispute,evidence:{...dispute.evidence,...params.evidence}};
+          return dispute;
+        })},
+      charges:{retrieve:vi.fn(async()=>({object:'charge',id:chargeId,
+        livemode,customer:null,metadata:{}}))},
+      files:{retrieve:vi.fn(async()=>({object:'file',id:fileId,
+        size:140,purpose:'dispute_evidence',livemode}))},
+      customers:{retrieve:vi.fn(async()=>({object:'customer',id:'cus_FAKE',
+        metadata:{}}))}
+    };
+    const ctx={db:createFakeDb({accounts:[{id:account,live_enabled:true,
+        live_connected:true}]}),
+      connectionId:'draft-live-fixture',liveAccessGranted:true,
+      connection:{stripeAccount:account,mode:'live',profile:'full',
+        context:'customer',rtcLiveOwnerApproved:true},
+      services:{stripeForConnection:async()=>s}};
+    const op=makeDisputeDraft();
+    return {s,ctx,call:a=>op.handler(a,ctx)};
+  }
+  it('previews then saves a revisable LIVE draft with submit false',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=liveFixture(),args={disputeId:id,productDescription:privateText,
+      receiptFileId:fileId,requestKey:'live-draft'};
+    const preview=parse(await handlers.dispute_save_evidence(
+      {...args,dryRun:true},f.ctx));
+    expect(preview.needsConfirmation).toBe(true);
+    expect(preview.preview).toContain('LIVE MODE');
+    expect(preview.preview).toContain('submit:false');
+    expect(preview.preview).toContain('can be revised');
+    expect(preview.preview).not.toContain(privateText);
+    expect(preview.previewFingerprint)
+      .toMatch(/^WRITE-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/);
+    expect(f.s.disputes.update).not.toHaveBeenCalled();
+    const done=parse(await handlers.dispute_save_evidence(
+      {...args,confirm:true,previewFingerprint:preview.previewFingerprint},f.ctx));
+    expect(done).toMatchObject({done:true,confirmed:true,disputeId:id,
+      draftFields:['product_description','receipt'],
+      evidenceSubmitted:false,needsBankSubmission:true});
+    expect(f.s.disputes.update).toHaveBeenCalledWith(id,
+      {submit:false,evidence:{product_description:privateText,receipt:fileId}},
+      {idempotencyKey:expect.stringMatching(/^rmcp_dispute_save_evidence_/)});
+    expect(JSON.stringify(done)).not.toContain(privateText);
+  });
+  it('refuses wrong-mode provider objects in both directions',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const liveSide=liveFixture({livemode:false});
+    await expect(liveSide.call({disputeId:id,productDescription:'safe',
+      confirm:true})).rejects.toThrow(/Only unsubmitted LIVE disputes/);
+    expect(liveSide.s.disputes.update).not.toHaveBeenCalled();
+    const testSide=fixture({record:{...initial,livemode:true}});
+    await expect(testSide.call({disputeId:id,productDescription:'safe',
+      confirm:true})).rejects.toThrow(/Only unsubmitted TEST disputes/);
+    expect(testSide.s.disputes.update).not.toHaveBeenCalled();
   });
 });
