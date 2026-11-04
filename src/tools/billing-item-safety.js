@@ -6,7 +6,7 @@ import {protectAppOwnedTarget} from './app-guard.js';
 const supported=new Set(['active','trialing','past_due']);
 export function verifyItemLedger(sub){
   ensureSubscription(sub);
-  if(!supported.has(sub.status))throw new TypeError('Only mutable TEST recurring subscriptions are supported');
+  if(!supported.has(sub.status))throw new TypeError('Only mutable recurring subscriptions are supported');
   if(sub.pending_update)throw new TypeError('Pending subscription update must finish first');
   if(sub.items.data.length>20)
     throw new TypeError('Large multi-item plans need Stripe Dashboard confirmation');

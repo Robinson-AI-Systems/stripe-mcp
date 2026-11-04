@@ -1,3 +1,54 @@
+## 2026-11-03 — Owner-obedience V2 Billing family: source-implemented (source)
+
+Family 5 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-BILLING](pr-cards/OWNER-OBEDIENCE-V2-BILLING.md)):
+
+- **Handlers converted, no dispatcher change.** The TEST-only
+  wrapper gates are gone from all fourteen operations (create,
+  update, change plan, cancel, undo cancel, pause and resume
+  collection; add, update and remove item; create, update,
+  release and cancel schedule). The billing area was already a
+  guarded LIVE area and the provider client already resolved
+  mode-awarely through the shared seam from PR #304, so
+  `profiles.js` is untouched. Every provider object a write is
+  evaluated against — customer, saved payment method, price,
+  subscription, schedule and every preview invoice — and every
+  read-back now demands the connection's own mode in both
+  directions.
+- **Discount verification follows the mode.** The shared
+  subscription projections take the connection's mode, so a
+  discount verifies only in its own mode; a wrong-mode
+  discount yields the unverified sentinel, never a zero.
+  Callers that name no mode keep the historical behavior
+  exactly, and the disputes and invoices suites that share
+  the module were re-run green.
+- **Disclosure.** Previews are mode-labeled and say in plain
+  words what will happen: creation collects the first charge
+  from the saved payment method when the subscription starts
+  and renews each period until canceled; plan and item
+  changes state the exact provider-computed preview total and
+  proration; a period-end cancellation states the date it
+  takes effect and that the customer keeps the service until
+  then and is not charged again. Confirms bind to the shared
+  preview fingerprint in both modes: a drifted confirmation
+  refuses with the fresh preview and fingerprint and executes
+  nothing.
+- **The money gates are unrelaxed.** The money wiring is
+  byte-untouched (`src/tools/write.js`, `src/money.js`,
+  `src/db.js`): `billing_change_plan` keeps its exact
+  provider-derived invoice-preview requirement, proven in
+  LIVE by confirm-alone moving nothing and using $0 of the
+  day, and an owner approval granted through the
+  decision-intent path executing exactly once and counting
+  8500 cents against the day. The customer balance
+  credit/debit item is not part of this conversion
+  (coordinator ruling 3: separate row-35 card).
+- **Live proof remains open** (CAP-5 queue): a real LIVE
+  subscription action happens only on a real account when the
+  owner elects to act. No account was enabled, no LIVE key
+  was used, and no real money moved.
+
 ## 2026-11-03 — Owner-obedience V2 Invoices & credit notes family: source-implemented (source)
 
 Family 4 of 13 of conformance row 17's V2 conversion is

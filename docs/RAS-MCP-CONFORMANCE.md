@@ -756,8 +756,23 @@ V3, then V4.
   (rows 20–21) is untouched and proven unrelaxed in LIVE:
   confirm alone moves nothing, and the exact owner approval
   executes exactly once against the shared daily cap.
-  Remaining families:
-  Billing; Checkout;
+  Family 5 of 13, **Billing**, is source-implemented the same
+  day (OWNER-OBEDIENCE-V2-BILLING): no dispatcher change (the
+  billing area was already a guarded LIVE area); the TEST-only
+  wrapper gates are removed from all fourteen subscription,
+  item and schedule writes; every evaluated object and
+  read-back demands the connection's mode in both directions;
+  the shared subscription projections verify a discount only
+  in its own mode (the unverified sentinel, never a zero);
+  previews are mode-labeled and disclose the first charge,
+  exact proration and period-end cancellation effects; and
+  `billing_change_plan`'s money wiring (rows 20–21) is
+  untouched and proven unrelaxed in LIVE — confirm alone
+  moves nothing, and the exact owner approval executes
+  exactly once against the shared daily cap. The customer
+  balance credit/debit item is not part of V2 (ruling 3:
+  separate row-35 card). Remaining families:
+  Checkout;
   Radar; Identity; Files; Reports; Branding (its admission
   excludes the payout schedule, already converted); Projects
   (provider-write half). Each family closes only on live proof.
