@@ -1,3 +1,52 @@
+## 2026-11-04 — CAP-4 PROD-EVENTS: event-area coverage completion (source) — the v2 disposition, inherited and re-proven
+
+CAP-4 Phase 4's third product-gap card
+([CAP4-PROD-EVENTS](pr-cards/CAP4-PROD-EVENTS.md)) closes
+the event area by recorded disposition; no native tool
+is built and no source file changes. **All 10 claimed
+v2 rows — the two `GET /v2/core/events` reads and the
+eight `event_destinations` operations — are
+dispositioned unserved until a v2 dispatch surface is
+commissioned as its own unit**, the fleet answer
+inherited per the frozen card's own fork text and
+ruling 3(iv), exactly as PROD-BILLING took it for the
+v2 billing rows (no differing reason is named, because
+none was found). The inheritance was re-proven at this
+baseline, not copied: the pinned-catalog check was
+re-derived (559 operations, zero `/v2/` paths — the 10
+operations cannot even be named by the door, whose
+request builder accepts only `/v1/` paths), and the
+card's named reopening condition was searched for
+directly — a tree-wide search for a consumer that needs
+**event destinations specifically** (designs, roadmap,
+work index, workflows, the webhook family) finds none;
+the rows exist only in census records. The reopening
+condition is recorded in the card's own terms: the v2
+dispatch decision, or a consumer that needs event
+destinations specifically. The card also records the
+standing build posture the rows inherit if ever built —
+destinations as webhook-class infrastructure under the
+native webhook family's contracts (signing secret shown
+once via the one-time route, never journaled, census
+row 36's boundary; the full write contract) and v2
+event reads under the D-4 idiom (minimal identity
+projection; the payload posture does not widen). The
+area sweep re-ran at this baseline: 17 operations
+examined (7 pinned v1 + the 10 claimed v2), zero
+unclassified (native 4, D-9 3, out 10) — the v1 event
+reads are D-4's native tools, the webhook endpoint
+reads are mode-aware native, and the webhook endpoint
+writes are D-9 native-owns naming the native family —
+reconciling with the census appendix bucket by bucket
+(D-4 2, served 2, D-9 3, PROD-EVENT 10). Registry
+unchanged at 343 tools; everyday budget 19,999 /
+20,000 unmoved. New suite 10 tests, all by-design pins
+passing at pristine baseline (this unit changes no
+behavior; the pins make the dispositions rest on
+re-runnable facts). A disposition-verification row
+(the deployed server still cannot name the v2
+operations) stands in the CAP-5 queue.
+
 ## 2026-11-04 — CAP-4 PROD-BILLING: billing-area coverage completion (source) — the v2 decision, recorded
 
 CAP-4 Phase 4's second product-gap card

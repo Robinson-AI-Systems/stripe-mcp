@@ -1575,6 +1575,60 @@ paths still undispatched) stands in the CAP-5 queue;
 the dispositioned rows join this record's addendum
 accounting through this passage.
 
+**CAP-4 progress — PROD-EVENTS event-area coverage
+completion (2026-11-04):** Phase 4's third product-gap
+card (CAP4-PROD-EVENTS) closes the event area by
+recorded disposition; no native tool is built, no
+source file changes, and the registry stays at 343
+tools. All 10 claimed v2 rows — the two
+`GET /v2/core/events` reads and the eight
+`event_destinations` operations (list, get, create,
+update, delete, disable, enable, ping) — take the
+fleet's settled v2 answer: unserved until a v2 dispatch
+surface is commissioned as its own unit, inherited per
+the frozen card's fork text and ruling 3(iv) (the
+product cards inherit the Connect answer unless a card
+names a reason it differs; none is named here). The
+inheritance was re-proven at this baseline, not
+copied from PROD-BILLING: the pinned catalog was
+re-derived by the same pin method (559 operations,
+zero `/v2/` paths; the door's request builder accepts
+only `/v1/` paths, and the only `rawRequest` caller is
+the door itself, bound to catalog records), and the
+card's named reopening condition was searched for
+directly — a tree-wide search across designs, roadmap,
+the work index, workflows and the webhook family finds
+no consumer that needs event destinations
+specifically; the rows exist only in census records.
+The reopening condition is recorded in the card's own
+terms: the v2 dispatch decision, or a consumer that
+needs event destinations specifically. The card also
+records the standing build posture the rows inherit if
+ever built — destinations as webhook-class
+infrastructure under the native webhook family's
+contracts (the signing secret shown once via the
+one-time route, never journaled, this record's row 36
+boundary; the full write contract, as `webhook_create`
+already carries it) and v2 event reads under the D-4
+idiom (minimal identity projection; the event payload
+posture does not widen). The area sweep re-ran at the
+unit's baseline: 17 operations examined (7 pinned v1 +
+the 10 claimed v2), zero unclassified (native 4, D-9
+3, out 10) — the v1 event reads are D-4's native tools,
+the webhook endpoint reads are the mode-aware native
+family, and the webhook endpoint writes are D-9
+native-owns naming the native family — reconciling
+with the census appendix bucket by bucket (D-4 2,
+served 2, D-9 3, PROD-EVENT 10); the signing-secret
+posture rows remain classified exactly as the census
+has them (no secret/Out bucket for webhook endpoints;
+the refused-secret rows are `apps/secrets`, a different
+family). A disposition-verification row (the deployed
+server still cannot name the v2 operations — no
+operation exists to call and no tool is listed) stands
+in the CAP-5 queue; the dispositioned rows join this
+record's addendum accounting through this passage.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

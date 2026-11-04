@@ -544,6 +544,45 @@ the read families. The first family is source-implemented:
   appendix per path. A disposition-verification row
   (the door GETs on the owner's connection; the v2
   paths still undispatched) stands in the CAP-5 queue.
+- **PROD-EVENTS — event-area coverage completion**
+  ([CAP4-PROD-EVENTS](pr-cards/CAP4-PROD-EVENTS.md)):
+  Phase 4's third product-gap card closes the event
+  area by recorded disposition; no native tool is
+  built and no source file changes. All 10 claimed v2
+  rows — the two `GET /v2/core/events` reads and the
+  eight `event_destinations` operations — stay
+  unserved until a v2 dispatch surface is commissioned
+  as its own unit: the fleet answer inherited per the
+  frozen card's fork text and ruling 3(iv), with no
+  differing reason named. The inheritance was re-proven
+  at this baseline: the pinned catalog was re-derived
+  (559 operations, zero `/v2/` paths, so no existing
+  surface can name the operations), and the card's
+  named reopening condition was searched for directly —
+  no consumer in the tree needs event destinations
+  specifically (designs, roadmap, work index,
+  workflows and the webhook family searched; the rows
+  exist only in census records). The reopening
+  condition is recorded in the card's own terms (the
+  v2 dispatch decision, or a consumer that needs event
+  destinations specifically), and so is the standing
+  build posture if the rows are ever built:
+  destinations as webhook-class infrastructure under
+  the native webhook family's contracts (signing
+  secret shown once via the one-time route, never
+  journaled — census row 36's boundary; the full write
+  contract) and v2 event reads under the D-4 idiom
+  (minimal identity projection; the payload posture
+  does not widen). The area sweep re-ran at this
+  baseline: 17 operations examined (7 pinned v1 + the
+  10 claimed v2), zero unclassified (native 4, D-9 3,
+  out 10) — v1 event reads are D-4's, webhook reads
+  are mode-aware native, webhook endpoint writes are
+  D-9 native-owns naming the native family —
+  reconciling with the census appendix bucket by
+  bucket. A disposition-verification row (the deployed
+  server still cannot name the v2 operations) stands
+  in the CAP-5 queue.
 
 Still required:
 
@@ -553,10 +592,11 @@ Still required:
    CAP4-D7b, is likewise source-implemented above; Phase 2
    Connect is complete above (slices 1–3; the Connect family
    is COMPLETE in source); Phase 3 the universal door (D-9)
-   is source-implemented above; Phase 4's payment and billing
-   product cards (PROD-PAYMENT, PROD-BILLING) are
+   is source-implemented above; Phase 4's payment, billing
+   and event product cards (PROD-PAYMENT, PROD-BILLING,
+   PROD-EVENTS) are
    source-implemented above; next in Phase 4 are the
-   Tax-closure, event and entitlement product cards;
+   Tax-closure and entitlement product cards;
    Phase 5 organization context and D-10.
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)
