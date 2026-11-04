@@ -1,3 +1,48 @@
+## 2026-11-03 — Owner-obedience V2 Money family: fully source-implemented, including the money-out execution leg (source)
+
+Family 1 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-MONEY](pr-cards/OWNER-OBEDIENCE-V2-MONEY.md)):
+
+- **Dispatcher admission converted.** The money area joins the
+  guarded LIVE areas on the owner's full LIVE-consented connection;
+  per coordinator ruling 1(b), the owner's own connection satisfies
+  the funded term by owner identity (delegated passes keep the
+  funded term exactly — a zero-limit pass still cannot move money,
+  proven at the RTC pass door). `setup_set_payout_schedule`
+  converts with this family (ruling 6); top-ups stay synthetic and
+  exactly as reachable as before (ruling 2).
+- **Handlers converted.** The TEST-mode wrapper gates are gone from
+  payout create / update / cancel / reverse and the payout
+  schedule; every `livemode` invariant now demands the connection's
+  own mode in both directions; summaries state the mode truthfully
+  and disclose amount, destination bank (kind + last 4), arrival
+  truth, and that a paid payout cannot be pulled back; confirms
+  bind to the shared preview fingerprint in both modes (ruling 5).
+  Payout update, cancel, and the schedule (both exposures) complete
+  in LIVE in tests.
+- **Money-out execution leg — blocker ruled and fixed.** The first
+  commit stopped at one reservation term: the reservation SQL
+  (`reserve_money_out_guarded`) bound a non-pass connection's
+  approval row to mode `'test'`, while LIVE approvals are correctly
+  recorded as `'live'`, so a fully approved LIVE payout refused
+  safely at the reservation and nothing executed. The coordinator
+  ruled (2026-11-03, recorded in the card's resume note and in
+  DECISIONS) that the expected approval mode binds to the mode
+  stored on the connection's own `oauth_tokens` row (kind
+  `'connector'`) — never to request input — and the follow-up
+  commit implemented exactly that one term in the SQL and its
+  fake mirror, with the pass branch and every other approval term
+  byte-identical. Payout creation and reversal now complete in
+  LIVE in tests (reserve, execute once, approval consumed,
+  read-back), the LIVE cap leg is proven (refusal without the
+  override, execution with it), and the binding is proven to cut
+  both ways (a TEST approval cannot satisfy a LIVE connection, nor
+  a LIVE approval a TEST one). No account was enabled, no LIVE key
+  used, no money moved; all aim checks (exact approval, $500 cap +
+  override, pass ceilings, USD-only) are unrelaxed, and live proof
+  stays in the CAP-5 queue.
+
 ## 2026-11-03 — Owner-obedience V4: pass/revoke preparation works on the owner's full connection in either mode (source)
 
 The fourth conversion in conformance row 17 is implemented in

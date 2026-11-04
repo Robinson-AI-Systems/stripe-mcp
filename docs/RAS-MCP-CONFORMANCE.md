@@ -706,6 +706,25 @@ V3, then V4.
   Conversion per family: provider-derived LIVE preview, plain-words
   disclosure, confirmation bound to the preview fingerprint, re-check
   at execution, existing journal and read-back.
+  **Progress 2026-11-03:** the shared machinery is
+  source-implemented (OWNER-OBEDIENCE-V2-SHARED), and family 1 of
+  13, **Money**, is source-implemented in its admission and
+  handlers (OWNER-OBEDIENCE-V2-MONEY): the money area is admitted
+  on the owner's full LIVE connection with ruling 1(b)'s
+  owner-identity funding (passes unchanged), the TEST-only handler
+  gates are mode-parameterized, and `setup_set_payout_schedule`
+  converted with the family; top-ups stay synthetic by ruling.
+  The one blocker recorded on that card — the money reservation
+  SQL bound a non-pass approval to TEST mode, so LIVE payout
+  creation and reversal could not complete — was ruled and fixed
+  the same day (follow-up commit): the reservation now binds a
+  non-pass approval's mode to the mode stored on the connection's
+  own token row, and the family is fully source-implemented,
+  execution leg included. Remaining families:
+  Disputes; Payments; Invoices & credit notes; Billing; Checkout;
+  Radar; Identity; Files; Reports; Branding (its admission
+  excludes the payout schedule, already converted); Projects
+  (provider-write half). Each family closes only on live proof.
 - **V3 — Catalog `outsideApp` categorical ban** (`src/tools/catalog.js`).
   The one place the owner's explicit ownership acknowledgment — the
   route the general app-ownership guard accepts — is itself refused.

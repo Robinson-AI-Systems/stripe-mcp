@@ -94,9 +94,20 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
           'tax_record_transaction','tax_reverse_transaction',
           'quote_create','quote_update','quote_finalize','quote_accept','quote_cancel'
         ]);
+        // Owner-obedience V2 family 1 (Money): the payout operations and
+        // the payout schedule are LIVE-admitted for a funded connection;
+        // the synthetic top-up fixture is not (ruling 2).
+        const liveMoney=new Set([
+          'money_create_payout','money_update_payout','money_cancel_payout',
+          'money_reverse_payout','money_set_payout_schedule'
+        ]);
         const approved=area==='account'&&liveAccount.has(tool.name)||
           area==='webhooks'&&liveWebhooks.has(tool.name)||
-          area==='catalog'&&liveCatalog.has(tool.name);
+          area==='catalog'&&liveCatalog.has(tool.name)||
+          area==='money'&&liveMoney.has(tool.name)||
+          // The payout schedule's branding-area exposure converted with
+          // the Money family (ruling 6); no other branding write did.
+          (area==='branding'&&tool.name==='setup_set_payout_schedule');
         expect(isGuardedLiveWrite(tool,{mode:'live',profile:'full',
           rtcLiveOwnerApproved:true,moneyLimitCents:10000})).toBe(approved);
       }
@@ -115,6 +126,46 @@ describe('B-6 profile metadata, name-call and homepage counts',()=>{
     expect(isGuardedLiveWrite(tool,{...permitted,rtcLiveOwnerApproved:false})).toBe(false);
     expect(listingForConnection(registry,{...permitted,rtcLiveOwnerApproved:false})
       .some(t=>t.name==='api_write')).toBe(false);
+  });
+  it('owner-obedience V2 Money: owner identity funds the owner connection; a zero-limit pass stays unfunded (ruling 1(b))',()=>{
+    const payout=registry.tools.find(t=>t.name==='money_create_payout');
+    const reversal=registry.tools.find(t=>t.name==='money_reverse_payout');
+    const schedule=registry.tools.find(t=>t.name==='money_set_payout_schedule');
+    const topup=registry.tools.find(t=>t.name==='money_create_topup');
+    const cancelTopup=registry.tools.find(t=>t.name==='money_cancel_topup');
+    // The owner's own OAuth connection, exactly as src/core/mcp-auth.js
+    // builds it: grant context resolved server-side, delegated ceiling 0.
+    const owner={mode:'live',profile:'full',listing:'catalog',context:'customer',
+      rtcLiveOwnerApproved:true,moneyLimitCents:0};
+    expect(isGuardedLiveWrite(payout,owner)).toBe(true);
+    expect(isGuardedLiveWrite(reversal,owner)).toBe(true);
+    expect(isGuardedLiveWrite(schedule,owner)).toBe(true);
+    expect(listingForConnection(registry,owner).some(t=>t.name==='money_create_payout'))
+      .toBe(true);
+    // Without the owner's LIVE write consent the same connection admits nothing.
+    expect(isGuardedLiveWrite(payout,{...owner,rtcLiveOwnerApproved:false})).toBe(false);
+    // A delegated RTC pass, exactly as src/core/rtc-http.js builds it:
+    // no grant context, its own ceiling. Zero ceiling: no money moves.
+    const pass={mode:'live',profile:'full',listing:'compact',
+      rtcLiveOwnerApproved:true,allowWrites:true,areas:['money'],
+      moneyLimitCents:0,resultScope:null};
+    expect(isGuardedLiveWrite(payout,pass)).toBe(false);
+    expect(isGuardedLiveWrite(reversal,pass)).toBe(false);
+    expect(listingForConnection(registry,pass).some(t=>t.name==='money_create_payout'))
+      .toBe(false);
+    // A funded pass keeps exactly its previous admission — nothing gained,
+    // nothing lost — and nonfinancial schedule admission is unchanged.
+    expect(isGuardedLiveWrite(payout,{...pass,moneyLimitCents:10000})).toBe(true);
+    expect(isGuardedLiveWrite(schedule,pass)).toBe(true);
+    // The synthetic top-up fixture is refused for every LIVE connection
+    // shape (ruling 2): owner, funded pass, unfunded pass alike.
+    for(const connection of [owner,pass,{...pass,moneyLimitCents:10000}]){
+      expect(isGuardedLiveWrite(topup,connection)).toBe(false);
+      expect(isGuardedLiveWrite(cancelTopup,connection)).toBe(false);
+    }
+    // TEST admission is unchanged by the ruling.
+    expect(isGuardedTestWrite(payout,{mode:'test',profile:'full'})).toBe(true);
+    expect(isGuardedTestWrite(topup,{mode:'test',profile:'full'})).toBe(true);
   });
   it('never publishes internal capability metadata with listed tools',()=>{
     const tool={name:'read',writes:false,profiles:['read_only'],description:'safe'};

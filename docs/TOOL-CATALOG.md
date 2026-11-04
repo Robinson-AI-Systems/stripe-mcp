@@ -355,9 +355,9 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `money_list_balance_transactions` / `money_get_balance_transaction` | TEST balance transactions with validated fees/net | — | built #79 | R |
 | `money_list_payouts` / `money_get_payout` | TEST payout amount, status, arrival and destination ID only | — | built #79 | R |
 | `money_list_payout_transactions` | TEST automatic payout balance transactions (manual payouts refused) | — | built #79 | R |
-| `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts; TEST pending manual cancel guarded | $ / C / $ | cancel built #81; create built #82; reverse built #83 (CI pending) | F |
-| `money_update_payout` | TEST payout metadata only, guarded | P | built #81 (CI pending) | F |
-| `money_get_payout_schedule` / `money_set_payout_schedule` | TEST own-account schedule read (built #80); change is planned with owner guard | — / C | read #80; setter built #87 (CI pending); guided own-account refusal | R read; F set |
+| `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts in the connection's mode (TEST, or LIVE on the owner's full connection); pending manual cancel guarded; money-out still bound by the exact owner approval and the reservation (LIVE create/reverse execution is blocked at the reservation — see OWNER-OBEDIENCE-V2-MONEY) | $ / C / $ | cancel built #81; create built #82; reverse built #83 (CI pending) | F |
+| `money_update_payout` | Payout metadata only, guarded; mode follows the connection | P | built #81 (CI pending) | F |
+| `money_get_payout_schedule` / `money_set_payout_schedule` | TEST own-account schedule read (built #80); setter follows the connection's mode with owner guard | — / C | read #80; setter built #87 (CI pending); guided own-account refusal | R read; F set |
 | `money_list_bank_accounts` | TEST own-account payout destinations, last4 only; explicit unavailable on Connect-only API denial | — | built #80 | R |
 | `money_list_topups` / `money_get_topup` | TEST top-up reads, no bank/source leakage | — | built #79 | R |
 | `money_create_topup` / `money_cancel_topup` | TEST synthetic-bank top-up (owner approved) / pending cancel | $ / C | built #84 (CI pending); real bank OFF | F |

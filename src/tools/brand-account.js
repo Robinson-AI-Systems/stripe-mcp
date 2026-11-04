@@ -64,6 +64,12 @@ const validId=(v,p)=>typeof v==='string'&&
   new RegExp('^'+p+'_[A-Za-z0-9_]{2,190}$').test(v);
 const selected=ctx=>ctx?.connection?.mode==='test'&&
   /^acct_[A-Za-z0-9]{2,100}$/.test(ctx.connection.stripeAccount??'');
+// The payout schedule converted with the Money family (owner-obedience
+// V2 family 1, coordinator ruling 6): this one exposure admits both
+// modes on a selected account; every other branding handler keeps the
+// TEST-only selector until the Branding family converts.
+const selectedEitherMode=ctx=>['test','live'].includes(ctx?.connection?.mode)&&
+  /^acct_[A-Za-z0-9]{2,100}$/.test(ctx.connection.stripeAccount??'');
 async function testAccount(ctx){
   if(!selected(ctx))throw new TypeError('Exact selected TEST account required');
   const s=await client(ctx);
@@ -284,7 +290,7 @@ export const tools=[
       defaultReturnUrl:str(500),outsideApp:yes,...writeProps},
       required:['configId'],additionalProperties:false}},
   {...schedule.tool,name:'setup_set_payout_schedule',area:'branding',profiles:fullProfiles,
-    description:'Use guarded TEST payout-schedule update with own-account fallback steps.',
+    description:'Use guarded payout-schedule update in the connection mode with own-account fallback steps.',
     inputSchema:schedule.tool.inputSchema}
 ];
 export const handlers={
@@ -300,6 +306,7 @@ export const handlers={
     gone('TEST invoice template required'),
   brand_set_portal_look:(a,ctx)=>selected(ctx)?portalLook().handler(a,ctx):
     gone('TEST portal configuration required'),
-  setup_set_payout_schedule:(a,ctx)=>selected(ctx)?makeScheduleWrite().handler(a,ctx):
-    gone('TEST payout schedule only')
+  setup_set_payout_schedule:(a,ctx)=>selectedEitherMode(ctx)?
+    makeScheduleWrite().handler(a,ctx):
+    gone('Payout schedule requires a selected account')
 };

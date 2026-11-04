@@ -1,3 +1,82 @@
+## 2026-11-03 — Owner-obedience V2 Money: the reservation binds a non-pass approval's mode to the connection's own stored token-row mode (coordinator ruling)
+
+- **The gate:** `reserve_money_out_guarded` (`src/db.js`) accepted
+  an approval only when its mode matched
+  `COALESCE(v_pass.mode,'test')`. A delegated pass carries its mode
+  on its pass row, but the owner's own connection has no pass row,
+  so its approvals were effectively required to be `'test'` — while
+  LIVE approvals are correctly recorded as `'live'`. A fully
+  approved LIVE payout therefore refused at the reservation
+  forever (safely: nothing executed, nothing was consumed), and
+  the Money family's execution leg could not complete in LIVE.
+- **Ruling (coordinator, 2026-11-03):** when no pass row matches,
+  the expected approval mode is the mode stored on the caller's
+  own `oauth_tokens` row — `result_scope = p_connection`,
+  kind `'connector'` (the owner-connection kind: `getAccessToken`
+  reads `kind = 'connector'` and the column defaults to it). The
+  expected mode comes from the stored connection record, never
+  from request input. The pass branch is byte-unchanged. Every
+  other approval term is byte-identical: account, request key,
+  exact amount, currency, target present, approved_at set,
+  unconsumed, expires_at in future, 10-minute freshness, and the
+  cap/override block. If the non-pass row is missing, the
+  historical `'test'` fallback still applies (no previously
+  refused case is newly accepted); a stored mode outside
+  `('test','live')` can never match an approval, so the
+  reservation refuses.
+- **Implemented (follow-up commit on the Money branch):** the term
+  is now `COALESCE(v_pass.mode, v_connection_mode, 'test')` with
+  `v_connection_mode` loaded only when `v_pass IS NULL`;
+  `test/helpers/fake-db.js` mirrors the identical term. The three
+  BLOCKED tests flipped to their happy paths, and a ledger suite
+  proves the LIVE reservation end to end, the LIVE $500-cap leg
+  (refusal without the separate override, reservation with it),
+  and both cross-mode negatives. The Money family is now fully
+  source-implemented; live proof remains queued for CAP-5.
+- **Adjacent `'test'` assumptions reviewed, deliberately left:**
+  `approveMoneyRequest` / `approveMoneyOverride` are the
+  documented TEST-only direct grant route — LIVE grants flow only
+  through the owner-page decision-intent path, which already binds
+  `m.mode = i.mode` mode-generally. The `'test'` literals in the
+  revoke / money-limit / default-account change-log inserts label
+  audit rows for separate owner-settings intents and are not
+  approval-mode bindings. Neither is this defect.
+- **Evidence class:** source/synthetic. Live proof is queued for
+  the CAP-5 knock test at a checked release.
+
+## 2026-11-03 — Owner-obedience V2 Money: ruling 1(b) implemented — owner identity funds the owner's own connection; the reservation's approval-mode term is a separate open gate
+
+- **What changed:** in `src/core/profiles.js`
+  (`isGuardedLiveWrite`), the dispatcher's funded term for a
+  financial guarded LIVE write is now satisfied by the owner's own
+  connection as well as by a funded grant:
+  `(!financial || funded || ownerOwnConnection)` with
+  `ownerOwnConnection = connection?.context === 'customer'`. The
+  owner's own OAuth connection is the only connection kind that
+  carries a resolved grant `context` (always `'customer'` at LIVE;
+  the developer context is refused for LIVE before a connection
+  exists). Delegated pass connections carry no `context`, so the
+  funded term binds them exactly as before: a pass with
+  `moneyLimitCents: 0` still cannot move money, and no pass gains
+  anything. The owner's connection still carries
+  `moneyLimitCents: 0` (whoami honesty unchanged); only the
+  dispatcher's interpretation changed. Appendix rows 20–22 are
+  untouched: every money-out still needs the exact owner approval,
+  counts against the shared $500/account/Denver-day cap, and needs
+  the second owner override above it. Tests prove both halves:
+  a zero-limit pass is refused at the door on an enabled account,
+  and the owner's own connection still cannot execute a payout
+  without the exact approval flow.
+- **Found during the build (not decided here):** the reservation
+  SQL `reserve_money_out_guarded` binds a non-pass connection's
+  approval row to mode `'test'`, so LIVE money-out cannot complete
+  even after a valid LIVE approval. That term is a money gate the
+  family card placed out of scope; it awaits its own coordinator
+  ruling (see the card's resume note in
+  `docs/pr-cards/OWNER-OBEDIENCE-V2-MONEY.md`).
+- **Evidence class:** source/synthetic. Live proof is queued for
+  the CAP-5 knock test at a checked release.
+
 ## 2026-11-03 — Owner-obedience V4 implemented: pass/revoke preparation follows the owner's connection, not the mode
 
 - **What changed:** the two preparation tools for pass issuance and
