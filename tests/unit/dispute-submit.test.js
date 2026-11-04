@@ -1,4 +1,4 @@
-import {describe,it,expect,vi} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
 import {makeDisputeSubmit,tools,handlers} from '../../src/tools/dispute-submit.js';
 import {registry} from '../../src/tools/index.js';
 import {listingForConnection} from '../../src/core/profiles.js';
@@ -126,5 +126,83 @@ describe('G-2d1 irreversible TEST evidence submission, real handler',()=>{
     expect(live.isError).toBe(true);
     expect(ro.isError).toBe(true);
     expect(f.provider.disputes.update).not.toHaveBeenCalled();
+  });
+});
+describe('G-2d1 LIVE evidence submission (owner-obedience V2, family 2)',()=>{
+  afterEach(()=>vi.unstubAllEnvs());
+  const account='acct_TEST1234';
+  function liveFixture({livemode=true}={}){
+    const due=Math.floor(Date.now()/1000)+86400;
+    let dispute={id:disputeId,object:'dispute',livemode,status:'needs_response',
+      amount:8500,currency:'usd',charge:chargeId,metadata:{},
+      evidence_details:{due_by:due,past_due:false,has_evidence:true,submission_count:0},
+      evidence:{product_description:secret,receipt:fileId,shipping_date:null}};
+    const provider={
+      accounts:{retrieve:vi.fn(async()=>({id:account,object:'account',livemode:true}))},
+      balance:{retrieve:vi.fn(async()=>({object:'balance',livemode:true}))},
+      disputes:{
+        retrieve:vi.fn(async()=>structuredClone(dispute)),
+        update:vi.fn(async()=>{dispute={...dispute,status:'under_review',
+          evidence_details:{...dispute.evidence_details,submission_count:1}};
+          return structuredClone(dispute);})},
+      charges:{retrieve:vi.fn(async()=>({id:chargeId,object:'charge',livemode,
+        amount:10000,currency:'usd',customer:null,metadata:{}}))},
+      files:{retrieve:vi.fn(async()=>({id:fileId,object:'file',livemode,
+        purpose:'dispute_evidence',size:100}))},
+      customers:{retrieve:vi.fn(async()=>({id:'cus_TEST1234',object:'customer',
+        metadata:{}}))}};
+    const db=createFakeDb({accounts:[{id:account,live_enabled:true,
+      live_connected:true}]});
+    const ctx={db,connectionId:'submission-live-fixture',liveAccessGranted:true,
+      connection:{stripeAccount:account,mode:'live',profile:'full',
+        context:'customer',rtcLiveOwnerApproved:true},
+      services:{stripeForConnection:async()=>provider}};
+    return {provider,db,ctx,call:a=>makeDisputeSubmit().handler(a,ctx),
+      drift:()=>{dispute={...dispute,amount:9000};}};
+  }
+  it('previews finality, amount and deadline in LIVE, then submits exactly once',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=liveFixture(),args={disputeId,requestKey:'live-submit'};
+    const preview=parse(await handlers.dispute_submit_evidence(
+      {...args,dryRun:true},f.ctx));
+    expect(preview.preview).toContain('LIVE MODE');
+    expect(preview.preview).toContain('IRREVERSIBLE');
+    expect(preview.preview).toContain('$85.00');
+    expect(preview.preview).toContain('cannot be edited or withdrawn');
+    expect(preview.preview).toContain('receipt: file '+fileId);
+    expect(preview.previewFingerprint)
+      .toMatch(/^WRITE-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/);
+    expect(JSON.stringify(preview)).not.toContain(secret);
+    expect(f.provider.disputes.update).not.toHaveBeenCalled();
+    const done=parse(await handlers.dispute_submit_evidence(
+      {...args,confirm:true,previewFingerprint:preview.previewFingerprint},f.ctx));
+    expect(done).toMatchObject({done:true,confirmed:true});
+    expect(f.provider.disputes.update).toHaveBeenCalledExactlyOnceWith(disputeId,
+      {submit:true},{idempotencyKey:expect.stringMatching(/^rmcp_dispute_submit_evidence_/)});
+    expect(JSON.stringify(done)).not.toContain(secret);
+  });
+  it('refuses a drifted LIVE confirmation with the fresh fingerprint and executes nothing',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=liveFixture(),args={disputeId,requestKey:'live-drift'};
+    const preview=parse(await f.call({...args,dryRun:true}));
+    f.drift();
+    const refused=parse(await f.call({...args,confirm:true,
+      previewFingerprint:preview.previewFingerprint}));
+    expect(refused.done).toBe(false);
+    expect(refused.error).toMatch(/state has changed/);
+    expect(refused.preview).toContain('$90.00');
+    expect(refused.previewFingerprint).not.toBe(preview.previewFingerprint);
+    expect(f.provider.disputes.update).not.toHaveBeenCalled();
+  });
+  it('refuses wrong-mode provider objects in both directions',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const liveSide=liveFixture({livemode:false});
+    await expect(liveSide.call({disputeId,confirm:true}))
+      .rejects.toThrow(/Only unsubmitted, unexpired USD LIVE disputes/);
+    expect(liveSide.provider.disputes.update).not.toHaveBeenCalled();
+    const testSide=fixture({dispute:{livemode:true}});
+    await expect(testSide.call({disputeId,confirm:true}))
+      .rejects.toThrow(/Only unsubmitted, unexpired USD TEST disputes/);
+    expect(testSide.provider.disputes.update).not.toHaveBeenCalled();
   });
 });

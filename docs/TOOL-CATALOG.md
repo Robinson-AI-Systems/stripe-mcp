@@ -355,7 +355,7 @@ Removed on purpose: `stripe_create_usage_record`, `stripe_list_usage_record_summ
 | `money_list_balance_transactions` / `money_get_balance_transaction` | TEST balance transactions with validated fees/net | — | built #79 | R |
 | `money_list_payouts` / `money_get_payout` | TEST payout amount, status, arrival and destination ID only | — | built #79 | R |
 | `money_list_payout_transactions` | TEST automatic payout balance transactions (manual payouts refused) | — | built #79 | R |
-| `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts in the connection's mode (TEST, or LIVE on the owner's full connection); pending manual cancel guarded; money-out still bound by the exact owner approval and the reservation (LIVE create/reverse execution is blocked at the reservation — see OWNER-OBEDIENCE-V2-MONEY) | $ / C / $ | cancel built #81; create built #82; reverse built #83 (CI pending) | F |
+| `money_create_payout` / `money_cancel_payout` / `money_reverse_payout` | Manual payouts in the connection's mode (TEST, or LIVE on the owner's full connection); pending manual cancel guarded; money-out still bound by the exact owner approval and the reservation, whose approval mode binds to the executing connection's stored mode (see OWNER-OBEDIENCE-V2-MONEY) | $ / C / $ | cancel built #81; create built #82; reverse built #83 (CI pending) | F |
 | `money_update_payout` | Payout metadata only, guarded; mode follows the connection | P | built #81 (CI pending) | F |
 | `money_get_payout_schedule` / `money_set_payout_schedule` | TEST own-account schedule read (built #80); setter follows the connection's mode with owner guard | — / C | read #80; setter built #87 (CI pending); guided own-account refusal | R read; F set |
 | `money_list_bank_accounts` | TEST own-account payout destinations, last4 only; explicit unavailable on Connect-only API denial | — | built #80 | R |
@@ -372,9 +372,9 @@ removing a payout bank account is done in the dashboard, which
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
 | `dispute_list` / `dispute_get` | Safe TEST dispute status, amount and Colorado response deadline; no private evidence | — | built #90 | R |
-| `dispute_save_evidence` | Confirmed TEST-only draft evidence with submit:false and exact read-back; never submitted to bank | P | built #93 | E |
-| `dispute_submit_evidence` | Irreversible confirmed TEST evidence submission, safe full-field preview | C | built #95 | E |
-| `dispute_accept` | Irreversible ordinary TEST dispute loss; exact owner-approved money out and $500/day cap | $ | built #96 | E |
+| `dispute_save_evidence` | Confirmed draft evidence with submit:false and exact read-back in the connection's mode (TEST, or LIVE on the owner's full connection); never submitted to bank | P | built #93 | E |
+| `dispute_submit_evidence` | Irreversible confirmed evidence submission in the connection's mode (TEST, or LIVE on the owner's full connection), safe full-field preview | C | built #95 | E |
+| `dispute_accept` | Irreversible ordinary dispute loss in the connection's mode (TEST, or LIVE on the owner's full connection); exact owner-approved money out and $500/day cap | $ | built #96 | E |
 | `file_upload_evidence` | Confirmed TEST upload of public PDF/PNG/JPEG or shared Drive file (10 MiB, SSRF defense); never submits dispute | P | built #92 | E |
 | `file_list` / `file_get` / `file_create_link` | Safe TEST file metadata and confirmed time-limited public BRAND links only; never link private evidence | — / — / P | built #91 | R reads; F link |
 

@@ -1,4 +1,4 @@
-import {describe,it,expect,vi} from 'vitest';
+import {describe,it,expect,vi,afterEach} from 'vitest';
 import {makeDisputeAccept,tools,handlers} from '../../src/tools/dispute-accept.js';
 import {createFakeDb} from '../../test/helpers/fake-db.js';
 import {registry} from '../../src/tools/index.js';
@@ -128,5 +128,114 @@ describe('G-2d2 dispute acceptance seven-case money-out actual-handler contract'
     expect((await invoke('stripe_batch',{calls:[{
       name:'dispute_accept',args:{disputeId:id,confirm:true}}]})).isError).toBe(true);
     expect(f.provider.disputes.close).not.toHaveBeenCalled();
+  });
+});
+describe('G-2d2 LIVE dispute acceptance (owner-obedience V2, family 2)',()=>{
+  afterEach(()=>vi.unstubAllEnvs());
+  let intentSeq=0;
+  // The owner's own LIVE connection, exactly as the Money family's
+  // LIVE fixtures build it: production deployment, independently
+  // enabled/connected account, a stored connector token row whose
+  // result scope is the connectionId (the reservation binds a
+  // non-pass approval's mode to that row's stored 'live' mode).
+  async function liveFixture({livemode=true,limit=50000}={}){
+    let dispute={id,object:'dispute',status:'needs_response',livemode,
+      amount:8500,currency:'usd',charge,metadata:{}};
+    const provider={
+      accounts:{retrieve:vi.fn(async()=>({id:account,object:'account',
+        livemode:true}))},
+      balance:{retrieve:vi.fn(async()=>({object:'balance',livemode:true}))},
+      disputes:{
+        retrieve:vi.fn(async()=>structuredClone(dispute)),
+        close:vi.fn(async()=>{dispute={...dispute,status:'lost'};
+          return structuredClone(dispute);})},
+      charges:{retrieve:vi.fn(async()=>({id:charge,object:'charge',
+        amount:10000,currency:'usd',livemode,customer:null,metadata:{}}))},
+      customers:{retrieve:vi.fn(async()=>({id:'cus_TEST1234',object:'customer',
+        metadata:{}}))}};
+    const db=createFakeDb({accounts:[{id:account,money_limit_cents:limit,
+      live_enabled:true,live_connected:true}]});
+    await db.saveLiveKey({account,ciphertext:'v1.fake',kind:'restricted',
+      last4:'FAKE'});
+    await db.createAccessToken({accessToken:'owner-live-access',
+      clientId:'owner-client',stripeAccount:account,mode:'live',
+      profile:'full',liveWriteApproved:true});
+    const scope=(await db.tokenRowsForTest())
+      .find(t=>t.kind==='connector')?.result_scope;
+    const ctx={db,connectionId:scope,liveAccessGranted:true,
+      connection:{stripeAccount:account,mode:'live',profile:'full',
+        listing:'catalog',context:'customer',rtcLiveOwnerApproved:true,
+        moneyLimitCents:0},
+      services:{stripeForConnection:async()=>provider}};
+    return {provider,db,ctx,call:a=>makeDisputeAccept().handler(a,ctx),
+      drift:()=>{dispute={...dispute,amount:9000};}};
+  }
+  // The owner's LIVE approval through the decision-intent path the
+  // protected owner page uses (db.approveMoneyRequest is the
+  // TEST-only direct route in both the real and fake databases).
+  async function approveLive(f,args){
+    const key=idempotencyKey(f.ctx.connection,'dispute_accept',args);
+    const intentId='V2DISP'+String(++intentSeq).padStart(26,'0');
+    expect(await f.db.requestMoneyDecisionIntent({id:intentId,account,
+      idempotencyKey:key,kind:'approve',
+      expiresAt:new Date(Date.now()+600000)})).toBe(true);
+    expect(await f.db.consumeMoneyDecisionIntent(intentId)).toBe(true);
+  }
+  it('previews the LIVE concession with amount and fee wording; confirm alone never closes',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=await liveFixture(),args={disputeId:id,requestKey:'live-accept'};
+    const preview=parse(await f.call({...args,dryRun:true}));
+    expect(preview.preview).toContain('LIVE MODE');
+    expect(preview.preview).toContain('IRREVERSIBLY ACCEPT and LOSE');
+    expect(preview.preview).toContain('$85.00');
+    expect(preview.preview).toContain('dispute fee');
+    expect(preview.previewFingerprint)
+      .toMatch(/^WRITE-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/);
+    const unapproved=parse(await f.call({...args,confirm:true,
+      previewFingerprint:preview.previewFingerprint}));
+    expect(unapproved.done).toBe(false);
+    expect(unapproved.error).toMatch(/explicit approval is required/);
+    expect(f.provider.disputes.close).not.toHaveBeenCalled();
+    expect((await f.db.getMoneyUsage({account,
+      connection:f.ctx.connectionId})).used_cents).toBe(0);
+  });
+  it('owner-approved LIVE confirmation closes exactly once and counts against the day',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=await liveFixture(),args={disputeId:id,
+      requestKey:'live-accept-approved'};
+    const preview=parse(await f.call({...args,dryRun:true}));
+    // One consistent argument set for request, approval and execution:
+    // the preview fingerprint is part of the idempotency payload (it is
+    // not in src/stripe/client.js's OMIT set), exactly as the Money
+    // family's LIVE fixtures treat it.
+    const confirmArgs={...args,confirm:true,
+      previewFingerprint:preview.previewFingerprint};
+    parse(await f.call(confirmArgs));
+    await approveLive(f,confirmArgs);
+    const key=idempotencyKey(f.ctx.connection,'dispute_accept',confirmArgs);
+    const confirmed=parse(await f.call(confirmArgs));
+    expect(confirmed).toMatchObject({done:true,confirmed:true,
+      idempotencyKey:key});
+    expect(f.provider.disputes.close).toHaveBeenCalledExactlyOnceWith(id,{},
+      {idempotencyKey:key});
+    expect((await f.db.getMoneyUsage({account,
+      connection:f.ctx.connectionId})).used_cents).toBe(8500);
+  });
+  it('refuses a drifted LIVE confirmation and wrong-mode objects; nothing closes',async()=>{
+    vi.stubEnv('VERCEL_ENV','production');
+    const f=await liveFixture(),args={disputeId:id,confirm:true,
+      requestKey:'live-accept-drift'};
+    const preview=parse(await f.call({...args,dryRun:true}));
+    f.drift();
+    const refused=parse(await f.call({...args,
+      previewFingerprint:preview.previewFingerprint}));
+    expect(refused.done).toBe(false);
+    expect(refused.error).toMatch(/state has changed/);
+    expect(refused.previewFingerprint).not.toBe(preview.previewFingerprint);
+    const wrongMode=await liveFixture({livemode:false});
+    await expect(wrongMode.call({disputeId:id,confirm:true}))
+      .rejects.toThrow(/Only ordinary, open USD LIVE disputes/);
+    expect(f.provider.disputes.close).not.toHaveBeenCalled();
+    expect(wrongMode.provider.disputes.close).not.toHaveBeenCalled();
   });
 });
