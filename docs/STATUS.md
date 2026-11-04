@@ -1,3 +1,51 @@
+## 2026-11-04 — CAP-4 Connect slice 3: connected-account terminal operations (source) — Connect family COMPLETE
+
+CAP-4's Phase 2 closes (card
+[CAP4-CONNECT-SLICE-3](pr-cards/CAP4-CONNECT-SLICE-3.md)): the
+three Connect terminal writes are implemented in source,
+extending slice 2's module `src/tools/connect-writes.js` on
+the same foundations — slice 1's `platformAccount` actor
+verification, the safe projections, the mode discipline — and
+with this slice the **Connect family is COMPLETE** in source:
+all three slices landed and every one of the card's 45 census
+operations carries its disposition.
+
+- **The build.** Account delete, reject and unreject, each
+  carrying the full write contract plus the strongest ceremony
+  the contract offers — the exact-account confirmation shape:
+  every call must repeat the exact connected-account ID in
+  `confirmAccount`, and a missing or mismatched repeat, or the
+  platform account's own ID offered as the subject, refuses
+  before any provider call (the card's named slice-3 test,
+  proven with provider spies). Reject validates its `reason`
+  against the pinned SDK's seven accepted values and shows the
+  exact reason in the preview; reject/unreject have no direct
+  read-back, so they verify by state read-back — the re-read
+  account's disabled reason must show, or no longer show, a
+  rejection — while delete verifies by the deleted marker or
+  the provider's `resource_missing` for the exact ID, as slice
+  2's deletes did. A state mismatch fails each tool as
+  uncertain, never a success. The v2 close is **not** built:
+  it exists only on the v2 core surface, which has no dispatch
+  surface here — covered-by-design-decision under the card's
+  fork 4 and ruling 3(iv), recorded with its evidence in the
+  card. Registry 340 → 343 tools, 166 → 169 writes; the
+  everyday catalog budget is unmoved at 19,999/20,000. Money
+  wiring untouched; the universal door untouched (its
+  accounts-row flip is D-9's, and now names slices 1–3).
+- **Proof.** New suite (32 tests, stateful fake provider):
+  the ceremony refusals per tool, actor-refusal provider
+  spies, wrong-mode refusal before apply and state-mismatch
+  failure after apply, reject/unreject/delete state read-back
+  proofs incl. the `resource_missing` shape, replay, LIVE
+  fixture legs. Full unit suite 213 files / 2,370 tests
+  green; `npm run check` green. Baseline accounting is in
+  the card: against pristine `b55d3ec` the new suite is red
+  as tool-missing only (31 of 32; the door-admission test
+  passes vacuously there, named as such). Live proof joins
+  the CAP-5 queue as one ceremony refusal on the testing
+  surface only.
+
 ## 2026-11-04 — CAP-4 Connect slice 2: connected-account lifecycle writes (source)
 
 CAP-4's Phase 2 continues (card
