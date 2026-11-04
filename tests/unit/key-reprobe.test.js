@@ -5,7 +5,7 @@ import {handlers} from '../../src/tools/server.js';
 import {registry} from '../../src/tools/index.js';
 import {dispatchReadOnlyTool} from '../../src/core/mcp-server.js';
 const parse=r=>JSON.parse(r.content[0].text);
-describe('B-8b1 independently verified TEST-only permission probes',()=>{
+describe('B-8b1 independently verified permission probes (per mode after CAP-4 D7b)',()=>{
   it('lazily probes server-owned key and saves only safe permissions, not credentials',async()=>{
     const db=createFakeDb({accounts:[{id:'acct_testowner',label:'Fixture'}]});
     await db.saveTestKey({account:'acct_testowner',label:'Fixture',ciphertext:'test-fixture-cipher',
@@ -31,18 +31,29 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
     expect((await db.getStripeAccount('acct_testowner')).key_permissions).toEqual(result.permissions);
     expect(JSON.stringify(result)).not.toContain(secret);
   });
-  it('refuses LIVE, unknown accounts and malformed permission results',async()=>{
+  it('refuses unknown accounts, malformed results and unavailable key loads',async()=>{
     const db=createFakeDb({accounts:[{id:'acct_testowner',label:'Fixture'}]});
     const probe=createPermissionReprobe({db,keyStoreFactory:()=>{
-      throw Error('Must not load credentials for LIVE');
+      throw Error('Credential load unavailable');
     }});
-    await expect(probe({account:'acct_testowner',mode:'live'})).rejects.toThrow(/TEST/);
+    // Either mode surfaces a failed credential load and persists nothing;
+    // there is no cross-mode fallback to the other mode's key.
+    await expect(probe({account:'acct_testowner',mode:'live'}))
+      .rejects.toThrow(/Credential load unavailable/);
+    await expect(probe({account:'acct_testowner',mode:'test'}))
+      .rejects.toThrow(/Credential load unavailable/);
     await expect(probe({account:'other',mode:'test'})).rejects.toThrow();
+    await expect(probe({account:'acct_testowner',mode:'bogus'})).rejects
+      .toThrow(/TEST or LIVE/);
     const malformed=createPermissionReprobe({db,keyStoreFactory:()=>({
       loadKeySnapshot:async()=>({key:['rk','test','FAKE'].join('_'),
         expectedCiphertext:'fixture-cipher'})}),
       makeClient:()=>({}),probe:async()=>({customers:'unverified'})});
     await expect(malformed({account:'acct_testowner',mode:'test'})).rejects.toThrow();
+    expect((await db.getStripeAccount('acct_testowner')).key_permissions)
+      .toEqual({});
+    expect((await db.getStripeAccount('acct_testowner')).live_key_permissions)
+      .toBeNull();
   });
   it('fails closed when the owner rotates the key during the nine read probes',async()=>{
     const account='acct_rotation';
@@ -85,13 +96,20 @@ describe('B-8b1 independently verified TEST-only permission probes',()=>{
         .toEqual({customers:'denied'});
     }
   });
-  it('denies the MCP permission tool unless server probe and selected TEST account exist',async()=>{
+  it('denies the MCP permission tool unless server probe and selected account exist',async()=>{
     const db=createFakeDb({accounts:[{id:'acct_A',label:'A'}]});
     const conn={stripeAccount:'acct_A',mode:'test',profile:'read_only'};
     expect((await handlers.stripe_check_key_permissions({},{
       db,connection:conn})).isError).toBe(true);
     expect((await handlers.stripe_check_key_permissions({},{
-      db,connection:{...conn,mode:'live'},services:{stripePermissionReprobe:async()=>({})}})).isError).toBe(true);
+      db,connection:{...conn,mode:'live'}})).isError).toBe(true);
+    const liveResult=await handlers.stripe_check_key_permissions({detail:'full'},{
+      db,connection:{...conn,mode:'live'},
+      services:{stripePermissionReprobe:async ({account,mode})=>({account,mode,
+        checkedAt:'2026-10-10T00:00:00Z',permissions:{customers:'ok'}})}});
+    const liveParsed=parse(liveResult);
+    expect(liveParsed.mode).toBe('live');
+    expect(liveParsed.source).toMatch(/Fresh LIVE/);
     let called=0;
     const result=await dispatchReadOnlyTool({registry,name:'stripe_check_key_permissions',
       args:{},connection:conn,db,services:{stripePermissionReprobe:async ({account,mode})=>{

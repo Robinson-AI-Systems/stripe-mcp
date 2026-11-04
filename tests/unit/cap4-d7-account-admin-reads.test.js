@@ -14,30 +14,32 @@
 // refuses with the standard mismatch text in either direction. Every
 // refusal/note that names the mode substitutes the connection's mode
 // word, so TEST outputs stay byte-identical.
-// FLAGGED, NOT CONVERTED: stripe_check_key_permissions. Its handler
-// and the reprobe service stay TEST-only in this build because a LIVE
-// probe result cannot be persisted without changing src/db.js —
-// db.updateKeyPermissions matches only test_key_enc and writes the
-// single shared key_permissions/key_checked_at columns. The probe
-// pins below hold the baseline contract (TEST probes the TEST key;
-// a LIVE connection refuses and the probe is never invoked — no
-// cross-mode fallback) as the regression floor for the follow-up
-// conversion once the coordinator rules on LIVE permission
-// persistence. Baseline accounting (pristine-baseline run, recorded
-// in the D-7 card): 16 of these 30 tests fail at baseline — every
-// LIVE happy path, both no-connection gate texts, the mode-named
-// unreadable notes, the fees standard-refusal text, the guided LIVE
-// pins and the descriptions. Fourteen pass at baseline and after,
-// each accounted: the five TEST byte/shape pins (account, TEST
-// requirements, TEST overview summary, TEST fee sample, TEST security
-// review) and the TEST guided-list mode pin, which TEST was already
-// fully serving; the accountSafe no-mode contract and the
-// absent-livemode TEST fee row, the very fixture shape that forced
-// default semantics in the fees projection; the capabilities
-// wrong-mode refusal, outcome-identical at baseline (gate refusal
-// before any provider call; verified-reader refusal after); and the
-// four flagged-probe pins, which hold the baseline contract of the
-// one leg this build deliberately does not convert.
+// FLAGGED IN D-7, CONVERTED BY CAP-4 D7b: stripe_check_key_permissions.
+// In this build its handler and the reprobe service stayed TEST-only
+// because a LIVE probe result could not be persisted without changing
+// src/db.js — db.updateKeyPermissions matched only test_key_enc and
+// wrote the single shared key_permissions/key_checked_at columns.
+// D7b paid that schema cost (per-mode probe records), so the probe
+// pins below and the LIVE security-review pin were updated in D7b to
+// the per-mode contract (each mode probes its own key; the refusal
+// text names both modes; the description names both modes). The
+// deeper per-mode persistence and whoami proof lives in
+// tests/unit/cap4-d7b-key-probe-per-mode.test.js and
+// tests/db/key-reprobe.test.js. Baseline accounting (pristine-baseline
+// run, recorded in the D-7 card): 16 of these 30 tests fail at
+// baseline — every LIVE happy path, both no-connection gate texts,
+// the mode-named unreadable notes, the fees standard-refusal text,
+// the guided LIVE pins and the descriptions. Fourteen pass at
+// baseline and after, each accounted: the five TEST byte/shape pins
+// (account, TEST requirements, TEST overview summary, TEST fee
+// sample, TEST security review) and the TEST guided-list mode pin,
+// which TEST was already fully serving; the accountSafe no-mode
+// contract and the absent-livemode TEST fee row, the very fixture
+// shape that forced default semantics in the fees projection; the
+// capabilities wrong-mode refusal, outcome-identical at baseline
+// (gate refusal before any provider call; verified-reader refusal
+// after); and the four probe pins, which in D-7 held the baseline
+// contract of the one leg that build deliberately did not convert.
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {handlers as accountHandlers,tools as accountTools,accountSafe}
   from '../../src/tools/account-profile.js';
@@ -295,18 +297,19 @@ describe('CAP-4 D-7 admin security review',()=>{
     expect(out.sections.webhooks.note)
       .toContain('Only TEST endpoint metadata');
   });
-  it('serves the LIVE review in mode; the TEST-only probe stays unobserved',async()=>{
-    // The probe leg is the flagged conversion (see header): until the
-    // coordinator rules on LIVE permission persistence in src/db.js,
-    // stripe_check_key_permissions refuses a LIVE connection, so the
-    // LIVE review honestly reports the probe section not_readable and
-    // never invokes the probe service.
+  it('serves the LIVE review in mode with an observed LIVE probe section',async()=>{
+    // CAP-4 D7b converted the flagged probe leg: the LIVE review now
+    // invokes the probe for the LIVE key and safeProbe's mode
+    // re-validation (mode-aware since D-7) accepts the LIVE result.
     const ctx=secCtx('live',sdkFor(true));
     const out=parse(await securityHandlers.admin_review_security({},ctx));
     expect(out).toMatchObject({account:acct,mode:'live',readOnly:true});
     expect(out.sections.key.keyLast4).toBe('••••9876');
-    expect(out.sections.keyPermissions.status).toBe('not_readable');
-    expect(ctx.services.stripePermissionReprobe).not.toHaveBeenCalled();
+    expect(out.sections.keyPermissions.status).toBe('observed');
+    expect(out.sections.keyPermissions.note)
+      .toContain('Fresh LIVE permission probe ran');
+    expect(ctx.services.stripePermissionReprobe)
+      .toHaveBeenCalledWith({account:acct,mode:'live'});
     expect(out.sections.webhooks.note)
       .toContain('Only LIVE endpoint metadata');
     expect(JSON.stringify(out)).not.toContain(PII);
@@ -338,7 +341,7 @@ describe('CAP-4 D-7 guided settings (coordinator ruling pins)',()=>{
   });
 });
 
-describe('CAP-4 D-7 key-permission probe (flagged: baseline contract)',()=>{
+describe('CAP-4 D-7 key-permission probe (per-mode contract after CAP-4 D7b)',()=>{
   it('probes the enrolled TEST key on a TEST connection',async()=>{
     const probe=vi.fn(async({account:a,mode})=>({account:a,mode,
       permissions:{customers:'ok'},checkedAt:'2026-11-04T00:00:00.000Z'}));
@@ -354,22 +357,29 @@ describe('CAP-4 D-7 key-permission probe (flagged: baseline contract)',()=>{
         services:{stripePermissionReprobe:probe}}));
     expect(full.source).toBe('Fresh TEST key read-only Stripe probes');
   });
-  it('refuses a LIVE connection and never falls back to the TEST key',async()=>{
-    const probe=vi.fn(async()=>({account:acct,mode:'test',permissions:{}}));
-    const out=await serverHandlers.stripe_check_key_permissions({},
+  it('probes the enrolled LIVE key on a LIVE connection',async()=>{
+    const probe=vi.fn(async({account:a,mode})=>({account:a,mode,
+      permissions:{customers:'ok'},checkedAt:'2026-11-04T00:00:00.000Z'}));
+    const out=parse(await serverHandlers.stripe_check_key_permissions({},
       {connection:{mode:'live',stripeAccount:acct},
-        services:{stripePermissionReprobe:probe}});
-    expect(out.isError).toBe(true);
-    expect(out.content[0].text).toBe(
-      'Only a configured TEST account with server-side key access may be checked');
-    expect(probe).not.toHaveBeenCalled();
+        services:{stripePermissionReprobe:probe}}));
+    expect(probe).toHaveBeenCalledWith({account:acct,mode:'live'});
+    expect(out).toEqual({account:acct,mode:'live',
+      permissions:{customers:'ok'}});
+    const full=parse(await serverHandlers.stripe_check_key_permissions(
+      {detail:'full'},
+      {connection:{mode:'live',stripeAccount:acct},
+        services:{stripePermissionReprobe:probe}}));
+    expect(full.source).toBe('Fresh LIVE key read-only Stripe probes');
   });
-  it('refuses when no probe service is configured for the connection',async()=>{
-    const out=await serverHandlers.stripe_check_key_permissions({},
-      {connection:{mode:'test',stripeAccount:acct},services:{}});
-    expect(out.isError).toBe(true);
-    expect(out.content[0].text).toBe(
-      'Only a configured TEST account with server-side key access may be checked');
+  it('refuses when no probe service is configured, in either mode',async()=>{
+    for(const mode of ['test','live']){
+      const out=await serverHandlers.stripe_check_key_permissions({},
+        {connection:{mode,stripeAccount:acct},services:{}});
+      expect(out.isError).toBe(true);
+      expect(out.content[0].text).toBe(
+        'Only a configured TEST or LIVE account with server-side key access may be checked');
+    }
   });
 });
 
@@ -384,9 +394,11 @@ describe('CAP-4 D-7 descriptions',()=>{
       expect(byName(n).description.length).toBeLessThanOrEqual(160);
     }
   });
-  it('leaves the flagged probe description at its baseline text',()=>{
-    expect(serverTools.find(t=>t.name==='stripe_check_key_permissions')
-      .description)
-      .toBe('Recheck TEST key read permissions without revealing the Stripe key.');
+  it('names both modes in the probe description converted by CAP-4 D7b',()=>{
+    const description=serverTools.find(t=>t.name==='stripe_check_key_permissions')
+      .description;
+    expect(description)
+      .toBe('Recheck TEST or LIVE key read permissions without revealing it.');
+    expect(description.length).toBeLessThanOrEqual(160);
   });
 });

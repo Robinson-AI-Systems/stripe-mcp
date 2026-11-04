@@ -87,30 +87,37 @@ export function createPermissionReprobe({db, keyStoreFactory=createKeyStore,
   makeClient=makeStripeClient, probe=probeKeyPermissions}) {
   return async ({account,mode}) => {
     if (typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
-        mode!=='test' || typeof db?.updateKeyPermissions!=='function') {
-      throw new Error('A configured TEST account is required for permission checks');
+        !['test','live'].includes(mode) ||
+        typeof db?.updateKeyPermissions!=='function') {
+      throw new Error('A configured TEST or LIVE account is required for permission checks');
     }
+    const MODE=mode.toUpperCase();
     // Server-only lazy credential decryption. Nothing is returned to the AI.
+    // The snapshot load is mode-matched: a LIVE load keeps the key store's
+    // own production gate and never falls back to the TEST key.
     const keyStore=keyStoreFactory({db});
-    const snapshot=await keyStore.loadKeySnapshot({account,mode:'test'});
+    const snapshot=await keyStore.loadKeySnapshot({account,mode});
     if (typeof snapshot?.key!=='string' || typeof snapshot.expectedCiphertext!=='string' ||
         !snapshot.expectedCiphertext) {
-      throw new Error('TEST key snapshot unavailable: permission update refused');
+      throw new Error(MODE+' key snapshot unavailable: permission update refused');
     }
-    const stripe=makeClient({key:snapshot.key,mode:'test'});
-    try{await readVerifiedTestAccount(stripe,account);}
-    catch{throw new Error('Selected TEST account identity could not be verified');}
+    const stripe=makeClient({key:snapshot.key,mode});
+    try{
+      if(mode==='test')await readVerifiedTestAccount(stripe,account);
+      else await readVerifiedLiveAccount(stripe,account);
+    }
+    catch{throw new Error('Selected '+MODE+' account identity could not be verified');}
     // Never update permission metadata without exact provider account identity
-    // and explicit TEST evidence, including for Accounts without livemode.
+    // and explicit mode evidence, including for Accounts without livemode.
     const permissions=await probe(stripe);
     if (!permissions || typeof permissions!=='object' || Array.isArray(permissions)) {
       throw new Error('Stripe permission probes did not return a verified result');
     }
     if (!await db.updateKeyPermissions({
-      account,permissions,expectedCiphertext:snapshot.expectedCiphertext
+      account,mode,permissions,expectedCiphertext:snapshot.expectedCiphertext
     })) {
-      throw new Error('The selected TEST key could not be updated');
+      throw new Error('The selected '+MODE+' key could not be updated');
     }
-    return {account,mode:'test',permissions,checkedAt:new Date().toISOString()};
+    return {account,mode,permissions,checkedAt:new Date().toISOString()};
   };
 }

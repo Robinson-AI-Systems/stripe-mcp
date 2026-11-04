@@ -307,6 +307,9 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const liveSaved = encryptedLiveKeys.get(id);
       return structuredClone({ ...account, test_key_kind: saved?.kind || null,
         test_key_last4: saved?.last4 || null, key_permissions: saved?.permissions || {},
+        key_checked_at: saved?.checkedAt ?? null,
+        live_key_permissions: liveSaved?.permissions ?? null,
+        live_key_checked_at: liveSaved?.checkedAt ?? null,
         live_key_kind: liveSaved?.kind || account.live_key_kind || null,
         live_key_last4: liveSaved?.last4 || account.live_key_last4 || null,
         money_limit_cents: account.money_limit_cents ?? 50000, test_connected: !!saved,
@@ -316,22 +319,40 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       const before = accountRows.get(account) || { id: account, is_default: accountRows.size === 0,
         live_enabled: false };
       accountRows.set(account, { ...before, label });
-      encryptedTestKeys.set(account, { ciphertext, kind, last4, permissions: structuredClone(permissions) });
+      encryptedTestKeys.set(account, { ciphertext, kind, last4,
+        permissions: structuredClone(permissions),
+        checkedAt: new Date(clock()).toISOString() });
     },
     async saveLiveKey({account,ciphertext,kind,last4}){
       if(!accountRows.has(account))return false;
-      encryptedLiveKeys.set(account,{ciphertext,kind,last4});return true;
+      const before=encryptedLiveKeys.get(account);
+      encryptedLiveKeys.set(account,{ciphertext,kind,last4,
+        permissions:before?.permissions??null,checkedAt:before?.checkedAt??null});
+      return true;
     },
-    async updateKeyPermissions({account,permissions,expectedCiphertext}) {
+    // Mirrors src/db.js after CAP-4 D7b: per-mode probe records; the
+    // TEST branch matches the test ciphertext, the LIVE branch the
+    // live ciphertext under the live_enabled gate; neither crosses.
+    async updateKeyPermissions({account,mode='test',permissions,expectedCiphertext}) {
       if (typeof expectedCiphertext!=='string' || !expectedCiphertext ||
           typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !['test','live'].includes(mode) ||
           !permissions || typeof permissions!=='object' || Array.isArray(permissions) ||
           !Object.values(permissions).every(v=>v==='ok'||v==='denied')) {
         throw new TypeError('Invalid verified permissions');
       }
+      if(mode==='live'){
+        const storedLive=encryptedLiveKeys.get(account);
+        if (!storedLive || storedLive.ciphertext!==expectedCiphertext ||
+            accountRows.get(account)?.live_enabled!==true) return false;
+        storedLive.permissions=structuredClone(permissions);
+        storedLive.checkedAt=new Date(clock()).toISOString();
+        return true;
+      }
       const stored=encryptedTestKeys.get(account);
       if (!stored || stored.ciphertext!==expectedCiphertext) return false;
       stored.permissions=structuredClone(permissions);
+      stored.checkedAt=new Date(clock()).toISOString();
       return true;
     },
     async getEncryptedKey({account,mode}) {
