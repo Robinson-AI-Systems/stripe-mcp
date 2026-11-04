@@ -482,6 +482,37 @@ the read families. The first family is source-implemented:
   probe's LIVE row stands in the CAP-5 queue; the db-suite
   persistence and legacy-migration proof rides exact-head
   CI (no local PostgreSQL on the coordinator VM).
+- **PROD-PAYMENT — payment-area coverage completion**
+  ([CAP4-PROD-PAYMENT](pr-cards/CAP4-PROD-PAYMENT.md)):
+  Phase 4's first product-gap card closes the payment area
+  with evidence; no native tool is built. The four claimed
+  operations are dispositioned: `payment_records` reads take
+  native coverage deliberately out (third-party subject, no
+  consumer — the family closes as a unit with D-9's
+  refused-third-party writes, on the census's
+  financial-connections precedent) with the guarded
+  universal read serving both GETs; the `mandates` GET is
+  door-sufficient (no list operation exists in the pinned
+  catalog, so the door's per-object mode verification is
+  complete for the family, proven in both modes and both
+  wrong-mode directions); the `confirmation_tokens` GET
+  takes no native read (an ephemeral client-issued
+  pre-confirmation snapshot whose every field group is
+  payment detail or PII, with no consuming workflow) — and
+  the enumeration proved the door served it at baseline,
+  because the sensitive-family screen's `tokens` pattern
+  cannot match `confirmation_tokens` (no word boundary
+  precedes `tokens` after the underscore), returning the
+  full payload at `detail:'full'` under credential
+  redaction only. The screen now names the family
+  explicitly and refuses before any provider call — the
+  unit's only source change. The area sweep re-ran at this
+  baseline: 69 pinned operations across the eleven payment
+  families, zero unclassified (native 28, door 16, D-9 10,
+  row-35 money 14, out 1), reconciling with the census
+  appendix. A disposition-verification row (the deployed
+  refusal plus the mandate and payment-record door reads)
+  stands in the CAP-5 queue.
 
 Still required:
 
@@ -491,9 +522,10 @@ Still required:
    CAP4-D7b, is likewise source-implemented above; Phase 2
    Connect is complete above (slices 1–3; the Connect family
    is COMPLETE in source); Phase 3 the universal door (D-9)
-   is source-implemented above; next is Phase 4 the payment,
-   billing, Tax-closure, event and entitlement product cards;
-   Phase 5 organization context and D-10.
+   is source-implemented above; Phase 4's payment product card
+   (PROD-PAYMENT) is source-implemented above; next in Phase 4
+   are the billing, Tax-closure, event and entitlement product
+   cards; Phase 5 organization context and D-10.
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)
    lands with CAP-4's final card; the consumer test itself runs
