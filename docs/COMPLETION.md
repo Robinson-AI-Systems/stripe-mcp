@@ -583,6 +583,35 @@ the read families. The first family is source-implemented:
   bucket. A disposition-verification row (the deployed
   server still cannot name the v2 operations) stands
   in the CAP-5 queue.
+- **PROD-TAX — Tax-area closure**
+  ([CAP4-PROD-TAX](pr-cards/CAP4-PROD-TAX.md)):
+  Phase 4's fourth product-gap card is the program's
+  verification card — it claims zero census operations,
+  deliberately — and closes the Tax area with evidence;
+  no native tool is built and no source file changes.
+  The re-sweep at this baseline confirms the zero:
+  31 pinned operations across the four census families
+  (tax, tax_codes, tax_ids including the
+  customer-scoped rows, tax_rates), zero unexamined —
+  8 GETs native-verified, 10 GETs door-served, and all
+  13 POST/DELETE rows D-9-classified (6 allow, the two
+  tax_rates rows being the whitelist baseline rows;
+  7 native-owns naming the tax and customer families).
+  Every claim in the frozen card's trace was verified
+  against the current tree and holds: the native Tax
+  reads are mode-aware in both directions (one shared
+  `livemode` projection in `tax-native.js` on
+  `catalog-mode.js`; the LIVE branch routes through
+  the owner-enabled selected-account seam), and the
+  door mode-verifies the GETs no native tool governs
+  (pin-proven on two representative rows). The mode
+  proof cites the existing suites by test name and
+  fills the one genuine gap — a tax-native read
+  exercised through the LIVE client route — with two
+  legs in the new suite. No CAP-5 rows are owed:
+  nothing changes behavior. The conformance closure
+  line stands in the conformance record's PROD-TAX
+  passage.
 
 Still required:
 
@@ -592,11 +621,11 @@ Still required:
    CAP4-D7b, is likewise source-implemented above; Phase 2
    Connect is complete above (slices 1–3; the Connect family
    is COMPLETE in source); Phase 3 the universal door (D-9)
-   is source-implemented above; Phase 4's payment, billing
-   and event product cards (PROD-PAYMENT, PROD-BILLING,
-   PROD-EVENTS) are
-   source-implemented above; next in Phase 4 are the
-   Tax-closure and entitlement product cards;
+   is source-implemented above; Phase 4's payment, billing,
+   event and Tax-closure product cards (PROD-PAYMENT,
+   PROD-BILLING, PROD-EVENTS, PROD-TAX) are
+   source-implemented above; next in Phase 4 is the
+   entitlement product card;
    Phase 5 organization context and D-10.
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)

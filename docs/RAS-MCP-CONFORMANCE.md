@@ -1629,6 +1629,65 @@ operation exists to call and no tool is listed) stands
 in the CAP-5 queue; the dispositioned rows join this
 record's addendum accounting through this passage.
 
+**CAP-4 progress — PROD-TAX Tax-area closure
+(2026-11-04):** Phase 4's fourth product-gap card
+(CAP4-PROD-TAX) is the program's verification card —
+it claims zero census operations, deliberately — and
+closes the Tax area with evidence; no native tool is
+built, no source file changes, and the registry stays
+at 343 tools. The closure line, in the frozen card's
+own words: **Tax — no CAP-4 gap at the 2026-11-04
+census; writes classified in D-9; reads natively
+mode-aware.** The re-sweep behind that line was
+re-derived at this baseline from the pinned catalog
+(`src/stripe/openapi-index.js`, 559 operations): 31
+Tax-area operations across the four census families
+(tax, tax_codes, tax_ids including the
+customer-scoped rows, tax_rates), zero unexamined —
+8 GETs native-verified, 10 GETs door-served, and all
+13 POST/DELETE rows classified in D-9's table
+(6 allow: registrations create/update, settings,
+locations, and the two tax_rates rows carrying the
+whitelist `baseline: true` marker; 7 native-owns:
+the tax family owns `POST /v1/tax/calculations` and
+the two transaction creates, the customer family
+owns the four tax_ids writes) — reconciling with the
+census appendix (its served bucket's 18 Tax GETs land
+as the 8 + 10 split its "and/or" wording carries; its
+13 classification rows match D-9's table row for
+row). Every claim in the frozen card's trace was
+verified against the current tree and holds, with
+the sweep's refinements recorded in the card (the
+native/door split of the GETs; the allow rows for
+settings and locations and the native-owns row for
+calculations, which the trace did not enumerate and
+which reverse none of it — no census amendment is
+made). Reads: the native Tax reads verify each
+object's `livemode` through one shared projection
+(`src/tools/tax-native.js` on
+`src/tools/catalog-mode.js`, whose LIVE branch routes
+through the owner-enabled selected-account seam; the
+catalog-extras `taxrate_*` reads and the customer
+family's `customer_list_tax_ids` verify through
+their own families' mode checks), and the guarded
+universal read mode-verifies the GETs no native tool
+governs — pin-proven in the unit's suite on two
+representative rows (registrations/{id} and
+tax_ids/{id}: serve mode-matched in TEST and LIVE,
+refuse wrong-mode in both directions). The mode
+proof cites the existing suites by test name —
+final-native-e4's wrong-mode fixture for the
+tax-native projection, catalog-extras'
+wrong-environment refusal for its shared verifier,
+customer-live-authority's LIVE execution of
+`customer_list_tax_ids` — and fills the one genuine
+gap (no test had exercised a tax-native read through
+the LIVE client route) with two legs in the unit's
+suite. **No CAP-5 rows are owed**: nothing in this
+unit changes behavior, so no live-proof or
+disposition-verification row joins the queue (the
+frozen card's Done-when, stated explicitly).
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
