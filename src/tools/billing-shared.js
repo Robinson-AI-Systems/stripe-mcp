@@ -1,7 +1,7 @@
-// Shared current-native TEST subscription projections and provider preflights.
+// Shared current-native subscription projections and provider preflights.
 import {denverLocalTime} from './util.js';
 import {APP_METADATA_KEYS} from './app-guard.js';
-import {modeClient} from './account-mode.js';
+import {modeClient,assertAccountResourceMode} from './account-mode.js';
 
 export const allProfiles=['read_only','everyday','full'];
 export const writeProfiles=['everyday','full'];
@@ -45,27 +45,37 @@ export async function guarded(ctx,fn){
 }
 // Only expanded native discount/coupon facts enter recurring-revenue math.
 // An unresolved Stripe ID becomes a verified:false sentinel, not a zero discount.
-export function discountSafe(v){
+// When the caller supplies the connection mode, a discount verifies only
+// when its own and its coupon's livemode equal that mode (owner-obedience
+// V2, Billing family): a LIVE discount on a LIVE connection verifies with
+// its real terms, a wrong-mode discount stays the verified:false sentinel,
+// never a zero. Callers that supply no mode keep the historical check
+// exactly (any livemode===true fact is unverified).
+export function discountSafe(v,mode){
   const coupon=v?.coupon;
-  if(v?.object!=='discount'||coupon?.object!=='coupon'||v.livemode===true||
-    coupon.livemode===true)return {verified:false};
+  if(v?.object!=='discount'||coupon?.object!=='coupon')return {verified:false};
+  if(['test','live'].includes(mode)){
+    const expected=mode==='live';
+    if(v.livemode!==expected||coupon.livemode!==expected)
+      return {verified:false};
+  }else if(v.livemode===true||coupon.livemode===true)return {verified:false};
   return {verified:true,endUnix:v.end??null,duration:coupon.duration??null,
     percentOff:coupon.percent_off??null,
     amountOffMinor:coupon.amount_off??null,currency:coupon.currency??null};
 }
-export function discountList(v){
+export function discountList(v,mode){
   if(v===null||v===undefined)return [];
   if(!Array.isArray(v))return [{verified:false}];
-  return v.map(discountSafe);
+  return v.map(d=>discountSafe(d,mode));
 }
 
-export function itemSafe(item){
+export function itemSafe(item,mode){
   return {id:item.id,subscription:ref(item.subscription),
     price:ref(item.price),quantity:item.quantity??null,
     unitAmountCents:item.price?.unit_amount??null,currency:item.price?.currency??null,
     billingScheme:item.price?.billing_scheme??null,
     usageType:item.price?.recurring?.usage_type??null,
-    discounts:discountList(item.discounts),
+    discounts:discountList(item.discounts,mode),
     recurring:item.price?.recurring?{interval:item.price.recurring.interval,
       intervalCount:item.price.recurring.interval_count??1}:null,
     currentPeriodStart:local(item.current_period_start),
@@ -73,7 +83,7 @@ export function itemSafe(item){
     currentPeriodStartUnix:item.current_period_start??null,
     currentPeriodEndUnix:item.current_period_end??null};
 }
-export function subscriptionSafe(sub){
+export function subscriptionSafe(sub,mode){
   return {id:sub.id,status:sub.status,customer:ref(sub.customer),
     currency:sub.currency??null,collectionMethod:sub.collection_method??null,
     billingMode:sub.billing_mode?.type??null,defaultPaymentMethod:ref(sub.default_payment_method),
@@ -81,8 +91,8 @@ export function subscriptionSafe(sub){
     cancelAtPeriodEnd:sub.cancel_at_period_end===true,cancelAt:local(sub.cancel_at),
     canceledAt:local(sub.canceled_at),endedAt:local(sub.ended_at),
     pauseCollection:sub.pause_collection?.behavior??null,
-    items:(sub.items?.data??[]).map(itemSafe),
-    discounts:discountList(sub.discounts??(sub.discount?[sub.discount]:[])),
+    items:(sub.items?.data??[]).map(i=>itemSafe(i,mode)),
+    discounts:discountList(sub.discounts??(sub.discount?[sub.discount]:[]),mode),
     moreItems:sub.items?.has_more===true,
     metadata:sub.metadata??{},description:sub.description??null};
 }
@@ -166,7 +176,7 @@ export function previewSafe(invoice,effectiveAt,behavior){
       .filter(i=>i.parent?.subscription_item_details?.proration===true)
       .map(i=>({amountCents:i.amount,description:i.description??null}))};
 }
-export async function previewChange(s,sub,items,at,behavior,{billingAnchor=null}={}){
+export async function previewChange(s,sub,items,at,behavior,{billingAnchor=null,mode=null}={}){
   ensureSubscription(sub);
   if(!Number.isSafeInteger(at)||at<946684800||at>4102444800)
     throw new TypeError('Provide explicit valid effectiveAt');
@@ -178,5 +188,9 @@ export async function previewChange(s,sub,items,at,behavior,{billingAnchor=null}
       ...(behavior==='none'?{}:{proration_date:at}),
       ...(billingAnchor?{billing_cycle_anchor:billingAnchor}:{})}
   });
+  // When the caller names its connection mode, the evaluated preview
+  // invoice must carry that same mode (owner-obedience V2); callers
+  // that pass no mode keep the historical behavior exactly.
+  if(mode)assertAccountResourceMode(invoice,mode);
   return previewSafe(invoice,at,behavior);
 }

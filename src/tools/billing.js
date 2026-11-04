@@ -1,7 +1,8 @@
-// Native read-only TEST subscriptions, schedule and exact invoice previews.
+// Native read-only subscriptions, schedule and exact invoice previews.
 import {allProfiles,id,quantity,timestamp,proration,paging,pageResult,
   guarded,checkId,subscriptionSafe,itemSafe,scheduleSafe,previewChange,
   ensureSubscription,safeRecurringPrice} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 
 const cursor={type:'string',minLength:2,maxLength:110};
 const query={type:'string',minLength:1,maxLength:400};
@@ -11,22 +12,22 @@ const read=(name,description,properties={},required=[])=>({
   annotations:{readOnlyHint:true},
   inputSchema:{type:'object',properties,required,additionalProperties:false}});
 export const tools=[
-  read('billing_list_subscriptions','List TEST subscriptions and each item billing period.',
+  read('billing_list_subscriptions','List subscriptions and each item billing period.',
     {...props,customer:id('cus'),status:{type:'string',
       enum:['all','active','past_due','canceled','trialing','incomplete','unpaid']}}),
-  read('billing_get_subscription','Read a TEST subscription, item periods and collection status.',
+  read('billing_get_subscription','Read a subscription, item periods and collection status.',
     {subscriptionId:id('sub')},['subscriptionId']),
-  read('billing_search_subscriptions','Search TEST subscriptions with bounded Stripe search.',
+  read('billing_search_subscriptions','Search subscriptions with bounded Stripe search.',
     {query,limit:props.limit,page:cursor},['query']),
-  read('billing_preview_change','Preview the exact TEST invoice for an item price or quantity change.',
+  read('billing_preview_change','Preview the exact invoice for an item price or quantity change.',
     {subscriptionId:id('sub'),itemId:id('si'),priceId:id('price'),
       quantity,prorationBehavior:proration,effectiveAt:timestamp},
     ['subscriptionId','itemId','effectiveAt','prorationBehavior']),
-  read('billing_list_items','List TEST subscription items including independent billing periods.',
+  read('billing_list_items','List subscription items including independent billing periods.',
     {subscriptionId:id('sub'),...props},['subscriptionId']),
-  read('billing_list_schedules','List TEST subscription schedules with paging.',
+  read('billing_list_schedules','List subscription schedules with paging.',
     {...props,customer:id('cus')}),
-  read('billing_get_schedule','Read a TEST subscription schedule and phase details.',
+  read('billing_get_schedule','Read a subscription schedule and phase details.',
     {scheduleId:id('sub_sched')},['scheduleId'])
 ];
 const search=a=>{
@@ -47,29 +48,34 @@ export const handlers={
     await s.subscriptions.list({...paging(a),
       expand:['data.discounts','data.items.data.discounts'],
       ...(a?.customer?{customer:checkId(a.customer,'cus')}:{}),
-      ...(a?.status?{status:a.status}:{})}),subscriptionSafe)),
+      ...(a?.status?{status:a.status}:{})}),
+    v=>subscriptionSafe(v,c?.connection?.mode))),
   billing_get_subscription:(a,c)=>guarded(c,async s=>subscriptionSafe(
     await s.subscriptions.retrieve(checkId(a?.subscriptionId,'sub'),
-      {expand:['discounts','items.data.discounts']}))),
+      {expand:['discounts','items.data.discounts']}),c?.connection?.mode)),
   billing_search_subscriptions:(a,c)=>guarded(c,async s=>providerList(
-    await s.subscriptions.search(search(a)),subscriptionSafe,true)),
+    await s.subscriptions.search(search(a)),
+    v=>subscriptionSafe(v,c?.connection?.mode),true)),
   billing_preview_change:(a,c)=>guarded(c,async s=>{
-    const sub=ensureSubscription(await s.subscriptions.retrieve(checkId(a?.subscriptionId,'sub')));
+    const mode=c?.connection?.mode;
+    const sub=ensureSubscription(assertAccountResourceMode(
+      await s.subscriptions.retrieve(checkId(a?.subscriptionId,'sub')),mode));
     const item=sub.items.data.find(i=>i.id===checkId(a?.itemId,'si'));
     if(!item)throw new TypeError('Item does not belong to this subscription');
     if(!a.priceId&&a.quantity===undefined)
       throw new TypeError('Provide changed priceId or quantity');
     if(a.quantity!==undefined&&(!Number.isSafeInteger(a.quantity)||a.quantity<1||a.quantity>100000))
       throw new TypeError('Invalid item quantity');
-    if(a.priceId)safeRecurringPrice(await s.prices.retrieve(checkId(a.priceId,'price')));
+    if(a.priceId)safeRecurringPrice(assertAccountResourceMode(
+      await s.prices.retrieve(checkId(a.priceId,'price')),mode));
     return previewChange(s,sub,[{id:item.id,
       price:a.priceId??(typeof item.price==='string'?item.price:item.price?.id),
-      quantity:a.quantity??item.quantity}],a.effectiveAt,a.prorationBehavior);
+      quantity:a.quantity??item.quantity}],a.effectiveAt,a.prorationBehavior,{mode});
   }),
   billing_list_items:(a,c)=>guarded(c,async s=>pageResult(
     await s.subscriptionItems.list({subscription:checkId(a?.subscriptionId,'sub'),...paging(a),
       expand:['data.discounts']}),
-    itemSafe)),
+    v=>itemSafe(v,c?.connection?.mode))),
   billing_list_schedules:(a,c)=>guarded(c,async s=>providerList(
     await s.subscriptionSchedules.list({...paging(a),
       ...(a?.customer?{customer:checkId(a.customer,'cus')}:{} )}),scheduleSafe)),

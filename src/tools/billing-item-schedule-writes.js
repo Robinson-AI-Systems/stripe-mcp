@@ -1,10 +1,11 @@
-// Native D-4 TEST subscription item and future schedule mutation workflows.
-// No Stripe secret or LIVE operation is ever accepted by these handlers.
-import {defineWrite,gone} from './write.js';
+// Native D-4 subscription item and future schedule mutation workflows
+// in the connection's own mode.
+import {defineWrite} from './write.js';
 import {previewMoney} from './billing-writes.js';
 import {client,ref,id,quantity,timestamp,proration,ownership,validateFields,
-  safeRecurringPrice,previewSafe,previewChange,
+  safeRecurringPrice,previewSafe,previewChange,local,
   writeProfiles,fullProfiles} from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 import {planScheduleUpdate,verifyScheduleUpdate} from './billing-schedule-plan.js';
 import {verifyItemLedger,verifyLinkedScheduleSubscription} from './billing-item-safety.js';
 
@@ -16,28 +17,28 @@ const billingMode={type:'string',enum:['flexible','classic']};
 const fields={effectiveAt:timestamp,prorationBehavior:proration};
 const iterations={type:'integer',minimum:1,maximum:24};
 const defs=[
-  {name:'billing_add_item',description:'Add an active USD recurring TEST subscription item after an exact proration preview.',
+  {name:'billing_add_item',description:'Add an active USD recurring subscription item after an exact proration preview.',
     props:{...sub,priceId:id('price'),quantity,...fields,...life},
     required:['subscriptionId','priceId','quantity','effectiveAt','prorationBehavior'],kind:'item',money:true},
-  {name:'billing_update_item',description:'Change a TEST item price or quantity with pinned invoice preview and read-back.',
+  {name:'billing_update_item',description:'Change an item price or quantity with pinned invoice preview and read-back.',
     props:{...sub,...item,priceId:id('price'),quantity,...fields,...life},
     required:['subscriptionId','itemId','effectiveAt','prorationBehavior'],kind:'item',money:true},
-  {name:'billing_remove_item',description:'Remove a TEST item, preserving at least one item; preview any credits first.',
+  {name:'billing_remove_item',description:'Remove a subscription item, preserving at least one item; preview any credits first.',
     props:{...sub,...item,...fields,...life},
     required:['subscriptionId','itemId','effectiveAt','prorationBehavior'],kind:'item',money:true,destructive:true},
-  {name:'billing_create_schedule',description:'Create a future TEST subscription schedule with verified price, amount, mode and start.',
+  {name:'billing_create_schedule',description:'Create a future subscription schedule with verified price, amount, mode and start.',
     props:{customerId:id('cus'),priceId:id('price'),quantity,startAt:timestamp,
       iterations,endBehavior,billingMode,...life},
     required:['customerId','priceId','quantity','startAt','iterations','endBehavior','billingMode'],
     kind:'scheduleCreate',money:true,full:true},
-  {name:'billing_update_schedule',description:'Change a pending or future active TEST schedule phase, preserving its current phase and previewing the change.',
+  {name:'billing_update_schedule',description:'Change a pending or future active schedule phase, preserving its current phase and previewing the change.',
     props:{...schedule,priceId:id('price'),quantity,iterations,endBehavior,
       effectiveAt:timestamp,replaceFuture:{type:'boolean'},...life},
     required:['scheduleId','priceId','quantity','iterations','endBehavior'],
     kind:'scheduleUpdate',money:true,full:true},
-  {name:'billing_release_schedule',description:'Release an existing TEST schedule, leaving its underlying subscription in place.',
+  {name:'billing_release_schedule',description:'Release an existing subscription schedule, leaving its underlying subscription in place.',
     props:{...schedule,...life},required:['scheduleId'],kind:'schedule',destructive:true,full:true},
-  {name:'billing_cancel_schedule',description:'Cancel a TEST schedule and any active subscription, with explicit final invoice choices.',
+  {name:'billing_cancel_schedule',description:'Cancel a subscription schedule and any active subscription, with explicit final invoice choices.',
     props:{...schedule,invoiceNow:{type:'boolean'},prorate:{type:'boolean'},...life},
     required:['scheduleId','invoiceNow','prorate'],kind:'schedule',
     money:true,destructive:true,full:true}
@@ -48,7 +49,10 @@ const pendingStatus=new Set(['not_started','active']);
 const currentItems=b=>b.items.data.map(i=>({
   id:i.id,price:ref(i.price),quantity:i.quantity}));
 const validate=(d,a)=>{
-  validateFields(a,d.props,d.required);
+  // previewFingerprint is a core control field: strip it before the
+  // closed family field check (the shared lifecycle binds it).
+  const {previewFingerprint:_previewFingerprint,...fields}=a??{};
+  validateFields(fields,d.props,d.required);
   if(d.name==='billing_update_item'&&!a.priceId&&a.quantity===undefined)
     throw new TypeError('Change a price or quantity');
   if(d.name==='billing_create_schedule'&&!future(a.startAt))
@@ -58,8 +62,9 @@ const validate=(d,a)=>{
   if(d.kind==='item'&&a.prorationBehavior!=='none'&&a.effectiveAt>today()+300)
     throw new TypeError('Item prorations must occur now; future changes require a schedule');
 };
-async function priceFor(s,priceId){
-  const price=safeRecurringPrice(await s.prices.retrieve(priceId));
+async function priceFor(s,priceId,mode){
+  const price=safeRecurringPrice(assertAccountResourceMode(
+    await s.prices.retrieve(priceId),mode));
   if(!['day','week','month','year'].includes(price.recurring.interval)||
     !Number.isInteger(price.recurring.interval_count??1)||
     (price.recurring.interval_count??1)<1)
@@ -73,10 +78,10 @@ function phase(priceId,amount,cycles){
 function validSchedule(b){
   if(!b||!pendingStatus.has(b.status)||typeof b.customer!=='string'||
     !Array.isArray(b.phases))
-    throw new TypeError('Complete editable TEST schedule required');
+    throw new TypeError('Complete editable schedule required');
   return b;
 }
-async function schedulePreview(s,{customerId,phases,start,mode,idValue,end}){
+async function schedulePreview(s,{customerId,phases,start,mode,idValue,end,connMode}){
   const details={phases,end_behavior:end};
   if(idValue){
     details.proration_behavior='none';
@@ -85,28 +90,30 @@ async function schedulePreview(s,{customerId,phases,start,mode,idValue,end}){
     details.start_date=start;
     details.billing_mode={type:mode};
   }
-  const invoice=await s.invoices.createPreview({
+  const invoice=assertAccountResourceMode(await s.invoices.createPreview({
     customer:customerId,currency:'usd',
     ...(idValue?{schedule:idValue}:{}),schedule_details:details
-  });
+  }),connMode);
   return previewSafe(invoice,start,'none');
 }
 async function beforeFor(d,a,s,ctx){
+  const connMode=ctx?.connection?.mode;
   if(d.kind==='item'){
-    const b=verifyItemLedger(await s.subscriptions.retrieve(a.subscriptionId));
+    const b=verifyItemLedger(assertAccountResourceMode(
+      await s.subscriptions.retrieve(a.subscriptionId),connMode));
     if(!['active','trialing','past_due'].includes(b.status))
-      throw new TypeError('Item changes require a mutable TEST subscription');
+      throw new TypeError('Item changes require a mutable subscription');
     const originals=currentItems(b);
     let proposal=null;
     if(d.name==='billing_add_item'){
-      await priceFor(s,a.priceId);
+      await priceFor(s,a.priceId,connMode);
       proposal={price:a.priceId,quantity:a.quantity};
     }else{
       const current=b.items.data.find(x=>x.id===a.itemId);
       if(!current)throw new TypeError('Item is not in this subscription');
       if(d.name==='billing_remove_item'&&b.items.data.length<2)
         throw new TypeError('Removing the final item would cancel the subscription');
-      if(a.priceId)await priceFor(s,a.priceId);
+      if(a.priceId)await priceFor(s,a.priceId,connMode);
       proposal={id:current.id,price:a.priceId??ref(current.price),
         quantity:a.quantity??current.quantity};
     }
@@ -116,46 +123,50 @@ async function beforeFor(d,a,s,ctx){
       d.name==='billing_remove_item'?
         originals.filter(x=>x.id!==a.itemId):
         originals.map(x=>x.id===a.itemId?proposal:x);
-    b._preview=await previewChange(s,b,items,a.effectiveAt,a.prorationBehavior);
+    b._preview=await previewChange(s,b,items,a.effectiveAt,a.prorationBehavior,{mode:connMode});
     return b;
   }
   if(d.kind==='scheduleCreate'){
-    const customer=await s.customers.retrieve(a.customerId);
+    const customer=assertAccountResourceMode(
+      await s.customers.retrieve(a.customerId),connMode);
     if(customer?.deleted||!customer?.metadata)
       throw new TypeError('Verified customer metadata required');
     const pmId=ref(customer.invoice_settings?.default_payment_method);
     if(!pmId||!/^pm_[A-Za-z0-9]{2,100}$/.test(pmId))
       throw new TypeError('Future schedule customer requires a verified saved payment method');
-    const method=await s.paymentMethods.retrieve(pmId);
+    const method=assertAccountResourceMode(
+      await s.paymentMethods.retrieve(pmId),connMode);
     if(ref(method.customer)!==customer.id)
       throw new TypeError('Future billing payment method belongs to another customer');
-    await priceFor(s,a.priceId);
+    await priceFor(s,a.priceId,connMode);
     const phases=[phase(a.priceId,a.quantity,a.iterations)];
     const preview=await schedulePreview(s,{customerId:customer.id,phases,
-      start:a.startAt,mode:a.billingMode,end:a.endBehavior});
+      start:a.startAt,mode:a.billingMode,end:a.endBehavior,connMode});
     return {...customer,_phases:phases,_preview:preview};
   }
-  const b=validSchedule(await s.subscriptionSchedules.retrieve(a.scheduleId));
+  const b=validSchedule(assertAccountResourceMode(
+    await s.subscriptionSchedules.retrieve(a.scheduleId),connMode));
   b._linked=await verifyLinkedScheduleSubscription(s,b,a,ctx);
+  if(b._linked)assertAccountResourceMode(b._linked,connMode);
   if(d.kind==='scheduleUpdate'){
     const patch=planScheduleUpdate(b,a);
-    await priceFor(s,a.priceId);
+    await priceFor(s,a.priceId,connMode);
     if(patch.active){
-      await priceFor(s,patch.phases[0].items[0].price);
+      await priceFor(s,patch.phases[0].items[0].price,connMode);
     }
     b._phases=patch.phases;
     b._preview=await schedulePreview(s,{customerId:ref(b.customer),
       phases:b._phases,start:patch.effectiveAt,mode:b.billing_mode.type,
-      idValue:b.id,end:a.endBehavior});
+      idValue:b.id,end:a.endBehavior,connMode});
   }
   if(d.name==='billing_cancel_schedule'&&b.status==='active'&&
     (a.prorate===true||a.invoiceNow===true)){
     if(!ref(b.subscription))throw new TypeError('Active schedule subscription unknown');
-    const invoice=await s.invoices.createPreview({
+    const invoice=assertAccountResourceMode(await s.invoices.createPreview({
       customer:ref(b.customer),subscription:ref(b.subscription),currency:'usd',
       subscription_details:{cancel_now:true,proration_behavior:
         a.prorate?'create_prorations':'none'}
-    });
+    }),connMode);
     b._preview=previewSafe(invoice,null,a.prorate?'create_prorations':'none');
   }
   return b;
@@ -183,14 +194,30 @@ function build(d){
       validate(d,a);
       return beforeFor(d,a,await client(ctx),ctx);
     },
-    summarize:async(b,a)=>{
+    summarize:async(b,a,ctx)=>{
       const preview=b._preview;
-      return 'TEST MODE. '+d.name+' target '+b.id+'; '+
+      let disclosure='';
+      if(d.name==='billing_create_schedule')
+        disclosure=' The schedule starts at '+(local(a.startAt)??'the stated start')+
+          '; the first charge is collected when the first phase begins'+
+          ' and it then renews for the stated number of periods.';
+      if(d.kind==='item'&&preview){
+        const pror=(preview.prorationLines??[]).reduce((n,l)=>n+l.amountCents,0);
+        disclosure=' Proration lines in this preview total '+pror+' cents USD'+
+          ' and the preview total is the exact provider-computed amount'+
+          ' for the change invoice.';
+      }
+      if(d.name==='billing_cancel_schedule')
+        disclosure=' Canceling ends the schedule'+
+          (b.status==='active'?' and its active subscription':'')+
+          (a.invoiceNow?'; a final invoice is issued now.':'.');
+      return (ctx?.connection?.mode==='live'?'LIVE MODE. ':'TEST MODE. ')+
+        d.name+' target '+b.id+'; '+
         (preview?'provider preview '+preview.invoiceTotalCents+' cents USD'+
           ', proration '+preview.prorationBehavior+
           ', effective at '+(preview.effectiveAt??'provider current time')+'; ':'')+
-        'fields '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','outsideApp'].includes(k))
-          .join(', ')+'. Confirmed only after an independent Stripe read-back.';
+        'fields '+Object.keys(a).filter(k=>!['confirm','dryRun','requestKey','outsideApp','previewFingerprint'].includes(k))
+          .join(', ')+'.'+disclosure+' Confirmed only after an independent Stripe read-back.';
     },
     money:d.money?async(a,_ctx,b)=>{
       if(!b._preview)return null;
@@ -235,19 +262,23 @@ function build(d){
           await s.subscriptionSchedules.cancel(b.id,{
             invoice_now:a.invoiceNow,prorate:a.prorate
           },opts);break;
-        default:throw new TypeError('Unknown TEST billing operation');
+        default:throw new TypeError('Unknown billing operation');
       }
     },
     readAfter:async(a,ctx)=>{
       const s=await client(ctx);
+      const connMode=ctx?.connection?.mode;
       if(d.name==='billing_add_item'||d.name==='billing_update_item')
-        return s.subscriptionItems.retrieve(
-          d.name==='billing_add_item'?created?.id:a.itemId);
+        return assertAccountResourceMode(await s.subscriptionItems.retrieve(
+          d.name==='billing_add_item'?created?.id:a.itemId),connMode);
       if(d.name==='billing_remove_item')
-        return s.subscriptions.retrieve(a.subscriptionId);
+        return assertAccountResourceMode(
+          await s.subscriptions.retrieve(a.subscriptionId),connMode);
       if(d.name==='billing_create_schedule')
-        return created?.id?s.subscriptionSchedules.retrieve(created.id):null;
-      return s.subscriptionSchedules.retrieve(a.scheduleId);
+        return created?.id?assertAccountResourceMode(
+          await s.subscriptionSchedules.retrieve(created.id),connMode):null;
+      return assertAccountResourceMode(
+        await s.subscriptionSchedules.retrieve(a.scheduleId),connMode);
     },
     verify:(b,after,a)=>{
       if(!after)return false;
@@ -279,10 +310,7 @@ function build(d){
       }
     }
   });
-  return {...op,handler:async(a,ctx)=>{
-    if(ctx?.connection?.mode!=='test')return gone('TEST-only subscription operation');
-    return op.handler(a,ctx);
-  }};
+  return op;
 }
 export const tools=defs.map(d=>{
   const op=build(d);
@@ -292,6 +320,7 @@ export const tools=defs.map(d=>{
     annotations:{destructiveHint:d.destructive===true},
     inputSchema:{type:'object',properties:{...d.props,
       confirm:{type:'boolean'},dryRun:{type:'boolean'},
+      previewFingerprint:{type:'string',maxLength:64},
       requestKey:{type:'string',minLength:1,maxLength:128}},
       required:d.required,additionalProperties:false}};
 });

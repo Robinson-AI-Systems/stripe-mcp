@@ -1,43 +1,50 @@
-// Guarded native TEST subscription mutations; Stripe is the sole billing authority.
-import {defineWrite,gone} from './write.js';
+// Guarded native subscription mutations in the connection's own mode;
+// Stripe is the sole billing authority.
+import {defineWrite} from './write.js';
 import {client,ref,checkId,id,quantity,timestamp,proration,ownership,
   optionalMetadata,validateFields,ensureSubscription,safeRecurringPrice,
-  positiveTotal,previewSafe,previewChange,writeProfiles}
+  positiveTotal,previewSafe,previewChange,writeProfiles,local}
   from './billing-shared.js';
+import {assertAccountResourceMode} from './account-mode.js';
 
 const text=n=>({type:'string',minLength:1,maxLength:n});
 const common={...ownership};
 const sub={subscriptionId:id('sub')};
 const defs=[
-  {name:'billing_create_subscription',desc:'Start a verified TEST recurring USD subscription on an existing saved payment method.',
+  {name:'billing_create_subscription',desc:'Start a verified recurring USD subscription on an existing saved payment method.',
     props:{customerId:id('cus'),priceId:id('price'),quantity,
       billingMode:{type:'string',enum:['flexible','classic']},...common},
     required:['customerId','priceId','quantity','billingMode'],money:true},
-  {name:'billing_update_subscription',desc:'Edit TEST subscription metadata, description, saved method or explicit billing anchor.',
+  {name:'billing_update_subscription',desc:'Edit subscription metadata, description, saved method or explicit billing anchor.',
     props:{...sub,description:text(500),metadata:optionalMetadata,
       defaultPaymentMethod:id('pm'),billingAnchor:{type:'string',enum:['now','unchanged']},
       prorationBehavior:proration,effectiveAt:timestamp,...common},
     required:['subscriptionId']},
-  {name:'billing_change_plan',desc:'Change a TEST subscription item price or quantity after exact invoice preview.',
+  {name:'billing_change_plan',desc:'Change a subscription item price or quantity after exact invoice preview.',
     props:{...sub,itemId:id('si'),priceId:id('price'),quantity,
       effectiveAt:timestamp,prorationBehavior:proration,...common},
     required:['subscriptionId','itemId','effectiveAt','prorationBehavior'],money:true},
-  {name:'billing_cancel_subscription',desc:'Cancel a TEST subscription now or schedule cancellation at an item period end.',
+  {name:'billing_cancel_subscription',desc:'Cancel a subscription now or schedule cancellation at an item period end.',
     props:{...sub,timing:{type:'string',enum:['now','period_end']},
       invoiceNow:{type:'boolean'},prorate:{type:'boolean'},...common},
     required:['subscriptionId','timing'],destructive:true},
-  {name:'billing_undo_cancel',desc:'Undo scheduled TEST period-end cancellation without resurrecting canceled subscriptions.',
+  {name:'billing_undo_cancel',desc:'Undo scheduled period-end cancellation without resurrecting canceled subscriptions.',
     props:{...sub,...common},required:['subscriptionId']},
-  {name:'billing_pause_collection',desc:'Pause TEST subscription collection with explicit invoice behavior.',
+  {name:'billing_pause_collection',desc:'Pause subscription collection with explicit invoice behavior.',
     props:{...sub,behavior:{type:'string',
       enum:['keep_as_draft','mark_uncollectible','void']},
       resumesAt:timestamp,...common},required:['subscriptionId','behavior'],destructive:true},
-  {name:'billing_resume_collection',desc:'Resume TEST subscription invoice collection after confirmation.',
+  {name:'billing_resume_collection',desc:'Resume subscription invoice collection after confirmation.',
     props:{...sub,...common},required:['subscriptionId']}
 ];
 const allowedStatuses=new Set(['active','trialing','past_due','unpaid']);
 function validate(def,a){
-  validateFields(a,def.props,def.required);
+  // previewFingerprint is a core control field (like confirm/dryRun/
+  // requestKey): the shared lifecycle validates and binds it, so the
+  // family validator strips it before the closed field check, exactly
+  // as the converted payment/checkout families do.
+  const {previewFingerprint:_previewFingerprint,...fields}=a??{};
+  validateFields(fields,def.props,def.required);
   if(def.name==='billing_update_subscription'){
     if(!['metadata','description','defaultPaymentMethod','billingAnchor'].some(k=>a[k]!==undefined))
       throw new TypeError('Provide a subscription change');
@@ -60,51 +67,57 @@ function currentItem(before,id){
   if(!item)throw new TypeError('Item not part of this subscription');
   return item;
 }
-async function preflight(def,a,s){
+async function preflight(def,a,s,mode){
   const n=def.name;
   if(n==='billing_create_subscription'){
-    const customer=await s.customers.retrieve(checkId(a.customerId,'cus'));
+    const customer=assertAccountResourceMode(
+      await s.customers.retrieve(checkId(a.customerId,'cus')),mode);
     if(customer.deleted)throw new TypeError('Customer was deleted');
     const saved=ref(customer.invoice_settings?.default_payment_method);
     if(!saved)throw new TypeError('Customer needs a default saved payment method');
-    const method=await s.paymentMethods.retrieve(checkId(saved,'pm'));
+    const method=assertAccountResourceMode(
+      await s.paymentMethods.retrieve(checkId(saved,'pm')),mode);
     if(ref(method.customer)!==customer.id)
       throw new TypeError('Customer saved payment method ownership unverified');
-    const price=safeRecurringPrice(await s.prices.retrieve(checkId(a.priceId,'price')));
-    const invoice=await s.invoices.createPreview({
+    const price=safeRecurringPrice(assertAccountResourceMode(
+      await s.prices.retrieve(checkId(a.priceId,'price')),mode));
+    const invoice=assertAccountResourceMode(await s.invoices.createPreview({
       customer:customer.id,currency:'usd',
       subscription_details:{items:[{price:price.id,quantity:a.quantity}],
         billing_mode:{type:a.billingMode},proration_behavior:'none'}
-    });
+    }),mode);
     const total=positiveTotal(invoice);
     return {...customer,_price:price,_defaultMethod:saved,
       _preview:previewSafe(invoice,null,'none'),_previewTotal:total};
   }
-  const before=ensureSubscription(await s.subscriptions.retrieve(checkId(a.subscriptionId,'sub')));
+  const before=ensureSubscription(assertAccountResourceMode(
+    await s.subscriptions.retrieve(checkId(a.subscriptionId,'sub')),mode));
   if(n==='billing_change_plan'){
     const item=currentItem(before,checkId(a.itemId,'si'));
-    if(a.priceId)await safeRecurringPrice(await s.prices.retrieve(checkId(a.priceId,'price')));
+    if(a.priceId)await safeRecurringPrice(assertAccountResourceMode(
+      await s.prices.retrieve(checkId(a.priceId,'price')),mode));
     const target={id:item.id,price:a.priceId??ref(item.price),
       quantity:a.quantity??item.quantity};
     before._proposal=target;
-    before._preview=await previewChange(s,before,[target],a.effectiveAt,a.prorationBehavior);
+    before._preview=await previewChange(s,before,[target],a.effectiveAt,a.prorationBehavior,{mode});
   }
   if(n==='billing_update_subscription'&&a.defaultPaymentMethod){
-    const method=await s.paymentMethods.retrieve(checkId(a.defaultPaymentMethod,'pm'));
+    const method=assertAccountResourceMode(
+      await s.paymentMethods.retrieve(checkId(a.defaultPaymentMethod,'pm')),mode);
     if(ref(method.customer)!==ref(before.customer))
       throw new TypeError('Method is not saved on subscription customer');
   }
   if(n==='billing_update_subscription'&&a.billingAnchor==='now'){
     before._preview=await previewChange(s,before,before.items.data.map(i=>({
       id:i.id,price:ref(i.price),quantity:i.quantity
-    })),a.effectiveAt,a.prorationBehavior,{billingAnchor:'now'});
+    })),a.effectiveAt,a.prorationBehavior,{billingAnchor:'now',mode});
   }
   if(n==='billing_cancel_subscription'&&a.timing==='now'&&a.prorate){
     // Final invoice behavior can issue credits: fail closed if provider preview
     // cannot establish a safe USD amount. No guessed final amount.
-    const invoice=await s.invoices.createPreview({subscription:before.id,
+    const invoice=assertAccountResourceMode(await s.invoices.createPreview({subscription:before.id,
       customer:ref(before.customer),currency:'usd',
-      subscription_details:{cancel_now:true,proration_behavior:'create_prorations'}});
+      subscription_details:{cancel_now:true,proration_behavior:'create_prorations'}}),mode);
     before._preview=previewSafe(invoice,null,'create_prorations');
   }
   return before;
@@ -146,18 +159,41 @@ function build(def){
     read:async(a,ctx)=>{
       validate(def,a);
       const s=await client(ctx);
-      return preflight(def,a,s);
+      return preflight(def,a,s,ctx?.connection?.mode);
     },
-    summarize:async(b,a)=>{
+    summarize:async(b,a,ctx)=>{
       const p=b._preview;
       const amount=p?' Provider invoice preview: '+p.invoiceTotalCents+
         ' cents USD; proration '+p.prorationBehavior+
         '; effective '+(p.effectiveAt??'current provider billing period')+'.':'';
-      return 'TEST MODE. '+def.name+' target '+b.id+'; billing mode '+
+      let disclosure='';
+      if(def.name==='billing_create_subscription')
+        disclosure=' The first charge is collected from the saved payment'+
+          ' method when the subscription starts, for the first billing'+
+          ' period; it then renews each period until canceled.';
+      if(def.name==='billing_change_plan'&&p){
+        const pror=(p.prorationLines??[]).reduce((n,l)=>n+l.amountCents,0);
+        disclosure=' The change applies at the stated effective time;'+
+          ' proration lines in this preview total '+pror+' cents USD and'+
+          ' the preview total is the exact provider-computed amount for'+
+          ' the change invoice.';
+      }
+      if(def.name==='billing_cancel_subscription'&&a.timing==='period_end'){
+        const end=Math.max(...b.items.data.map(i=>i.current_period_end));
+        disclosure=' Cancellation takes effect at the end of the current'+
+          ' billing period ('+(local(end)??'period end')+'); the customer'+
+          ' keeps the service until then and is not charged again.';
+      }
+      if(def.name==='billing_cancel_subscription'&&a.timing==='now')
+        disclosure=' Cancellation is immediate: the subscription ends now'+
+          ' and the customer loses service now'+
+          (a.invoiceNow?'; a final invoice is issued now.':'.');
+      return (ctx?.connection?.mode==='live'?'LIVE MODE. ':'TEST MODE. ')+
+        def.name+' target '+b.id+'; billing mode '+
         (a.billingMode??b.billing_mode?.type??'provider existing')+
         '; parameters '+Object.keys(a)
-          .filter(k=>!['confirm','dryRun','requestKey','outsideApp'].includes(k)).join(', ')+'.'+
-        amount+' Confirmed only after Stripe read-back.';
+          .filter(k=>!['confirm','dryRun','requestKey','outsideApp','previewFingerprint'].includes(k)).join(', ')+'.'+
+        amount+disclosure+' Confirmed only after Stripe read-back.';
     },
     money:(def.money||def.name==='billing_update_subscription'||def.name==='billing_cancel_subscription')?
       async(a,_ctx,b)=>{
@@ -212,11 +248,14 @@ function build(def){
     },
     readAfter:async(a,ctx)=>{
       const s=await client(ctx);
+      const mode=ctx?.connection?.mode;
       if(def.name==='billing_create_subscription'){
         if(!created?.id)return null;
-        return s.subscriptions.retrieve(created.id);
+        return assertAccountResourceMode(
+          await s.subscriptions.retrieve(created.id),mode);
       }
-      return s.subscriptions.retrieve(a.subscriptionId);
+      return assertAccountResourceMode(
+        await s.subscriptions.retrieve(a.subscriptionId),mode);
     },
     inverse:async(b,after,a)=>{
       const entry=(tool,args,expected,restored)=>({
@@ -277,10 +316,7 @@ function build(def){
       }
     }
   });
-  return {...op,handler:async(a,ctx)=>{
-    if(ctx?.connection?.mode!=='test')return gone('TEST-only subscription mutation');
-    return op.handler(a,ctx);
-  }};
+  return op;
 }
 export const tools=defs.map(def=>{
   const op=build(def);
@@ -290,6 +326,7 @@ export const tools=defs.map(def=>{
     description:def.desc,annotations:{destructiveHint:def.destructive===true},
     inputSchema:{type:'object',properties:{...def.props,
       dryRun:{type:'boolean'},confirm:{type:'boolean'},
+      previewFingerprint:{type:'string',maxLength:64},
       requestKey:{type:'string',minLength:1,maxLength:128}},
       required:def.required,additionalProperties:false}};
 });
