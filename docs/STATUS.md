@@ -1,3 +1,53 @@
+## 2026-11-04 — Owner-obedience V3 catalog `outsideApp` conversion: source-implemented (source)
+
+The last of conformance row 17's four convertible vetoes is
+implemented in source (card
+[OWNER-OBEDIENCE-V3](pr-cards/OWNER-OBEDIENCE-V3.md)), on branch
+`ai/vivienne/owner-obedience-v3-catalog`. With it, all four
+conversions V1–V4 stand source-implemented; every one closes only
+on live proof in the CAP-5 queue.
+
+- **The ceremony replaces the categorical ban.** The seven catalog
+  writes (`product_create`, `product_update`, `product_archive`,
+  `product_unarchive`, `product_delete`, `price_create`,
+  `price_update`) now accept `outsideApp` and
+  `outsideAppFingerprint`. For a target whose ownership is **known**
+  (the product itself, or a price's parent product), the journaled
+  preview names the owning app, the record, the agreement and the
+  exact change, states in plain words that changing the record
+  outside the app can affect that app's live behavior, and carries
+  an `APP-…` fingerprint (new pure helper `appOverrideFingerprint`
+  in `src/tools/app-guard.js`, mirroring V1's
+  `liveEnableFingerprint`) binding account, mode, tool, target,
+  marker and change. A confirm proceeds only on the fresh
+  fingerprint, compared in constant time; a missing or stale
+  fingerprint is refused with the fresh fingerprint in the
+  refusal's reason. `src/core/write.js` is untouched (coordinator
+  ruling 3).
+- **What did not move.** Without the flag, app-owned targets refuse
+  exactly as today. Ownership **unclear** still refuses as row 30's
+  aim check, with or without the flag. `outsideApp` on
+  `product_create` is an accepted no-op; a marker removed between
+  preview and confirm leaves an ordinary write; the flag reaches
+  no read tool and no non-catalog write. `src/tools/write.js`,
+  `src/money.js` and `src/db.js` are byte-untouched.
+- **Open point recorded in the card.** A fourth refusal the design
+  card's three-layer map did not enumerate — `price_create`
+  refusing reuse of an existing app-owned lookup-key price (E-1
+  fix `795c367`, predating the card's baseline) — is left exactly
+  as built pending a coordinator ruling; it blocks none of the
+  card's named scope.
+- **Proof.** `tests/unit/catalog.test.js`: three E-1 assertions
+  reshaped from read-hook throw shape to guard-refusal shape (same
+  provider-not-called assertions), plus a 12-test V3 suite covering
+  the ceremony, drift (marker changed/removed), wrong-target and
+  wrong-change fingerprints, the `price_create` ceremony, unclear
+  ownership, no-op parity, flag scoping and the helper contract.
+  Full unit suite and `npm run check` green on the branch; database
+  tests are exact-head CI's route (no local PostgreSQL binaries).
+  Live proof remains open in the CAP-5 queue against the
+  disposable app-marked catalog product fixture.
+
 ## 2026-11-04 — Owner-obedience V2 Projects family (provider-write half): source-implemented (source)
 
 Family 13 of 13 of conformance row 17's V2 conversion is

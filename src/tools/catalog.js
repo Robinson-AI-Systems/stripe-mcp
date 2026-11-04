@@ -4,7 +4,9 @@ import {defineWrite,gone} from './write.js';
 import {allProfiles,writeProfiles,fullProfiles,paging,pageResult} from './billing-shared.js';
 import {catalogClient,guardedCatalog,catalogMode} from './catalog-mode.js';
 import {authorizeLiveWrite} from './live-guard.js';
-import {APP_METADATA_KEYS,findAppOwnership,annotateAppRead} from './app-guard.js';
+import {APP_METADATA_KEYS,findAppOwnership,annotateAppRead,
+  appOverrideFingerprint,appOwnedDenial,ownerScreen} from './app-guard.js';
+import {secretsMatch} from '../core/oauth.js';
 
 const string=(max=160)=>({type:'string',minLength:1,maxLength:max});
 const productId={type:'string',pattern:'^prod_[A-Za-z0-9]{2,100}$'};
@@ -14,7 +16,9 @@ const cents={type:'integer',minimum:0,maximum:100000000};
 const metadata={type:'object',additionalProperties:{type:'string'}};
 const listArgs={limit:{type:'integer',minimum:1,maximum:100},
   starting_after:string(110)};
-const flags={dryRun:yes,confirm:yes,requestKey:string(128)};
+const flags={dryRun:yes,confirm:yes,requestKey:string(128),outsideApp:yes,
+  outsideAppFingerprint:{type:'string',
+    pattern:'^APP-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$'}};
 const schema=(properties,required=[])=>({type:'object',properties,
   required,additionalProperties:false});
 const err=m=>{throw new TypeError(m);};
@@ -72,6 +76,8 @@ function checkArgs(a,allowed,required=[]){
       err('Unsupported recurring interval count');
     if(['active','outsideApp','dryRun','confirm'].includes(k)&&typeof v!=='boolean')
       err('Invalid catalog flag');
+    if(k==='outsideAppFingerprint'&&!safeText(v,64))
+      err('Invalid catalog override fingerprint');
     if(k==='requestKey'&&!safeText(v,128))err('Stable requestKey required');
   }
   if(a.metadata!==undefined)checkMetadata(a.metadata);
@@ -208,17 +214,24 @@ function priceMatches(p,a,mode='test'){
 }
 function makeWrite(def){
   let createdId=null,existingId=null,deletedReceipt=null,scope=null;
+  let overrideMarker=null;
   const n=def.name,price=n.startsWith('price_'),creation=n.endsWith('_create');
+  // The record the override ceremony binds: the target itself, except
+  // price_create, whose evaluated target is the parent product.
+  const targetIdOf=a=>n==='price_create'?a.productId:
+    (price?a.priceId:a.productId);
   const op=defineWrite({
     name:n,
     modeGuard:(_a,ctx)=>authorizeLiveWrite({ctx}),
     resultId:(_before,after)=>after?.deleted?null:after?.id,
     read:async(a,ctx)=>{
-      createdId=null;existingId=null;deletedReceipt=null;
-      checkArgs(a,[...Object.keys(def.props),'dryRun','confirm','requestKey'],def.required);
+      createdId=null;existingId=null;deletedReceipt=null;overrideMarker=null;
+      checkArgs(a,[...Object.keys(def.props),'dryRun','confirm','requestKey',
+        'outsideApp','outsideAppFingerprint'],def.required);
       if(!creation&&!['product_archive','product_unarchive','product_delete'].includes(n)&&
         Object.keys(a).every(k=>['productId','priceId','dryRun','confirm','requestKey',
-          'outsideApp'].includes(k)))err('Specify an explicit mutable field');
+          'outsideApp','outsideAppFingerprint'].includes(k)))
+        err('Specify an explicit mutable field');
       if(n==='price_create'&&!a.interval&&a.intervalCount!==undefined)
         err('Interval count needs a recurring interval');
       scope=await profileBoundary(ctx);
@@ -230,7 +243,11 @@ function makeWrite(def){
         const product=await s.products.retrieve(a.productId);
         productSafe(product,ctx.connection.mode);
         const owner=await findAppOwnership(product,ctx);
-        if(owner?.unknown||owner)err('Price creation for app-owned or uncertain product denied');
+        // Unknown ownership stays an aim-check refusal (row 30). A known
+        // app-owned product no longer throws here: its marker is stashed
+        // and the targetGuard runs the fingerprint ceremony (V3).
+        if(owner?.unknown)err('Price creation for app-owned or uncertain product denied');
+        overrideMarker=owner??null;
         const existing=await exactLookup(s,a.lookupKey);
         if(existing&&!priceMatches(existing,a,ctx.connection.mode))
           err('Lookup key exists with different immutable product, amount or cadence');
@@ -245,12 +262,17 @@ function makeWrite(def){
         await s.products.retrieve(a.productId);
       (price?priceSafe:productSafe)(b,ctx.connection.mode);
       const owner=await findAppOwnership(b,ctx);
-      if(owner?.unknown||owner)err('Application-owned or uncertain catalog record cannot be mutated');
+      // Unknown ownership still throws exactly as before (aim check).
+      // Known app ownership is stashed for the targetGuard ceremony (V3):
+      // for a price, its own marker governs, else its parent product's.
+      if(owner?.unknown)err('Application-owned or uncertain catalog record cannot be mutated');
+      overrideMarker=owner??null;
       if(price){
         const parent=await s.products.retrieve(typeof b.product==='string'?b.product:b.product?.id);
         productSafe(parent,ctx.connection.mode);
         const parentOwner=await findAppOwnership(parent,ctx);
-        if(parentOwner)err('Price parent product is app-owned or ownership is uncertain');
+        if(parentOwner?.unknown)err('Price parent product is app-owned or ownership is uncertain');
+        overrideMarker=overrideMarker??parentOwner??null;
       }
       if(n==='product_delete'){
         for(const active of [true,false]){
@@ -263,17 +285,42 @@ function makeWrite(def){
     },
     summarize:(b,a,ctx)=>ctx.connection.mode.toUpperCase()+' MODE: '+n+' on '+(a.productId||a.priceId||'new product')+
       '. Exact preview/confirmation, stable retry key and provider readback required.'+
-      (scope?.warning?' A bound app owns its own catalog; this independent record is not an app-owned record.':'')+
+      (scope?.warning&&!overrideMarker?' A bound app owns its own catalog; this independent record is not an app-owned record.':'')+
       (n==='product_delete'?' DESTRUCTIVE: no prices may exist.':'')+
       (n==='price_create'&&existingId?' Existing exact lookup key will be reused; no second price.':'')+
-      (ctx.connection.mode==='live'?' LIVE prices and product availability may affect real customer Checkout and future charges; review all financial terms.':''),
+      (ctx.connection.mode==='live'?' LIVE prices and product availability may affect real customer Checkout and future charges; review all financial terms.':'')+
+      (overrideMarker?' This record belongs to '+overrideMarker.app+
+        ' (record '+(overrideMarker.recordId??targetIdOf(a))+
+        (overrideMarker.agreementId?', agreement '+overrideMarker.agreementId:'')+
+        "). Changing it outside the app can desynchronize the app's billing "+
+        'and affect its live behavior; '+ownerScreen(overrideMarker)+
+        ' is the recommended path. Outside-app override fingerprint: '+
+        appOverrideFingerprint({account:ctx.connection.stripeAccount,
+          mode:ctx.connection.mode,tool:n,targetId:targetIdOf(a),
+          ownership:overrideMarker,change:a}):''),
     targetGuard:async(a,ctx,b)=>{
-      // Never allow an outsideApp override for catalog products or prices.
-      if(a.outsideApp===true)return 'App-owned catalog override not permitted';
+      // Owner-obedience V3: the categorical outsideApp ban is replaced by
+      // a fingerprint-bound ceremony for KNOWN app-owned targets. The
+      // wrapper's app guard runs first: without outsideApp:true it has
+      // already refused target-owned records with appOwnedDenial; this
+      // guard covers parent-owned prices and enforces the fingerprint.
       if(n==='price_create'){
+        // Belt-and-braces only: read already refused an unclear product,
+        // and unknown ownership stays an aim-check refusal (row 30).
         const marker=await findAppOwnership(b,ctx);
-        return marker?'Price product ownership is not clear':true;
+        if(marker?.unknown)return 'Price product ownership is not clear';
       }
+      if(!overrideMarker)return true;
+      if(a.outsideApp!==true)return appOwnedDenial(overrideMarker);
+      if(a.confirm!==true)return true;
+      const fresh=appOverrideFingerprint({account:ctx.connection.stripeAccount,
+        mode:ctx.connection.mode,tool:n,targetId:targetIdOf(a),
+        ownership:overrideMarker,change:a});
+      if(typeof a.outsideAppFingerprint!=='string'||
+        !secretsMatch(a.outsideAppFingerprint,fresh))
+        return 'The app-owned record state has moved or was never confirmed; '+
+          'nothing was executed. Review the fresh disclosure and confirm '+
+          'again with the current outside-app override fingerprint: '+fresh;
       return true;
     },
     apply:async(a,ctx,{idempotencyKey})=>{

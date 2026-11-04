@@ -931,6 +931,24 @@ V3, then V4.
   confirms the fingerprint, re-check the marker at apply, journal,
   read back. The refusal of a write whose ownership is *unclear* stays
   an aim check.
+  **Source-implemented 2026-11-04 (OWNER-OBEDIENCE-V3):** the seven
+  catalog writes (`product_create`, `product_update`,
+  `product_archive`, `product_unarchive`, `product_delete`,
+  `price_create`, `price_update`) accept `outsideApp` together with
+  an `outsideAppFingerprint`; for a target whose ownership is known,
+  the preview names the owning app, the record and the exact change
+  and carries the fingerprint, and a confirm proceeds only on the
+  fresh fingerprint for the current marker state and change. No-flag
+  refusals are unchanged, `outsideApp` on `product_create` is an
+  accepted no-op, a marker removed between preview and confirm
+  leaves an ordinary write, and unclear ownership still refuses as
+  an aim check. One refusal the design map did not enumerate —
+  `price_create` refusing reuse of an existing app-owned
+  lookup-key price — is left exactly as built and recorded in the
+  card as an open point pending a coordinator ruling. With this,
+  all four conversions V1–V4 stand source-implemented. Live proof
+  remains open and closes only at a checked release (CAP-5 queue,
+  against the disposable app-marked catalog product fixture).
 - **V4 — Pass/revoke preparation gate** (`src/tools/server.js`). The
   read-only preparation tools for pass issuance and connection
   revocation demand a full TEST connection although the owner page
