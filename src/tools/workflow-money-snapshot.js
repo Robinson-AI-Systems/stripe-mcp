@@ -1,12 +1,12 @@
 // W-1: verified read-only financial window and recurring-revenue snapshot.
 // Every provider request runs through the ordinary native registry handler.
 import {allProfiles,reply,fail} from './billing-shared.js';
-import {collect,verifyContext,deadline,expired,dateWindow,
+import {collect,verifyModeContext,modeWord,deadline,expired,dateWindow,
   partial,amount,hasCurrency,integer} from './workflow-read-common.js';
 
 const date={type:'string',pattern:'^\\d{4}-\\d{2}-\\d{2}$'};
 export const tools=[{name:'workflow_money_snapshot',
-  description:'Summarize TEST money flows and recurring revenue by currency and Colorado dates.',
+  description:'Money flows and recurring revenue by currency, Colorado dates, either mode.',
   area:'workflows',profiles:allProfiles,writes:false,
   annotations:{readOnlyHint:true},
   inputSchema:{type:'object',properties:{fromDate:date,toDate:date},
@@ -116,7 +116,8 @@ export function calculateRecurring(subscriptions,{now=Math.floor(Date.now()/1000
 }
 async function fullItems(sub,ctx,end){
   if(!sub.moreItems)return {subscription:sub,complete:true};
-  const pages=await collect('billing_list_items',{subscriptionId:sub.id,limit:100},ctx,{end});
+  const pages=await collect('billing_list_items',{subscriptionId:sub.id,limit:100},ctx,
+    {end,verify:verifyModeContext});
   if(!pages.complete)return {subscription:sub,complete:false,reason:pages.reason};
   const seen=new Set(),items=[];
   for(const item of [...sub.items,...pages.data]){
@@ -125,12 +126,13 @@ async function fullItems(sub,ctx,end){
   return {subscription:{...sub,items,moreItems:false},complete:true};
 }
 export async function moneySnapshot(a,ctx){
-  verifyContext(ctx);
+  verifyModeContext(ctx);
   if(!a||Object.keys(a).some(k=>!['fromDate','toDate'].includes(k)))
     throw new TypeError('Only explicit Colorado fromDate/toDate are permitted');
   const win=dateWindow(a.fromDate,a.toDate),end=deadline();
   const tx=await collect('money_list_balance_transactions',{limit:100},ctx,{
-    end,stop:page=>page.some(t=>integer(t.createdUnix)&&t.createdUnix<win.from)});
+    end,verify:verifyModeContext,
+    stop:page=>page.some(t=>integer(t.createdUnix)&&t.createdUnix<win.from)});
   const txRows=[];
   let invalid=false;
   for(const t of tx.data){
@@ -149,7 +151,8 @@ export async function moneySnapshot(a,ctx){
     entry.netMinor+=amount(t.netMinor);
     entry.transactions++;
   }
-  const subs=await collect('billing_list_subscriptions',{status:'all',limit:100},ctx,{end});
+  const subs=await collect('billing_list_subscriptions',{status:'all',limit:100},ctx,
+    {end,verify:verifyModeContext});
   const prepared=[],itemGaps=[];
   for(const sub of subs.data){
     if(expired(end)){itemGaps.push('time_budget');break;}
@@ -164,14 +167,14 @@ export async function moneySnapshot(a,ctx){
     reason:invalid?'invalid_provider_values':tx.reason},
     {name:'subscriptions',complete:recurringComplete,
       reason:itemGaps[0]??(!mrr.complete?'incomplete_recurring_inputs':subs.reason)}],end);
-  return {kind:'money_snapshot',account:ctx.connection.stripeAccount,mode:'test',
+  return {kind:'money_snapshot',account:ctx.connection.stripeAccount,mode:ctx.connection.mode,
     window:win,complete:summary.complete,moneyFlowsComplete:moneyComplete,
     mrrComplete:recurringComplete,
     balanceTransactionCount:txRows.length,
     moneyFlowsByCurrency:flows,recurring:mrr,
     collectedPages:{balance:tx.pages,subscriptions:subs.pages},
     continuation:summary.continuation,gaps:summary.gaps,
-    explanation:'Money in/out are signed original TEST balance transaction gross amounts within Colorado dates; fees and net are shown separately. All values are in each currency\'s Stripe minor unit. Partial scans are not final totals.'};
+    explanation:'Money in/out are signed original '+modeWord(ctx)+' balance transaction gross amounts within Colorado dates; fees and net are shown separately. All values are in each currency\'s Stripe minor unit. Partial scans are not final totals.'};
 }
 export const handlers={workflow_money_snapshot:async(a,ctx)=>{
   try{return reply(await moneySnapshot(a,ctx));}

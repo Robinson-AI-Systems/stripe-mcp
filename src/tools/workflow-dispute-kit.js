@@ -1,8 +1,13 @@
-// W-6: safe TEST dispute preparation and optional guarded draft stage.
+// W-6: safe dispute preparation and optional guarded draft stage.
+// The READ (workflow_dispute_kit) serves the connection's own mode
+// (CAP-4 D-8 §A): its handler passes the mode-aware verifier into the
+// shared examine() phase. The SAVE (workflow_dispute_kit_save, D-8 §B)
+// calls examine() with the default legacy TEST verifier, after its own
+// writable() gate — its path is byte-identical in this build.
 // Never submit dispute evidence to a bank or disclose evidence text in output.
 import {createHash} from 'node:crypto';
 import {allProfiles,reply,fail} from './billing-shared.js';
-import {nativeRead,collect,verifyContext,deadline,expired} from './workflow-read-common.js';
+import {nativeRead,collect,verifyContext,verifyModeContext,modeWord,deadline,expired} from './workflow-read-common.js';
 import {writable,nativeWrite,readyStep} from './workflow-customer-actions.js';
 
 const disputeId={type:'string',pattern:'^du_[A-Za-z0-9]{2,100}$'};
@@ -25,7 +30,7 @@ const writeFields={...readFields,evidence:{type:'object'},outsideApp:{type:'bool
   previewToken:{type:'string',pattern:'^[a-f0-9]{64}$'}};
 export const tools=[
   {name:'workflow_dispute_kit',area:'workflows',profiles:allProfiles,writes:false,
-    description:'Prepare verified TEST dispute deadline, charge, invoice and app agreement checklist without submission.',
+    description:'Verified dispute deadline, charge, invoice, agreement checklist, either mode; no submission.',
     annotations:{readOnlyHint:true},inputSchema:{type:'object',properties:readFields,
       required:['disputeId'],additionalProperties:false}},
   {name:'workflow_dispute_kit_save',area:'workflows',profiles:['everyday','full'],
@@ -35,13 +40,13 @@ export const tools=[
       properties:writeFields,required:['disputeId','evidence'],additionalProperties:false}}
 ];
 const du=/^du_[A-Za-z0-9]{2,100}$/,inv=/^in_[A-Za-z0-9]{2,100}$/;
-function validate(a,write=false){
+function validate(a,write=false,word='TEST'){
   if(!a||typeof a!=='object'||Array.isArray(a)||
     Object.keys(a).some(k=>!(write?Object.keys(writeFields):Object.keys(readFields)).includes(k))||
     !du.test(a.disputeId??'')||
     (a.invoiceId!==undefined&&!inv.test(a.invoiceId))||
     (a.app!==undefined&&!/^[a-z][a-z0-9-]{2,63}$/.test(a.app)))
-    throw new TypeError('Exact TEST dispute selection and documented inputs required');
+    throw new TypeError('Exact '+word+' dispute selection and documented inputs required');
   if(!write)return;
   if(!a.evidence||typeof a.evidence!=='object'||Array.isArray(a.evidence)||
     !Object.keys(a.evidence).length||
@@ -62,30 +67,30 @@ function validate(a,write=false){
 const token=(account,facts,stage,preview)=>createHash('sha256')
   .update(JSON.stringify({account,workflow:'dispute-kit',facts,stage,preview}))
   .digest('hex');
-async function examine(a,ctx){
-  verifyContext(ctx);validate(a);
+async function examine(a,ctx,{verify,word='TEST'}={}){
+  (verify??verifyContext)(ctx);validate(a,false,word);
   const end=deadline(),gaps=[],missing=[];
-  const dispute=await nativeRead('dispute_get',{disputeId:a.disputeId},ctx);
+  const dispute=await nativeRead('dispute_get',{disputeId:a.disputeId},ctx,{verify});
   if(dispute.id!==a.disputeId||dispute.currency!=='usd')
-    throw new TypeError('Verified selected TEST USD dispute unavailable');
-  const charge=dispute.charge?await nativeRead('charge_get',{chargeId:dispute.charge},ctx):null;
+    throw new TypeError('Verified selected '+word+' USD dispute unavailable');
+  const charge=dispute.charge?await nativeRead('charge_get',{chargeId:dispute.charge},ctx,{verify}):null;
   if(!charge||charge.id!==dispute.charge||charge.currency!=='usd'||
     !Number.isSafeInteger(charge.amount)||charge.amount<dispute.amountMinor||
     !/^cus_[A-Za-z0-9]{2,100}$/.test(charge.customer??''))
     throw new TypeError('Original disputed charge/customer or amount cannot be verified');
-  const customer=await nativeRead('customer_get',{customerId:charge.customer},ctx);
+  const customer=await nativeRead('customer_get',{customerId:charge.customer},ctx,{verify});
   if(customer.id!==charge.customer||customer.deleted===true)
     throw new TypeError('Original dispute customer is unavailable');
   let invoice=null;
   if(a.invoiceId){
     const payments=await collect('invoice_list_payments',
-      {invoiceId:a.invoiceId,limit:100},ctx,{end});
+      {invoiceId:a.invoiceId,limit:100},ctx,{end,verify});
     if(!payments.complete)gaps.push({section:'invoice_payment_link',reason:payments.reason});
     else if(!payments.data.some(x=>x.charge===charge.id||
       (charge.paymentIntent&&x.paymentIntent===charge.paymentIntent)))
       throw new TypeError('Selected invoice is not linked to disputed payment');
     else{
-      const selected=await nativeRead('invoice_get',{invoiceId:a.invoiceId},ctx);
+      const selected=await nativeRead('invoice_get',{invoiceId:a.invoiceId},ctx,{verify});
       if(selected.id!==a.invoiceId||selected.customer!==charge.customer)
         throw new TypeError('Selected invoice/customer association unavailable');
       invoice={id:selected.id,status:selected.status,currency:selected.currency,
@@ -93,7 +98,7 @@ async function examine(a,ctx){
     }
   }else{
     const invoices=await collect('invoice_list',
-      {customerId:charge.customer,limit:100},ctx,{end});
+      {customerId:charge.customer,limit:100},ctx,{end,verify});
     if(!invoices.complete)gaps.push({section:'customer_invoices',reason:invoices.reason});
     else{
       const linked=[];
@@ -102,7 +107,7 @@ async function examine(a,ctx){
         reason:'more_than_10_invoices_select_exact_invoiceId'});
       else for(const item of invoices.data){
         const rows=await collect('invoice_list_payments',
-          {invoiceId:item.id,limit:100},ctx,{end});
+          {invoiceId:item.id,limit:100},ctx,{end,verify});
         if(!rows.complete){gaps.push({section:'invoice_payment_'+item.id,reason:rows.reason});break;}
         if(rows.data.some(x=>x.charge===charge.id||
           (charge.paymentIntent&&x.paymentIntent===charge.paymentIntent)))linked.push(item);
@@ -119,7 +124,7 @@ async function examine(a,ctx){
   const marker=charge.metadata?.agreementId??customer.metadata?.agreementId;
   if(a.app&&typeof marker==='string'&&/^[A-Za-z0-9_-]{3,100}$/.test(marker)){
     try{const result=await nativeRead('project_record_link',
-      {app:a.app,metadataKey:'agreementId',value:marker},ctx);
+      {app:a.app,metadataKey:'agreementId',value:marker},ctx,{verify});
       if(result.verifiedAppRecord===false&&result.metadataKey==='agreementId'&&
         typeof result.url==='string'&&result.url.startsWith('https://'))
         agreement={url:result.url,source:'declared_app_route',verifiedDocument:false};
@@ -132,7 +137,7 @@ async function examine(a,ctx){
   if(!dispute.hasEvidence)missing.push('Supporting charge/receipt and customer communication evidence');
   if(expiredDue)missing.push('Deadline elapsed/unknown: bank response needs manual owner review');
   if(dispute.submissionCount>0)missing.push('Evidence previously submitted: never submit again automatically');
-  return {account:ctx.connection.stripeAccount,mode:'test',complete:gaps.length===0&&!expired(end),
+  return {account:ctx.connection.stripeAccount,mode:ctx.connection.mode,complete:gaps.length===0&&!expired(end),
     gaps,dispute:{id:dispute.id,status:dispute.status,reason:dispute.reason,
       currency:dispute.currency,amountMinor:dispute.amountMinor,
       deadlineUnix:dispute.evidenceDueUnix,deadlineLocal:dispute.evidenceDueAt,
@@ -175,7 +180,9 @@ async function save(a,ctx){
 }
 export const handlers={
   async workflow_dispute_kit(a,ctx){
-    try{return reply(await examine(a,ctx));}catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
+    try{return reply(await examine(a,ctx,
+      {verify:verifyModeContext,word:modeWord(ctx)}));}
+    catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}
   },
   async workflow_dispute_kit_save(a,ctx){
     try{return reply(await save(a,ctx));}catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}

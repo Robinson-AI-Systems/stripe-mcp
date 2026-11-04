@@ -17,10 +17,29 @@ export function verifyContext(ctx){
     !allProfiles.includes(ctx.connection.profile))
     throw new TypeError('An exact selected TEST account and permitted read profile are required');
 }
+// CAP-4 D-8 §A: the read composites verify the context account in the
+// connection's own mode. This is a SPLIT, not a change to verifyContext:
+// the write composites (workflow-customer-actions.js via writable(),
+// workflow-brand-business.js, workflow-catalog-setup.js,
+// workflow-change-plan.js, and the write handlers sharing read phases in
+// workflow-month-close-find.js, workflow-dispute-kit.js and
+// workflow-webhook-health.js) keep the exact legacy TEST-only
+// verifyContext above, so no write path's admission or state checks move.
+// Only the read composites opt into verifyModeContext, directly and via
+// nativeRead/collect's {verify} option. The refusal substitutes the
+// connection's mode word, so a TEST connection sees byte-identical text.
+export const modeWord=ctx=>ctx?.connection?.mode==='live'?'LIVE':'TEST';
+export function verifyModeContext(ctx){
+  const mode=ctx?.connection?.mode;
+  if(!['test','live'].includes(mode)||!ACCOUNT.test(ctx.connection.stripeAccount??'')||
+    !allProfiles.includes(ctx.connection.profile))
+    throw new TypeError('An exact selected '+modeWord(ctx)+
+      ' account and permitted read profile are required');
+}
 export function deadline(){return Date.now()+MAX_MS;}
 export function expired(end){return Date.now()>=end;}
-export function statusText(value){
-  if(value?.isError)throw new TypeError('A guarded native TEST read was denied');
+export function statusText(value,word='TEST'){
+  if(value?.isError)throw new TypeError('A guarded native '+word+' read was denied');
   const text=value?.content?.[0]?.text;
   if(typeof text!=='string'||text.length>2_000_000)
     throw new TypeError('Native read result is unavailable');
@@ -30,19 +49,19 @@ export function statusText(value){
     throw new TypeError('Native read returned invalid shape');
   return data;
 }
-export async function nativeRead(name,args,ctx){
-  verifyContext(ctx);
+export async function nativeRead(name,args,ctx,{verify}={}){
+  (verify??verifyContext)(ctx);
   const {registry}=await import('./index.js');
   const tool=registry.tools.find(v=>v.name===name);
   if(!tool||tool.writes!==false||!tool.profiles?.includes(ctx.connection.profile)||
     typeof registry.handlers[name]!=='function')
     throw new TypeError('An approved read-only tool is unavailable');
-  return statusText(await registry.handlers[name](args,ctx));
+  return statusText(await registry.handlers[name](args,ctx),modeWord(ctx));
 }
 
 // Fail closed on nonadvancing cursors, missing has_more, duplicate page identities
 // and incomplete result shape. Return previously verified rows with a reason.
-export async function collect(name,args,ctx,{end,maxPages=MAX_PAGES,stop}={}){
+export async function collect(name,args,ctx,{end,maxPages=MAX_PAGES,stop,verify}={}){
   let cursor=null,pages=0,complete=false,reason=null;
   const data=[],ids=new Set(),cursors=new Set();
   while(pages<maxPages&&data.length<MAX_ROWS){
@@ -50,7 +69,7 @@ export async function collect(name,args,ctx,{end,maxPages=MAX_PAGES,stop}={}){
     const input={...args};
     if(cursor)input.starting_after=cursor;
     let page;
-    try{page=await nativeRead(name,input,ctx);}
+    try{page=await nativeRead(name,input,ctx,{verify});}
     catch{reason='guarded_read_unavailable';break;}
     if(!Array.isArray(page.data)||typeof page.has_more!=='boolean'||
       page.data.length>(args.limit??100)){

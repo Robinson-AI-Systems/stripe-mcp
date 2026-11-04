@@ -195,7 +195,12 @@ describe('W-9 provider-shaped month-end close, reports, find and staged catalog'
       unitAmountCents:2500,currency:'usd',productId:P};
     f.ctx.connection.mode='live';
     expect((await f.call('workflow_set_up_catalog',args)).isError).toBe(true);
-    expect((await f.call('workflow_month_end_close',{month:MONTH})).isError).toBe(true);
+    // CAP-4 D-8 §A: month-end close is a converted read composite; on
+    // this TEST-shaped fixture its composed snapshot cannot verify in
+    // LIVE, so it reports an incomplete LIVE close — still with zero
+    // provider calls and zero mutations.
+    const close=data(await f.call('workflow_month_end_close',{month:MONTH}));
+    expect(close).toMatchObject({mode:'live',complete:false});
     expect(f.calls).toHaveLength(0);
   });
 });

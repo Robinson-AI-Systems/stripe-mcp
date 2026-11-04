@@ -150,8 +150,8 @@ async function readiness(a,ctx){
   const account=ctx?.connection?.stripeAccount;
   // Owner-obedience V2 family 13: observations run in the
   // connection's own mode (the readiness fix's internal reads depend
-  // on it). The workflow_app_readiness read handler keeps its own
-  // TEST-only gate, so this widening serves the write path only.
+  // on it). CAP-4 D-8 §A: the workflow_app_readiness read handler now
+  // follows the connection mode too — the widening serves both paths.
   const cmode=ctx?.connection?.mode;
   if(!acctOk(account)||!['test','live'].includes(cmode))
     throw new TypeError('Select an enrolled TEST account');
@@ -406,13 +406,13 @@ export const tools=[
 ];
 export const handlers={
   async workflow_app_readiness(a,ctx){
-    // The read keeps its historical TEST-only reachability exactly:
-    // readiness() is mode-parameterized only because the converted
-    // fix's internal observation depends on it. Read reachability
-    // belongs to CAP-4, not to this family's write conversion.
+    // CAP-4 D-8 §A discharges the read-reachability note this handler
+    // carried: the read now follows the connection's own mode, like
+    // readiness() observations already did for the fix's internal
+    // path. readiness() still validates the enrolled account and mode
+    // membership itself; the Projects WRITE side (profile binding,
+    // scoped ownership) is untouched.
     try{
-      if(ctx?.connection?.mode!=='test')
-        throw new TypeError('Select an enrolled TEST account');
       return reply(await readiness(a,ctx));
     }
     catch(e){if(e instanceof TypeError)return fail(e.message);throw e;}

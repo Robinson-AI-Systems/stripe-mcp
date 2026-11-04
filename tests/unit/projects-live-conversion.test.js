@@ -375,13 +375,18 @@ describe('V2 Projects readiness fix in the connection mode',()=>{
     expect(refused.isError).toBe(true);
     expect(f.calls).toHaveLength(0);
   });
-  it('the readiness READ keeps its TEST-only reachability exactly',async()=>{
+  it('the readiness READ follows the connection mode (CAP-4 D-8 §A discharge)',async()=>{
     vi.stubEnv('VERCEL_ENV','production');
     const f=fixture();await bound(f);
-    const refused=await registry.handlers.workflow_app_readiness(
-      {app:'appliance-desk'},f.ctx);
-    expect(refused.isError).toBe(true);
-    expect(refused.content[0].text).toContain('Select an enrolled TEST account');
+    // CAP-4 D-8 §A discharges the read-reachability note this test
+    // pinned: the READ handler's TEST-only gate is converted, so a
+    // LIVE connection now receives full LIVE readiness observations
+    // (the mode-parameterized path the fix already depended on).
+    const served=parse(await registry.handlers.workflow_app_readiness(
+      {app:'appliance-desk'},f.ctx));
+    expect(served.mode).toBe('live');
+    expect(served.liveProviderQueried).toBe(true);
+    expect(served.rows).toHaveLength(21);
     const testCtx={db:f.db,connectionId:'projects-readiness-test',
       connection:{stripeAccount:account,mode:'test',profile:'full'},
       services:f.ctx.services};

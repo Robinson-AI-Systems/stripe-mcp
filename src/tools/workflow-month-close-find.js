@@ -1,8 +1,10 @@
-// W-9 month-end financial close and bounded universal TEST find.
+// W-9 month-end financial close and bounded universal find, in the
+// connection's own mode (CAP-4 D-8 §A; the month-end report WRITE in
+// this module keeps its exact TEST-only guarded path).
 // Only original wrapped native reads; a report CSV is NEVER a public URL.
 import {createHash} from 'node:crypto';
 import {allProfiles,reply,fail} from './billing-shared.js';
-import {verifyContext,nativeRead,collect,deadline,expired,dateWindow} from './workflow-read-common.js';
+import {verifyModeContext,modeWord,nativeRead,collect,deadline,expired,dateWindow} from './workflow-read-common.js';
 import {writable,nativeWrite,readyStep} from './workflow-customer-actions.js';
 const month={type:'string',pattern:'^20[0-9]{2}-(0[1-9]|1[0-2])$'};
 const reportType={type:'string',pattern:'^[a-z0-9_.-]{3,100}$'};
@@ -17,13 +19,13 @@ const f=(name,desc,props,required=[],write=false)=>({
   inputSchema:{type:'object',properties:props,required,additionalProperties:false}
 });
 export const tools=[
-  f('workflow_month_end_close','Close one Colorado TEST month per currency; inspect private report run status.',{month,runId},['month']),
+  f('workflow_month_end_close','Close one Colorado month per currency; private report status, either mode.',{month,runId},['month']),
   f('workflow_month_end_report','Preview and request one guarded TEST financial report for an exact Colorado month.',
     {month,reportType,confirm:{type:'boolean'},dryRun:{type:'boolean'},
       requestKey:{type:'string',minLength:1,maxLength:100},
       previewToken:{type:'string',pattern:'^[a-f0-9]{64}$'}},
     ['month','reportType'],true),
-  f('workflow_find','Search selected TEST customer, invoice, payment, charge, product or price with safe pagination.',
+  f('workflow_find','Customer, invoice, payment, charge, product and price search with safe pagination, either mode.',
     {type:{type:'string',enum:types},query,limit:{type:'integer',minimum:1,maximum:100},
       maxPages:{type:'integer',minimum:1,maximum:5}},['type','query'])
 ];
@@ -34,27 +36,27 @@ function windowOf(v){
     .toISOString().slice(0,10),first=v+'-01';
   return {month:v,fromDate:first,toDate:last,...dateWindow(first,last)};
 }
-function validate(o,keys){
+function validate(o,keys,word='TEST'){
   if(!o||typeof o!=='object'||Array.isArray(o)||
     Object.keys(o).some(k=>!keys.includes(k)))
-    throw new TypeError('Only documented original TEST workflow fields permitted');
+    throw new TypeError('Only documented original '+word+' workflow fields permitted');
 }
 async function close(a,ctx){
-  verifyContext(ctx);validate(a,['month','runId']);
+  verifyModeContext(ctx);validate(a,['month','runId'],modeWord(ctx));
   const win=windowOf(a.month),snap=await nativeRead('workflow_money_snapshot',
-    {fromDate:win.fromDate,toDate:win.toDate},ctx);
-  if(snap.account!==ctx.connection.stripeAccount||snap.mode!=='test'||
+    {fromDate:win.fromDate,toDate:win.toDate},ctx,{verify:verifyModeContext});
+  if(snap.account!==ctx.connection.stripeAccount||snap.mode!==ctx.connection.mode||
     snap.window?.from!==win.from||snap.window?.until!==win.until||
     !snap.moneyFlowsByCurrency||typeof snap.moneyFlowsByCurrency!=='object')
     throw new TypeError('Provider-verified Colorado money snapshot unavailable');
   let report=null;
   if(a.runId!==undefined){
     if(!/^frr_[A-Za-z0-9]{2,100}$/.test(a.runId))
-      throw new TypeError('Exact TEST report-run ID required');
-    const run=await nativeRead('report_get_run',{runId:a.runId},ctx);
+      throw new TypeError('Exact '+modeWord(ctx)+' report-run ID required');
+    const run=await nativeRead('report_get_run',{runId:a.runId},ctx,{verify:verifyModeContext});
     if(run.id!==a.runId||run.intervalStart!==win.from||run.intervalEnd!==win.until)
       throw new TypeError('Selected report has a different verified month');
-    const file=await nativeRead('report_get_result_file',{runId:a.runId},ctx);
+    const file=await nativeRead('report_get_result_file',{runId:a.runId},ctx,{verify:verifyModeContext});
     if(file.runId!==a.runId||file.runStatus!==run.status)
       throw new TypeError('Authenticated original report result does not match run');
     report={id:a.runId,type:run.reportType,status:run.status,
@@ -64,7 +66,7 @@ async function close(a,ctx){
         downloadUrl:null,publicUrlAvailable:false},
       pending:run.status==='pending',failed:run.status==='failed'};
   }
-  return {kind:'month_end_close',account:ctx.connection.stripeAccount,mode:'test',
+  return {kind:'month_end_close',account:ctx.connection.stripeAccount,mode:ctx.connection.mode,
     calendar:'America/Denver',month:a.month,window:{from:win.from,until:win.until},
     complete:snap.complete===true,
     moneyFlowsComplete:snap.moneyFlowsComplete===true,
@@ -132,7 +134,7 @@ const matchQuery=v=>typeof v==='string'&&v.trim()&&v.length<=220&&
 const search={customer:'customer_search',invoice:'invoice_search',
   payment:'payment_search',charge:'charge_search',product:'product_search',price:'price_search'};
 async function find(a,ctx){
-  verifyContext(ctx);validate(a,['type','query','limit','maxPages']);
+  verifyModeContext(ctx);validate(a,['type','query','limit','maxPages'],modeWord(ctx));
   if(!Object.hasOwn(search,a.type)||!matchQuery(a.query)||
     a.limit!==undefined&&(!Number.isSafeInteger(a.limit)||a.limit<1||a.limit>100)||
     a.maxPages!==undefined&&(!Number.isSafeInteger(a.maxPages)||a.maxPages<1||a.maxPages>5))
@@ -144,7 +146,7 @@ async function find(a,ctx){
     if(expired(end)){reason='time_budget';break;}
     let data;
     try{data=await nativeRead(search[a.type],
-      {query:a.query,limit:perPage,...(cursor?{page:cursor}:{})},ctx);}
+      {query:a.query,limit:perPage,...(cursor?{page:cursor}:{})},ctx,{verify:verifyModeContext});}
     catch{reason='provider_search_unavailable';break;}
     if(!Array.isArray(data.data)||data.data.length>perPage||
       typeof data.has_more!=='boolean') {reason='invalid_provider_page';break;}
@@ -168,7 +170,7 @@ async function find(a,ctx){
     seenCursors.add(data.next);cursor=data.next;
   }
   if(!complete&&!reason)reason='page_or_row_limit';
-  return {kind:'find',account:ctx.connection.stripeAccount,mode:'test',
+  return {kind:'find',account:ctx.connection.stripeAccount,mode:ctx.connection.mode,
     type:a.type,query:a.query,results,
     resultCount:results.length,complete,reason,
     pages:pageCount,nextPage:complete?null:cursor,

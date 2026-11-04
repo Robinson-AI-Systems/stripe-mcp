@@ -67,13 +67,20 @@ describe('W-2 failed payment and customer overview guarded workflows',()=>{
     expect(out.invoices[0].note).toMatch(/No provider-confirmed/);
     expect(declineReason({failureCode:'unrecognized'})).toMatch(/Stripe reported/);
   });
-  it('handles empty accounts, selected TEST scope and direct LIVE denial',async()=>{
+  it('handles empty accounts, selected scope and the converted LIVE read path',async()=>{
     const f=fixture();
     expect(parse(await f.call('workflow_failed_payments',{}))).toMatchObject({
       complete:true,counts:{unpaidAttemptedInvoices:0,failedPaymentIntents:0}});
     f.ctx.connection.mode='live';
-    const denied=await f.call('workflow_failed_payments',{customerId:C});
-    expect(denied.isError).toBe(true);
+    // CAP-4 D-8 §A: the read composites follow the connection mode.
+    // This TEST-shaped fixture's provider reads are refused by mode
+    // verification before any provider call, so the composite reports
+    // an honest incomplete LIVE result instead of the abolished gate
+    // refusal; the single-customer overview still errors because its
+    // verified customer read cannot be satisfied.
+    const live=parse(await f.call('workflow_failed_payments',{customerId:C}));
+    expect(live).toMatchObject({mode:'live',complete:false,
+      counts:{unpaidAttemptedInvoices:0,failedPaymentIntents:0}});
     expect(f.seen).toHaveLength(2);
     expect((await f.call('workflow_customer_overview',{customerId:C})).isError).toBe(true);
   });

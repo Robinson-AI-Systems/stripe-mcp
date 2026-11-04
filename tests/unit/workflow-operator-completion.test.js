@@ -214,11 +214,21 @@ describe('W-8 selected bound app actual P-3 readiness versus LIVE disabled',()=>
     expect(state.liveParity).toBe('not_verified');
     expect(f.calls).toHaveLength(0);
   });
-  it('fails unknown app, missing account binding and direct LIVE mode',async()=>{
+  it('fails unknown app and missing account binding; on LIVE it degrades honestly per app',async()=>{
     const f=await fixture();
     expect((await f.call('workflow_go_live_checklist',{apps:['other-tenant']})).isError)
       .toBe(true);
     f.ctx.connection.mode='live';
-    expect((await f.call('workflow_go_live_checklist',{})).isError).toBe(true);
+    // CAP-4 D-8 §A: the checklist's context follows the connection.
+    // Its internal contract still requires the TEST readiness matrix,
+    // which a LIVE connection cannot fabricate (cross-mode reads do
+    // not exist), so each bound app degrades to a
+    // protected_test_read_unavailable gap instead of the abolished
+    // gate refusal.
+    const live=parse(await f.call('workflow_go_live_checklist',{}));
+    expect(live).toMatchObject({mode:'live',complete:false,projectCount:0,
+      liveProviderQueried:false});
+    expect(live.gaps).toEqual([expect.objectContaining({
+      reason:'protected_test_read_unavailable'})]);
   });
 });

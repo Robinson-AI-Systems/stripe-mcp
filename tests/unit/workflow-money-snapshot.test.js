@@ -104,12 +104,17 @@ describe('W-1 read-only provider orchestration',()=>{
     expect(f.seen.find(x=>x.type==='subscriptions').params.expand)
       .toEqual(['data.discounts','data.items.data.discounts']);
   });
-  it('denies LIVE before any provider call and exposes bounded partial when time expires',async()=>{
+  it('serves LIVE as an honest incomplete scan with no provider call on a TEST fixture, and exposes bounded partial when time expires',async()=>{
     let called=0;
     const f=fixture({tx:[txn('txn_05',1000,'usd','2026-03-08T10:00:00Z')],
       onBalance:()=>{called++;vi.setSystemTime(new Date('2026-03-08T09:02:00Z'));}});
     f.ctx.connection.mode='live';
-    expect((await f.call({fromDate:'2026-03-08',toDate:'2026-03-08'})).isError).toBe(true);
+    // CAP-4 D-8 §A: the snapshot follows the connection mode; the
+    // TEST-shaped provider rows are refused by mode verification
+    // before any provider call, yielding an incomplete LIVE result
+    // rather than the abolished gate refusal.
+    const live=parse(await f.call({fromDate:'2026-03-08',toDate:'2026-03-08'}));
+    expect(live).toMatchObject({mode:'live',complete:false});
     expect(called).toBe(0);
     f.ctx.connection.mode='test';
     vi.useFakeTimers();vi.setSystemTime(new Date('2026-03-08T09:00:00Z'));
