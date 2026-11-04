@@ -1,3 +1,59 @@
+## 2026-11-04 — Owner-obedience V2 Checkout family: source-implemented (source)
+
+Family 6 of 13 of conformance row 17's V2 conversion is
+implemented in source (card
+[OWNER-OBEDIENCE-V2-CHECKOUT](pr-cards/OWNER-OBEDIENCE-V2-CHECKOUT.md)):
+
+- **Handlers converted.** The TEST-only wrapper gate is gone
+  from all nine hosted write operations (checkout
+  payment/setup links, session expiry, payment-link
+  create/update/deactivate/activate, portal session create
+  and configuration update). Under a LIVE connection the
+  guarded-write pipeline's existing rules decide: full
+  profile, catalog listing, customer context, a live-enabled
+  and live-connected account, owner-approved LIVE, and a
+  binding preview fingerprint. A bare LIVE connection is
+  refused by the LIVE-enablement guard before anything
+  executes.
+- **Two hidden mode gates removed.** `checkout_expire`'s
+  session-id pattern admitted only `cs_test_` ids; it now
+  admits `cs_(test|live)_…` with the retrieved session's mode
+  invariant binding it. The brand-kit presentation read was
+  hardcoded to TEST mode and refused any live brand file; it
+  now follows the connection's mode.
+- **Mode invariants, both directions.** Every object a write
+  is evaluated against — customer, price, portal
+  configuration, session, payment link — and every read-back
+  demands the connection's own mode, through the shared seam
+  from PR #304; `verify` refuses a read-back whose mode
+  disagrees.
+- **The hosted-URL aim check is not relaxed.** A created
+  page's URL is surfaced only when it verifies as
+  Stripe-hosted; the verified-active-price requirement and
+  the portal feature read-back are unchanged.
+- **Disclosure.** Summaries are mode-labeled and state the
+  plain-words consequence from the verified preview: anyone
+  with a live payment link can pay the verified price with a
+  real card; deactivating a link stops new payments and
+  leaves past payments unaffected; a portal configuration
+  update enumerates each customer power granted or removed,
+  including subscription cancellation.
+- **No money wiring touched.** `src/tools/write.js`,
+  `src/money.js` and `src/db.js` are byte-untouched, and
+  `src/core/profiles.js` is unchanged — the `checkout` area
+  was already admitted in PR #304, so no caller's
+  reachability changed.
+- **Proof.** New `tests/unit/checkout-live-conversion.test.js`
+  (11 tests: LIVE preview→confirm paths, fingerprint drift
+  refusal, wrong-mode object refusal in both directions, the
+  unrelaxed hosted-URL check); the 76-test contract suite's
+  expectations are unchanged; the full unit suite and
+  `npm run check` are green. DB and mock proof are exact-head
+  CI's route on this machine. Live proof — minting a real
+  LIVE payment link under an owner-approved connection —
+  remains open in the CAP-5 queue; merging is not live
+  acceptance.
+
 ## 2026-11-03 — Owner-obedience V2 Billing family: source-implemented (source)
 
 Family 5 of 13 of conformance row 17's V2 conversion is
@@ -48,7 +104,6 @@ implemented in source (card
   subscription action happens only on a real account when the
   owner elects to act. No account was enabled, no LIVE key
   was used, and no real money moved.
-
 ## 2026-11-03 — Owner-obedience V2 Invoices & credit notes family: source-implemented (source)
 
 Family 4 of 13 of conformance row 17's V2 conversion is
