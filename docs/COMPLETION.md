@@ -642,6 +642,31 @@ the read families. The first family is source-implemented:
   the entitlement-evidence note (provider-proven
   entitlement state remains a CAP-5 axis). Phase 4
   is complete with this card.
+- **Phase 5 — organization context stages 1–2 and D-10**
+  ([CAP4-PHASE5-ORG-D10](pr-cards/CAP4-PHASE5-ORG-D10.md)):
+  the program's last two scope lines close as a
+  research-and-records unit; no native tool is built and no
+  source file changes. ORG Stage 1's evidence memo
+  (provider survey + workflow inventory, Deep Research
+  pattern) finds the organization surface is an optional
+  credential + context layer over the same API with no
+  organization operations (the census zero is structural),
+  finds no flip fact (no provider steering strands the
+  single-account model; nothing shipped requires org
+  context; no owner workflow survives scrutiny — one Stripe
+  account in real use), and Stage 2 lands on track 2a:
+  organization context stays outside the server's model,
+  reopening condition a named workflow. D-10's two dated
+  decisions land with it: Sigma (S-8) deliberately out of
+  build scope (pinned GETs door-served; the claimed POST
+  published-only; authoring has no consumer) and Data
+  Pipeline (S-9) deliberately out entirely, served beside
+  the server (Dashboard-configured warehouse export; zero
+  census rows; no consumer), each with its reopening
+  condition. All three lines stand in the conformance
+  record as inputs to row 15's addendum, which remains the
+  close unit's work. No CAP-5 rows are owed. Phase 5 is
+  complete with this card.
 
 Still required:
 
@@ -655,8 +680,10 @@ Still required:
    event, Tax-closure and entitlement product cards
    (PROD-PAYMENT, PROD-BILLING, PROD-EVENTS, PROD-TAX,
    PROD-ENTITLEMENTS) are source-implemented above —
-   Phase 4 is complete; next is
-   Phase 5 organization context and D-10.
+   Phase 4 is complete; Phase 5 (organization context
+   stages 1–2 on track 2a, and D-10's two decisions) is
+   source-implemented above — Phase 5 is complete; next is
+   RECENSUS-1/2, then the CAP-4 close.
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)
    lands with CAP-4's final card; the consumer test itself runs

@@ -1,3 +1,47 @@
+## 2026-11-04 — CAP-4 Phase 5: organization context stages 1–2 (disposition 2a) and D-10's substrate decisions (source) — records only, no flip fact found
+
+CAP-4 Phase 5 ([CAP4-PHASE5-ORG-D10](pr-cards/CAP4-PHASE5-ORG-D10.md))
+closes the program's last two scope lines as a
+research-and-records unit: **no native tool is built and
+no source file changes.** ORG Stage 1's evidence memo
+(Deep Research pattern; landed with the card set as
+`org-context-evidence-memo.md`, summarized in
+`card-org-context.md`) establishes from Stripe's official
+documentation that the organization surface is an optional
+credential + context layer over the same API — org keys
+(`sk_org_…`), mandatory `Stripe-Context` + `Stripe-Version`,
+org-level roles, cross-account Sigma — with no organization
+resource operations at all, which is why the census zero is
+structural (`organization_context` in
+`OUTSIDE_PINNED_SCHEMA`; 559 pinned operations, zero
+organization paths). The flip-fact test (provider steering
+stranding the single-account model; org context REQUIRED
+for a shipped surface; a demonstrated owner workflow)
+finds **none** — the provider steers single-account
+integrations away from org keys, and the workflow
+inventory's four candidates all fail scrutiny (one Stripe
+account in real use). Stage 2 therefore lands on track
+**2a**: organization context stays outside the server's
+model, recorded with its reopening condition (a named
+workflow) as an input line to row 15's addendum. The
+server's posture is stated precisely: CAP-1's
+credential-evidence layer recognizes `organization_secret`
+but never grants access — recognized in evidence, not
+operable as a connection. D-10's two dated decisions land
+with it: **Sigma (S-8) deliberately out** of build scope
+(its two pinned GETs are door-served, its one claimed POST
+is published-only, and Sigma authoring has no consumer)
+and **Data Pipeline (S-9) deliberately out entirely,
+served beside the server** (Dashboard-configured warehouse
+export infrastructure with zero operation rows in either
+census and no consumer) — each with its named reopening
+condition. The unit's suite pins the substrate facts
+(6 tests, all by-design baseline passes, named as pins).
+Registry unchanged at 343 tools; no CAP-5 rows are owed.
+Phase 5 is complete with this card — remaining: RECENSUS-1/2,
+then the CAP-4 close (row 15's addendum + the CAP-5
+consumer test).
+
 ## 2026-11-04 — CAP-4 PROD-ENTITLEMENTS: entitled-product coverage completion (source) — two lists native, two by-id reads blocked on the catalog budget and flagged, three v2 imports unserved
 
 CAP-4 Phase 4's fifth and last product-gap card

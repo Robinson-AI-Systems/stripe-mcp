@@ -1746,6 +1746,94 @@ coordinator ruling, and a future unit building them
 under that ruling inherits the D-series CAP-5
 obligation by name.
 
+**CAP-4 progress — Phase 5: organization context
+stages 1–2 and D-10's substrate decisions
+(2026-11-04):** CAP-4's last scope lines close as a
+research-and-records unit (CAP4-PHASE5-ORG-D10); no
+native tool is built, no source file changes, and the
+registry stays at 343 tools. The three lines below are
+**inputs to row 15's capability-completeness addendum**
+— the addendum itself lands with the CAP-4 close unit;
+this passage does not write it.
+
+**Organization context (CAP4-ORG, Stage 2a):**
+organization context stays outside the server's model,
+by recorded disposition dated 2026-11-04. The Stage 1
+evidence memo (card-set record
+`org-context-evidence-memo.md`; Deep Research pattern,
+primary provider sources) establishes that the
+organization surface is an optional credential +
+context layer over the same API — organization keys
+(`sk_org_…`), the `Stripe-Context` header with its
+account-path propagation, organization-level roles, and
+cross-account Sigma as the org-level evidence surface —
+with no organization resource operations at all: the
+pinned catalog (559 operations, re-derived and pinned
+in the unit's suite) holds zero organization paths, and
+`organization_context` sits in `OUTSIDE_PINNED_SCHEMA`,
+so the census zero is structural. The flip-fact test
+found none: no provider deprecation or steering strands
+the single-account model (the provider's own guidance
+steers single-account integrations away from org keys),
+no shipped surface requires organization context, and
+the workflow inventory found no owner workflow that
+needs it — four candidates examined, zero surviving
+scrutiny, with one Stripe account in real use. The
+server's posture is recorded precisely: CAP-1's
+credential-evidence layer recognizes the
+`organization_secret` kind (exact `Stripe-Context` +
+`Stripe-Version` requirement on file, permission
+unverified) but never grants access or selects keys —
+recognized in evidence, not operable as a connection,
+and no code path sends `Stripe-Context`.
+**Reopening condition: a named workflow** — an owner
+workflow, roadmap item, or APP-NEEDS entry that must
+operate across two or more of the owner's Stripe
+accounts as one principal through this server; Stage 2b
+then designs the contract for coordinator ruling before
+any build. No CAP-5 rows are owed.
+
+**D-10 — Sigma (S-8), decision dated 2026-11-04:
+deliberately out of build scope.** The pinned catalog's
+whole Sigma surface is the two `scheduled_query_runs`
+GETs, door-served today through the guarded universal
+read, and the reporting surface Sigma feeds rides D-6's
+native family; the one operation the census claims for
+D-10 (`POST /v1/sigma/saved_queries/{id}`) is
+published-only — absent from the pinned catalog, so the
+door cannot name it (both facts pinned in the unit's
+suite). Sigma authoring (ad-hoc queries, saved-query
+management) has no consumer — no roadmap item, APP-NEEDS
+entry, or owner workflow — and no read-back contract
+designed for it; a native Sigma family now would be
+speculative surface area. **Reopening condition:** a
+real consumer naming Sigma authoring through this
+server, or a catalog re-pin that moves the Sigma rows
+materially (surfaced by D-9's drift test), scoped to
+the consuming workflow.
+
+**D-10 — Data Pipeline / bulk export (S-9), decision
+dated 2026-11-04: deliberately out, entirely; served
+beside the server.** Data Pipeline is
+Dashboard-configured warehouse/lake export
+infrastructure (continuous sync to the owner's own
+warehouse, storage, or Postgres destination), not a
+tool-shaped operation surface: it holds zero operation
+rows in either census (no pipeline/warehouse path in
+the pinned catalog; pinned in the unit's suite), so it
+is a named absence outside the inventory, not a gap in
+it. An MCP tool surface neither provisions the owner's
+warehouse nor carries bulk data; the owner enables the
+product in the Dashboard beside this server. No consumer
+exists. **Reopening condition:** a named consumer — an
+owner workflow that must configure or monitor Data
+Pipeline through this server — as a fresh card under
+row 15's living duty. For both D-10 lines, "the surface
+exists in Stripe" is not a reopening reason;
+completeness is served by this record, not by
+speculative tools. No CAP-5 rows are owed by either
+decision.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the

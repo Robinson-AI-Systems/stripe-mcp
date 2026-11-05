@@ -1112,7 +1112,7 @@
         "CAP-2",
         "CAP-3"
       ],
-      "card": "docs/pr-cards/CAP4-PROD-ENTITLEMENTS.md",
+      "card": "docs/pr-cards/CAP4-PHASE5-ORG-D10.md",
       "status": "IN_PROGRESS",
       "migration": "JIT contract before implementation",
       "budget": 650,
