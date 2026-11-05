@@ -705,6 +705,37 @@ register as missing-with-plan. CAP-5 obligation recorded
 on the card: enroll a throwaway TEST account, de-enroll
 it, read back its absence, on the owner's own connection.
 
+**Register update — CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE landed
+(2026-11-04).** The OAuth client delete item in this row's
+missing-with-plan register **stops counting as missing in
+this change**: the delete leg now exists at the merged head —
+owner visibility on the passphrase-authenticated setup page
+(registered clients listed with client id, name, auth method,
+registration time, and live token/pass counts; no registry
+tool added, registry unchanged at 344) and an owner-page
+`request-delete-client` → `confirm-delete-client` intent pair
+(10-minute expiry; fingerprint computed fresh from the
+evaluated state — client id, name, auth method, and the exact
+counts of live tokens and passes — and re-checked atomically
+at consumption) whose single-statement deletion revokes every
+token and pass issued to the client across every account,
+deletes its outstanding authorization codes, deletes the
+`oauth_clients` row, and journals the deletion as
+IRREVERSIBLE with the fingerprint (no inverse and no owning
+account; `stripe_undo_change` refuses by its existing rule).
+Authorization attempts naming a deleted client refuse at both
+OAuth doors. **The companion update leg is dispositioned in
+the same change:** deliberately deferred with its reason
+recorded on the card — no consumer has needed to edit a
+registration, and name/auth-method changes are served by
+delete-and-re-register now that the delete leg exists; an
+RFC 7592 read/update endpoint is its own future card. Its
+disposition in this register therefore reads **recorded
+deferral**, not missing. CAP-5 obligation recorded on the
+card: register a throwaway client, delete it through the
+ceremony, read back its absence, on the owner's own
+connection.
+
 ### 16. Conformance-correction process — bringing a pre-Standard server under the Standard — CORRECTABLE (process running)
 
 The Standard (2026-11-03) names the five-step process this server is
