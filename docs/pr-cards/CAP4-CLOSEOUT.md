@@ -18,6 +18,27 @@ below. The registry stays at 344 tools; the everyday catalog
 budget is unmoved at 19,999/20,000; no other tool text
 changes.
 
+**Coordinator ruling 11 applied (2026-11-05).** At the
+closeout review, after the build, the coordinator ruled
+(ruling 11, recorded in the program's coordinator rulings)
+that the addendum's capability tally must headline the
+strict count, not the re-census reconciliation's counting
+convention: two legs that convention counted as
+door-covered (entitlements feature update; meter-event
+adjustments) are refused under D-9's per-operation
+classification table, and the classification of record
+wins. The tally statements in this card, the conformance
+addendum and its row-15 summary line, COMPLETION and
+STATUS were flipped in a follow-on records commit on this
+branch: strict headline — covered-native 213,
+covered-door 138, composed 2, missing 51, missing-in-LIVE
+3, unverified 8, owner-excluded 0 (total 415, covered
+351) — with the reconciliation-convention figures
+(door 140 / missing 49 / covered 353) retained as the
+superseded count, both counts visible. The consumer test
+and Part 3 are untouched by the flip; no source files
+change.
+
 ## Part 1 — The addendum (conformance row 15)
 
 The addendum lands in `docs/RAS-MCP-CONFORMANCE.md` §15,
@@ -34,32 +55,38 @@ after the two RECENSUS register updates, as a dated passage:
    are not interchangeable; the tally below is the
    re-census's 415.
 2. **The final completeness tally, re-derived** (method and
-   movements in the addendum; summary here):
+   movements in the addendum; summary here) — strict
+   headline per coordinator ruling 11:
    covered — native **213**, covered — universal door
-   **140**, composed **2**, missing **49**, missing in LIVE
+   **138**, composed **2**, missing **51**, missing in LIVE
    **3**, unverified **8**, owner-excluded **0**; total
-   **415**. Movements from the re-census's 200/141/2/61/3/8/0:
+   **415** (covered **351**). Movements from the re-census's 200/141/2/61/3/8/0:
    Connect slices 2–3 built 13 of the 14 Phase-2 operations
    (missing −13, native +13); the 14th — connected-account
    session create — was not built and stands re-dispositioned
    by D-9 (refused session-minting class), still missing;
    PROD-PAYMENT's confirmation-token leg moved door → missing
-   (deliberately unserved; see item 5). The server's own
+   (deliberately unserved; see item 5); and, per ruling 11,
+   the two legs below moved door → missing in the strict
+   headline (door −2, missing +2). The server's own
    registration-records register, carried beside the 415 as
    the reconciliation carries it, closes: de-enrollment
    built, OAuth client delete built, OAuth client update a
    recorded deferral (not missing). Qualification, stated in
-   the addendum beside the table: the door-covered remainder
+   the addendum beside the table: the reconciliation-convention
+   figures (door 140 / missing 49 / covered 353) are the
+   superseded count, recorded in the addendum so both counts
+   stay visible; that counting called two legs door-covered —
+   feature update and meter-event adjustments — that are
+   refused under D-9's per-operation table with recorded
+   class dispositions and are claimed as served nowhere in
+   the addendum, so under ruling 11 they count as missing in
+   the headline, because D-9's classification table is the
+   classification of record; the door-covered remainder
    still rests on the reconciliation's policy-class counting
-   for legs D-9 did not individually re-serve; two legs that
-   counting called door-covered — feature update and
-   meter-event adjustments — are refused under D-9's
-   per-operation table with recorded class dispositions and
-   are claimed as served nowhere in the addendum (a strict
-   served-fact recount of just those two would read door
-   138 / missing 51; a full strict recount of the door
-   bucket is the next re-census's work under row 15's
-   living duty, not this unit's).
+   for legs D-9 did not individually re-serve, and a full
+   strict recount of every door-covered leg is the next
+   re-census's work under row 15's living duty.
 3. **D-10's two decision lines** (dated 2026-11-04, from
    CAP4-PHASE5-ORG-D10): Sigma (S-8) deliberately out of
    build scope — the pinned surface is the two
@@ -153,8 +180,10 @@ after the two RECENSUS register updates, as a dated passage:
    half — the census-citing depth line read live at the
    branded origin — rides the row 8 cutover under CAP-5.
    The grade stands **correctable — PARTIAL under the
-   grading amendment**, its count improved: 49 missing and
-   3 missing-in-LIVE operations stand, every one carrying
+   grading amendment**, its count improved: 51 missing and
+   3 missing-in-LIVE operations stand (strict headline per
+   ruling 11; the superseded reconciliation-convention
+   count read 49 missing), every one carrying
    a plan or a recorded disposition in the register
    (reconciliation items 4–16, the D-9 classes, the
    PROD-PAYMENT refusal, the account-session

@@ -83,7 +83,7 @@ from the evidence label in its heading:
 | 12. No global credential fallback | conforms (plan level) |
 | 13. Version evolution | conforms (plan level) |
 | 14. Pattern appraisal guardrails | not applicable (remote coding runtime; recorded) |
-| 15. Capability completeness | correctable — PARTIAL under the 2026-11-04 grading amendment; re-census filed and CAP-4 addendum landed 2026-11-04 (element 1 re-derived at the CAP-4 close: 353 covered (213 native / 140 universal door) / 2 composed / 49 missing / 3 missing-in-LIVE / 8 unverified / 0 owner-excluded of 415 operations; the consumer test is built and runs under CAP-5; the front-door census line still owed with row 8) |
+| 15. Capability completeness | correctable — PARTIAL under the 2026-11-04 grading amendment; re-census filed and CAP-4 addendum landed 2026-11-04 (element 1 re-derived at the CAP-4 close, strict headline per coordinator ruling 11: 351 covered (213 native / 138 universal door) / 2 composed / 51 missing / 3 missing-in-LIVE / 8 unverified / 0 owner-excluded of 415 operations — the superseded reconciliation-convention count of 353 covered (140 door) / 49 missing is recorded in the addendum; the consumer test is built and runs under CAP-5; the front-door census line still owed with row 8) |
 | 16. Conformance-correction process | correctable (process running; closes when all rows conform or carry a ruled exception) |
 | 17. Owner-obedience | correctable (four conversions designed; four unclassified items recorded) |
 
@@ -781,13 +781,14 @@ its baseline `2688228f`, each named:
 | Connect slices 2–3 (PRs #337, #338) built 13 of the 14 Phase-2 lifecycle operations this register carried as missing-with-plan (account create/update/delete/reject, account link, login link, capability update, person create/update/delete, external-account create/update/delete) | missing −13; native +13 |
 | The 14th, connected-account session create, was not built; D-9 classified it refused-session-minting ("surfaces that need one get a native tool under their own unit") | no count change; plan superseded by the D-9 class disposition; still missing |
 | PROD-PAYMENT (#340): the confirmation-token read, counted door-covered at the re-census, is now refused before any provider call by the made-effective sensitive-family screen, with no native read — deliberately unserved (privacy; the baseline service was itself the defect) | door −1; missing +1 |
+| Coordinator ruling 11 (2026-11-05, at the CAP-4 closeout review): two legs the reconciliation's policy-class counting called door-covered — entitlements feature update and meter-event adjustments — are refused under D-9's per-operation classification table, the classification of record; they count as missing in the strict headline, not as door-covered | door −2; missing +2 |
 
-| Disposition | At re-census | At the CAP-4 close |
+| Disposition | At re-census | At the CAP-4 close (strict, ruling 11) |
 |---|---|---|
 | COVERED — native tool | 200 | **213** |
-| COVERED — universal door | 141 | **140** |
+| COVERED — universal door | 141 | **138** |
 | COMPOSED | 2 | **2** |
-| MISSING | 61 | **49** |
+| MISSING | 61 | **51** |
 | MISSING in LIVE (counts as missing) | 3 | **3** |
 | UNVERIFIED | 8 | **8** |
 | OWNER-EXCLUDED | 0 | **0** |
@@ -800,28 +801,37 @@ were already counted door-covered under the
 reconciliation's policy-class counting — D-9's
 per-operation table made that count true row by row
 without changing it. **Qualification, stated beside the
-table as the degraded-pass rule requires:** the
-door-covered remainder still rests on that policy-class
-counting for legs D-9 did not individually re-serve. Two
-legs the counting called door-covered are refused under
-D-9's table with recorded class dispositions and are
-claimed as served nowhere in this addendum: feature
+table as the degraded-pass rule requires (coordinator
+ruling 11, 2026-11-05):** the headline above is the
+strict count. The reconciliation-convention figures —
+door 140 / missing 49 / covered 353 — are the superseded
+count, recorded here so both counts stay visible: they
+rested on the reconciliation's policy-class counting,
+which called two legs door-covered that D-9's
+per-operation classification table refuses, and where
+the two conflict the classification of record wins
+(ruling 8). The two legs are entitlements feature
 update (native-owns; no native tool exists — see the
 closeout's Part 3, which corrected the refusal text to
 say so) and meter-event adjustments (refused-ingestion;
-PROD-BILLING adopted the same rule). A strict served-fact
-recount of just those two legs would read door 138 /
-missing 51; a full strict recount of the door bucket is
-the next re-census's work under this row's living duty,
-not this unit's, and the headline tally does not borrow
-it. The 49 missing stand itemized in the reconciliation's
+PROD-BILLING adopted the same rule); they are claimed
+as served nowhere in this addendum and count as missing
+in the strict headline (door 138 / missing 51 / covered
+351). The door-covered remainder still rests on that
+policy-class counting for legs D-9 did not individually
+re-serve, and the full strict recount of every
+door-covered leg remains assigned to the next re-census
+under this row's living duty. The 51 missing stand
+itemized in the reconciliation's
 register (items 4–16: money-class lifecycle legs, billing
 completion legs, quote PDF, Connect platform OAuth,
 Issuing writes, Treasury writes, Terminal
 process-payment-intent, Apps secrets — CAP-3's surface,
 the legacy token create), plus the two CAP-4
 re-dispositions above (account-session create; the
-confirmation-token read). The 3 missing-in-LIVE stand as
+confirmation-token read) and the two ruling-11 legs
+named in this qualification (feature update;
+meter-event adjustments). The 3 missing-in-LIVE stand as
 recorded: the customer balance credit leg (the row-35
 card, outside CAP-4 by the frozen sequence's boundary)
 and the top-up create/cancel pair (crew disposition still

@@ -23,17 +23,24 @@ never silently covered) — the D-3 half-open interval
 note, and the re-census outcomes (RECENSUS-1 built;
 RECENSUS-2 built, its update leg a recorded deferral).
 The completeness tally is re-derived from the register
-as it stands, movements itemized: **213 native / 140
-door / 2 composed / 49 missing / 3 missing-in-LIVE / 8
-unverified / 0 owner-excluded of 415** (Connect built 13
+as it stands, movements itemized — strict headline per
+coordinator ruling 11: **213 native / 138
+door / 2 composed / 51 missing / 3 missing-in-LIVE / 8
+unverified / 0 owner-excluded of 415** (covered 351;
+Connect built 13
 of its 14 missing-with-plan operations — the 14th,
 account-session create, stands re-dispositioned by D-9
 as refused-session-minting; the confirmation-token leg
-moved door → deliberately unserved). A qualification
+moved door → deliberately unserved). The superseded
+reconciliation-convention count (213 native / 140 door /
+49 missing / 353 covered) is recorded in the addendum
+beside the table. A qualification
 beside the table names the two legs the reconciliation's
 policy-class counting called door-covered that D-9's
-table refuses (feature update; meter-event adjustments)
-and assigns the door bucket's full strict recount to the
+table refuses (feature update; meter-event adjustments) —
+under ruling 11 they count as missing in the headline,
+because D-9's classification table is the classification
+of record — and assigns the door bucket's full strict recount to the
 next re-census under row 15's living duty. Row 15 does
 not close — its branded-origin closing proof rides
 row 8/CAP-5 — and its grade stands correctable —
