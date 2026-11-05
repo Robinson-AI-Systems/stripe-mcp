@@ -48,8 +48,8 @@ describe('owner hosting cost / daily live policy',()=>{
     for(const change of [
       s=>s.replace('timezone: America/Denver','timezone: UTC'),
       s=>s.replace('      timezone: America/Denver\n',''),
-      s=>s.replace('1 0 * * *','0 10 * * *'),
-      s=>s.replace('      timezone: America/Denver','      timezone: America/Denver\n    - cron: \'1 0 * * *\'')
+      s=>s.replace('53 20 * * *','0 10 * * *'),
+      s=>s.replace('      timezone: America/Denver','      timezone: America/Denver\n    - cron: \'53 20 * * *\'')
     ]){
       const x=inputs();x.promote=change(x.promote);
       expect(releasePolicyViolations(x)).not.toEqual([]);
@@ -65,14 +65,14 @@ describe('owner hosting cost / daily live policy',()=>{
   it('allows valid Denver schedule key ordering',()=>{
     const x=inputs();
     x.promote=x.promote.replace(
-      "    - cron: '1 0 * * *'\n      timezone: America/Denver",
-      "    - timezone: America/Denver\n      cron: '1 0 * * *'");
+      "    - cron: '53 20 * * *'\n      timezone: America/Denver",
+      "    - timezone: America/Denver\n      cron: '53 20 * * *'");
     expect(releasePolicyViolations(x)).toEqual([]);
   });
   it('rejects inline schedule lists and repeated cron keys',()=>{
     const x=inputs();
-    x.promote=x.promote.replace("    - cron: '1 0 * * *'",
-      "    - {timezone: America/Denver, cron: '1 0 * * *'}");
+    x.promote=x.promote.replace("    - cron: '53 20 * * *'",
+      "    - {timezone: America/Denver, cron: '53 20 * * *'}");
     expect(releasePolicyViolations(x)).not.toEqual([]);
     const y=inputs();
     y.promote=y.promote.replace('      timezone: America/Denver',

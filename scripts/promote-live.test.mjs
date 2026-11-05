@@ -120,10 +120,10 @@ test('real atomic git promotion, read-back and second same-day update refusal', 
   }
 });
 
-test('bounded schedule backups preserve midnight, daily marker and owner recovery', () => {
+test('bounded schedule backups preserve the evening block, daily marker and owner recovery', () => {
   const workflow = readFileSync(new URL('../.github/workflows/promote-live.yml', import.meta.url), 'utf8');
   const crons = [...workflow.matchAll(/cron: '([^']+)'/g)].map(m => m[1]);
-  assert.deepEqual(crons, ['1 0 * * *', '17 0 * * *', '17 1 * * *', '37 5 * * *', '43 12 * * *']);
+  assert.deepEqual(crons, ['53 20 * * *', '9 21 * * *', '9 22 * * *', '29 2 * * *', '35 9 * * *']);
   assert.equal((workflow.match(/timezone: America\/Denver/g) || []).length, 4);
   assert.match(workflow, /recover_missed_daily:/);
   assert.match(workflow, /default: false/);
@@ -156,9 +156,9 @@ test('unexpected schedules and unguarded dispatch fail hosting policy', async ()
     targets: read('.github/workflows/pr-target.yml'), promote: read('.github/workflows/promote-live.yml') };
   assert.deepEqual(releasePolicyViolations(good), []);
   for (const promote of [
-    good.promote.replace('17 0 * * *', '18 0 * * *'),
-    good.promote.replace("    - cron: '43 12 * * *'\n", ''),
-    good.promote.replace("    - cron: '43 12 * * *'", "    - timezone: America/Denver\n      cron: '37 0 * * *'\n    - cron: '43 12 * * *'"),
+    good.promote.replace('9 21 * * *', '10 21 * * *'),
+    good.promote.replace("    - cron: '35 9 * * *'\n", ''),
+    good.promote.replace("    - cron: '35 9 * * *'", "    - timezone: America/Denver\n      cron: '37 0 * * *'\n    - cron: '35 9 * * *'"),
     good.promote.replace('timezone: America/Denver', 'timezone: UTC'),
     good.promote.replace('default: false', 'default: true'),
     good.promote.replace("github.actor == 'christcr2012'", "github.actor == 'other'"),

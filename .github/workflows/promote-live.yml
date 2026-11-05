@@ -1,19 +1,19 @@
 name: Daily live promotion
 
 on:
-  # Owner schedule: 00:01 Denver, including DST; GitHub may start late.
+  # Owner schedule: 20:53 Denver, including DST; GitHub may start late.
   schedule:
-    # Primary Denver midnight release, with bounded missed-event recovery.
+    # Primary Denver evening release, with bounded missed-event recovery.
     # The UTC backup also avoids relying exclusively on timezone triggers.
-    - cron: '1 0 * * *'
+    - cron: '53 20 * * *'
       timezone: America/Denver
-    - cron: '17 0 * * *'
+    - cron: '9 21 * * *'
       timezone: America/Denver
-    - cron: '17 1 * * *'
+    - cron: '9 22 * * *'
       timezone: America/Denver
-    - cron: '37 5 * * *'
+    - cron: '29 2 * * *'
       timezone: America/Denver
-    - cron: '43 12 * * *'
+    - cron: '35 9 * * *'
   workflow_dispatch:
     inputs:
       recover_missed_daily:
