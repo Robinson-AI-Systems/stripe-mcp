@@ -1112,8 +1112,8 @@
         "CAP-2",
         "CAP-3"
       ],
-      "card": "docs/pr-cards/CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE.md",
-      "status": "IN_PROGRESS",
+      "card": "docs/pr-cards/CAP4-CLOSEOUT.md",
+      "status": "MERGED",
       "migration": "JIT contract before implementation",
       "budget": 650,
       "units": [

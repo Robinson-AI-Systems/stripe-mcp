@@ -1,3 +1,89 @@
+## 2026-11-04 — CAP-4 CLOSEOUT: row 15's addendum + the consumer test (source) — CAP-4 is complete
+
+[CAP4-CLOSEOUT](pr-cards/CAP4-CLOSEOUT.md) lands the
+frozen sequence's close of CAP-4: row 15's
+capability-completeness addendum in the conformance
+record and the consumer test instrument. **CAP-4 is
+complete in source with this unit** — every phase,
+family and follow-up card is merged or dispositioned on
+its card, and what remains is CAP-5: the consumer test's
+live run, every family's queued live proofs, and the
+production-readiness gate. The addendum carries the
+census reference (CAP-1's 644 rows; the two-source fleet
+re-census, 415 operations), D-10's two decision lines
+(Sigma out; Data Pipeline out, served beside the
+server), the Tax closure line verbatim, the ORG Stage 2a
+disposition line (ruling 10; reopening condition a named
+workflow), every product-card disposition — payment
+(including the confirmation-token door fix), billing and
+events under v2 disposition (a), Tax, and entitlements
+with the two by-id reads in ruling 9's exact terms
+(door-served / native-build-blocked-on-budget / flagged,
+never silently covered) — the D-3 half-open interval
+note, and the re-census outcomes (RECENSUS-1 built;
+RECENSUS-2 built, its update leg a recorded deferral).
+The completeness tally is re-derived from the register
+as it stands, movements itemized — strict headline per
+coordinator ruling 11: **213 native / 138
+door / 2 composed / 51 missing / 3 missing-in-LIVE / 8
+unverified / 0 owner-excluded of 415** (covered 351;
+Connect built 13
+of its 14 missing-with-plan operations — the 14th,
+account-session create, stands re-dispositioned by D-9
+as refused-session-minting; the confirmation-token leg
+moved door → deliberately unserved). The superseded
+reconciliation-convention count (213 native / 140 door /
+49 missing / 353 covered) is recorded in the addendum
+beside the table. A qualification
+beside the table names the two legs the reconciliation's
+policy-class counting called door-covered that D-9's
+table refuses (feature update; meter-event adjustments) —
+under ruling 11 they count as missing in the headline,
+because D-9's classification table is the classification
+of record — and assigns the door bucket's full strict recount to the
+next re-census under row 15's living duty. Row 15 does
+not close — its branded-origin closing proof rides
+row 8/CAP-5 — and its grade stands correctable —
+PARTIAL, count improved. The consumer test (derivation
+element 4, frozen) is implemented in the repo's test
+shape: `tests/helpers/consumer-test.js` carries the
+27-step table (Phases A–E; each step's surfaces, CAP-5
+execution class and owning card) and the frozen scorer
+(PASS / GUIDED / NO-DISPOSITIONED / FAIL exactly as
+element 4 defines them, the cross-unit asymmetry
+included; zero FAILs is the bar and any FAIL reopens the
+owning card); the suite pins the table and scorer and
+runs the instrument in fixture form — **5 FIXTURE-PASS,
+3 FIXTURE-GUIDED, 15 SURFACE-ONLY, 4 NOT-RUN, 0
+FIXTURE-FAIL** — with the CAP-5 execution recorded step
+by step (20 steps on the deployed server in TEST, 3 on
+the owner's LIVE-consented connection, 4 through the
+owner's own channel/ceremony). No CAP-5 score is claimed.
+The unit's one source change is a truthfulness fix from
+PROD-ENTITLEMENTS' out-of-scope observation: D-9's
+feature-update refusal text claimed the native catalog
+family owns the surface, but no native feature-update
+tool exists — the row's reason in
+`src/stripe/universal-classification.js` now names the
+owning family and the absence plainly; the create row
+and every other refusal stay byte-identical (proven by
+invoking the door before and after: refusal precedes any
+provider call in both). Registry stays **344**; the
+everyday catalog budget is unmoved at 19,999/20,000.
+Suites: consumer 14 tests (all pass at pristine baseline
+`0a4213cb` by design — table/scorer pins and fixture
+mechanics against the finished tree, named as such) +
+Part 3 truthfulness 5 tests (2 fail at baseline as
+behavior; 1 surface fact; 2 named byte-identity PINs).
+Full unit suite **224 files / 2,508 tests green**;
+`npm run check` exit 0; the neighboring D-9 and
+PROD-ENTITLEMENTS suites pass unedited. Verification ran
+on this VM (control plane) — declared per the
+degraded-pass rule; exact-head CI is the decisive proof.
+Remaining: CAP-5 (the consumer test's live run and the
+whole acceptance queue), CAP-2 and CAP-3 per their own
+sections.
+
 ## 2026-11-04 — CAP-4 RECENSUS-2: OAuth client delete, the missing delete leg (source) — registered clients can be listed and removed
 
 [CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE](pr-cards/CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE.md)

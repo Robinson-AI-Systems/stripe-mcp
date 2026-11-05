@@ -77,7 +77,7 @@ not close any product requirement by itself.
 | Ledger | Reconciled state | What it does—and does not—prove |
 |---|---|---|
 | Original roadmap source | **57 of 57 subsections merged.** | Source implementation exists. It does not prove deployed provider acceptance or finished-product status. |
-| Work index | **59 of 63 units `MERGED`**; CAP-2, CAP-3 and CAP-4 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4's first just-in-time family cards (D-3, D-1, D-2, Connect slice 1, D-4, D-5, D-6, D-7, D-11, D-12, D-8 §A, D-8 §B, and D7b) are written and source-implemented; CAP-5's card file is intentionally absent until that unit starts. |
+| Work index | **60 of 63 units `MERGED`**; CAP-2 and CAP-3 `IN_PROGRESS`; CAP-5 `APPROVED`. | CAP-1 is merged only in the source-inventory sense defined below. CAP-4 is complete in source with its closeout (row 15's addendum + the consumer test instrument); CAP-5's card file is intentionally absent until that unit starts. |
 | Protected provider acceptance queue | **13 PASSED / 30 PENDING of 43.** Of the pending rows, **29 are Stripe-owned** and **1 is Hub-owned optional**. | The 29 Stripe-owned rows include the `STRIPE-TEST` aggregate, so the count is a ledger count, not 29 unrelated features. The Hub row is not a standalone-product gate. |
 | Session planner view | `scripts/session-status.mjs` reports 42 waiting/verification tasks plus the Hub-owned optional task. | This overlaps the queue above: it treats recorded passes as deployment-recheck items. Do not add 42 to 30. The queue dispositions remain 13 passed and 30 pending. |
 | RAS MCP conformance | **17 numbered rows** (14 at the 2026-11-02 pass; rows 15–17 opened 2026-11-03 by the Specification's new sections). | Rows 2, 5, and 9 have live closure evidence as scoped below. Row 3's sign-in journey is live-verified, but its My Connection settings screen remains open. Rows 15–17 record the design-conformance compensation: the capability census is incomplete past its API element, the correction process is running, and four owner-facing refusals are designed for conversion to confirmed actions. |
@@ -170,7 +170,9 @@ Still required to complete CAP-3:
 
 ### CAP-4 — Advanced functional workflow gap closure
 
-**Disposition: `IN_PROGRESS` — started 2026-11-04.**
+**Disposition: `MERGED` (source) — started and completed
+2026-11-04; live proof for every family stands in the
+CAP-5 queue.**
 
 The gap set is derived and frozen: the unified census reconciles
 644 of 644 operations to exactly one destination (349 claimed by
@@ -689,6 +691,41 @@ the read families. The first family is source-implemented:
   surface-missing. CAP-5 obligation queued: enroll a
   throwaway TEST account, de-enroll it, read back its
   absence, on the owner's own connection.
+- **CLOSEOUT — row 15's addendum + the consumer test**
+  ([CAP4-CLOSEOUT](pr-cards/CAP4-CLOSEOUT.md)): the
+  program's final unit lands row 15's
+  capability-completeness addendum in the conformance
+  record (census reference; D-10's two decision lines;
+  the Tax closure line verbatim; the ORG Stage 2a
+  disposition line under ruling 10; every product-card
+  disposition, the entitlements pair in ruling 9's exact
+  terms; the D-3 half-open interval note; the re-census
+  outcomes) with the completeness tally re-derived from
+  the register as it stands — strict headline per
+  coordinator ruling 11: 213 native / 138 door /
+  2 composed / 51 missing / 3 missing-in-LIVE /
+  8 unverified / 0 owner-excluded of 415 (covered 351;
+  the superseded reconciliation-convention count —
+  140 door / 49 missing / 353 covered — is recorded in
+  the conformance addendum, the two legs it counted
+  door-covered that D-9's classification table refuses
+  named there) — and builds
+  the consumer test (derivation element 4, frozen): the
+  27-step instrument and its scorer in the repo's test
+  shape, fixture-run against the finished tree (5
+  FIXTURE-PASS, 3 FIXTURE-GUIDED, 15 SURFACE-ONLY, 4
+  NOT-RUN, 0 FIXTURE-FAIL), its live execution recorded
+  for CAP-5 (20 steps TEST, 3 LIVE-consented, 4 owner
+  channel; zero FAILs the bar; any FAIL reopens the
+  owning card). The unit's one source change is a
+  truthfulness fix: D-9's feature-update refusal claimed
+  native catalog ownership of a surface no native tool
+  serves; the row's text now names the owning family and
+  the absence plainly, every other refusal byte-identical
+  (2 behavior tests fail at baseline; the balance are
+  named pins). Registry stays 344; budgets unmoved.
+  **CAP-4 is complete in source with this card; what
+  remains is CAP-5.**
 
 Still required:
 
@@ -708,16 +745,22 @@ Still required:
    RECENSUS-1 (enrolled-account de-enrollment) and
    RECENSUS-2 (OAuth client delete, with the update leg
    dispositioned as a recorded deferral) are
-   source-implemented above; next is the CAP-4 close.
+   source-implemented above; the CAP-4 close
+   (CAP4-CLOSEOUT) is source-implemented above — **no
+   CAP-4 family or scope line remains.**
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)
-   lands with CAP-4's final card; the consumer test itself runs
-   under CAP-5 as CAP-4's closing instrument.
+   has landed with CAP-4's final card (CAP4-CLOSEOUT,
+   above); the consumer test itself runs under CAP-5 as
+   CAP-4's closing instrument.
 3. Implement and test each selected gap through preview, authorized
    effect, stable replay key, before state, audit, provider
    read-back, bounded results, and pagination/asynchronous
    completion—or record a provider-evidenced unavoidable
-   disposition for that gap.
+   disposition for that gap. **Discharged for CAP-4's gap
+   set:** every selected gap was implemented through that
+   contract or dispositioned with provider evidence on its
+   card, as the bullets above record.
 
 ### CAP-5 — Independent acceptance and truthful reporting
 
@@ -770,7 +813,7 @@ CAP-5 cannot finally close before CAP-2, CAP-3, and CAP-4 are complete.
 | 12. No global credential fallback | **CONFORMS at plan level.** | The governing design states the rule. Future CAP-2/CAP-3 implementation and CAP-5 proof must continue to demonstrate it; this row supplies no independent live pass. |
 | 13. Version evolution | **CONFORMS at plan level.** | Additive/fail-closed evolution remains a continuing rule for later changes, not a completed acceptance event. |
 | 14. Pattern appraisal guardrails | **RECORDED; remote coding runtime NOT APPLICABLE.** | No further baseline work. |
-| 15. Capability completeness | **CORRECTABLE — PARTIAL under the 2026-11-04 grading amendment; re-census filed.** | The two-source fleet re-census (service map: 415 operations across 104 objects; server inventory at `2688228f`: 329 tools) dispositioned the full reachable surface: 341 covered (200 native, 141 through the universal door), 2 composed, 61 missing, 3 missing in LIVE, 8 unverified — full record in the conformance file's row 15. The headline absence is this server's own records: enrollment has no exit (no enrolled-account or enrolled-key removal; no OAuth client edit or delete) — cards CAP4-RECENSUS-1-ACCOUNT-DEENROLL and CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE are filed. **Update 2026-11-04: RECENSUS-1 has landed in source — enrolled-account and enrolled-key removal now exists under the owner ceremony, so that item stops counting as missing; the OAuth client delete (RECENSUS-2) remains filed and missing.** **Update 2026-11-04: RECENSUS-2 has landed in source — registered OAuth clients are now listed on the owner setup page and deletable under the owner ceremony (every token and pass revoked across accounts, the registration row deleted, journaled IRREVERSIBLE), so that item also stops counting as missing; the OAuth client update leg is dispositioned as a recorded deferral on its card (delete-and-re-register serves it; an RFC 7592 endpoint is a future card), no longer counted as missing.** Still owed: beside-API and substrate dispositions in the census-addendum sense, the workflow-frequency research, and the consumer test — the addendum filed with CAP-4's card — plus the front-door depth line citing the census instead of the tool count, which rides the branded cutover. |
+| 15. Capability completeness | **CORRECTABLE — PARTIAL under the 2026-11-04 grading amendment; re-census filed.** | The two-source fleet re-census (service map: 415 operations across 104 objects; server inventory at `2688228f`: 329 tools) dispositioned the full reachable surface: 341 covered (200 native, 141 through the universal door), 2 composed, 61 missing, 3 missing in LIVE, 8 unverified — full record in the conformance file's row 15. The headline absence is this server's own records: enrollment has no exit (no enrolled-account or enrolled-key removal; no OAuth client edit or delete) — cards CAP4-RECENSUS-1-ACCOUNT-DEENROLL and CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE are filed. **Update 2026-11-04: RECENSUS-1 has landed in source — enrolled-account and enrolled-key removal now exists under the owner ceremony, so that item stops counting as missing; the OAuth client delete (RECENSUS-2) remains filed and missing.** **Update 2026-11-04: RECENSUS-2 has landed in source — registered OAuth clients are now listed on the owner setup page and deletable under the owner ceremony (every token and pass revoked across accounts, the registration row deleted, journaled IRREVERSIBLE), so that item also stops counting as missing; the OAuth client update leg is dispositioned as a recorded deferral on its card (delete-and-re-register serves it; an RFC 7592 endpoint is a future card), no longer counted as missing.** Still owed: beside-API and substrate dispositions in the census-addendum sense, the workflow-frequency research, and the consumer test — the addendum filed with CAP-4's card — plus the front-door depth line citing the census instead of the tool count, which rides the branded cutover. **Update 2026-11-04: the addendum has landed with CAP-4's final card (CAP4-CLOSEOUT) and the tally is re-derived there. Update 2026-11-05 (coordinator ruling 11): the strict count headlines — 351 covered (213 native, 138 through the universal door), 2 composed, 51 missing, 3 missing in LIVE, 8 unverified, 0 owner-excluded of 415; the reconciliation-convention figures (353 covered, 140 through the universal door, 49 missing) are recorded in the addendum as the superseded count, with the two legs it counted door-covered that D-9's classification table refuses (entitlements feature update; meter-event adjustments) named and the classification of record given as the reason; the consumer test instrument is built and fixture-run (0 fixture FAILs) and runs live under CAP-5; the front-door depth line still rides the branded cutover.** |
 | 16. Conformance-correction process | **CORRECTABLE — process running.** | Steps 0–2 are done (two declared-degradation audits, the retroactive census, this record at 17 rows). The row closes when every row conforms or carries a ruled exception with live proof filed. |
 | 17. Owner-obedience | **CORRECTABLE.** | All 47 refusal mechanisms are classified in the conformance record: 36 aim checks kept hard, 4 non-convertible boundaries, 3 platform rules, and **4 convertible vetoes**. The first conversion — the LIVE enablement deployment-flag stop — is **source-implemented 2026-11-03 (OWNER-OBEDIENCE-V1)**: flag removed, ceremony bound to a fingerprint of the evaluated state, atomic re-check at consumption, journaled, read back; it closes only on live proof at a checked release. The fourth conversion — the pass/revoke preparation gate — is also **source-implemented 2026-11-03 (OWNER-OBEDIENCE-V4)**: preparation now works on the owner's full connection in either mode, with completion still owner-page-only; it likewise closes only on live proof. The second conversion (LIVE write allowlists/TEST-only handlers) is in progress: its shared machinery (preview-fingerprint binding and the mode-aware client seam) is source-implemented, and its families convert one card at a time, most destructive first. Family 1, **Money**, is fully source-implemented (the recorded blocker — the money reservation bound a non-pass approval to TEST mode — was ruled and fixed the same day: the expected approval mode now binds to the connection's own stored token-row mode, so LIVE payout creation/reversal complete in tests). Family 2, **Disputes**, is source-implemented (submit evidence, accept and save evidence complete the confirmed-action sequence in LIVE in tests, with accept's money gates demonstrably unrelaxed). Family 3, **Payments & refunds**, is source-implemented (all nine payment writes complete the confirmed-action sequence in LIVE in tests, with the refund's money gates and the app-owned-target guard's refund exception demonstrably unrelaxed). Family 4, **Invoices & credit notes**, is source-implemented (the family was dispatcher-refused in both modes, so it is admitted in TEST and LIVE and all fourteen operations complete the confirmed-action sequence in the connection's mode in tests, with the credit note's money gates demonstrably unrelaxed). Family 5, **Billing**, is source-implemented (all fourteen subscription, item and schedule writes complete the confirmed-action sequence in the connection's mode in tests, subscription discounts verify only in their own mode, and the plan change's money gates are demonstrably unrelaxed; no dispatcher change — the billing area was already a guarded LIVE area). Family 6, **Checkout, payment links and portal sessions**, is source-implemented (all nine hosted writes complete the confirmed-action sequence in the connection's mode in tests, with the hosted-URL aim check demonstrably unrelaxed and no money wiring touched). Family 7, **Radar**, is source-implemented (all five review and value-list writes complete the confirmed-action sequence in the connection's mode in tests, with the raw-value privacy invariant demonstrably preserved and no money wiring touched). Family 8, **Identity**, is source-implemented (all three verification-session writes complete the confirmed-action sequence in the connection's mode in tests, cancel and redact stay independent, the safe projection verifies a session only in its own mode with its field set unwidened — no personal data beyond the existing projections — and the read tools stay TEST-only under CAP-4's ownership). Family 9, **Files**, is source-implemented (the family was dispatcher-refused in both modes, so it is admitted in TEST and LIVE and both operations — evidence import and brand-asset file link — complete the confirmed-action sequence in the connection's mode in tests, with the brand-asset scope guard, expiry requirement, URL-withholding re-verification and import bounds demonstrably unrelaxed and no money wiring touched); Family 10, **Reports**, is source-implemented (the single report-run write completes the confirmed-action sequence in the connection's mode in tests, with the report-type allowlist, interval bound and availability verification demonstrably unrelaxed, creation never reported as completion, no report contents or file URL surfaced, and the report reads staying TEST-only under CAP-4's ownership); Family 11, **Branding**, is source-implemented (the branding area is admitted in LIVE — its payout-schedule exposure already converted with Money under ruling 6 and is untouched — and all six writes — brand kit save, image upload, Checkout preview, invoice template archive/unarchive and portal look — complete the confirmed-action sequence in the connection's mode in tests, with the kit store's own TEST-only save gate converted so LIVE kits are separate records, and the portal look's row 32 ownership refusal demonstrably intact in both modes — it does not convert — alongside the public-HTTPS and return-destination checks; the guided tools and reads stay TEST-only under CAP-4); Family 13, **Projects** (provider-write half only, coordinator ruling 4), is source-implemented (exactly three provider writes — portal creation, project setup and the readiness fix — admitted by name in both modes and completing the confirmed-action sequence in the connection's mode in tests, with setup's disclosure stating the recorded draft is not bound and scoped ownership is not enabled; the binding half — profile binding and scoped-ownership enablement — gains no admission in either mode, its module is byte-untouched with refusals proven unchanged, and it is referred to the owner-surface migration; the readiness read stays TEST-only under CAP-4) — **the V2 family sequence is complete in source; the binding half and all live proof remain open**. The third conversion (catalog `outsideApp` ban) is also **source-implemented 2026-11-04 (OWNER-OBEDIENCE-V3)**: the seven catalog writes convert the categorical ban into the fingerprint-bound ceremony — a known app-owned target proceeds only when the owner passes `outsideApp: true` and confirms with the fresh fingerprint the preview carries, bound to the evaluated marker and the exact change; unclear ownership still refuses as an aim check, and one unmapped refusal (reuse of an existing app-owned lookup-key price) is recorded in the card as an open point pending a coordinator ruling. **All four conversions now stand source-implemented; each closes only on live proof.** Four unclassified items are recorded as defects (incl. read tools that refuse LIVE data Stripe serves). Each conversion closes only on live proof. |
 
