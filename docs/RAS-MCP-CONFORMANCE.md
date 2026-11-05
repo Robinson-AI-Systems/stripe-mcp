@@ -83,7 +83,7 @@ from the evidence label in its heading:
 | 12. No global credential fallback | conforms (plan level) |
 | 13. Version evolution | conforms (plan level) |
 | 14. Pattern appraisal guardrails | not applicable (remote coding runtime; recorded) |
-| 15. Capability completeness | correctable — PARTIAL under the 2026-11-04 grading amendment; re-census filed (element 1 dispositioned: 341 covered / 2 composed / 61 missing / 3 missing-in-LIVE / 8 unverified of 415 operations; elements 2–4 and the front-door census line still owed) |
+| 15. Capability completeness | correctable — PARTIAL under the 2026-11-04 grading amendment; re-census filed and CAP-4 addendum landed 2026-11-04 (element 1 re-derived at the CAP-4 close: 353 covered (213 native / 140 universal door) / 2 composed / 49 missing / 3 missing-in-LIVE / 8 unverified / 0 owner-excluded of 415 operations; the consumer test is built and runs under CAP-5; the front-door census line still owed with row 8) |
 | 16. Conformance-correction process | correctable (process running; closes when all rows conform or carry a ruled exception) |
 | 17. Owner-obedience | correctable (four conversions designed; four unclassified items recorded) |
 
@@ -677,6 +677,10 @@ two RECENSUS cards above in the CAP-4 sequence. **Closing
 proof:** unchanged, plus the reconciliation's missing-with-plan
 register emptied or carrying ruled exceptions. Process status:
 **correctable (PARTIAL under the 2026-11-04 grading amendment)**.
+*Superseded at the CAP-4 close (2026-11-04): the addendum and
+both RECENSUS cards have landed; the current next step and
+tally are the addendum's, below the two register updates that
+follow.*
 
 **Register update — CAP4-RECENSUS-1-ACCOUNT-DEENROLL landed
 (2026-11-04).** The enrolled-account de-enrollment item in
@@ -735,6 +739,305 @@ deferral**, not missing. CAP-5 obligation recorded on the
 card: register a throwaway client, delete it through the
 ceremony, read back its absence, on the owner's own
 connection.
+
+**Row 15 capability-completeness addendum — the CAP-4 close
+(2026-11-04, CAP4-CLOSEOUT).** The addendum the frozen
+CAP-4 sequence names, landing with the program's final
+card. It carries the sequence's list — the census
+reference, D-10's two lines, the Tax closure line, the ORG
+disposition line, every product-card disposition, and the
+D-3 half-open interval note — plus the re-census outcomes
+and the final tally re-derived from this register as it
+stands. CAP-4 declares no live proof for anything: every
+item below is source-and-record truth, and each family's
+live proof stands in the CAP-5 queue its card named.
+
+**The census reference.** CAP-1 is the retroactive census:
+644 unique GA method/path rows (612 v1, 32 v2), five
+credential kinds per row, provider permission/entitlement
+`UNKNOWN` where unproven, machine checks keeping registry
+and census consistent. The fleet re-census of 2026-11-04
+re-ran element (1) two-source under the grading amendment
+(service map from Stripe's official reference only, sha256
+`e55b6399b355190233f8c3ea72246cd296645ef23f452f765694b15a352dc81b`;
+server inventory from this repo's code at `2688228f`,
+sha256
+`e2f7d58c6415bef630bc06e3f5aaf30077a20543138aff9d586368747a60a93b`;
+reconciled: 415 operations across 104 objects, every one
+dispositioned). The two counts are different units — 644
+method/path rows against 415 object-level operations —
+and are not interchangeable; the tally below is the
+re-census's 415.
+
+**The final tally, re-derived.** Method: start from the
+re-census table in this row (covered — native 200,
+covered — universal door 141, composed 2, missing 61,
+missing in LIVE 3, unverified 8, owner-excluded 0) and
+apply exactly the movements this register records since
+its baseline `2688228f`, each named:
+
+| Movement | Effect |
+|---|---|
+| Connect slices 2–3 (PRs #337, #338) built 13 of the 14 Phase-2 lifecycle operations this register carried as missing-with-plan (account create/update/delete/reject, account link, login link, capability update, person create/update/delete, external-account create/update/delete) | missing −13; native +13 |
+| The 14th, connected-account session create, was not built; D-9 classified it refused-session-minting ("surfaces that need one get a native tool under their own unit") | no count change; plan superseded by the D-9 class disposition; still missing |
+| PROD-PAYMENT (#340): the confirmation-token read, counted door-covered at the re-census, is now refused before any provider call by the made-effective sensitive-family screen, with no native read — deliberately unserved (privacy; the baseline service was itself the defect) | door −1; missing +1 |
+
+| Disposition | At re-census | At the CAP-4 close |
+|---|---|---|
+| COVERED — native tool | 200 | **213** |
+| COVERED — universal door | 141 | **140** |
+| COMPOSED | 2 | **2** |
+| MISSING | 61 | **49** |
+| MISSING in LIVE (counts as missing) | 3 | **3** |
+| UNVERIFIED | 8 | **8** |
+| OWNER-EXCLUDED | 0 | **0** |
+| **Total mapped** | **415** | **415** |
+
+No other movement is claimed: the D-series, D-8 and D7b
+tools were already counted native in the inventory (frozen
+after D-12 landed), and D-9's 29 newly-allowed door rows
+were already counted door-covered under the
+reconciliation's policy-class counting — D-9's
+per-operation table made that count true row by row
+without changing it. **Qualification, stated beside the
+table as the degraded-pass rule requires:** the
+door-covered remainder still rests on that policy-class
+counting for legs D-9 did not individually re-serve. Two
+legs the counting called door-covered are refused under
+D-9's table with recorded class dispositions and are
+claimed as served nowhere in this addendum: feature
+update (native-owns; no native tool exists — see the
+closeout's Part 3, which corrected the refusal text to
+say so) and meter-event adjustments (refused-ingestion;
+PROD-BILLING adopted the same rule). A strict served-fact
+recount of just those two legs would read door 138 /
+missing 51; a full strict recount of the door bucket is
+the next re-census's work under this row's living duty,
+not this unit's, and the headline tally does not borrow
+it. The 49 missing stand itemized in the reconciliation's
+register (items 4–16: money-class lifecycle legs, billing
+completion legs, quote PDF, Connect platform OAuth,
+Issuing writes, Treasury writes, Terminal
+process-payment-intent, Apps secrets — CAP-3's surface,
+the legacy token create), plus the two CAP-4
+re-dispositions above (account-session create; the
+confirmation-token read). The 3 missing-in-LIVE stand as
+recorded: the customer balance credit leg (the row-35
+card, outside CAP-4 by the frozen sequence's boundary)
+and the top-up create/cancel pair (crew disposition still
+owed, register item 4). The 8 unverified stand as
+recorded (Payment Records report_payment; Issuing token
+update; Issuing personalization create/update; Financial
+Connections sub-operations ≈4). Owner-excluded remains
+honestly zero: no owner ruling excludes a mapped
+operation; the dispositions in this addendum are
+crew/coordinator recordings, not owner exclusions.
+
+**The server's own registration records — final state of
+the reconciliation's lifecycle register.** Enrolled
+Stripe account + keys: the delete leg is **built**
+(RECENSUS-1, above) — the item stops counting as missing.
+Registered OAuth client: owner visibility and the delete
+leg are **built** (RECENSUS-2, above) — stops counting as
+missing; the **update leg is a recorded deferral**, not
+missing (delete-and-re-register serves name/auth-method
+changes; an RFC 7592 read/update endpoint is its own
+future card). Every other lifecycle row stood COVERED at
+the re-census and stands. Both built legs carry CAP-5
+obligations on their cards (throwaway enroll/register →
+remove → read back the absence, on the owner's own
+connection).
+
+**D-10's two decision lines (2026-11-04,
+CAP4-PHASE5-ORG-D10).** *Sigma (S-8): deliberately out of
+build scope.* The pinned catalog's whole Sigma surface is
+the two `scheduled_query_runs` GETs, door-served; the one
+operation the census claims (`POST
+/v1/sigma/saved_queries/{id}`) is published-only, absent
+from the pinned catalog; Sigma authoring has no consumer.
+Reopening condition: a real consumer naming Sigma
+authoring through this server, or a catalog re-pin that
+moves the Sigma rows materially. *Data Pipeline / bulk
+export (S-9): deliberately out, entirely; served beside
+the server.* Dashboard-configured warehouse/lake export
+infrastructure; zero operation rows in either census — a
+named absence outside the inventory, not a gap in it.
+Reopening condition: a named consumer — an owner workflow
+that must configure or monitor Data Pipeline through this
+server. For both lines, "the surface exists in Stripe" is
+not a reopening reason.
+
+**The Tax closure line (CAP4-PROD-TAX), in the frozen
+card's own words: Tax — no CAP-4 gap at the 2026-11-04
+census; writes classified in D-9; reads natively
+mode-aware.** (The re-sweep behind it: 31 Tax-area
+operations, zero unexamined — 8 GETs native-verified, 10
+GETs door-served, 13 writes classified in D-9. No CAP-5
+rows are owed by that unit.)
+
+**The ORG disposition line (Stage 2a, coordinator ruling
+10).** Organization context stays outside the server's
+model, by recorded disposition dated 2026-11-04. The
+organization surface is an optional credential + context
+layer over the same API — organization keys, the
+`Stripe-Context` header, organization-level roles,
+cross-account Sigma — with no organization resource
+operations at all: the pinned catalog holds zero
+organization paths, so the census zero is structural; no
+flip fact exists (no provider steering strands the
+single-account model; no shipped surface requires it; no
+owner workflow needs it — one Stripe account in real
+use). The server's posture is precise: the
+credential-evidence layer recognizes the
+`organization_secret` kind but never grants access or
+selects keys, and no code path sends `Stripe-Context`.
+**Reopening condition: a named workflow** — an owner
+workflow, roadmap item, or APP-NEEDS entry that must
+operate across two or more of the owner's Stripe
+accounts as one principal through this server.
+
+**Every product-card disposition (Phase 4).**
+*PROD-PAYMENT:* `payment_records` list/get — native
+coverage deliberately out (third-party subject, no
+consuming workflow), door-served, the family closed as a
+unit with D-9's refused-third-party write rows;
+`mandates/{id}` — door-sufficient (no list operation
+exists, so the door's per-object mode verification is
+complete for the family); `confirmation_tokens` — no
+native read, and the door's refusal made effective (the
+tally's movement M2; at baseline the door served the full
+payload at `detail:'full'` under credential redaction
+only, because the sensitive-family screen's `tokens`
+pattern can never match `confirmation_tokens` — the fix
+names the family explicitly). A disposition-verification
+row stands in the CAP-5 queue. *PROD-BILLING:* the 4 v2
+meter-event operations take **disposition (a) — unserved
+until a v2 dispatch surface is commissioned as its own
+unit** (the pinned catalog holds zero `/v2/` operations,
+so no existing surface can dispatch them; the
+usage-ingestion consumer is served natively in v1 by
+E-3's `meter_record_usage` with its durable identifier
+ledger; D-9's ingestion rule adopted verbatim); meter and
+alert reads native or door-sufficient per path. The
+reopening condition is the v2 dispatch decision.
+*PROD-EVENTS:* all 10 claimed v2 rows — the two
+`GET /v2/core/events` reads and the eight
+`event_destinations` operations — take disposition (a),
+inherited per ruling 3(iv) and re-proven at that unit's
+baseline; the reopening condition is the v2 dispatch
+decision, or a consumer that needs event destinations
+specifically; the build posture if ever built is recorded
+on the card (destinations as webhook-class infrastructure
+under the native webhook family's contracts; v2 event
+reads under the D-4 idiom). *PROD-TAX:* the closure line
+above. *PROD-ENTITLEMENTS:* the two list GETs native and
+projected (E-2's `feature_list`, `entitlement_list_active`,
+one shared `livemode` projection); **the two by-id GETs
+close door-served / native-build-blocked-on-budget /
+flagged, in coordinator ruling 9's exact terms** — the
+everyday catalog stands at exactly 19,999/20,000 tokens,
+the leanest honest builds measure +78 and +84 tokens
+against the repo's own evaluator, the cap does not move,
+and no cross-family reallocation is commissioned;
+reopening conditions (i) a consumer needs the native
+projected shape (CAP-5's entitlement-evidence work is the
+named candidate), (ii) a family frees ≥84 tokens in its
+own net-zero work, or (iii) the program revisits the cap
+itself — never as silently covered; the guarded universal
+read serves both by-id GETs mode-verified in the interim,
+its raw shape exceeding the native projections only by
+identifier-class fields. The 3 v2 commerce
+product-catalog imports take disposition (a). **The
+entitlement-evidence note, as the frozen card requires:**
+CAP-1's fields mark every operation `providerVerified:
+false` — entitlement *evidence* in the strong sense
+(provider-proven entitlement state) is a CAP-5 axis (live
+proof), not something this card can mint from source;
+"entitled-product gaps closed" is therefore never to be
+misread as "entitlements live-proven." No CAP-5 rows are
+owed by that unit; a future build under ruling 9 inherits
+the D-series CAP-5 obligation by name.
+
+**The D-3 half-open interval note (permanent).** From PR
+#304's merge until D-3's merge (PR #321), the invoice,
+billing and credit-note read handlers executed on LIVE
+connections through the mode-aware seam while their
+projections did not verify returned objects' `livemode`,
+so for that interval these reads were **neither TEST-only
+nor converted** (the derivation's A9 finding). Production
+never ran the half-open code: the deployed build predates
+PR #304 and `main` was not promoted while the interval
+stood. D-3 closed the interval by converting the family;
+the note stands so the record never describes that
+interval as either state it was not.
+
+**The re-census outcomes, collected.** RECENSUS-1 built;
+RECENSUS-2 built, its update leg a recorded deferral (see
+the lifecycle register above). The reconciliation's W10
+workflow verdict is superseded: connected-account create
+and account-link create exist, so onboarding a connected
+account runs through this server (its live proof is
+CAP-5's). W8 (manual invoicing) and W12 (metered-billing
+setup) remain **COMPOSITION-OWED** — recorded open items
+under this row's living duty, never CAP-4 scope, carrying
+their proposed composites in the reconciliation. Element
+(2)'s substrate stands dispositioned in the
+reconciliation's lifecycle section and in this unit's
+ORG/D-10 lines; element (3)'s workflow record is the
+reconciliation's 13-workflow step-count table plus
+CAP-4's derivation element 3, which ordered the read
+series.
+
+**The consumer test (element 4) — built; its run is
+CAP-5's.** The instrument is implemented in the repo's
+test shape (`tests/helpers/consumer-test.js`: the frozen
+27-step table — Phases A–E as element 4 froze them, each
+step's serving surfaces, fixture probe, CAP-5 execution
+class and owning card — and the frozen scorer: PASS /
+GUIDED / NO-DISPOSITIONED / FAIL exactly as element 4
+defines them, including success-without-read-back = FAIL,
+wrong-reason = FAIL, and the cross-unit asymmetry;
+`summarize` enforces zero-FAIL-or-the-test-fails and
+reports counts, never an averaged score). Its fixture-form
+run against the finished CAP-4 tree reports, in fixture
+terms only: 5 FIXTURE-PASS, 3 FIXTURE-GUIDED, 15
+SURFACE-ONLY, 4 NOT-RUN, **0 FIXTURE-FAIL** — the CAP-5
+scores do not exist yet and none is claimed. CAP-5
+executes the instrument at a checked release against the
+deployed server: 20 steps in TEST (A–D), 3 on the owner's
+LIVE-consented connection (D1, E1, E3), 4 through the
+owner's own channel/ceremony (C2, E2, E4, E5); zero FAILs
+is the bar, and any FAIL reopens the owning card named in
+the table. Element 4 does not freeze the fixture
+business's concrete data values or a machine-readable run
+protocol; that residue is named here, not invented — the
+CAP-5 card fixes the fixture data when it runs.
+
+**Corrections this addendum makes visible.** (1) This
+row's summary-table line and COMPLETION's row-15 line are
+updated in the same change to the re-derived tally; their
+re-census figures contradicted merged cards' outcomes.
+(2) The register-update sentence for RECENSUS-2 said the
+OAuth client delete item "stops counting as missing";
+this addendum's tally and lifecycle register are the
+operative counts. (3) The re-census passage above ("Next
+step: unchanged…") is marked superseded where it stands.
+(4) Part 3 of the closeout card records a truthfulness
+fix to D-9's feature-update refusal text (the row claimed
+native ownership of a surface no native tool serves; the
+text now names the owning family and the absence
+plainly) — the only source change in this unit.
+
+**This row does not close.** CAP-4's build and
+disposition scope is complete with this addendum; the
+row's closing proof also requires the census-citing depth
+line read live at the branded origin, which rides the
+row 8 cutover, and rows close only on live evidence
+(row 16, Step 5). **Next step:** CAP-5 — the consumer
+test's live run, every family's queued live proofs, and
+the production-readiness gate. Process status:
+**correctable (PARTIAL under the 2026-11-04 grading
+amendment; counts re-derived at the CAP-4 close)**.
 
 ### 16. Conformance-correction process — bringing a pre-Standard server under the Standard — CORRECTABLE (process running)
 
