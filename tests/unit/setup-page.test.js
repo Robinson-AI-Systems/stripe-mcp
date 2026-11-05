@@ -701,13 +701,13 @@ describe('all owner setup workflows — private UX, isolation and safe GET',()=>
     const actions=['list-app-profiles','bind-app-profile','enable-app-scope',
       'list-test-accounts','run-test-smoke','provision-webhook-secret',
       'forget-webhook-secret','download-report','lookup-test-receipt','issue-rtc-pass','issue-owner-rtc-pass',
-      'add-key','add-live-key','request-revoke','request-deenroll','request-disable-live','request-default-account',
+      'add-key','add-live-key','request-revoke','request-deenroll','list-oauth-clients','request-delete-client','request-disable-live','request-default-account',
       'request-money-limit','view-money-requests'];
     for(const action of actions){
       expect(html.split('name="action" value="'+action+'"')).toHaveLength(2);
     }
-    expect(html.match(/<details class="owner-group"/g)).toHaveLength(13);
-    expect(html.match(/<\/details>/g)).toHaveLength(13);
+    expect(html.match(/<details class="owner-group"/g)).toHaveLength(14);
+    expect(html.match(/<\/details>/g)).toHaveLength(14);
     expect(html).toContain('id="rtc-delegated-pass"');
     expect(html).toContain('id="webhook-tools"');
     expect(html).toContain('id="rtc-pass-tools"');

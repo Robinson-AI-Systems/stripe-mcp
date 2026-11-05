@@ -75,6 +75,35 @@ export function deenrollFingerprint({ intentId, evaluation } = {}) {
   return 'DEEN-' + hex.match(/.{5}/g).join('-');
 }
 
+/** Fingerprint of the exact OAuth-client deletion state the owner was
+ * shown (CAP4-RECENSUS-2). Canonical fields: the one-time intent, the
+ * registered client id, its name and token-endpoint auth method, the
+ * counts of live connector tokens and passes the deletion will revoke,
+ * and the intent expiry. Any change to those facts changes the
+ * fingerprint and voids a confirmation given against the old one. The
+ * digest carries no secret: id, name, method and counts are the same
+ * non-secret facts the owner page displays. */
+export function deleteClientFingerprint({ intentId, evaluation } = {}) {
+  const e = evaluation ?? {};
+  const expires = e.expires_at ?? e.expiresAt;
+  const expiryMs = expires instanceof Date ? expires.getTime() : Date.parse(expires);
+  const count = (v) => Number.isSafeInteger(Number(v)) && Number(v) >= 0 ? Number(v) : 0;
+  const state = {
+    action: 'stripe_delete_oauth_client',
+    intent: typeof intentId === 'string' ? intentId : '',
+    clientId: typeof e.client_id === 'string' ? e.client_id : '',
+    clientName: typeof e.client_name === 'string' ? e.client_name : null,
+    authMethod: typeof e.token_endpoint_auth_method === 'string'
+      ? e.token_endpoint_auth_method : null,
+    connectorTokens: count(e.connector_count),
+    passes: count(e.pass_count),
+    expiresAt: Number.isFinite(expiryMs) ? new Date(expiryMs).toISOString() : null
+  };
+  const hex = createHash('sha256').update(JSON.stringify(state)).digest('hex')
+    .slice(0, 20).toUpperCase();
+  return 'DELC-' + hex.match(/.{5}/g).join('-');
+}
+
 export async function authorizeLiveWrite({ ctx, env = process.env }) {
   const connection = ctx?.connection;
   if (connection?.mode === 'test') return true;

@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto';
 import {buildSetupReadinessReport} from '../acceptance/setup-readiness-report.js';
 import {OwnerSmokeFailure,ownerSmokeFailureMessage} from '../acceptance/owner-smoke-failure.js';
 import { clientIp, evaluateLogin, secretsMatch, LOCKOUT_WINDOW_MINUTES } from '../core/oauth.js';
-import { liveEnableFingerprint, deenrollFingerprint } from '../tools/live-guard.js';
+import { liveEnableFingerprint, deenrollFingerprint, deleteClientFingerprint } from '../tools/live-guard.js';
 import { publicOrigin, paramsOf, send, escapeHtml, only } from '../core/http.js';
 
 function parseUsdCents(text) {
@@ -72,8 +72,8 @@ function renderOwnerFeedback(result, smokeResult) {
     summary + '</section>';
 }
 
-function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill = null, liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null, deenrollIntent = null }) {
-  const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent||deenrollIntent);
+function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill = null, liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null, deenrollIntent = null, deleteClientIntent = null, oauthClients = null }) {
+  const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent||deenrollIntent||deleteClientIntent);
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   const hint=nativePrefill||ownerFormSuggestions();
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
@@ -157,6 +157,32 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
       '<label>Confirmation fingerprint<input name="deenrollFingerprint" required autocomplete="off" spellcheck="false" placeholder="DEEN-XXXXX-XXXXX-XXXXX-XXXXX"></label>' +
       '<label><input type="checkbox" name="ownerDeenrollConsent" value="yes" required> I personally authorize IRREVERSIBLY de-enrolling exactly this account.</label>' +
       '<button type="submit">De-enroll this account permanently (final step)</button></form>' : '') +
+    (deleteClientIntent ? '<h2>Final owner confirmation: delete this registered OAuth client (IRREVERSIBLE)</h2>' +
+      '<p>Client: <strong>' + escapeHtml(deleteClientIntent.client_name || '(unnamed client)') +
+      '</strong> (<code>' + escapeHtml(deleteClientIntent.client_id) + '</code>).</p>' +
+      '<p>Evaluated facts: token-endpoint auth method <strong>' +
+      escapeHtml(deleteClientIntent.token_endpoint_auth_method || '') +
+      '</strong>; live connections the deletion will revoke: <strong>' +
+      escapeHtml(String(deleteClientIntent.connector_count ?? 0)) +
+      '</strong>; passes: <strong>' + escapeHtml(String(deleteClientIntent.pass_count ?? 0)) +
+      '</strong>; this approval expires <strong>' +
+      escapeHtml(new Intl.DateTimeFormat('en-US', { timeZone:'America/Denver',
+        dateStyle:'medium', timeStyle:'short' }).format(new Date(deleteClientIntent.expires_at))) +
+      '</strong> (Denver).</p>' +
+      '<p><strong>Deletion is IRREVERSIBLE.</strong> Confirming deletes the client ' +
+      'registration and revokes every token and pass issued to it, on every account. ' +
+      'Authorization attempts naming this client will refuse. There is no undo; a client ' +
+      'that is needed again must register again from the beginning.</p>' +
+      '<p>Confirmation fingerprint: <strong><code>' + escapeHtml(deleteClientIntent.fingerprint || '') +
+      '</code></strong>. Type it exactly below; if any fact above changes, the fingerprint ' +
+      'changes and this confirmation no longer applies.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-delete-client">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(deleteClientIntent.id) + '">' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<label>Confirmation fingerprint<input name="deleteClientFingerprint" required autocomplete="off" spellcheck="false" placeholder="DELC-XXXXX-XXXXX-XXXXX-XXXXX"></label>' +
+      '<label><input type="checkbox" name="ownerDeleteClientConsent" value="yes" required> I personally authorize IRREVERSIBLY deleting exactly this registered client.</label>' +
+      '<button type="submit">Delete this client permanently (final step)</button></form>' : '') +
     (moneyDecisionIntent ? '<h2>Final owner confirmation — ' + escapeHtml(moneyDecisionIntent.mode?.toUpperCase()) + ' ' +
       escapeHtml(moneyDecisionIntent.kind === 'override' ? 'OVER-LIMIT OVERRIDE' : 'INDIVIDUAL MONEY-OUT') +
       '</h2><p>Exact account: ' + escapeHtml(moneyDecisionIntent.stripe_account) +
@@ -264,6 +290,16 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
         (a.default?' (default for new connections)':'')+'</li>').join('')+'</ul>':
         '<p>No enrolled TEST accounts were found.</p>') +
       '<p>An enrolled key is not proof that Stripe still accepts it. Copy the exact account ID to the read-only verification form. No key bytes are shown.</p></section>' : '') +
+    (oauthClients!==null ? '<section id="oauth-clients" role="status"><h2>Registered OAuth clients</h2>' +
+      (oauthClients.length?'<ul>'+oauthClients.map(c=>
+        '<li><strong>'+escapeHtml(c.client_name||'(unnamed client)')+'</strong>: <code>'+escapeHtml(c.client_id)+'</code>'+
+        '; auth method: '+escapeHtml(c.token_endpoint_auth_method)+
+        '; registered: '+escapeHtml(new Intl.DateTimeFormat('en-US', { timeZone:'America/Denver',
+          dateStyle:'medium', timeStyle:'short' }).format(new Date(c.created_at)))+' (Denver)'+
+        '; live connections: '+escapeHtml(String(c.connector_count))+'; passes: '+
+        escapeHtml(String(c.pass_count))+'</li>').join('')+'</ul>':
+        '<p>No OAuth clients are registered.</p>') +
+      '<p>Counts are the live (not yet revoked) tokens and passes a deletion of that client would revoke. No client secret or secret hash is shown.</p></section>' : '') +
     '<details class="owner-group" id="saved-test-accounts"><summary>Find the exact TEST account ID already enrolled</summary>' +
     '<p>Verify your administrator passphrase to display only stored TEST account IDs. This does not decrypt a key or contact Stripe.</p>' +
     '<form method="post" autocomplete="off">' + formHidden +
@@ -406,6 +442,21 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
     '<label>Stripe account ID<input name="account" required maxlength="110" autocomplete="off" value="' + escapeHtml(hint.deenrollAccount) + '"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview de-enrollment</button></form>' +
+    '</details>' +
+    '<details class="owner-group" id="oauth-client-tools"><summary>Registered OAuth clients — list and delete (IRREVERSIBLE)</summary>' +
+    '<h2>Registered OAuth clients (owner only)</h2>' +
+    '<p>List the clients registered with this server: client ID, name, auth method, registration time, and the live token and pass counts a deletion would revoke. No client secret or secret hash is ever shown.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="list-oauth-clients">' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">List registered OAuth clients</button></form>' +
+    '<h2>Delete a registered OAuth client (owner only)</h2>' +
+    '<p><strong>This is permanent.</strong> Deleting a client removes its registration and revokes every token and pass issued to it, on every account; authorization attempts naming it will refuse. A client that is needed again must register again. Nothing is removed by this preview step.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="request-delete-client">' +
+    '<label>OAuth client ID<input name="clientId" required maxlength="160" autocomplete="off"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Preview client deletion</button></form>' +
     '</details>' +
     '<details class="owner-group" id="live-disable-tools"><summary>Emergency LIVE disable only</summary>' +
     '<h2>Emergency: disable LIVE access (owner only)</h2>' +
@@ -962,6 +1013,121 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
         'Account ' + (intent.label || intent.stripe_account) + ' (' + intent.stripe_account +
         ') de-enrolled permanently. Its stored key material and account row were deleted and ' +
         'every connection and pass for it was revoked. Confirmation fingerprint ' +
+        currentView.fingerprint + ' is recorded in the audit log. This cannot be undone.'}),
+        'text/html; charset=utf-8');
+    }
+    if(p.action==='list-oauth-clients'){
+      if(typeof db?.listOAuthClients!=='function')
+        return send(res,503,htmlPage({csrf:cookie,result:'Client directory is unavailable.'}),
+          'text/html; charset=utf-8');
+      try{
+        const rows=await db.listOAuthClients();
+        if(!Array.isArray(rows)||rows.length>200||rows.some(row=>
+          typeof row?.client_id!=='string'||!/^[A-Za-z0-9:_-]{1,160}$/.test(row.client_id)||
+          !(row.client_name===null||(typeof row.client_name==='string'&&row.client_name.length<=100))||
+          !['client_secret_post','client_secret_basic','none'].includes(row.token_endpoint_auth_method)||
+          !Number.isSafeInteger(Number(row.connector_count))||Number(row.connector_count)<0||
+          !Number.isSafeInteger(Number(row.pass_count))||Number(row.pass_count)<0||
+          !Number.isFinite(new Date(row.created_at).getTime())))
+          throw new TypeError('Invalid registered client inventory');
+        const oauthClients=rows.map(row=>({client_id:row.client_id,
+          client_name:row.client_name,
+          token_endpoint_auth_method:row.token_endpoint_auth_method,
+          created_at:row.created_at,
+          connector_count:Number(row.connector_count),pass_count:Number(row.pass_count)}));
+        return send(res,200,htmlPage({csrf:cookie,oauthClients,
+          result:'Registered OAuth clients listed from private registration metadata. No client secret or secret hash returned.'}),
+          'text/html; charset=utf-8');
+      }catch{
+        return send(res,503,htmlPage({csrf:cookie,
+          result:'Could not verify the private registered client inventory. No client details returned.'}),
+          'text/html; charset=utf-8');
+      }
+    }
+    if (p.action === 'request-delete-client') {
+      // CAP4-RECENSUS-2 phase one: evaluate the exact client and stage a
+      // short-lived intent holding that snapshot. Nothing is revoked or
+      // removed here.
+      if(typeof db?.getDeleteClientEvaluation!=='function'||
+        typeof db?.requestDeleteClientIntent!=='function')
+        return send(res,503,htmlPage({csrf:cookie,result:'Client deletion is unavailable.'}),
+          'text/html; charset=utf-8');
+      const evaluation=await db.getDeleteClientEvaluation(p.clientId).catch(()=>null);
+      if (!evaluation) return send(res, 404, htmlPage({csrf:cookie,result:
+        'No registered OAuth client matches this exact client ID.'}),
+        'text/html; charset=utf-8');
+      const id=randomBytes(24).toString('base64url');
+      let accepted=false;
+      try {
+        accepted=await db.requestDeleteClientIntent({
+          id,clientId:p.clientId,
+          expiresAt:new Date(Date.now()+10*60*1000)
+        });
+      } catch { accepted=false; }
+      if (!accepted) return send(res, 409, htmlPage({csrf:cookie,result:
+        'The client changed before the request could be staged. Nothing was removed; preview again.'}),
+        'text/html; charset=utf-8');
+      const intent=await db.getDeleteClientIntent(id);
+      if (!intent) return send(res, 409, htmlPage({csrf:cookie,result:
+        'The request changed before the private review. Nothing was removed.'}),
+        'text/html; charset=utf-8');
+      const deleteClientIntent={...intent,
+        fingerprint:deleteClientFingerprint({intentId:intent.id,evaluation:intent})};
+      return send(res, 200, htmlPage({csrf:cookie,deleteClientIntent,result:
+        'Preview only. Nothing has been removed. Deletion is IRREVERSIBLE: review the exact evaluated facts and fingerprint, then independently confirm.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'confirm-delete-client') {
+      if (p.ownerDeleteClientConsent !== 'yes') return send(res, 400, htmlPage({csrf:cookie,result:
+        'A separate explicit owner confirmation of this IRREVERSIBLE deletion is required.'}),
+        'text/html; charset=utf-8');
+      if(typeof db?.getDeleteClientIntent!=='function'||
+        typeof db?.getDeleteClientEvaluation!=='function'||
+        typeof db?.consumeDeleteClientIntent!=='function')
+        return send(res,503,htmlPage({csrf:cookie,result:'Client deletion is unavailable.'}),
+          'text/html; charset=utf-8');
+      const intent=await db.getDeleteClientIntent(p.id);
+      if (!intent) return send(res, 410, htmlPage({csrf:cookie,result:
+        'This client deletion request was used or expired. Nothing was removed; start again.'}),
+        'text/html; charset=utf-8');
+      // The fingerprint is computed fresh from the CURRENT evaluated
+      // state (the live-enable pattern): a wrong fingerprint and a
+      // stale one are the same refusal — the re-rendered page shows the
+      // current facts and the current fingerprint, and the intent
+      // stays open so the owner can confirm the state as it now stands.
+      const current=await db.getDeleteClientEvaluation(intent.client_id).catch(()=>null);
+      if (!current) return send(res, 409, htmlPage({csrf:cookie,result:
+        'The client changed while you were confirming. Nothing was removed.'}),
+        'text/html; charset=utf-8');
+      const currentView={...current,id:intent.id,expires_at:intent.expires_at,
+        fingerprint:deleteClientFingerprint({intentId:intent.id,
+          evaluation:{...current,expires_at:intent.expires_at}})};
+      const supplied=typeof p.deleteClientFingerprint==='string'?p.deleteClientFingerprint.trim():'';
+      if (!supplied || !secretsMatch(supplied, currentView.fingerprint)) {
+        return send(res, 409, htmlPage({csrf:cookie, deleteClientIntent:currentView, result:
+          'The confirmation fingerprint did not match the evaluated state. Nothing was removed and the request is still open: review the current facts below and type the current fingerprint exactly.'}),
+          'text/html; charset=utf-8');
+      }
+      const removed=await db.consumeDeleteClientIntent({id:p.id,
+        expectedFingerprint:currentView.fingerprint,expected:current});
+      if (!removed) {
+        return send(res, 409, htmlPage({csrf:cookie, result:
+          'The client changed while you were confirming. Nothing was removed.'}),
+          'text/html; charset=utf-8');
+      }
+      // Verify by read-back before calling it done.
+      let after=null;
+      try { after=await db.getOAuthClient(intent.client_id); } catch { after=null; }
+      if (after) {
+        return send(res, 503, htmlPage({csrf:cookie, result:
+          'The deletion was recorded, but read-back still finds the client ' +
+          intent.client_id + '. Treat the deletion as unverified and check before relying on it.'}),
+          'text/html; charset=utf-8');
+      }
+      return send(res, 200, htmlPage({csrf:cookie, result:
+        'Registered OAuth client ' + (intent.client_name || intent.client_id) + ' (' + intent.client_id +
+        ') deleted permanently. Its registration row was deleted and every token and pass ' +
+        'issued to it was revoked. Confirmation fingerprint ' +
         currentView.fingerprint + ' is recorded in the audit log. This cannot be undone.'}),
         'text/html; charset=utf-8');
     }

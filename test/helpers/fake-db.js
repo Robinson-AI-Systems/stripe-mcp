@@ -32,6 +32,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const liveIntents = [];
   const revokeIntents = [];
   const deenrollIntents = [];
+  const deleteClientIntents = [];
   const disableIntents = [];
   const defaultIntents = [];
   const limitIntents = [];
@@ -151,9 +152,92 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
       clients.set(clientId, { client_id: clientId,
         token_endpoint_auth_method: tokenEndpointAuthMethod,
         client_secret_hash: clientSecret ? hashToken(clientSecret) : null,
-        redirect_uris: structuredClone(redirectUris), client_name: clientName || null });
+        redirect_uris: structuredClone(redirectUris), client_name: clientName || null,
+        created_at: new Date(clock()) });
     },
     async getOAuthClient(id) { return structuredClone(clients.get(id) || null); },
+    // CAP4-RECENSUS-2 mirror of src/db.js client management: same
+    // evaluated shape, same intent snapshot, consume-by-deletion and
+    // irreversible journal (no inverse).
+    async listOAuthClients() {
+      return [...clients.values()].sort((a,b)=>
+        (a.created_at-b.created_at)||(a.client_id<b.client_id?-1:1))
+        .map(c=>({client_id:c.client_id,client_name:c.client_name,
+          token_endpoint_auth_method:c.token_endpoint_auth_method,
+          created_at:structuredClone(c.created_at),
+          connector_count:[...tokens.values()].filter(t=>t.client_id===c.client_id&&
+            t.kind==='connector'&&!t.revoked_at).length,
+          pass_count:[...tokens.values()].filter(t=>t.client_id===c.client_id&&
+            t.kind==='pass'&&!t.revoked_at).length}));
+    },
+    async getDeleteClientEvaluation(clientId) {
+      if (typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId)) return null;
+      const c=clients.get(clientId);
+      if (!c) return null;
+      return { client_id:c.client_id, client_name:c.client_name,
+        token_endpoint_auth_method:c.token_endpoint_auth_method,
+        created_at:structuredClone(c.created_at),
+        connector_count:[...tokens.values()].filter(t=>t.client_id===clientId&&
+          t.kind==='connector'&&!t.revoked_at).length,
+        pass_count:[...tokens.values()].filter(t=>t.client_id===clientId&&
+          t.kind==='pass'&&!t.revoked_at).length };
+    },
+    async requestDeleteClientIntent({id,clientId,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime()))
+        throw new TypeError('Valid client and one-time delete-client intent required');
+      const evaluation=await this.getDeleteClientEvaluation(clientId);
+      if (!evaluation) return false;
+      deleteClientIntents.push({id,client_id:evaluation.client_id,
+        client_name:evaluation.client_name,
+        auth_method:evaluation.token_endpoint_auth_method,
+        connector_count:evaluation.connector_count,
+        pass_count:evaluation.pass_count,expiresAt:expiresAt.getTime()});
+      return true;
+    },
+    async getDeleteClientIntent(id) {
+      const r=deleteClientIntents.find(x=>x.id===id&&x.expiresAt>clock());
+      return r ? {id:r.id,client_id:r.client_id,client_name:r.client_name,
+        token_endpoint_auth_method:r.auth_method,
+        connector_count:r.connector_count,pass_count:r.pass_count,
+        expires_at:new Date(r.expiresAt)} : null;
+    },
+    async consumeDeleteClientIntent({id,expectedFingerprint,expected}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof expectedFingerprint!=='string' ||
+          !/^DELC-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/.test(expectedFingerprint) ||
+          !expected || typeof expected!=='object' ||
+          typeof expected.client_id!=='string' ||
+          !['client_secret_post','client_secret_basic','none']
+            .includes(expected.token_endpoint_auth_method))
+        return false;
+      const index=deleteClientIntents.findIndex(x=>x.id===id&&x.expiresAt>clock());
+      if (index<0) return false;
+      const intent=deleteClientIntents[index];
+      const current=await this.getDeleteClientEvaluation(intent.client_id);
+      if (!current || current.client_id!==expected.client_id ||
+          current.client_name!==expected.client_name ||
+          current.token_endpoint_auth_method!==expected.token_endpoint_auth_method ||
+          current.connector_count!==expected.connector_count ||
+          current.pass_count!==expected.pass_count)
+        return false;
+      for (const t of tokens.values())
+        if (t.client_id===intent.client_id && !t.revoked_at) t.revoked_at=clock();
+      for (const [key,code] of codes) if (code.client_id===intent.client_id) codes.delete(key);
+      for (let i=deleteClientIntents.length-1;i>=0;i--)
+        if (deleteClientIntents[i].client_id===intent.client_id)
+          deleteClientIntents.splice(i,1);
+      clients.delete(intent.client_id);
+      audit.push({id:audit.length+1,stripe_account:null,mode:'test',
+        tool:'stripe_delete_oauth_client',target:intent.client_id,
+        summary:'Owner deleted this registered OAuth client from the private setup page. ' +
+          'Deletion is IRREVERSIBLE. Confirmation fingerprint ' + expectedFingerprint +
+          '. Revoked ' + expected.connector_count + ' connector token(s) and ' +
+          expected.pass_count + ' pass(es); the client registration row was deleted.',
+        dry_run:false,at:new Date(clock()),inverse:null});
+      return true;
+    },
     async createAuthCode({ code, clientId, redirectUri, codeChallenge, codeChallengeMethod = 'S256',
       stripeAccount = null, mode = 'test', profile = 'everyday', listing = 'catalog',
       liveWriteApproved = false, ttlSeconds = 600 }) {
