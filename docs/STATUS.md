@@ -1,3 +1,42 @@
+## 2026-11-05 — GUARD-EVENING-BLOCK: the promotion guard's pinned times move to the evening block (source)
+
+[GUARD-EVENING-BLOCK](pr-cards/GUARD-EVENING-BLOCK.md) is the
+owner-authorized amendment (Chris, 2026-11-05 ~10:37 MST, option (a)
+via the fleet-audit coordination) that moves this repo's daily
+promotion block out of the midnight hour, joining the fleet's evening
+block (GitHub 20:07, Workspace 20:19, Vercel 20:23, Neon 20:41 Denver,
+all landed and read back). GitHub's scheduler was delivering the
+fleet's midnight-hour events roughly 7–8¼ hours late; the whole block
+is re-based by +20h52 with its spacing preserved: **00:01 → 20:53,
+00:17 → 21:09, 01:17 → 22:09 America/Denver; 05:37 → 02:29 Denver on
+the following Denver day; the plain-UTC backup 12:43 → 09:35 UTC on
+the following day.** Stripe's move was held on 2026-11-04 because the
+schedule is pinned inside the fail-closed hosting-release guard, so
+the workflow and the guard move together in this one reviewed guard
+change: `.github/workflows/promote-live.yml` (five crons + schedule
+comments), `scripts/validate-hosting-release.mjs` (`approvedCrons` +
+the UTC-backup row check), the guard-test fixtures in
+`tests/unit/hosting-release-policy.test.js`, the promoter-test cron
+assertion and mutation fixtures in `scripts/promote-live.test.mjs`
+(a pinned spot found beyond the two named in advance), and the two
+current policy documents (`docs/DAILY-PRODUCTION-PROMOTION.md`,
+`docs/HOSTING-COST-POLICY.md`). Dated historical records
+(MIDNIGHT-RELEASE card, the 2026-10-13/14 STATUS entries) keep their
+original times — they are history, not current policy — and the
+elapsed-midnight rule (missed-daily recovery semantics) is untouched,
+as are promotion logic, receipts, markers and both manual routes.
+The guard's strictness is unchanged: its suite passes **9/9** on the
+final tree (green 9/9 at baseline first), the promoter's own suite
+passes **14/14**, and the guard script accepts the moved workflow
+while its mutation fixtures still refuse retimed, duplicated, extra
+and malformed schedules. No COMPLETION passage (its conventions call
+for none for release machinery — the PR #333 precedent) and no
+conformance line names the old times, so neither moves. Registered
+as its own work-index card per the coordinator's instruction.
+Source-only until merged and the coordinator reads the new block
+back on `main`; production still tracks `live`, and the first
+promotion under the evening block is a separate observation.
+
 ## 2026-11-04 — CAP-4 CLOSEOUT: row 15's addendum + the consumer test (source) — CAP-4 is complete
 
 [CAP4-CLOSEOUT](pr-cards/CAP4-CLOSEOUT.md) lands the
