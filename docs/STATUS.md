@@ -1,3 +1,53 @@
+## 2026-11-04 — CAP-4 PROD-ENTITLEMENTS: entitled-product coverage completion (source) — two lists native, two by-id reads blocked on the catalog budget and flagged, three v2 imports unserved
+
+CAP-4 Phase 4's fifth and last product-gap card
+([CAP4-PROD-ENTITLEMENTS](pr-cards/CAP4-PROD-ENTITLEMENTS.md))
+closes the entitled-product area; all 7 claimed
+operations carry a build or a reasoned disposition,
+no native tool is built and no source file changes.
+The 4 v1 entitlements GETs split by what the tree
+actually holds: the two list GETs are already native
+and projected (E-2's `feature_list` and
+`entitlement_list_active` in `catalog-extras.js`,
+mode-aware through the shared `safe()` projection on
+`catalog-mode.js` — disposition native-verified),
+while the two by-id GETs (features/{id},
+active_entitlements/{id}) have no native read and
+**cannot be built inside the program's binding
+budget**: the everyday catalog stands at exactly
+19,999 / 20,000 tokens with zero headroom, and the
+leanest honest forms of the two reads, measured with
+the real budget evaluator and re-proven in this
+unit's suite, cost +78 and +84 tokens each, breaking
+the cap on their own. The builds are stopped and
+**flagged for a coordinator ruling** (cap decision,
+program-owned net-zero reallocation, or accepting
+the door permanently); the interim route is the
+guarded universal read, pin-proven to mode-verify
+both by-id GETs per-object in both modes and both
+wrong-mode directions, and the raw-shape exposure
+over the native projections is small and
+identifier-only. The 3 v2 commerce product-catalog
+imports are unserved under the fleet v2 rule
+(ruling 3(iv); PROD-BILLING/PROD-EVENTS disposition
+(a) inherited, re-verified here: 559 pinned
+operations, zero `/v2/` paths, zero commerce paths,
+and a tree-wide consumer search finds no
+catalog-import consumer). The area sweep examined
+28 operations (25 pinned across entitlements,
+product_catalog, products, prices, plus the 3 v2
+census rows), zero unexamined — 9 native, 5 door,
+11 D-9 native-owns, 3 out — reconciling with the
+census appendix. The conformance passage carries
+the entitlement-evidence note: CAP-1 marks every
+operation `providerVerified: false`, so
+provider-proven entitlement state remains a CAP-5
+axis and "entitled-product gaps closed" never reads
+as "entitlements live-proven." No CAP-5 rows are
+owed (nothing built). Registry unchanged at 343
+tools; Phase 4 is complete with this card — next is
+Phase 5, organization context and D-10.
+
 ## 2026-11-04 — CAP-4 PROD-TAX: Tax-area closure (source) — the zero, re-proven with evidence
 
 CAP-4 Phase 4's fourth product-gap card
