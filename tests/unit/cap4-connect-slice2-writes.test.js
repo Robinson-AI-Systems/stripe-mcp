@@ -255,7 +255,7 @@ describe('CAP-4 Connect slice 2 registration',()=>{
       expect(t.inputSchema.properties.dryRun.type).toBe('boolean');
       expect(t.inputSchema.properties.confirm.type).toBe('boolean');
     }
-    expect(registry.tools).toHaveLength(343);
+    expect(registry.tools).toHaveLength(344);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(169);
   });
   it('the guarded doors admit the family in TEST and LIVE',()=>{

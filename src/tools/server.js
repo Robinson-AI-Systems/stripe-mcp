@@ -46,6 +46,8 @@ export const tools = [
       clientId:{type:'string',minLength:1,maxLength:160}
     },required:['clientId'],additionalProperties:false},
     annotations:{readOnlyHint:true},writes:false,profiles:['full'] },
+  { name:'stripe_deenroll_account',description:'Prepare an owner-confirmed de-enrollment of this selected Stripe account. Evaluates the exact account; nothing is removed until private owner confirmation.',
+    inputSchema:schema,annotations:{readOnlyHint:true},writes:false,profiles:['full'] },
   { name:'stripe_get_result', description:'Read a saved, paged Stripe result belonging only to this authenticated connection.',
     inputSchema:{type:'object',properties:{
       handle:{type:'string',pattern:'^res_[A-Za-z0-9_-]{24,48}$'},
@@ -155,6 +157,49 @@ export const handlers = {
       return ok({status:'owner_confirmation_required',account:connection.stripeAccount,
         clientId:args.clientId,ownerSetupUrl:url.toString(),revoked:false,
         notice:'No connection was revoked. The private owner page must authenticate, preview and independently confirm the exact revocation.'});
+    }catch{return fail('Private owner setup URL is not configured');}
+  },
+  // CAP4-RECENSUS-1 preparation: evaluate the exact selected account and
+  // return the confirmation payload. Like its siblings it creates and
+  // removes NOTHING — completion happens only on the passphrase-
+  // authenticated owner page, under the fingerprint ceremony.
+  async stripe_deenroll_account(_args,{db,connection}) {
+    if(!['test','live'].includes(connection?.mode)||connection?.profile!=='full'||
+      !/^acct_[A-Za-z0-9]{2,100}$/.test(connection?.stripeAccount??'')||
+      typeof db?.getDeenrollEvaluation!=='function')
+      return fail('A selected full-profile owner connection is required');
+    const evaluation=await db.getDeenrollEvaluation(connection.stripeAccount);
+    if(!evaluation) return fail('Selected Stripe account is not configured');
+    const connectorTokens=Number(evaluation.connector_count)||0,
+      passes=Number(evaluation.pass_count)||0,
+      unsettled=Number(evaluation.unsettled_count)||0;
+    const guardBlockers=[];
+    if(evaluation.live_enabled===true)
+      guardBlockers.push('LIVE is enabled for this account; disable LIVE first through its own owner ceremony.');
+    if(evaluation.is_default===true)
+      guardBlockers.push('This account is the recorded default account; move the default first through its own owner ceremony.');
+    if(unsettled>0)
+      guardBlockers.push('This account carries an unsettled money reservation; de-enrollment refuses until it settles.');
+    try{
+      const url=new URL(publicOrigin(process.env)+'/api/stripe/setup');
+      url.searchParams.set('deenrollAccount',connection.stripeAccount);
+      return ok({status:'owner_confirmation_required',account:connection.stripeAccount,
+        label:evaluation.label??null,
+        credentials:{
+          test:{configured:evaluation.test_connected===true,
+            kind:evaluation.test_key_kind??null,last4:evaluation.test_key_last4??null},
+          live:{configured:evaluation.live_connected===true,
+            kind:evaluation.live_key_kind??null,last4:evaluation.live_key_last4??null}},
+        liveEnabled:evaluation.live_enabled===true,
+        liveConnected:evaluation.live_connected===true,
+        isDefault:evaluation.is_default===true,
+        tokensToRevoke:{connector:connectorTokens,passes,
+          total:connectorTokens+passes},
+        unsettledReservations:unsettled,
+        guardBlockers,readyToRequest:guardBlockers.length===0,
+        selectionConsequence:'Every connection currently selecting this account loses its selection target when the account is removed.',
+        irreversible:true,deenrolled:false,ownerSetupUrl:url.toString(),
+        notice:'No account, key, token or pass was removed. De-enrollment is irreversible: the private owner page must authenticate, preview this exact evaluated state and independently confirm its fingerprint before anything is removed.'});
     }catch{return fail('Private owner setup URL is not configured');}
   },
   async stripe_get_result(args,{db,connection}) {

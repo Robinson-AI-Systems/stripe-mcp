@@ -21,7 +21,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs', 'developer_boundary_events'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'owner_deenroll_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs', 'developer_boundary_events'
 ]);
 
 let productionSql;
@@ -576,6 +576,228 @@ export function createDb(sql = getProductionSql()) {
       SELECT stripe_account,'test','stripe_revoke_connection',client_id,
         'Owner revoked this account connection from the private setup page',FALSE
       FROM revoked LIMIT 1 RETURNING id`;
+      return rows.length===1;
+    },
+    // CAP4-RECENSUS-1: enrolled-account de-enrollment (the delete leg).
+    // The evaluated state is the single shape the preparation tool, the
+    // owner page and the fingerprint all read: account identity and
+    // label, each credential's kind/last4 and presence, LIVE and
+    // default state, the counts of live (unrevoked) connector tokens
+    // and passes the removal will revoke, and unsettled reservations.
+    async getDeenrollEvaluation(account) {
+      if (typeof account!=='string' || !/^acct_[A-Za-z0-9]{2,100}$/.test(account)) return null;
+      const rows=await sql`SELECT a.id AS stripe_account, a.label,
+          a.test_key_kind, a.test_key_last4, a.live_key_kind, a.live_key_last4,
+          a.test_key_enc IS NOT NULL AS test_connected,
+          a.live_key_enc IS NOT NULL AS live_connected,
+          a.live_enabled, a.is_default,
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.stripe_account=a.id AND t.kind='connector'
+              AND t.revoked_at IS NULL) AS connector_count,
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.stripe_account=a.id AND t.kind='pass'
+              AND t.revoked_at IS NULL) AS pass_count,
+          (SELECT count(*)::int FROM money_reservations r
+            WHERE r.stripe_account=a.id
+              AND r.state IN ('reserved','uncertain')) AS unsettled_count
+        FROM stripe_accounts a WHERE a.id=${account}`;
+      return rows[0] || null;
+    },
+    // Request step ONLY: snapshot the evaluated state into a short-lived
+    // intent. Creates the intent and nothing else — no token is revoked,
+    // no key or row is touched. The guards are enforced here in the
+    // INSERT's WHERE (LIVE disabled, not the default, no unsettled
+    // money reservation) and again atomically at consumption.
+    async requestDeenrollIntent({id,account,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime())) {
+        throw new TypeError('Valid account and one-time de-enrollment intent required');
+      }
+      const rows=await sql`INSERT INTO owner_deenroll_intents
+        (id,stripe_account,label,test_key_kind,test_key_last4,live_key_kind,
+          live_key_last4,test_connected,live_connected,live_enabled,is_default,
+          connector_count,pass_count,unsettled_count,expires_at)
+        SELECT ${id},a.id,a.label,a.test_key_kind,a.test_key_last4,
+          a.live_key_kind,a.live_key_last4,
+          a.test_key_enc IS NOT NULL,a.live_key_enc IS NOT NULL,
+          a.live_enabled,a.is_default,
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.stripe_account=a.id AND t.kind='connector'
+              AND t.revoked_at IS NULL),
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.stripe_account=a.id AND t.kind='pass'
+              AND t.revoked_at IS NULL),
+          (SELECT count(*)::int FROM money_reservations r
+            WHERE r.stripe_account=a.id
+              AND r.state IN ('reserved','uncertain')),
+          ${expiresAt}
+        FROM stripe_accounts a
+        WHERE a.id=${account} AND a.live_enabled=FALSE AND a.is_default=FALSE
+          AND NOT EXISTS (SELECT 1 FROM money_reservations r
+            WHERE r.stripe_account=a.id
+              AND r.state IN ('reserved','uncertain'))
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getDeenrollIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
+      const rows=await sql`SELECT id,stripe_account,label,test_key_kind,
+          test_key_last4,live_key_kind,live_key_last4,test_connected,
+          live_connected,live_enabled,is_default,connector_count,pass_count,
+          unsettled_count,expires_at
+        FROM owner_deenroll_intents
+        WHERE id=${id} AND expires_at>now()`;
+      return rows[0] || null;
+    },
+    // Only the separately password-authenticated owner page may invoke
+    // this, after the owner typed the fingerprint of the evaluated
+    // state. ONE statement: the intent is re-checked against the account
+    // row-for-row (identity, label, credential kinds/last4s and
+    // presence, LIVE/default state, live token and pass counts, the
+    // unsettled-reservation guard), then every token and pass for the
+    // account is revoked (the connection-revoke machinery's effect,
+    // composed across every client), the account's dependent records
+    // are removed (the schema's foreign keys require it), the intent
+    // rows are consumed by deletion, the stripe_accounts row — the
+    // stored key material with it — is deleted, and the removal is
+    // journaled with the fingerprint. De-enrollment is IRREVERSIBLE:
+    // the journal row carries no inverse, so stripe_undo_change refuses
+    // it by its existing irreversible-action rule. Any mismatch makes
+    // the whole statement a no-op.
+    async consumeDeenrollIntent({id,expectedFingerprint,expected}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof expectedFingerprint!=='string' ||
+          !/^DEEN-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/.test(expectedFingerprint) ||
+          !expected || typeof expected!=='object' ||
+          typeof expected.label!=='string' ||
+          !(expected.test_key_kind===null || typeof expected.test_key_kind==='string') ||
+          !(expected.test_key_last4===null || typeof expected.test_key_last4==='string') ||
+          !(expected.live_key_kind===null || typeof expected.live_key_kind==='string') ||
+          !(expected.live_key_last4===null || typeof expected.live_key_last4==='string') ||
+          typeof expected.test_connected!=='boolean' ||
+          typeof expected.live_connected!=='boolean' ||
+          expected.live_enabled!==false || expected.is_default!==false ||
+          !Number.isSafeInteger(expected.connector_count) || expected.connector_count<0 ||
+          !Number.isSafeInteger(expected.pass_count) || expected.pass_count<0)
+        return false;
+      const summary='Owner de-enrolled this Stripe account from the private setup page. ' +
+        'De-enrollment is IRREVERSIBLE. Confirmation fingerprint ' + expectedFingerprint +
+        '. Revoked ' + expected.connector_count + ' connector token(s) and ' +
+        expected.pass_count + ' pass(es); the stored key material and the ' +
+        'account row were deleted.';
+      const rows=await sql`WITH eligible AS (
+        SELECT i.stripe_account FROM owner_deenroll_intents i
+        JOIN stripe_accounts a ON a.id=i.stripe_account
+        WHERE i.id=${id} AND i.expires_at>now()
+          AND a.label=${expected.label}
+          AND a.test_key_kind IS NOT DISTINCT FROM ${expected.test_key_kind}
+          AND a.test_key_last4 IS NOT DISTINCT FROM ${expected.test_key_last4}
+          AND a.live_key_kind IS NOT DISTINCT FROM ${expected.live_key_kind}
+          AND a.live_key_last4 IS NOT DISTINCT FROM ${expected.live_key_last4}
+          AND (a.test_key_enc IS NOT NULL)=${expected.test_connected}
+          AND (a.live_key_enc IS NOT NULL)=${expected.live_connected}
+          AND a.live_enabled=FALSE
+          AND a.is_default=FALSE
+          AND (SELECT count(*) FROM oauth_tokens t
+            WHERE t.stripe_account=a.id AND t.kind='connector'
+              AND t.revoked_at IS NULL)=${expected.connector_count}
+          AND (SELECT count(*) FROM oauth_tokens t
+            WHERE t.stripe_account=a.id AND t.kind='pass'
+              AND t.revoked_at IS NULL)=${expected.pass_count}
+          AND NOT EXISTS (SELECT 1 FROM money_reservations r
+            WHERE r.stripe_account=a.id
+              AND r.state IN ('reserved','uncertain'))
+      ), revoked AS (
+        UPDATE oauth_tokens t SET revoked_at=now() FROM eligible e
+        WHERE t.stripe_account=e.stripe_account AND t.revoked_at IS NULL
+        RETURNING t.token_hash
+      ), del_codes AS (
+        DELETE FROM oauth_codes c USING eligible e
+        WHERE c.stripe_account=e.stripe_account
+      ), del_secrets AS (
+        DELETE FROM one_time_secrets s USING eligible e
+        WHERE s.stripe_account=e.stripe_account
+      ), del_taxidx AS (
+        DELETE FROM tax_transaction_index x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_decisions AS (
+        DELETE FROM owner_money_decision_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_approvals AS (
+        DELETE FROM money_approvals x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_reservations AS (
+        DELETE FROM money_reservations x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_limit AS (
+        DELETE FROM owner_money_limit_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_default AS (
+        DELETE FROM owner_default_account_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_disable AS (
+        DELETE FROM owner_disable_live_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_revoke AS (
+        DELETE FROM owner_revoke_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_liveenable AS (
+        DELETE FROM live_enable_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_wh_create AS (
+        DELETE FROM webhook_create_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_wh_secret AS (
+        DELETE FROM webhook_signing_secrets x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_receipts AS (
+        DELETE FROM test_webhook_receipts x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_brand AS (
+        DELETE FROM brand_kits x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_scope AS (
+        DELETE FROM app_profile_account_scope x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_setup_runs AS (
+        DELETE FROM project_setup_runs x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_meter AS (
+        DELETE FROM meter_usage_claims x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_replay_events AS (
+        DELETE FROM dev_forwarder_replay_events x USING eligible e
+        WHERE x.replay_id IN (SELECT r.id FROM dev_forwarder_replays r
+          WHERE r.stripe_account=e.stripe_account)
+      ), del_replays AS (
+        DELETE FROM dev_forwarder_replays x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_forwarders AS (
+        DELETE FROM dev_forwarders x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_run_objects AS (
+        DELETE FROM dev_run_objects x USING eligible e
+        WHERE x.run_id IN (SELECT r.id FROM dev_runs r
+          WHERE r.stripe_account=e.stripe_account)
+      ), del_cycles AS (
+        DELETE FROM dev_simulation_cycles x USING eligible e
+        WHERE x.run_id IN (SELECT r.id FROM dev_runs r
+          WHERE r.stripe_account=e.stripe_account)
+      ), del_runs AS (
+        DELETE FROM dev_runs x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), del_intents AS (
+        DELETE FROM owner_deenroll_intents x USING eligible e
+        WHERE x.stripe_account=e.stripe_account
+      ), removed AS (
+        DELETE FROM stripe_accounts a USING eligible e
+        WHERE a.id=e.stripe_account RETURNING a.id
+      )
+      INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run)
+      SELECT e.stripe_account,'test','stripe_deenroll_account',e.stripe_account,
+        ${summary},FALSE
+      FROM eligible e JOIN removed r ON r.id=e.stripe_account RETURNING id`;
       return rows.length===1;
     },
     async requestMoneyApproval({ account, idempotencyKey, tool, description,
@@ -1201,6 +1423,26 @@ export function createDb(sql = getProductionSql()) {
       )`;
       await sql`CREATE INDEX IF NOT EXISTS owner_revoke_intents_expiry_idx
         ON owner_revoke_intents (expires_at)`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_deenroll_intents (
+        id TEXT PRIMARY KEY,
+        stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
+        label TEXT NOT NULL,
+        test_key_kind TEXT,
+        test_key_last4 TEXT,
+        live_key_kind TEXT,
+        live_key_last4 TEXT,
+        test_connected BOOLEAN NOT NULL,
+        live_connected BOOLEAN NOT NULL,
+        live_enabled BOOLEAN NOT NULL,
+        is_default BOOLEAN NOT NULL,
+        connector_count INTEGER NOT NULL,
+        pass_count INTEGER NOT NULL,
+        unsettled_count INTEGER NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_deenroll_intents_expiry_idx
+        ON owner_deenroll_intents (expires_at)`;
       await sql`CREATE TABLE IF NOT EXISTS live_enable_intents (
         id TEXT PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),

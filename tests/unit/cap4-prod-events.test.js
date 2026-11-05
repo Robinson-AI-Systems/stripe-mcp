@@ -59,7 +59,7 @@ describe('CAP-4 PROD-EVENTS — the v2 event surface has no dispatch surface',()
   });
   it('registers no v2 event or event-destination tool; registry unchanged',()=>{
     const names=registry.tools.map(t=>t.name);
-    expect(names.length).toBe(343);
+    expect(names.length).toBe(344);
     expect(names.some(n=>/destination|_v2|v2_/.test(n))).toBe(false);
   });
 });

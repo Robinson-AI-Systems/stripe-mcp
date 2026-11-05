@@ -103,7 +103,7 @@ describe('CAP-4 PROD-ENTITLEMENTS — the sweep set',()=>{
       expect(rows[0].family,key(o)).toBe('catalog');
     }
   });
-  it('registers the native entitlement and catalog reads; the registry stands at 343',()=>{
+  it('registers the native entitlement and catalog reads; the registry stands at 344',()=>{
     const names=registry.tools.map(t=>t.name);
     for(const n of ['feature_list','feature_list_for_product',
       'entitlement_list_active','feature_create',
@@ -111,7 +111,7 @@ describe('CAP-4 PROD-ENTITLEMENTS — the sweep set',()=>{
       'product_list','product_get','product_search',
       'price_list','price_get','price_search'])
       expect(names,n).toContain(n);
-    expect(registry.tools).toHaveLength(343);
+    expect(registry.tools).toHaveLength(344);
   });
   it('no native by-id entitlement read exists at this baseline (the blocked builds)',()=>{
     const names=registry.tools.map(t=>t.name);
