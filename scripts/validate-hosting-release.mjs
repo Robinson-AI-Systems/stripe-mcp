@@ -27,8 +27,8 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
   const rows=scheduleBody?.split('\n').map(line=>line.trim())
     .filter(line=>line&&!line.startsWith('#'))??[];
   // Four Denver opportunities plus one independent UTC backup; no extras.
-  const approvedCrons=["cron: '1 0 * * *'", "cron: '17 0 * * *'",
-    "cron: '17 1 * * *'", "cron: '37 5 * * *'"];
+  const approvedCrons=["cron: '53 20 * * *'", "cron: '9 21 * * *'",
+    "cron: '9 22 * * *'", "cron: '29 2 * * *'"];
   const requiredTimezone='timezone: America/Denver';
   const matches=(row,property)=>row===property||row===property.replace(/'/g,'"');
   const onlyApprovedSchedules=rows.length===9&&
@@ -36,7 +36,7 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
       const [first,second]=rows.slice(i*2,i*2+2);
       return (matches(first,'- '+cron)&&second===requiredTimezone)||
         (first==='- '+requiredTimezone&&matches(second,cron));
-    })&&matches(rows[8],"- cron: '43 12 * * *'");
+    })&&matches(rows[8],"- cron: '35 9 * * *'");
   const dispatches=[...promote.matchAll(/^\s*workflow_dispatch:\s*$/gm)];
   const dispatch=promote.match(/^  workflow_dispatch:\s*\n([\s\S]*?)(?=^\S|^  [a-z_]+:)/m)?.[1];
   const expectedDispatch=[
