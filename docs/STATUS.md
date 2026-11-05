@@ -1,3 +1,48 @@
+## 2026-11-04 — CAP-4 RECENSUS-1: enrolled-account de-enrollment, the missing delete leg (source) — enrollment has an exit
+
+[CAP4-RECENSUS-1-ACCOUNT-DEENROLL](pr-cards/CAP4-RECENSUS-1-ACCOUNT-DEENROLL.md)
+builds the delete leg the fleet re-census found missing:
+an enrolled Stripe account can now be removed, with its
+stored keys, under the server's own ceremony discipline.
+A prepare-only registry tool, `stripe_deenroll_account`
+(registry 343 → 344; full-profile only like its siblings
+`stripe_create_pass` / `stripe_revoke_connection`, so the
+everyday catalog stays at 19,999/20,000), evaluates the
+exact selected account — credentials present (kind/last4),
+LIVE and default state, live token/pass counts, unsettled
+reservations, guard blockers, and the selection
+consequence (a connection selecting the account loses its
+target) — and creates and removes nothing. Completion
+happens only on the passphrase-authenticated owner page:
+`request-deenroll` snapshots the evaluated state into a
+10-minute intent (`owner_deenroll_intents`); the owner
+confirms by typing a fingerprint (`DEEN-…`) computed fresh
+from that state; `confirm-deenroll` recomputes it from the
+current evaluation and consumption re-checks the confirmed
+state atomically in one statement that revokes every token
+and pass for the account (all clients), deletes the
+account's dependent records (the schema's foreign keys
+require it), deletes the `stripe_accounts` row and its key
+material, and journals the removal with the fingerprint —
+IRREVERSIBLE, no inverse, so `stripe_undo_change` refuses
+it by its existing rule (proven at the claim gate in
+Postgres). Guards refuse at request and consumption while
+LIVE is enabled, while the account is the default, and
+while a money reservation is unsettled; the disable-LIVE,
+default and money ceremonies are untouched inputs, and
+`src/tools/write.js` / `src/money.js` are byte-untouched.
+Suites: 12 unit + 5 Postgres tests, all 17 failing at
+pristine baseline `9daf3f38` as surface-missing (no
+by-design passes); full unit suite 226 files / 2,455
+tests green; the Postgres suite also ran green on a
+disposable local cluster on this VM. Row 15's
+missing-with-plan register: this item stops counting as
+missing with this change. CAP-5 obligation queued
+verbatim: enroll a throwaway TEST account, de-enroll it,
+read back its absence — on the owner's own connection.
+Remaining: RECENSUS-2, then the CAP-4 close (row 15's
+addendum + the CAP-5 consumer test).
+
 ## 2026-11-04 — CAP-4 Phase 5: organization context stages 1–2 (disposition 2a) and D-10's substrate decisions (source) — records only, no flip fact found
 
 CAP-4 Phase 5 ([CAP4-PHASE5-ORG-D10](pr-cards/CAP4-PHASE5-ORG-D10.md))
