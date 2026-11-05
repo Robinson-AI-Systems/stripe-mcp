@@ -126,7 +126,7 @@ describe('CAP-4 Connect slice 1 registration',()=>{
     // Registry totals superseded by slice 2 (11 lifecycle writes)
     // and slice 3 (3 terminal writes): 329+11+3 tools, 155+11+3
     // writes. The slice-1 tools' own pins above are unchanged.
-    expect(registry.tools).toHaveLength(343);
+    expect(registry.tools).toHaveLength(344);
     expect(registry.tools.filter(t=>t.writes===true)).toHaveLength(169);
   });
 });

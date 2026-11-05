@@ -31,6 +31,7 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
   const decisionIntents = [];
   const liveIntents = [];
   const revokeIntents = [];
+  const deenrollIntents = [];
   const disableIntents = [];
   const defaultIntents = [];
   const limitIntents = [];
@@ -539,6 +540,94 @@ export function createFakeDb({ clock = () => Date.now(), accounts = [] } = {}) {
         tool:'stripe_revoke_connection',target:r.clientId,
         summary:'Owner revoked this account connection from the private setup page',
         dry_run:false,at:new Date(clock())});
+      return true;
+    },
+    // CAP4-RECENSUS-1 mirror of src/db.js de-enrollment: same evaluated
+    // shape, same guards at request and consumption, consume deletes the
+    // intent (as the SQL does) and journals with no inverse.
+    async getDeenrollEvaluation(account) {
+      if (typeof account!=='string' || !/^acct_[A-Za-z0-9]{2,100}$/.test(account)) return null;
+      const row=accountRows.get(account);
+      if (!row) return null;
+      const testSaved=encryptedTestKeys.get(account);
+      const liveSaved=encryptedLiveKeys.get(account);
+      return { stripe_account:account, label:row.label ?? account,
+        test_key_kind:testSaved?.kind ?? null, test_key_last4:testSaved?.last4 ?? null,
+        live_key_kind:liveSaved?.kind ?? row.live_key_kind ?? null,
+        live_key_last4:liveSaved?.last4 ?? row.live_key_last4 ?? null,
+        test_connected:!!testSaved,
+        live_connected:!!liveSaved || !!row.live_connected,
+        live_enabled:row.live_enabled===true, is_default:row.is_default===true,
+        connector_count:[...tokens.values()].filter(t=>t.stripe_account===account&&
+          t.kind==='connector'&&!t.revoked_at).length,
+        pass_count:[...tokens.values()].filter(t=>t.stripe_account===account&&
+          t.kind==='pass'&&!t.revoked_at).length,
+        unsettled_count:reservations.filter(r=>r.account===account&&
+          ['reserved','uncertain'].includes(r.state)).length };
+    },
+    async requestDeenrollIntent({id,account,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof account!=='string' || !/^acct_[A-Za-z0-9]+$/.test(account) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime()))
+        throw new TypeError('Valid account and one-time de-enrollment intent required');
+      const evaluation=await this.getDeenrollEvaluation(account);
+      if (!evaluation || evaluation.live_enabled || evaluation.is_default ||
+          evaluation.unsettled_count>0) return false;
+      deenrollIntents.push({id,...evaluation,expiresAt:expiresAt.getTime()});
+      return true;
+    },
+    async getDeenrollIntent(id) {
+      const r=deenrollIntents.find(x=>x.id===id&&x.expiresAt>clock());
+      return r ? {id:r.id,stripe_account:r.stripe_account,label:r.label,
+        test_key_kind:r.test_key_kind,test_key_last4:r.test_key_last4,
+        live_key_kind:r.live_key_kind,live_key_last4:r.live_key_last4,
+        test_connected:r.test_connected,live_connected:r.live_connected,
+        live_enabled:r.live_enabled,is_default:r.is_default,
+        connector_count:r.connector_count,pass_count:r.pass_count,
+        unsettled_count:r.unsettled_count,expires_at:new Date(r.expiresAt)} : null;
+    },
+    async consumeDeenrollIntent({id,expectedFingerprint,expected}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof expectedFingerprint!=='string' ||
+          !/^DEEN-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/.test(expectedFingerprint) ||
+          !expected || typeof expected!=='object' ||
+          expected.live_enabled!==false || expected.is_default!==false)
+        return false;
+      const index=deenrollIntents.findIndex(x=>x.id===id&&x.expiresAt>clock());
+      if (index<0) return false;
+      const intent=deenrollIntents[index];
+      const current=await this.getDeenrollEvaluation(intent.stripe_account);
+      if (!current) return false;
+      const fields=['label','test_key_kind','test_key_last4',
+        'live_key_kind','live_key_last4','test_connected','live_connected',
+        'live_enabled','is_default','connector_count','pass_count'];
+      if (fields.some(f=>current[f]!==expected[f]) ||
+          current.live_enabled || current.is_default || current.unsettled_count>0)
+        return false;
+      for (const t of tokens.values())
+        if (t.stripe_account===intent.stripe_account && !t.revoked_at) t.revoked_at=clock();
+      for (let i=deenrollIntents.length-1;i>=0;i--)
+        if (deenrollIntents[i].stripe_account===intent.stripe_account)
+          deenrollIntents.splice(i,1);
+      accountRows.delete(intent.stripe_account);
+      encryptedTestKeys.delete(intent.stripe_account);
+      encryptedLiveKeys.delete(intent.stripe_account);
+      audit.push({id:audit.length+1,stripe_account:intent.stripe_account,mode:'test',
+        tool:'stripe_deenroll_account',target:intent.stripe_account,
+        summary:'Owner de-enrolled this Stripe account from the private setup page. ' +
+          'De-enrollment is IRREVERSIBLE. Confirmation fingerprint ' + expectedFingerprint +
+          '. Revoked ' + expected.connector_count + ' connector token(s) and ' +
+          expected.pass_count + ' pass(es); the stored key material and the ' +
+          'account row were deleted.',
+        dry_run:false,at:new Date(clock()),inverse:null});
+      return true;
+    },
+    async seedUnsettledReservationForTest({account,amountCents=100}) {
+      reservations.push({account,connection:'seed-connection',
+        key:'seed-reservation-'+reservations.length,amountCents,currency:'usd',
+        day:new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
+          year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(clock())),
+        state:'reserved'});
       return true;
     },
     async requestMoneyApproval({account,idempotencyKey,tool,description,

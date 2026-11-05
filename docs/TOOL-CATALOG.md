@@ -180,7 +180,7 @@ money (dollar preview, daily limit, always confirm).
 **Profile:** `R` read_only and up · `E` everyday and up · `F` full only.
 (Every read tool is in `R`; the column shows the lowest profile that has it.)
 
-## Server about itself (`stripe_*`) — 16
+## Server about itself (`stripe_*`) — 17
 
 | Tool | What it does | Safety | Origin | Profile |
 | --- | --- | --- | --- | --- |
@@ -189,6 +189,7 @@ money (dollar preview, daily limit, always confirm).
 | `stripe_check_key_permissions` | Re-probe encrypted server-only TEST or LIVE key; compact/full output and optional fields; the result persists to the probed mode's own record (CAP-4 D7b: per-mode probe records; `stripe_whoami` reports the connection mode's own record) | — | built #29 | R |
 | `stripe_list_connections` | Selected-account AI connection metadata, never credentials | — | built B-8a | R |
 | `stripe_revoke_connection` | Revoke a particular connection; the registered tool prepares an owner-confirmed revocation for the exact account/client ID — no access is revoked until private owner confirmation (the private owner flow is B-8b2a) | C | built B-8b2a | F |
+| `stripe_deenroll_account` | De-enroll an enrolled Stripe account permanently; the registered tool only prepares — it evaluates the exact account (credentials present, LIVE/default state, token and pass counts, unsettled reservations, guard blockers, the selection consequence) and removes nothing until the private owner page's fingerprint ceremony confirms (CAP4-RECENSUS-1) | C | built CAP4-RECENSUS-1 | F |
 | `stripe_recent_changes` | Account-scoped audit summaries without raw snapshots (advanced filters later) | — | built B-8a | R |
 | `stripe_undo_change` | Undo one change-log entry when it has a clean opposite; says plainly when it does not | C | N | E |
 | `stripe_search_tools` | Find tools by plain words; one line each with safety marks (compact mode's front door) | — | built #36 | R |

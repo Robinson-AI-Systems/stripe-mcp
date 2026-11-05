@@ -678,6 +678,33 @@ proof:** unchanged, plus the reconciliation's missing-with-plan
 register emptied or carrying ruled exceptions. Process status:
 **correctable (PARTIAL under the 2026-11-04 grading amendment)**.
 
+**Register update — CAP4-RECENSUS-1-ACCOUNT-DEENROLL landed
+(2026-11-04).** The enrolled-account de-enrollment item in
+this row's missing-with-plan register **stops counting as
+missing in this change**: the delete leg now exists at the
+merged head — a prepare-only registry tool
+(`stripe_deenroll_account`, full-profile only; registry
+343 → 344) that evaluates the exact account and removes
+nothing, and an owner-page `request-deenroll` →
+`confirm-deenroll` intent pair (10-minute expiry;
+fingerprint computed fresh from the evaluated state —
+account id and label, credential kinds and last4s present,
+LIVE enabled/connected state, default-account state, and
+the counts of live tokens and passes — and re-checked
+atomically at consumption) whose single-statement removal
+revokes every token and pass for the account, deletes the
+dependent records and the `stripe_accounts` row with its
+stored key material, and journals the removal as
+IRREVERSIBLE with the fingerprint (no inverse;
+`stripe_undo_change` refuses by its existing rule). Guards
+refuse while LIVE is enabled, while the account is the
+default, and while a money reservation is unsettled. The
+companion item — OAuth client delete,
+CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE — remains in the
+register as missing-with-plan. CAP-5 obligation recorded
+on the card: enroll a throwaway TEST account, de-enroll
+it, read back its absence, on the owner's own connection.
+
 ### 16. Conformance-correction process — bringing a pre-Standard server under the Standard — CORRECTABLE (process running)
 
 The Standard (2026-11-03) names the five-step process this server is

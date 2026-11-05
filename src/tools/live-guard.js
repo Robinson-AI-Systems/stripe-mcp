@@ -38,6 +38,43 @@ export function liveEnableFingerprint({ intentId, account, environment } = {}) {
   return 'LIVE-' + hex.match(/.{5}/g).join('-');
 }
 
+/** Fingerprint of the exact de-enrollment state the owner was shown
+ * (CAP4-RECENSUS-1). Canonical fields: the one-time intent, the Stripe
+ * account and its label, each enrolled credential's kind and last4, the
+ * TEST/LIVE connected state, the LIVE-enabled and default-account state,
+ * the counts of live connector tokens and passes the removal will revoke,
+ * the count of unsettled money reservations, and the intent expiry. Any
+ * change to those facts changes the fingerprint and voids a confirmation
+ * given against the old one. The digest carries no secret: kinds and
+ * last4s are the same non-secret identifiers the owner page displays. */
+export function deenrollFingerprint({ intentId, evaluation } = {}) {
+  const e = evaluation ?? {};
+  const expires = e.expires_at ?? e.expiresAt;
+  const expiryMs = expires instanceof Date ? expires.getTime() : Date.parse(expires);
+  const count = (v) => Number.isSafeInteger(Number(v)) && Number(v) >= 0 ? Number(v) : 0;
+  const state = {
+    action: 'stripe_deenroll_account',
+    intent: typeof intentId === 'string' ? intentId : '',
+    account: typeof e.stripe_account === 'string' ? e.stripe_account : '',
+    label: typeof e.label === 'string' ? e.label : '',
+    testKeyKind: typeof e.test_key_kind === 'string' ? e.test_key_kind : null,
+    testKeyLast4: typeof e.test_key_last4 === 'string' ? e.test_key_last4 : null,
+    liveKeyKind: typeof e.live_key_kind === 'string' ? e.live_key_kind : null,
+    liveKeyLast4: typeof e.live_key_last4 === 'string' ? e.live_key_last4 : null,
+    testConnected: e.test_connected === true,
+    liveConnected: e.live_connected === true,
+    liveEnabled: e.live_enabled === true,
+    isDefault: e.is_default === true,
+    connectorTokens: count(e.connector_count),
+    passes: count(e.pass_count),
+    unsettledReservations: count(e.unsettled_count),
+    expiresAt: Number.isFinite(expiryMs) ? new Date(expiryMs).toISOString() : null
+  };
+  const hex = createHash('sha256').update(JSON.stringify(state)).digest('hex')
+    .slice(0, 20).toUpperCase();
+  return 'DEEN-' + hex.match(/.{5}/g).join('-');
+}
+
 export async function authorizeLiveWrite({ ctx, env = process.env }) {
   const connection = ctx?.connection;
   if (connection?.mode === 'test') return true;

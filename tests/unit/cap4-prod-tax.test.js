@@ -12,7 +12,7 @@
 //     transaction creates; the customer family owns the
 //     tax_ids writes);
 //   * the native tools those dispositions name are registered
-//     (19 tax-named tools; the registry stands at 343);
+//     (19 tax-named tools; the registry stands at 344);
 //   * the door serves the Tax GETs no native tool governs —
 //     per-object mode verification proven here in both modes
 //     and both wrong-mode directions on two representative
@@ -139,7 +139,7 @@ describe('CAP-4 PROD-TAX — the sweep set',()=>{
       expect(row.baseline,k).toBe(true);
     }
   });
-  it('registers all 19 tax-named native tools; the registry stands at 343',()=>{
+  it('registers all 19 tax-named native tools; the registry stands at 344',()=>{
     const names=registry.tools.map(t=>t.name);
     for(const n of ['tax_get_settings','tax_calculate',
       'tax_list_registrations','tax_list_transactions',
@@ -150,7 +150,7 @@ describe('CAP-4 PROD-TAX — the sweep set',()=>{
       'taxrate_create','taxrate_update','customer_list_tax_ids',
       'customer_add_tax_id','customer_delete_tax_id'])
       expect(names,n).toContain(n);
-    expect(registry.tools).toHaveLength(343);
+    expect(registry.tools).toHaveLength(344);
   });
 });
 

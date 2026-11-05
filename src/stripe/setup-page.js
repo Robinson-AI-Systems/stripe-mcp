@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto';
 import {buildSetupReadinessReport} from '../acceptance/setup-readiness-report.js';
 import {OwnerSmokeFailure,ownerSmokeFailureMessage} from '../acceptance/owner-smoke-failure.js';
 import { clientIp, evaluateLogin, secretsMatch, LOCKOUT_WINDOW_MINUTES } from '../core/oauth.js';
-import { liveEnableFingerprint } from '../tools/live-guard.js';
+import { liveEnableFingerprint, deenrollFingerprint } from '../tools/live-guard.js';
 import { publicOrigin, paramsOf, send, escapeHtml, only } from '../core/http.js';
 
 function parseUsdCents(text) {
@@ -27,13 +27,14 @@ function ownerFormSuggestions(q={}) {
   const account=valid(q.account,/^acct_[A-Za-z0-9]{2,100}$/);
   const revokeAccount=valid(q.revokeAccount,/^acct_[A-Za-z0-9]{2,100}$/);
   const revokeClient=valid(q.revokeClient,/^[A-Za-z0-9:_-]{1,160}$/);
+  const deenrollAccount=valid(q.deenrollAccount,/^acct_[A-Za-z0-9]{2,100}$/);
   const profile=['read_only','everyday','full'].includes(q.profile)?q.profile:'read_only';
   const mode=['test','live'].includes(q.mode)?q.mode:'test';
   const areas=valid(q.areas,/^[a-z_,]{1,120}$/)||'server';
   const number=(key,defaultValue,max)=>typeof q[key]==='string'&&
     /^(0|[1-9][0-9]*)$/.test(q[key])&&Number(q[key])<=max?
     q[key]:String(defaultValue);
-  return {account,revokeAccount,revokeClient,profile,mode,areas,
+  return {account,revokeAccount,revokeClient,deenrollAccount,profile,mode,areas,
     allowWrites:q.allowWrites==='true',forHub:q.forHub==='true',
     moneyLimitCents:number('moneyLimitCents',0,2147483647),
     rateLimitPerMinute:number('rateLimitPerMinute',120,600),
@@ -71,8 +72,8 @@ function renderOwnerFeedback(result, smokeResult) {
     summary + '</section>';
 }
 
-function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill = null, liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null }) {
-  const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent);
+function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill = null, liveIntent = null, revokeIntent = null, disableIntent = null, defaultIntent = null, moneyLimitIntent = null, moneyInbox = null, moneyDecisionIntent = null, smokeResult = null, enrolledAccounts = null, appProfileSummary = null, deenrollIntent = null }) {
+  const hasPrivateFollowUp=Boolean(revealed||show||liveIntent||moneyDecisionIntent||moneyInbox||revokeIntent||disableIntent||defaultIntent||moneyLimitIntent||deenrollIntent);
   const formHidden = '<input type="hidden" name="csrf" value="' + escapeHtml(csrf) + '">';
   const hint=nativePrefill||ownerFormSuggestions();
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
@@ -118,6 +119,44 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
       '<label>Confirmation fingerprint<input name="liveFingerprint" required autocomplete="off" spellcheck="false" placeholder="LIVE-XXXXX-XXXXX-XXXXX-XXXXX"></label>' +
       '<label><input type="checkbox" name="ownerLiveConsent" value="yes" required> I personally authorize LIVE mode for this exact Stripe account.</label>' +
       '<button type="submit">Approve this LIVE account (final step)</button></form>' : '') +
+    (deenrollIntent ? '<h2>Final owner confirmation: de-enroll this account (IRREVERSIBLE)</h2>' +
+      '<p>Account: <strong>' + escapeHtml(deenrollIntent.label || deenrollIntent.stripe_account) +
+      '</strong> (' + escapeHtml(deenrollIntent.stripe_account) + ').</p>' +
+      '<p>Evaluated facts: TEST credential ' +
+      (deenrollIntent.test_connected
+        ? '<strong>' + escapeHtml(deenrollIntent.test_key_kind || 'key') + '</strong> ending <strong>' +
+          escapeHtml(deenrollIntent.test_key_last4 || '????') + '</strong>'
+        : '<strong>none enrolled</strong>') +
+      '; LIVE credential ' +
+      (deenrollIntent.live_connected
+        ? '<strong>' + escapeHtml(deenrollIntent.live_key_kind || 'key') + '</strong> ending <strong>' +
+          escapeHtml(deenrollIntent.live_key_last4 || '????') + '</strong>'
+        : '<strong>none enrolled</strong>') +
+      '; LIVE is <strong>' + (deenrollIntent.live_enabled ? 'enabled' : 'disabled') +
+      '</strong>; default account: <strong>' + (deenrollIntent.is_default ? 'yes' : 'no') +
+      '</strong>; live connections the removal will revoke: <strong>' +
+      escapeHtml(String(deenrollIntent.connector_count ?? 0)) +
+      '</strong>; passes: <strong>' + escapeHtml(String(deenrollIntent.pass_count ?? 0)) +
+      '</strong>; unsettled money reservations: <strong>' +
+      escapeHtml(String(deenrollIntent.unsettled_count ?? 0)) +
+      '</strong>; this approval expires <strong>' +
+      escapeHtml(new Intl.DateTimeFormat('en-US', { timeZone:'America/Denver',
+        dateStyle:'medium', timeStyle:'short' }).format(new Date(deenrollIntent.expires_at))) +
+      '</strong> (Denver).</p>' +
+      '<p><strong>De-enrollment is IRREVERSIBLE.</strong> Confirming removes the account ' +
+      'and its stored TEST and LIVE key material, and revokes every connection and pass ' +
+      'for it. Every connection currently selecting this account loses its selection ' +
+      'target. There is no undo. Re-enrolling later starts over with fresh credentials.</p>' +
+      '<p>Confirmation fingerprint: <strong><code>' + escapeHtml(deenrollIntent.fingerprint || '') +
+      '</code></strong>. Type it exactly below; if any fact above changes, the fingerprint ' +
+      'changes and this confirmation no longer applies.</p>' +
+      '<form method="post" autocomplete="off">' + formHidden +
+      '<input type="hidden" name="action" value="confirm-deenroll">' +
+      '<input type="hidden" name="id" value="' + escapeHtml(deenrollIntent.id) + '">' +
+      '<label>Re-enter administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+      '<label>Confirmation fingerprint<input name="deenrollFingerprint" required autocomplete="off" spellcheck="false" placeholder="DEEN-XXXXX-XXXXX-XXXXX-XXXXX"></label>' +
+      '<label><input type="checkbox" name="ownerDeenrollConsent" value="yes" required> I personally authorize IRREVERSIBLY de-enrolling exactly this account.</label>' +
+      '<button type="submit">De-enroll this account permanently (final step)</button></form>' : '') +
     (moneyDecisionIntent ? '<h2>Final owner confirmation — ' + escapeHtml(moneyDecisionIntent.mode?.toUpperCase()) + ' ' +
       escapeHtml(moneyDecisionIntent.kind === 'override' ? 'OVER-LIMIT OVERRIDE' : 'INDIVIDUAL MONEY-OUT') +
       '</h2><p>Exact account: ' + escapeHtml(moneyDecisionIntent.stripe_account) +
@@ -358,6 +397,15 @@ function htmlPage({ csrf, show = '', result = '', revealed = '', nativePrefill =
     '<label>AI client ID<input name="clientId" required maxlength="160" autocomplete="off" value="' + escapeHtml(hint.revokeClient) + '"></label>' +
     '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
     '<button type="submit">Preview connection removal</button></form>' +
+    '</details>' +
+    '<details class="owner-group" id="deenroll-tools"><summary>De-enroll an enrolled Stripe account (IRREVERSIBLE)</summary>' +
+    '<h2>De-enroll an enrolled Stripe account (owner only)</h2>' +
+    '<p><strong>This is permanent.</strong> De-enrollment removes the account and its stored TEST and LIVE key material from this server and revokes every AI connection and pass for it. Connections currently selecting the account lose their selection target. It refuses while LIVE is enabled, while the account is the default, or while a money reservation is unsettled. Nothing is removed by this preview step.</p>' +
+    '<form method="post" autocomplete="off">' + formHidden +
+    '<input type="hidden" name="action" value="request-deenroll">' +
+    '<label>Stripe account ID<input name="account" required maxlength="110" autocomplete="off" value="' + escapeHtml(hint.deenrollAccount) + '"></label>' +
+    '<label>Administrator passphrase<input type="password" name="passphrase" required autocomplete="current-password"></label>' +
+    '<button type="submit">Preview de-enrollment</button></form>' +
     '</details>' +
     '<details class="owner-group" id="live-disable-tools"><summary>Emergency LIVE disable only</summary>' +
     '<h2>Emergency: disable LIVE access (owner only)</h2>' +
@@ -819,6 +867,102 @@ export function createSetupHandler({ db, keyStore, oneTimeStore, reportDownload,
       return send(res, revoked ? 200 : 409, htmlPage({csrf:cookie,result:revoked ?
         'Connection removed for account '+intent.stripe_account+', client '+intent.client_id+'.' :
         'The connection was already removed or changed. No removal performed.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'request-deenroll') {
+      // CAP4-RECENSUS-1 phase one: evaluate the exact account and stage a
+      // short-lived intent holding that snapshot. Nothing is revoked or
+      // removed here; each guard refuses in its stated state.
+      if(typeof db?.getDeenrollEvaluation!=='function'||
+        typeof db?.requestDeenrollIntent!=='function')
+        return send(res,503,htmlPage({csrf:cookie,result:'De-enrollment is unavailable.'}),
+          'text/html; charset=utf-8');
+      const evaluation=await db.getDeenrollEvaluation(p.account).catch(()=>null);
+      if (!evaluation) return send(res, 404, htmlPage({csrf:cookie,result:
+        'No enrolled Stripe account matches this exact account ID.'}),
+        'text/html; charset=utf-8');
+      const blocker=evaluation.live_enabled===true
+        ? 'LIVE is enabled for this account. Disable LIVE first, through its own owner ceremony, then preview de-enrollment again.'
+        : evaluation.is_default===true
+          ? 'This account is the recorded default account. Move the default first, through its own owner ceremony, then preview de-enrollment again.'
+          : Number(evaluation.unsettled_count)>0
+            ? 'This account carries an unsettled money reservation. De-enrollment refuses until the reservation settles.'
+            : null;
+      if (blocker) return send(res, 409, htmlPage({csrf:cookie,result:blocker}),
+        'text/html; charset=utf-8');
+      const id=randomBytes(24).toString('base64url');
+      let accepted=false;
+      try {
+        accepted=await db.requestDeenrollIntent({
+          id,account:p.account,
+          expiresAt:new Date(Date.now()+10*60*1000)
+        });
+      } catch { accepted=false; }
+      if (!accepted) return send(res, 409, htmlPage({csrf:cookie,result:
+        'The account state changed or a guard now refuses. Nothing was removed; preview again.'}),
+        'text/html; charset=utf-8');
+      const intent=await db.getDeenrollIntent(id);
+      if (!intent) return send(res, 409, htmlPage({csrf:cookie,result:
+        'The request changed before the private review. Nothing was removed.'}),
+        'text/html; charset=utf-8');
+      const deenrollIntent={...intent,
+        fingerprint:deenrollFingerprint({intentId:intent.id,evaluation:intent})};
+      return send(res, 200, htmlPage({csrf:cookie,deenrollIntent,result:
+        'Preview only. Nothing has been removed. De-enrollment is IRREVERSIBLE: review the exact evaluated facts and fingerprint, then independently confirm.'}),
+        'text/html; charset=utf-8');
+    }
+    if (p.action === 'confirm-deenroll') {
+      if (p.ownerDeenrollConsent !== 'yes') return send(res, 400, htmlPage({csrf:cookie,result:
+        'A separate explicit owner confirmation of this IRREVERSIBLE removal is required.'}),
+        'text/html; charset=utf-8');
+      if(typeof db?.getDeenrollIntent!=='function'||
+        typeof db?.getDeenrollEvaluation!=='function'||
+        typeof db?.consumeDeenrollIntent!=='function')
+        return send(res,503,htmlPage({csrf:cookie,result:'De-enrollment is unavailable.'}),
+          'text/html; charset=utf-8');
+      const intent=await db.getDeenrollIntent(p.id);
+      if (!intent) return send(res, 410, htmlPage({csrf:cookie,result:
+        'This de-enrollment request was used or expired. Nothing was removed; start again.'}),
+        'text/html; charset=utf-8');
+      // The fingerprint is computed fresh from the CURRENT evaluated
+      // state (the live-enable pattern): a wrong fingerprint and a
+      // stale one are the same refusal — the re-rendered page shows the
+      // current facts and the current fingerprint, and the intent
+      // stays open so the owner can confirm the state as it now stands.
+      const current=await db.getDeenrollEvaluation(intent.stripe_account).catch(()=>null);
+      if (!current) return send(res, 409, htmlPage({csrf:cookie,result:
+        'The account changed while you were confirming. Nothing was removed.'}),
+        'text/html; charset=utf-8');
+      const currentView={...current,id:intent.id,expires_at:intent.expires_at,
+        fingerprint:deenrollFingerprint({intentId:intent.id,
+          evaluation:{...current,expires_at:intent.expires_at}})};
+      const supplied=typeof p.deenrollFingerprint==='string'?p.deenrollFingerprint.trim():'';
+      if (!supplied || !secretsMatch(supplied, currentView.fingerprint)) {
+        return send(res, 409, htmlPage({csrf:cookie, deenrollIntent:currentView, result:
+          'The confirmation fingerprint did not match the evaluated state. Nothing was removed and the request is still open: review the current facts below and type the current fingerprint exactly.'}),
+          'text/html; charset=utf-8');
+      }
+      const removed=await db.consumeDeenrollIntent({id:p.id,
+        expectedFingerprint:currentView.fingerprint,expected:current});
+      if (!removed) {
+        return send(res, 409, htmlPage({csrf:cookie, result:
+          'The account changed while you were confirming, or a guard now refuses. Nothing was removed.'}),
+          'text/html; charset=utf-8');
+      }
+      // Verify by read-back before calling it done.
+      let after=null;
+      try { after=await db.getStripeAccount(intent.stripe_account); } catch { after=null; }
+      if (after) {
+        return send(res, 503, htmlPage({csrf:cookie, result:
+          'The de-enrollment was recorded, but read-back still finds the account ' +
+          intent.stripe_account + '. Treat the removal as unverified and check before relying on it.'}),
+          'text/html; charset=utf-8');
+      }
+      return send(res, 200, htmlPage({csrf:cookie, result:
+        'Account ' + (intent.label || intent.stripe_account) + ' (' + intent.stripe_account +
+        ') de-enrolled permanently. Its stored key material and account row were deleted and ' +
+        'every connection and pass for it was revoked. Confirmation fingerprint ' +
+        currentView.fingerprint + ' is recorded in the audit log. This cannot be undone.'}),
         'text/html; charset=utf-8');
     }
     if (p.action === 'view-money-requests') {

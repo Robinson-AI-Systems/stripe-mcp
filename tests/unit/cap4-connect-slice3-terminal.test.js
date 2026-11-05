@@ -149,7 +149,7 @@ describe('CAP-4 Connect slice 3 registration',()=>{
       expect(t.inputSchema.required).toContain('confirmAccount');
       expect(t.inputSchema.required).toContain('account');
     }
-    expect(registry.tools).toHaveLength(343);
+    expect(registry.tools).toHaveLength(344);
     expect(registry.tools.filter(t=>t.writes===true))
       .toHaveLength(169);
   });
