@@ -612,6 +612,36 @@ the read families. The first family is source-implemented:
   nothing changes behavior. The conformance closure
   line stands in the conformance record's PROD-TAX
   passage.
+- **PROD-ENTITLEMENTS — entitled-product coverage
+  completion**
+  ([CAP4-PROD-ENTITLEMENTS](pr-cards/CAP4-PROD-ENTITLEMENTS.md)):
+  Phase 4's fifth and last product-gap card closes
+  the entitled-product area; all 7 claimed operations
+  carry a build or a reasoned disposition, no native
+  tool is built and no source file changes. The two
+  list GETs are already native and projected (E-2's
+  `feature_list`, `entitlement_list_active`) —
+  native-verified. The two by-id GETs have no native
+  read and cannot be built inside the program's
+  binding budget: the everyday catalog stands at
+  exactly 19,999 / 20,000 with zero headroom, and the
+  leanest honest forms of the two reads cost +78 and
+  +84 tokens each against the real budget evaluator
+  (re-proven in the unit's suite), breaking the cap
+  on their own. The builds are stopped and flagged
+  for a coordinator ruling; the interim route is the
+  guarded universal read, pin-proven to mode-verify
+  both by-id GETs per-object in both modes and both
+  wrong-mode directions. The 3 v2 commerce imports
+  are unserved under the fleet v2 rule (559 pinned
+  operations, zero `/v2/` paths; no catalog-import
+  consumer found). The area sweep examined 28
+  operations, zero unexamined (9 native, 5 door,
+  11 D-9 native-owns, 3 out). No CAP-5 rows are owed
+  (nothing built); the conformance passage carries
+  the entitlement-evidence note (provider-proven
+  entitlement state remains a CAP-5 axis). Phase 4
+  is complete with this card.
 
 Still required:
 
@@ -622,10 +652,10 @@ Still required:
    Connect is complete above (slices 1–3; the Connect family
    is COMPLETE in source); Phase 3 the universal door (D-9)
    is source-implemented above; Phase 4's payment, billing,
-   event and Tax-closure product cards (PROD-PAYMENT,
-   PROD-BILLING, PROD-EVENTS, PROD-TAX) are
-   source-implemented above; next in Phase 4 is the
-   entitlement product card;
+   event, Tax-closure and entitlement product cards
+   (PROD-PAYMENT, PROD-BILLING, PROD-EVENTS, PROD-TAX,
+   PROD-ENTITLEMENTS) are source-implemented above —
+   Phase 4 is complete; next is
    Phase 5 organization context and D-10.
 2. The capability-census addendum conformance row 15 requires
    (beside-API and substrate dispositions and the consumer test)

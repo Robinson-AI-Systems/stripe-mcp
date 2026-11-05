@@ -1688,6 +1688,64 @@ unit changes behavior, so no live-proof or
 disposition-verification row joins the queue (the
 frozen card's Done-when, stated explicitly).
 
+**CAP-4 progress — PROD-ENTITLEMENTS entitled-product
+coverage completion (2026-11-04):** Phase 4's fifth
+and last product-gap card (CAP4-PROD-ENTITLEMENTS)
+closes the entitled-product area; all 7 claimed
+operations carry a build or a reasoned disposition,
+no native tool is built, no source file changes, and
+the registry stays at 343 tools. The 4 v1
+entitlements GETs split as the tree holds them: the
+two list GETs are native and projected (E-2's
+`feature_list` → `{id, lookupKey, name, active}`;
+`entitlement_list_active` → `{id, feature,
+lookupKey}` — one shared `livemode` projection in
+`catalog-extras.js` on `catalog-mode.js`, whose LIVE
+branch routes through the owner-enabled
+selected-account seam), and the two by-id GETs have
+no native read. Those two builds are **stopped on a
+measured budget fact and flagged for a coordinator
+ruling**: the everyday catalog stands at exactly
+19,999 / 20,000 tokens with zero headroom, and the
+leanest honest forms of the two reads cost +78 and
++84 tokens each against the real budget evaluator
+(re-proven in the unit's suite), so neither fits
+without moving the cap or shrinking another tool's
+text — neither of which this unit may do. The
+interim route is the guarded universal read,
+pin-proven to mode-verify both by-id GETs
+per-object in both modes and both wrong-mode
+directions; the raw shape exceeds the native
+projections only by identifier-class fields
+(`livemode`, `metadata`, `object` on the feature;
+`livemode`, `object` on the active entitlement —
+neither object carries PII or any secret). The 3 v2
+commerce product-catalog imports are unserved under
+the fleet v2 rule (ruling 3(iv); PROD-BILLING /
+PROD-EVENTS disposition (a) inherited and
+re-verified: the pinned catalog enumerates 559
+operations with zero `/v2/` paths and zero commerce
+paths, and no catalog-import consumer exists in the
+tree). The area sweep examined 28 operations (25
+pinned across entitlements, product_catalog,
+products, prices, plus the 3 v2 census rows), zero
+unexamined — 9 native, 5 door-served, 11 D-9
+native-owns rows (every area write carries exactly
+one, all family `catalog`), 3 out — reconciling
+with the census appendix. **The entitlement
+evidence note, as the frozen card requires:** CAP-1's
+fields mark every operation `providerVerified:
+false` — entitlement *evidence* in the strong sense
+(provider-proven entitlement state) is a CAP-5 axis
+(live proof), not something this card can mint from
+source; "entitled-product gaps closed" is therefore
+never to be misread as "entitlements live-proven."
+**No CAP-5 rows are owed by this unit** (nothing is
+built); the two blocked by-id builds are a flagged
+coordinator ruling, and a future unit building them
+under that ruling inherits the D-series CAP-5
+obligation by name.
+
 **Closing proof:** each conversion live at a checked release, proven
 on the owner's own connection (the action completes after fingerprint
 confirmation and is refused, with a fresh disclosure, when the
