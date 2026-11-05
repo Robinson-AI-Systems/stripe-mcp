@@ -1,6 +1,7 @@
 # CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE — OAuth client management: the missing update/delete legs
 
-Status: **FILED, not started.** Filed by the fleet completeness
+Status: **SOURCE COMPLETE (2026-11-04), pending merge and the
+CAP-5 live proof below.** Filed by the fleet completeness
 re-census of 2026-11-04 (conformance row 15, re-opened and
 re-issued under the RAS MCP Standard's capability-completeness
 grading amendment, Library D-001, Library PR #5). This card is
@@ -8,6 +9,101 @@ the plan for a MISSING disposition in that re-census; the item
 counts as missing until this card lands. It joins the CAP-4
 sequence at the coordinator's direction; it is not part of the
 frozen Phase 1 family order.
+
+## Outcome (2026-11-04, built from main `a894b262`)
+
+The delete leg and the owner visibility exist, in the ceremony
+shape this card froze (the CAP4-RECENSUS-1 sibling pattern):
+
+- **Visibility (owner page only; no registry tool — the registry
+  stands at 344):** the owner setup page gains a
+  `list-oauth-clients` action and a Registered OAuth clients
+  group. After the passphrase gate, the page lists every
+  registered client — client id, client name, token-endpoint
+  auth method, registration timestamp, and the LIVE (unrevoked)
+  connector-token and pass counts a deletion would revoke —
+  read from the existing store (`db.listOAuthClients`). Safe
+  fields only: no client secret or secret hash is ever read or
+  shown, and malformed inventory rows refuse the whole list
+  rather than printing unverified records.
+- **Delete ceremony:** `request-delete-client` →
+  `confirm-delete-client` intent pair on the existing intent
+  machinery (10-minute expiry; new table
+  `owner_delete_client_intents` snapshots the evaluated state
+  at request — `db.getDeleteClientEvaluation` is the single
+  evaluated shape). The confirmation fingerprint
+  (`deleteClientFingerprint`, `DELC-XXXXX-…`, in
+  `src/tools/live-guard.js` beside `deenrollFingerprint`) is
+  computed fresh from the evaluated state — client id, name,
+  auth method, and the exact counts of tokens and passes the
+  deletion will revoke, plus intent expiry — and re-checked at
+  consumption: the page recomputes it from the current
+  evaluation (a wrong or stale fingerprint is one refusal; the
+  intent stays open showing the current facts, the live-enable
+  pattern), and `consumeDeleteClientIntent` re-checks the
+  owner-confirmed expected state atomically in its single
+  statement.
+- **The deletion, one statement:** every `oauth_tokens` row
+  issued to the client (connector and pass kinds, every
+  account — the revocation machinery's effect composed across
+  accounts) is revoked; the client's outstanding
+  `oauth_codes` are deleted; its delete intents are consumed
+  by deletion; the `oauth_clients` row is deleted; and the
+  deletion is journaled in `change_log`
+  (`stripe_delete_oauth_client`, the fingerprint and the
+  revoked counts in the summary, **IRREVERSIBLE** stated, no
+  inverse recorded and no owning account — `stripe_undo_change`
+  refuses it by its existing irreversible-action rule; the
+  Postgres suite proves the undo candidate read finds nothing
+  and the claim gate returns false for the journal row).
+  Authorization attempts naming the deleted client refuse
+  (proven at both OAuth doors in the unit suite: the consent
+  page answers 400 and the token endpoint refuses
+  `invalid_client` with the once-correct secret).
+- **Update leg — RECORDED DEFERRAL (disposition, not build):**
+  as this card planned, the update leg is deliberately
+  deferred with its reason: no consumer has needed to edit a
+  registration; name/auth-method changes are served by
+  delete-and-re-register now that the delete leg exists; an
+  RFC 7592 read/update endpoint is its own future card if a
+  consumer arises. The re-census disposition for the update
+  leg moves from MISSING to this recorded deferral in this
+  change. No RFC 7592 endpoint is built.
+
+Proof: `tests/unit/cap4-recensus2-client-delete.test.js` (13
+tests: list truthfulness and non-disclosure, request
+non-mutation, forged origin/CSRF/passphrase/consent refusals,
+wrong and stale fingerprints, full deletion + journal, pass
+revocation, expiry, double-consume, and post-deletion refusal
+at both OAuth doors) and
+`tests/db/cap4-recensus2-client-delete.test.js` (6 tests:
+truthful counts, snapshot non-mutation, stale expected-state
+atomic refusal, concurrent two-connection consumption with
+code/intent cleanup and the undo-gate refusal, pass-client
+deletion, expired intent). **Baseline accounting: 12 of the
+13 unit tests fail at pristine baseline `a894b262` as
+surface-missing; the one baseline pass is named in the suite
+(the wrong-passphrase list refusal — the shared owner login
+gate's pre-existing behavior, unchanged by this card). All 6
+Postgres tests fail at baseline as surface-missing.** Full
+unit suite 222 files / 2,489 tests green; the Postgres suite
+also ran green against a disposable local Postgres on this
+VM (the repo launcher's binaries are absent here; exact-head
+CI carries the db proof as usual). Two existing-suite census
+pins were updated in this change and are flagged in the PR:
+the setup-page form census (the new Registered OAuth clients
+group is a 14th owner group, adding the `list-oauth-clients`
+and `request-delete-client` actions) and the schema pin
+(`owner_delete_client_intents` added to `SCHEMA_TABLES`).
+The registry is unchanged at 344 tools and
+`src/tools/write.js` / `src/money.js` are byte-untouched.
+
+## CAP-5 obligation (verbatim from this card's plan)
+
+CAP-5 obligation: live proof on the owner's own connection —
+register a throwaway client, delete it through the ceremony,
+read back its absence — queued with the family's other live
+proofs.
 
 ## The absence, as evidenced
 

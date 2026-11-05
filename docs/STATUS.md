@@ -1,3 +1,51 @@
+## 2026-11-04 — CAP-4 RECENSUS-2: OAuth client delete, the missing delete leg (source) — registered clients can be listed and removed
+
+[CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE](pr-cards/CAP4-RECENSUS-2-OAUTH-CLIENT-DELETE.md)
+builds the delete leg and the owner visibility the fleet
+re-census found missing, in the RECENSUS-1 ceremony shape.
+The owner setup page now lists the registered OAuth clients
+after the passphrase gate (`list-oauth-clients`): client id,
+name, auth method, registration time, and the live token and
+pass counts a deletion would revoke — safe fields only, no
+secret or secret hash anywhere; **no registry tool is added
+(registry unchanged at 344)**. Deletion completes only on
+the owner page: `request-delete-client` snapshots the
+evaluated state into a 10-minute intent
+(`owner_delete_client_intents`); the owner confirms by
+typing a fingerprint (`DELC-…`) computed fresh from that
+state (client id, name, auth method, exact token/pass
+counts); `confirm-delete-client` recomputes it from the
+current evaluation and consumption re-checks the confirmed
+state atomically in one statement that revokes every token
+and pass issued to the client across every account, deletes
+its outstanding authorization codes and its intents,
+deletes the `oauth_clients` row, and journals the deletion
+with the fingerprint — IRREVERSIBLE, no inverse and no
+owning account, so `stripe_undo_change` refuses it by its
+existing rule (proven at the undo gates in Postgres).
+Authorization attempts naming a deleted client refuse at
+both OAuth doors (proven in the unit suite). The update leg
+is dispositioned, not built: deliberately deferred on the
+card — delete-and-re-register serves name/auth-method
+changes now that the delete leg exists; an RFC 7592 endpoint
+is its own future card — and its re-census disposition moves
+from MISSING to that recorded deferral in this change.
+`src/tools/write.js` / `src/money.js` are byte-untouched.
+Suites: 13 unit + 6 Postgres tests; 12 of the 13 unit tests
+fail at pristine baseline `a894b262` as surface-missing (the
+one named by-design pass is the shared login gate's
+wrong-passphrase refusal) and all 6 Postgres tests fail at
+baseline as surface-missing; full unit suite 222 files /
+2,489 tests green; the Postgres suite also ran green on a
+disposable local cluster on this VM. Row 15's
+missing-with-plan register: the OAuth client delete item
+stops counting as missing with this change; the update leg
+carries the recorded deferral. CAP-5 obligation queued
+verbatim: register a throwaway client, delete it through
+the ceremony, read back its absence — on the owner's own
+connection. Remaining: the CAP-4 close (row 15's addendum +
+the CAP-5 consumer test).
+
 ## 2026-11-04 — CAP-4 RECENSUS-1: enrolled-account de-enrollment, the missing delete leg (source) — enrollment has an exit
 
 [CAP4-RECENSUS-1-ACCOUNT-DEENROLL](pr-cards/CAP4-RECENSUS-1-ACCOUNT-DEENROLL.md)

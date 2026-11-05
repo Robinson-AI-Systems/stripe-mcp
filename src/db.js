@@ -21,7 +21,7 @@ export const connectionSettings = (row) => Object.fromEntries(CONNECTION_FIELDS.
 /** All schema changes are additive; never run these against remote infrastructure from tests. */
 export const SCHEMA_TABLES = Object.freeze([
   'stripe_accounts', 'oauth_clients', 'oauth_codes', 'oauth_tokens',
-  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'owner_deenroll_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs', 'developer_boundary_events'
+  'login_attempts', 'change_log', 'one_time_secrets', 'money_reservations', 'money_approvals', 'meter_usage_claims', 'tax_transaction_index', 'live_enable_intents', 'owner_revoke_intents', 'owner_disable_live_intents', 'owner_default_account_intents', 'owner_money_limit_intents', 'owner_money_decision_intents', 'owner_deenroll_intents', 'owner_delete_client_intents', 'result_store', 'dev_runs', 'dev_run_objects', 'dev_forwarders', 'dev_forwarder_replays', 'dev_forwarder_replay_events', 'dev_simulation_cycles', 'webhook_create_intents', 'webhook_signing_secrets', 'test_webhook_receipts', 'rtc_pass_rates', 'brand_kits', 'known_apps', 'app_profile_account_scope', 'project_setup_runs', 'developer_boundary_events'
 ]);
 
 let productionSql;
@@ -66,6 +66,138 @@ export function createDb(sql = getProductionSql()) {
     async getOAuthClient(clientId) {
       const rows = await sql`SELECT client_id, data FROM oauth_clients WHERE client_id = ${clientId}`;
       return rows[0] ? { client_id: rows[0].client_id, ...rows[0].data } : null;
+    },
+    // CAP4-RECENSUS-2: owner visibility over the registered clients.
+    // Safe fields only — never the stored secret hash or redirect list:
+    // client id, name, auth method, registration time, and the LIVE
+    // (unrevoked) token/pass counts a deletion would revoke.
+    async listOAuthClients() {
+      return await sql`SELECT c.client_id,
+          c.data->>'client_name' AS client_name,
+          c.data->>'token_endpoint_auth_method' AS token_endpoint_auth_method,
+          c.created_at,
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='connector'
+              AND t.revoked_at IS NULL) AS connector_count,
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='pass'
+              AND t.revoked_at IS NULL) AS pass_count
+        FROM oauth_clients c ORDER BY c.created_at ASC, c.client_id ASC`;
+    },
+    // The evaluated state is the single shape the owner page, the
+    // intent snapshot and the fingerprint all read for one client:
+    // identity, name, auth method, registration time, and the counts
+    // of live connector tokens and passes the deletion will revoke.
+    async getDeleteClientEvaluation(clientId) {
+      if (typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId)) return null;
+      const rows=await sql`SELECT c.client_id,
+          c.data->>'client_name' AS client_name,
+          c.data->>'token_endpoint_auth_method' AS token_endpoint_auth_method,
+          c.created_at,
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='connector'
+              AND t.revoked_at IS NULL) AS connector_count,
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='pass'
+              AND t.revoked_at IS NULL) AS pass_count
+        FROM oauth_clients c WHERE c.client_id=${clientId}`;
+      return rows[0] || null;
+    },
+    // Request step ONLY: snapshot the evaluated state into a short-lived
+    // intent. Creates the intent and nothing else — no token is revoked,
+    // no client row is touched.
+    async requestDeleteClientIntent({id,clientId,expiresAt}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof clientId!=='string' || !/^[A-Za-z0-9:_-]{1,160}$/.test(clientId) ||
+          !(expiresAt instanceof Date) || !Number.isFinite(expiresAt.getTime())) {
+        throw new TypeError('Valid client and one-time delete-client intent required');
+      }
+      const rows=await sql`INSERT INTO owner_delete_client_intents
+        (id,client_id,client_name,auth_method,connector_count,pass_count,expires_at)
+        SELECT ${id},c.client_id,c.data->>'client_name',
+          c.data->>'token_endpoint_auth_method',
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='connector'
+              AND t.revoked_at IS NULL),
+          (SELECT count(*)::int FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='pass'
+              AND t.revoked_at IS NULL),
+          ${expiresAt}
+        FROM oauth_clients c WHERE c.client_id=${clientId}
+        RETURNING id`;
+      return rows.length===1;
+    },
+    async getDeleteClientIntent(id) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id)) return null;
+      const rows=await sql`SELECT id,client_id,client_name,
+          auth_method AS token_endpoint_auth_method,
+          connector_count,pass_count,expires_at
+        FROM owner_delete_client_intents
+        WHERE id=${id} AND expires_at>now()`;
+      return rows[0] || null;
+    },
+    // Only the separately password-authenticated owner page may invoke
+    // this, after the owner typed the fingerprint of the evaluated
+    // state. ONE statement: the intent is re-checked against the client
+    // row (identity, name, auth method, live token and pass counts),
+    // then every token and pass issued to the client is revoked (the
+    // revocation machinery's effect, composed across every account),
+    // its outstanding authorization codes are deleted, the client's
+    // delete intents are consumed by deletion, the oauth_clients row
+    // is deleted, and the deletion is journaled with the fingerprint.
+    // Deletion is IRREVERSIBLE: the journal row carries no inverse and
+    // no owning account, so stripe_undo_change refuses it by its
+    // existing irreversible-action rule. Any mismatch makes the whole
+    // statement a no-op.
+    async consumeDeleteClientIntent({id,expectedFingerprint,expected}) {
+      if (typeof id!=='string' || !/^[A-Za-z0-9_-]{32,64}$/.test(id) ||
+          typeof expectedFingerprint!=='string' ||
+          !/^DELC-(?:[0-9A-F]{5}-){3}[0-9A-F]{5}$/.test(expectedFingerprint) ||
+          !expected || typeof expected!=='object' ||
+          typeof expected.client_id!=='string' ||
+          !/^[A-Za-z0-9:_-]{1,160}$/.test(expected.client_id) ||
+          !(expected.client_name===null || typeof expected.client_name==='string') ||
+          !['client_secret_post','client_secret_basic','none']
+            .includes(expected.token_endpoint_auth_method) ||
+          !Number.isSafeInteger(expected.connector_count) || expected.connector_count<0 ||
+          !Number.isSafeInteger(expected.pass_count) || expected.pass_count<0)
+        return false;
+      const summary='Owner deleted this registered OAuth client from the private setup page. ' +
+        'Deletion is IRREVERSIBLE. Confirmation fingerprint ' + expectedFingerprint +
+        '. Revoked ' + expected.connector_count + ' connector token(s) and ' +
+        expected.pass_count + ' pass(es); the client registration row was deleted.';
+      const rows=await sql`WITH eligible AS (
+        SELECT i.client_id FROM owner_delete_client_intents i
+        JOIN oauth_clients c ON c.client_id=i.client_id
+        WHERE i.id=${id} AND i.expires_at>now()
+          AND i.client_id=${expected.client_id}
+          AND c.data->>'client_name' IS NOT DISTINCT FROM ${expected.client_name}
+          AND c.data->>'token_endpoint_auth_method'=${expected.token_endpoint_auth_method}
+          AND (SELECT count(*) FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='connector'
+              AND t.revoked_at IS NULL)=${expected.connector_count}
+          AND (SELECT count(*) FROM oauth_tokens t
+            WHERE t.client_id=c.client_id AND t.kind='pass'
+              AND t.revoked_at IS NULL)=${expected.pass_count}
+      ), revoked AS (
+        UPDATE oauth_tokens t SET revoked_at=now() FROM eligible e
+        WHERE t.client_id=e.client_id AND t.revoked_at IS NULL
+        RETURNING t.token_hash
+      ), del_codes AS (
+        DELETE FROM oauth_codes c USING eligible e
+        WHERE c.client_id=e.client_id
+      ), del_intents AS (
+        DELETE FROM owner_delete_client_intents x USING eligible e
+        WHERE x.client_id=e.client_id
+      ), removed AS (
+        DELETE FROM oauth_clients c USING eligible e
+        WHERE c.client_id=e.client_id RETURNING c.client_id
+      )
+      INSERT INTO change_log (stripe_account,mode,tool,target,summary,dry_run)
+      SELECT NULL,'test','stripe_delete_oauth_client',e.client_id,
+        ${summary},FALSE
+      FROM eligible e JOIN removed r ON r.client_id=e.client_id RETURNING id`;
+      return rows.length===1;
     },
     async createAuthCode({ code, clientId, redirectUri, codeChallenge, codeChallengeMethod = 'S256',
       stripeAccount = null, mode = 'test', profile = 'everyday', listing = 'catalog',
@@ -1443,6 +1575,18 @@ export function createDb(sql = getProductionSql()) {
       )`;
       await sql`CREATE INDEX IF NOT EXISTS owner_deenroll_intents_expiry_idx
         ON owner_deenroll_intents (expires_at)`;
+      await sql`CREATE TABLE IF NOT EXISTS owner_delete_client_intents (
+        id TEXT PRIMARY KEY,
+        client_id TEXT NOT NULL REFERENCES oauth_clients(client_id),
+        client_name TEXT,
+        auth_method TEXT NOT NULL,
+        connector_count INTEGER NOT NULL,
+        pass_count INTEGER NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS owner_delete_client_intents_expiry_idx
+        ON owner_delete_client_intents (expires_at)`;
       await sql`CREATE TABLE IF NOT EXISTS live_enable_intents (
         id TEXT PRIMARY KEY,
         stripe_account TEXT NOT NULL REFERENCES stripe_accounts(id),
