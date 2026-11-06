@@ -1173,6 +1173,22 @@
       ],
       "readiness": "MERGED",
       "ownerInputs": []
+    },
+    {
+      "id": "RACK-STAGING",
+      "title": "Store transport seam and rack entrypoint for the Development Rack move (owner program)",
+      "batch": "CAP",
+      "design": "docs/DEPLOY.md",
+      "dependencies": [],
+      "card": "docs/pr-cards/RACK-STAGING.md",
+      "status": "IN_PROGRESS",
+      "migration": "none",
+      "budget": 200,
+      "units": [
+        "RACK-STAGING"
+      ],
+      "readiness": "CARD_PRESENT",
+      "ownerInputs": []
     }
   ],
   "k3StripeAdoption": {
