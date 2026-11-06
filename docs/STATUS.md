@@ -22,8 +22,8 @@ injected handle) against disposable Postgres. The rack rehearsal
 (private deployment, fixture store, parity battery) is the rack
 program's own record and is not a merge gate here; the cutover
 window, store copy, fence and all route writes are separate
-owner-gated program steps, and CAP-5 is untouched. Source-only
-until merged; production still tracks `live`.
+owner-gated program steps, and CAP-5 is untouched. Merged as
+PR #350 (merge commit `3575a112`); production still tracks `live`.
 
 ## 2026-11-05 — GUARD-EVENING-BLOCK: the promotion guard's pinned times move to the evening block (source)
 
