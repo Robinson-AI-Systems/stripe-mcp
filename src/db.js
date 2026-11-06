@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import { storeSql } from './db-transport.js';
 import {createWebhookCreationStore,initWebhookCreationTables} from './webhooks/create-store.js';
 import {createWebhookSignatureDb,initWebhookSignatureTables} from './webhooks/signature-store.js';
 import {createTestWebhookReceiptStore,initTestWebhookReceiptTables} from './webhooks/receipt-store.js';
@@ -26,14 +26,17 @@ export const SCHEMA_TABLES = Object.freeze([
 
 let productionSql;
 function getProductionSql() {
-  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not configured. Set it in the server environment.');
-  if (!productionSql) productionSql = neon(process.env.DATABASE_URL);
+  // The transport (Neon HTTP driver vs pooled pg) is selected in
+  // src/db-transport.js; on Vercel the store URL is a Neon endpoint and
+  // this returns exactly the handle it always has.
+  if (!productionSql) productionSql = storeSql();
   return productionSql;
 }
 
 /**
  * Inject a tagged-template query function for tests. No connection or migration
- * runs at import time. In production the caller uses the configured Neon client.
+ * runs at import time. In production the caller uses the configured store
+ * transport (src/db-transport.js).
  */
 export function createDb(sql = getProductionSql()) {
   if (typeof sql !== 'function') throw new TypeError('A SQL tagged-template function is required');

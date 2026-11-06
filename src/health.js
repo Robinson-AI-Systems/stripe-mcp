@@ -5,7 +5,7 @@
 // checked VER-1 source as every other surface (src/release.js). The
 // readout carries no credentials, user data, internal hostnames or
 // configuration values; configuration appears as booleans at most.
-import { neon } from '@neondatabase/serverless';
+import { storeSql } from './db-transport.js';
 import { deployedCommit, packageVersion, releaseVersion } from './release.js';
 
 export function healthReadout({ env = process.env, toolCount = 0,
@@ -32,7 +32,10 @@ export async function checkDatabase(env = process.env,
     if (typeof query === 'function') { await query(); return true; }
     const url = env?.DATABASE_URL;
     if (typeof url !== 'string' || !url) return false;
-    const sql = neon(url);
+    // The probe runs through the same store transport as the data path
+    // (src/db-transport.js), so a plain-Postgres store probes as itself
+    // instead of being asked to speak the Neon HTTP protocol.
+    const sql = storeSql(env);
     let timer;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error('health check timed out')), timeoutMs);
