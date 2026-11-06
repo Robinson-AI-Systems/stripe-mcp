@@ -1,3 +1,30 @@
+## 2026-11-06 — RACK-STAGING: store transport seam and rack entrypoint (source)
+
+[RACK-STAGING](pr-cards/RACK-STAGING.md) is the repo-side staging for
+Stripe Unleashed's move to the Development Rack, under the owner's
+rack migration program (as-is parity rule, 2026-11-05; staging order
+2026-11-06). Three items, no behaviour change on Vercel: **S-1** — a
+production store transport (`src/db-transport.js`, the fleet's merged
+Neon pattern) behind the existing `createDb` seam, so a plain
+Postgres store can serve the db layer through pooled `pg` while a
+Neon store URL keeps returning the identical Neon HTTP handle;
+`src/health.js`'s probe routes through the same transport, and `pg`
+moves from devDependencies to dependencies. **S-2** — `rack-server.mjs`,
+a standalone entrypoint reproducing the Vercel contract for the
+`api/` tree (filesystem routes, bracket segments as query
+parameters, the `vercel.json` rewrites verbatim, per-function
+bodyParser handling — the Stripe-signed test-webhook receiver keeps
+its raw stream — and the release-identity pin); `/` stays unrouted,
+as production answers it today. **Tests** — unit legs for transport
+selection and the entrypoint's route/body contract, plus a db-suite
+leg that runs the production seam itself (`createDb()` with no
+injected handle) against disposable Postgres. The rack rehearsal
+(private deployment, fixture store, parity battery) is the rack
+program's own record and is not a merge gate here; the cutover
+window, store copy, fence and all route writes are separate
+owner-gated program steps, and CAP-5 is untouched. Source-only
+until merged; production still tracks `live`.
+
 ## 2026-11-05 — GUARD-EVENING-BLOCK: the promotion guard's pinned times move to the evening block (source)
 
 [GUARD-EVENING-BLOCK](pr-cards/GUARD-EVENING-BLOCK.md) is the
