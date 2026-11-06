@@ -1181,13 +1181,13 @@
       "design": "docs/DEPLOY.md",
       "dependencies": [],
       "card": "docs/pr-cards/RACK-STAGING.md",
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "migration": "none",
       "budget": 200,
       "units": [
         "RACK-STAGING"
       ],
-      "readiness": "CARD_PRESENT",
+      "readiness": "MERGED",
       "ownerInputs": []
     }
   ],
