@@ -10,7 +10,8 @@ Those component proofs do not finish CAP-3 or CAP-5. The reconciled
 remainder is in [the completion schedule](docs/COMPLETION.md): CAP-2 and
 CAP-3 remain in progress, CAP-4 and CAP-5 remain unfinished units, 29
 Stripe-owned protected provider-acceptance rows remain pending, the
-branded-domain/identity cutover remains open, and the production-readiness
+branded-domain/identity cutover completed with the 2026-11-08 move to
+the Development Rack (see docs/STATUS.md), and the production-readiness
 gate has not passed. This repo is **deployed in TEST-oriented
 development** but is **not independently accepted for broad public or LIVE
 financial use**.
@@ -32,7 +33,7 @@ and CI/release gates distinct.
 - [Approved GitHub-style connection and God Mode contract](docs/designs/STRIPE-CONNECTION-GOD-MODE.md).
 - [Inactive CAP-3 tenant and encrypted grant database contract](docs/TENANCY-DATABASE.md) — no public multi-user login, executable credential grant or production migration yet.
 - [CAP-2 Full profile and effective-access explanation](docs/pr-cards/CAP-2.md): `stripe_explain_access` (source diagnostic only; no credential or LIVE approval).
-- **Future brand/canonical origin:** [Robinson AI Systems Stripe branding and domain](docs/designs/STRIPE-BRAND-DOMAIN.md) targeting `https://stripe.robinsonaisystems.com/api/mcp`, not yet assigned, released or active. Existing issuer remains unchanged until DNS, TLS, OAuth/callback and real-client cutover acceptance.
+- **Brand/canonical origin (live since 2026-11-08):** [Robinson AI Systems Stripe branding and domain](docs/designs/STRIPE-BRAND-DOMAIN.md) — `https://stripe.robinsonaisystems.com/api/mcp` is assigned, released and active: production serves from the Development Rack under this origin and issuer, and the hosted Vercel project and Neon store were retired the same day.
 - [Roadmap](docs/MASTER-ROADMAP.md), [owner guide](docs/OWNER-GUIDE.md)
   and [independent acceptance evidence](docs/developer-evidence.json).
 

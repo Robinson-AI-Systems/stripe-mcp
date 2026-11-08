@@ -1,6 +1,6 @@
 # START HERE — Robinson Stripe MCP
 
-A hosted MCP server (Node >=20, plain ES modules, Vercel serverless + Neon Postgres) that gives Chris's AI agents safe,
+A hosted MCP server (Node >=20, plain ES modules; production on the Development Rack since 2026-11-08 — plain Postgres, the Vercel-shaped `api/` tree served by `rack-server.mjs`) that gives Chris's AI agents safe,
 almost-complete control of his Stripe accounts. Same family and conventions as `Robinson-AI-Systems/google-workspace-mcp`
 (reused code is named in `docs/designs/BATCH-A.md`). General-purpose across Chris's projects; apps that run their own Stripe billing get a project profile (Batch P),
 the first being the Appliance Desk rental app (`docs/APP-NEEDS-APPLIANCE-DESK.md`). Chris operates mostly from a phone; everything he reads must be plain language.

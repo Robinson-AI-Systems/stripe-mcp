@@ -1,3 +1,25 @@
+## 2026-11-08 — RACK MOVE COMPLETE: production serves from the Development Rack; hosted copies retired
+
+Stripe Unleashed's move to the Development Rack completed on
+2026-11-08 under the owner's rack migration program. Production now
+serves from the rack at `https://stripe.robinsonaisystems.com`
+(rack image of main `ad248a1f`; store `stripe_production`, 37 tables
+reconciled exactly against the hosted copy). The hosted Neon store
+was fenced the same morning (its database role password was reset
+crew-side through the Neon API), and under the owner's dead-copy
+ruling the hosted copies were retired later that day: the Vercel
+project `stripe-mcp` and the Neon project `stripe-mcp` were both
+deleted and read back gone. The daily promotion workflow was
+disabled on 2026-11-08 and its Vercel deploy target no longer
+exists, so no promotion can produce a hosted build; the promotion
+machinery itself is unchanged and remains the owner's standing
+decision. Rack backups run nightly with a proven restore drill, and
+the off-PC backup leg is proven from the Workshop store. The
+repository alignment pass of the same date corrected the repo
+homepage and the stale hosted-production claims in README,
+START-HERE and DEPLOY. Entries below that describe Vercel / Neon
+hosting are the dated record of that era.
+
 ## 2026-11-06 — RACK-STAGING: store transport seam and rack entrypoint (source)
 
 [RACK-STAGING](pr-cards/RACK-STAGING.md) is the repo-side staging for

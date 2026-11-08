@@ -1,3 +1,14 @@
+> **2026-11-08 — production moved to the Development Rack; this
+> Vercel/Neon setup route is retired.** Production now serves from
+> the rack at `https://stripe.robinsonaisystems.com`; the store is
+> the rack database `stripe_production`. The Vercel project and the
+> Neon project described below were deleted on 2026-11-08 under the
+> owner's dead-copy ruling, and the daily promotion workflow is
+> disabled. Following the setup route below today would rebuild the
+> retired hosted fallback, not production. This document is kept as
+> the record of the original hosted setup; the rack move is recorded
+> in [STATUS.md](STATUS.md) (2026-11-08 entry).
+
 ## 2026-10-23 — publisher branding and custom hostname approved (not yet activated)
 
 Owner selected the Robinson AI Systems corporate branding for all Stripe connection,
