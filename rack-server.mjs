@@ -73,6 +73,7 @@ import toolName from './api/tools/[name].js';
 import toolsIndex from './api/tools/index.js';
 import wellKnownAS from './api/well-known/oauth-authorization-server.js';
 import wellKnownPR from './api/well-known/oauth-protected-resource.js';
+import wellKnownMuse from './api/well-known/muse-client.js';
 import whoami from './api/whoami.js';
 
 const SHA40 = /^[0-9a-f]{40}$/;
@@ -115,6 +116,7 @@ export const FILE_ROUTES = new Map([
   ['/api/tools', route(toolsIndex)],
   ['/api/well-known/oauth-authorization-server', route(wellKnownAS)],
   ['/api/well-known/oauth-protected-resource', route(wellKnownPR)],
+  ['/api/well-known/muse-client', route(wellKnownMuse)],
   ['/api/whoami', route(whoami)],
 ]);
 
@@ -124,6 +126,8 @@ const REWRITE_ROUTES = new Map([
   ['/api/openapi.json', route(openapi)],
   ['/.well-known/oauth-authorization-server', route(wellKnownAS)],
   ['/.well-known/oauth-protected-resource', route(wellKnownPR)],
+  ['/.well-known/oauth-protected-resource/api/mcp', route(wellKnownPR)],
+  ['/.well-known/muse-client.json', route(wellKnownMuse)],
 ]);
 
 // Resolves a request path to {handler, config, query} — query carries

@@ -1,3 +1,20 @@
+## 2026-11-09 — MUSE-1: Muse sign-in (RAS MCP Standard D-006)
+
+The live probe found `/.well-known/muse-client.json` and the path-scoped
+protected-resource document answering 404. A Muse connect was refused
+"Unknown client or redirect address". Fixed in source under D-006 (Library
+`designs/ras-mcp-muse-connection.md`):
+- both documents are served (rack routes and `vercel.json` in parity);
+- plain `muse` and this server's own Muse document address are answered
+  locally as one built-in public client (the one Muse callback, no secret,
+  no stored row, no network fetch), before stored registrations and the
+  existing card fetch-and-validate;
+- `resource` was already optional here.
+
+New `tests/unit/muse-own-document.test.js`. Card: `docs/pr-cards/MUSE-1.md`.
+Not yet verified live: the D-006 §7 knock probe and a real Muse connect
+after release.
+
 ## 2026-11-08 — RACK MOVE COMPLETE: production serves from the Development Rack; hosted copies retired
 
 Stripe Unleashed's move to the Development Rack completed on

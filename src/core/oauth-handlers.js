@@ -3,6 +3,7 @@ import {createOAuthRevocation} from './oauth-revocation.js';
 import { randomToken, hashToken, secretsMatch, verifyPkce, validRedirectUri, evaluateLogin, clientIp, LOCKOUT_WINDOW_MINUTES } from './oauth.js';
 import { contextForAuthorizationCode, resolveGrantContext, contextMayOperate, journalBoundaryEvent } from '../developer/access.js';
 import { isCimdClientId, resolveCimdClient, redirectUriMatches } from './cimd.js';
+import { ownMuseClient } from './muse-client.js';
 import { publicOrigin, send, escapeHtml, paramsOf, only } from './http.js';
 
 const PROFILES = ['read_only', 'everyday', 'full'];
@@ -25,6 +26,11 @@ export function createOAuthHandlers({ db, env = process.env, fetchImpl, lookupIm
   // Registered IDs are not URLs, so the store answer always wins.
   async function resolveClient(clientId) {
     if (typeof clientId !== 'string' || !clientId) return null;
+    // This server's own Muse document is answered locally (RAS MCP
+    // Standard, Muse connection design MC-2): never fetched over the
+    // server's own public address, never dependent on a stored row.
+    const own = ownMuseClient(clientId, env);
+    if (own) return own;
     const stored = await db.getOAuthClient(clientId);
     if (stored) return stored;
     if (isCimdClientId(clientId)) {

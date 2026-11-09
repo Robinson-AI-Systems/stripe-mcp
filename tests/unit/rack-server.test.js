@@ -23,7 +23,7 @@ describe('rack entrypoint route table', () => {
       expect(typeof resolved.handler).toBe('function');
       expect(entry.handler).toBe(resolved.handler);
     }
-    expect(FILE_ROUTES.size).toBe(16);
+    expect(FILE_ROUTES.size).toBe(17);
   });
 
   it('applies the vercel.json rewrites verbatim', () => {
@@ -33,6 +33,12 @@ describe('rack entrypoint route table', () => {
       .toBe(FILE_ROUTES.get('/api/well-known/oauth-authorization-server').handler);
     expect(resolveRoute('/.well-known/oauth-protected-resource').handler)
       .toBe(FILE_ROUTES.get('/api/well-known/oauth-protected-resource').handler);
+    // RAS MCP Standard, Muse connection design MC-1: the Muse client
+    // document and the path-scoped protected-resource document.
+    expect(resolveRoute('/.well-known/oauth-protected-resource/api/mcp').handler)
+      .toBe(FILE_ROUTES.get('/api/well-known/oauth-protected-resource').handler);
+    expect(resolveRoute('/.well-known/muse-client.json').handler)
+      .toBe(FILE_ROUTES.get('/api/well-known/muse-client').handler);
   });
 
   it('leaves / unrouted, exactly as production answers it today', () => {
