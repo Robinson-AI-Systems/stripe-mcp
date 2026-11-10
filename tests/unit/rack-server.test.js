@@ -41,8 +41,8 @@ describe('rack entrypoint route table', () => {
       .toBe(FILE_ROUTES.get('/api/well-known/muse-client').handler);
   });
 
-  it('leaves / unrouted, exactly as production answers it today', () => {
-    expect(resolveRoute('/')).toBeNull();
+  it('serves the home page at / (owner request 2026-11-10) and leaves unknown paths unrouted', () => {
+    expect(resolveRoute('/').handler).toBe(FILE_ROUTES.get('/api').handler);
     expect(resolveRoute('/nope')).toBeNull();
     expect(resolveRoute('/api/nope')).toBeNull();
   });
@@ -135,8 +135,11 @@ describe('rack entrypoint HTTP contract (no store configured)', () => {
     expect((await res.json()).error).toBe('temporarily_unavailable');
   });
 
-  it('404s the root, as production does', async () => {
-    const res = await fetch(`${base}/`);
+  it('serves the home page at the root to browsers, and still 404s unknown paths', async () => {
+    const page = await fetch(`${base}/`, { headers: { accept: 'text/html' } });
+    expect(page.status).toBe(200);
+    expect(await page.text()).toContain('How connecting works');
+    const res = await fetch(`${base}/nope`);
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: 'not_found' });
   });
