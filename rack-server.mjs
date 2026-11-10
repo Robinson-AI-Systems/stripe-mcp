@@ -122,6 +122,7 @@ export const FILE_ROUTES = new Map([
 
 // The vercel.json rewrite table, verbatim.
 const REWRITE_ROUTES = new Map([
+  ['/', route(frontDoor)],
   ['/health', route(health)],
   ['/api/openapi.json', route(openapi)],
   ['/.well-known/oauth-authorization-server', route(wellKnownAS)],

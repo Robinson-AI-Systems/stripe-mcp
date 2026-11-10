@@ -2,6 +2,7 @@ import { registry } from '../src/tools/index.js';
 import { profileCounts } from '../src/core/profiles.js';
 import { deployedCommit, packageVersion, releaseVersion } from '../src/release.js';
 import { checkDatabase, healthReadout } from '../src/health.js';
+import { HOME_CSP, renderHome } from '../src/home-page.js';
 
 // Public status front door. Every fact here is rendered from the same live
 // sources the health endpoint reports — the VER-1 release identity, the
@@ -23,6 +24,16 @@ export function createFrontDoorHandler({ check = checkDatabase } = {}) {
       const database = await check(process.env);
       const health = healthReadout({ toolCount: registry.tools.length, database });
       status = health.status === 'ok' ? 'online' : 'degraded';
+    }
+    // People opening the address in a browser get the home page (owner
+    // request 2026-11-10); programs (health checks, scripts) keep the JSON.
+    if (/\btext\/html\b/.test(String(req.headers?.accept ?? ''))) {
+      res.setHeader('Content-Security-Policy', HOME_CSP);
+      res.setHeader('Referrer-Policy', 'no-referrer');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(renderHome({ env: process.env, status, tools: registry.tools.length, version: releaseVersion() }));
     }
     return res.status(200).json({
       name: 'Stripe Unleashed by Robinson AI Systems',
