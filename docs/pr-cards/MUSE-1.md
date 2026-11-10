@@ -25,3 +25,7 @@ was refused "Unknown client or redirect address".
   `npm run check` and the full suite pass at the exact head.
 - Live (after release): the D-006 §7 knock probe, then a real Muse connect
   with Client ID `muse`.
+
+## Follow-up 2026-11-09: front-door copy (MC-8)
+
+The status front door now carries a `connect` block: Muse Client ID `muse`, Client Secret blank. Wording only.

@@ -1,3 +1,4 @@
+- 2026-11-09: MUSE FRONT DOOR (this PR) — D-006 MC-8 copy: the status front door's JSON gains a `connect` block telling Muse users to type `muse` as the Client ID with the secret blank (the document address as the older form). Wording only. Test: tests/unit/muse-front-door.test.js. Card: docs/pr-cards/MUSE-1.md.
 ## 2026-11-09 — MUSE-1: Muse sign-in (RAS MCP Standard D-006)
 
 The live probe found `/.well-known/muse-client.json` and the path-scoped
