@@ -45,6 +45,14 @@ export function createFrontDoorHandler({ check = checkDatabase } = {}) {
       health: '/api/health',
       oauth: '/.well-known/oauth-authorization-server',
       endpoint: '/api/mcp',
+      // D-006 MC-8: the one sentence every fleet server tells Muse users.
+      connect: {
+        muse: 'In Muse, add a custom connector with this server\'s /api/mcp address. If Muse asks for a Client ID, type muse. Client Secret: leave blank.',
+        muse_client_id: 'muse',
+        muse_client_secret: 'leave blank',
+        older_muse_client_id: '/.well-known/muse-client.json (on this server; still works)',
+        other_apps: 'Leave the Client ID and Client Secret blank.'
+      },
       disclaimer: 'Stripe Unleashed is a Robinson AI Systems product. It is not affiliated with, endorsed by, or sponsored by Stripe, Inc.',
       note: configured
         ? 'Service is configured; /api/health reports live dependency health.'
