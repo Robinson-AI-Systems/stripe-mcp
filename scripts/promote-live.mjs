@@ -64,7 +64,9 @@ export function denverMinute(now = new Date()) {
 // An owner-ordered release: the owner directs an additional checked release
 // beyond the one automatic daily promotion. His authority is the gate — the
 // actor and the triggering actor must both be the owner and the dispatch
-// must carry owner_release. No time-of-day condition applies: the
+// must carry owner_release and the exact main SHA to release in
+// EXPECTED_MAIN_SHA; a dispatch without a valid exact SHA is not an owner
+// release at all and fails closed below. No time-of-day condition applies: the
 // elapsed-midnight rule belongs to missed-daily recovery semantics, not to
 // the owner's own order (owner ruling, 2026-11-04: the daily cap binds
 // automatic releases only; the machinery encodes his permission scheme,
@@ -72,8 +74,11 @@ export function denverMinute(now = new Date()) {
 export function isOwnerReleaseInvocation(env) {
   return env.GITHUB_EVENT_NAME === 'workflow_dispatch' &&
     env.GITHUB_ACTOR === 'christcr2012' && env.GITHUB_TRIGGERING_ACTOR === 'christcr2012' &&
-    env.OWNER_RELEASE === 'true';
+    env.OWNER_RELEASE === 'true' && /^[a-f0-9]{40}$/.test(env.EXPECTED_MAIN_SHA || '');
 }
+
+// Neon-parity name for the same owner-release gate.
+export const ownerReleaseInvocation = isOwnerReleaseInvocation;
 
 export function authorizedReleaseInvocation(env, repository, now = new Date()) {
   if (env.GITHUB_REPOSITORY !== repository ||
@@ -119,8 +124,18 @@ export function checksFailed(runs, required, sha) {
       run.status === 'completed' && run.conclusion !== 'success'));
 }
 
-export function decide({ main, live, alreadyToday, ancestor, green }) {
+export function decide({ main, live, alreadyToday, ancestor, green, ownerRelease = false, expectedMainSha }) {
   if (![main, live].every(s => /^[a-f0-9]{40}$/.test(s))) throw Error('Invalid commit identity');
+  if (ownerRelease) {
+    // The daily cap never binds an owner-ordered release of the exact
+    // expected SHA; ancestry and green checks are never bypassed.
+    if (!/^[a-f0-9]{40}$/.test(expectedMainSha || '') || expectedMainSha !== main)
+      throw Error('Owner release expected main SHA does not match the release candidate');
+    if (!ancestor) throw Error('live has diverged; refusing to rewrite history');
+    if (!green) throw Error('Main checks are missing, pending or failed');
+    if (main === live) return 'skip';
+    return 'promote';
+  }
   if (alreadyToday || main === live) return 'skip';
   if (!ancestor) throw Error('live has diverged; refusing to rewrite history');
   if (!green) throw Error('Main checks are missing, pending or failed');
@@ -133,6 +148,7 @@ export async function run(policy = { repository: 'Robinson-AI-Systems/stripe-mcp
   if (!authorizedReleaseInvocation(process.env, policy.repository))
     throw Error('Scheduled or explicitly owner-recovered main only');
   const owner = isOwnerReleaseInvocation(process.env);
+  const expectedMainSha = process.env.EXPECTED_MAIN_SHA;
   const deadline = Date.now() + 10 * 60 * 1000;
   const marker = 'live-promotion/' + denverDay();
   const tagged = () => git(['ls-remote', '--tags', 'origin', 'refs/tags/' + marker]) !== '';
@@ -149,6 +165,8 @@ export async function run(policy = { repository: 'Robinson-AI-Systems/stripe-mcp
       '+refs/heads/live:refs/remotes/origin/live']);
     const main = git(['rev-parse', 'origin/main']);
     const live = git(['rev-parse', 'origin/live']);
+    if (owner && main !== expectedMainSha)
+      throw Error('Owner release refused: main is ' + main + ', expected ' + expectedMainSha);
     if (!owner && tagged()) { console.log('Already processed today'); return; }
     if (owner && ownerTagged(main)) {
       console.log('Owner release already recorded for ' + main); return;
@@ -208,7 +226,7 @@ export async function run(policy = { repository: 'Robinson-AI-Systems/stripe-mcp
       return;
     }
     const action = decide({ main, live, alreadyToday: owner ? false : tagged(), ancestor,
-      green: checksPass(runs, policy.requiredChecks, main) });
+      green: checksPass(runs, policy.requiredChecks, main), ownerRelease: owner, expectedMainSha });
     if (action !== 'promote') return;
     if (remoteHead('main') !== main || remoteHead('live') !== live ||
       (owner ? ownerTagged(main) : tagged()))

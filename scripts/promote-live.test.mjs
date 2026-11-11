@@ -60,6 +60,15 @@ test('one checked fast-forward daily; reruns and unchanged heads skip', () => {
   assert.throws(() => decide({ ...state, green: false }), /checks/);
   assert.throws(() => decide({ ...state, main: 'main' }), /identity/);
 });
+test('owner release of an exact SHA is not bound by the daily cap', () => {
+  const state = { main, live, ancestor: true, green: true, alreadyToday: true };
+  assert.equal(decide({ ...state, ownerRelease: true, expectedMainSha: main }), 'promote');
+  assert.equal(decide({ ...state, ownerRelease: true, expectedMainSha: main, live: main }), 'skip');
+  assert.throws(() => decide({ ...state, ownerRelease: true, expectedMainSha: live }), /expected main SHA/);
+  assert.throws(() => decide({ ...state, ownerRelease: true, expectedMainSha: undefined }), /expected main SHA/);
+  assert.throws(() => decide({ ...state, ownerRelease: true, expectedMainSha: main, green: false }), /checks/);
+  assert.throws(() => decide({ ...state, ownerRelease: true, expectedMainSha: main, ancestor: false }), /rewrite/);
+});
 test('real atomic git promotion, read-back and second same-day update refusal', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'release-policy-'));
   const cwd = process.cwd(), fetchBefore = globalThis.fetch;
@@ -205,16 +214,22 @@ test('successful no-change run records a receipt and suppresses later developmen
 });
 
 test('owner-ordered release requires explicit owner and carries no time-of-day gate', async () => {
-  const { authorizedReleaseInvocation, isOwnerReleaseInvocation, ownerReleaseMarker } =
-    await import('./promote-live.mjs');
+  const { authorizedReleaseInvocation, isOwnerReleaseInvocation, ownerReleaseMarker,
+    ownerReleaseInvocation } = await import('./promote-live.mjs');
   const env = { GITHUB_REPOSITORY: 'example/repo', GITHUB_REF: 'refs/heads/main',
     GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR: 'christcr2012',
-    GITHUB_TRIGGERING_ACTOR: 'christcr2012', OWNER_RELEASE: 'true', GITHUB_TOKEN: 'fixture' };
+    GITHUB_TRIGGERING_ACTOR: 'christcr2012', OWNER_RELEASE: 'true', GITHUB_TOKEN: 'fixture',
+    EXPECTED_MAIN_SHA: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' };
   // 2026-12-14T07:00:00Z is exactly Denver midnight: missed-daily recovery is
   // refused there by the elapsed-midnight rule, but the owner's own order is
   // not time-gated — his authority, not the clock, is the gate.
   const midnight = new Date('2026-12-14T07:00:00Z');
   assert.equal(isOwnerReleaseInvocation(env), true);
+  assert.equal(ownerReleaseInvocation(env), true);
+  // No valid exact SHA, no owner release: the pin is part of the gate.
+  assert.equal(isOwnerReleaseInvocation({ ...env, EXPECTED_MAIN_SHA: undefined }), false);
+  assert.equal(isOwnerReleaseInvocation({ ...env, EXPECTED_MAIN_SHA: 'not-a-sha' }), false);
+  assert.equal(authorizedReleaseInvocation({ ...env, EXPECTED_MAIN_SHA: undefined }, 'example/repo', midnight), false);
   assert.equal(authorizedReleaseInvocation(env, 'example/repo', midnight), true);
   assert.equal(authorizedReleaseInvocation({ ...env, OWNER_RELEASE: 'false' }, 'example/repo', midnight), false);
   for (const change of [{ GITHUB_ACTOR: 'other' }, { GITHUB_TRIGGERING_ACTOR: 'other' },
@@ -234,6 +249,8 @@ test('owner release dispatch is owner-gated in the workflow beside recovery', ()
   assert.match(workflow, /owner_release:/);
   assert.match(workflow, /inputs\.owner_release == true && github\.actor == 'christcr2012' && github\.triggering_actor == 'christcr2012'/);
   assert.match(workflow, /OWNER_RELEASE: \$\{\{ inputs\.owner_release \}\}/);
+  assert.match(workflow, /expected_main_sha:/);
+  assert.match(workflow, /EXPECTED_MAIN_SHA: \$\{\{ inputs\.expected_main_sha \}\}/);
 });
 
 test('unguarded owner-release dispatch fails hosting policy', async () => {
@@ -247,7 +264,9 @@ test('unguarded owner-release dispatch fails hosting policy', async () => {
     good.promote.replace("(github.event_name == 'workflow_dispatch' && inputs.owner_release == true && github.actor == 'christcr2012'",
       "(github.event_name == 'workflow_dispatch' && inputs.owner_release == true && github.actor == 'other'"),
     good.promote.replace('OWNER_RELEASE: ${{ inputs.owner_release }}', 'OWNER_RELEASE: true'),
-    good.promote.replace("description: 'Owner-only checked release ordered by the owner'", "description: 'Release'")
+    good.promote.replace("description: 'Owner-only checked release ordered by the owner'", "description: 'Release'"),
+    good.promote.replace('EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}', 'EXPECTED_MAIN_SHA: '),
+    good.promote.replace("        description: 'Exact 40-character main commit SHA an owner release must match'", "        description: 'SHA'")
   ]) assert.match(releasePolicyViolations({ ...good, promote }).join(' '), /Release workflow/);
 });
 
@@ -255,7 +274,8 @@ test('owner-ordered release promotes past a consumed daily marker and receipts p
   const dir = mkdtempSync(join(tmpdir(), 'owner-release-'));
   const cwd = process.cwd(), fetchBefore = globalThis.fetch;
   const keys = ['GITHUB_REPOSITORY', 'GITHUB_REF', 'GITHUB_EVENT_NAME', 'GITHUB_TOKEN',
-    'GITHUB_ACTOR', 'GITHUB_TRIGGERING_ACTOR', 'OWNER_RELEASE', 'RECOVER_MISSED_DAILY'];
+    'GITHUB_ACTOR', 'GITHUB_TRIGGERING_ACTOR', 'OWNER_RELEASE', 'RECOVER_MISSED_DAILY',
+    'EXPECTED_MAIN_SHA'];
   const before = keys.map(k => process.env[k]);
   const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: 'pipe' }).trim();
   const { ownerReleaseMarker } = await import('./promote-live.mjs');
@@ -290,9 +310,15 @@ test('owner-ordered release promotes past a consumed daily marker and receipts p
       GITHUB_ACTOR: 'other', GITHUB_TRIGGERING_ACTOR: 'other', OWNER_RELEASE: 'true' });
     await assert.rejects(run(policy, { attempts: 1, pause: async () => {} }), /Scheduled/);
     assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], original);
+    // A dispatch that names the wrong exact SHA is refused before any
+    // check is consulted, and live does not move.
+    Object.assign(process.env, { GITHUB_ACTOR: 'christcr2012', GITHUB_TRIGGERING_ACTOR: 'christcr2012',
+      EXPECTED_MAIN_SHA: original });
+    await assert.rejects(run(policy, { attempts: 1, pause: async () => {} }), /Owner release refused/);
+    assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], original);
     // The owner's dispatch promotes the checked head past the consumed
     // marker and writes only its own per-head receipt.
-    Object.assign(process.env, { GITHUB_ACTOR: 'christcr2012', GITHUB_TRIGGERING_ACTOR: 'christcr2012' });
+    Object.assign(process.env, { EXPECTED_MAIN_SHA: second });
     await run(policy, { attempts: 1, pause: async () => {} });
     assert.equal(git('ls-remote', 'origin', 'refs/heads/live').split(/\s+/)[0], second);
     assert.equal(git('ls-remote', 'origin', 'refs/tags/' + ownerReleaseMarker(second)).split(/\s+/)[0], second);
@@ -304,6 +330,7 @@ test('owner-ordered release promotes past a consumed daily marker and receipts p
     writeFileSync(join(dir, 'fixture.txt'), 'third');
     git('commit', '-am', 'third'); git('push', 'origin', 'main');
     const third = git('rev-parse', 'HEAD');
+    process.env.EXPECTED_MAIN_SHA = third;
     globalThis.fetch = async () => ({ ok: true, json: async () => ({ total_count: 1,
       check_runs: [{ ...good, head_sha: third, conclusion: 'failure' }] }) });
     await assert.rejects(run(policy, { attempts: 1, pause: async () => {} }), /check failed/);
