@@ -26,6 +26,11 @@ on:
         type: boolean
         required: false
         default: false
+      expected_main_sha:
+        description: 'Exact 40-character main commit SHA an owner release must match'
+        type: string
+        required: false
+        default: ''
 # All recovery and owner-ordered paths share the same checked atomic promoter.
 permissions:
   contents: write
@@ -54,9 +59,10 @@ jobs:
         with:
           node-version: 22
       - run: node --test scripts/promote-live.test.mjs
-      - name: Promote exactly one checked main snapshot per Denver day
+      - name: Promote a checked main snapshot to live
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RECOVER_MISSED_DAILY: ${{ inputs.recover_missed_daily }}
           OWNER_RELEASE: ${{ inputs.owner_release }}
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
         run: node scripts/promote-live.mjs

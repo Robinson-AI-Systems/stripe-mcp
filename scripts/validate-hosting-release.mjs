@@ -45,7 +45,10 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
     '        type: boolean', '        required: true', '        default: false',
     '      owner_release:',
     "        description: 'Owner-only checked release ordered by the owner'",
-    '        type: boolean', '        required: false', '        default: false'
+    '        type: boolean', '        required: false', '        default: false',
+    '      expected_main_sha:',
+    "        description: 'Exact 40-character main commit SHA an owner release must match'",
+    '        type: string', '        required: false', "        default: ''"
   ].join('\n');
   const ownerRecovery=dispatches.length===1&&dispatch?.trim()===expectedDispatch&&
     promote.includes("github.ref == 'refs/heads/main' &&")&&
@@ -53,7 +56,8 @@ export function releasePolicyViolations({vercel,ci,targets,promote}){
     promote.includes("(github.event_name == 'workflow_dispatch' && inputs.recover_missed_daily == true && github.actor == 'christcr2012' && github.triggering_actor == 'christcr2012') ||")&&
     promote.includes("(github.event_name == 'workflow_dispatch' && inputs.owner_release == true && github.actor == 'christcr2012' && github.triggering_actor == 'christcr2012'))")&&
     promote.includes('RECOVER_MISSED_DAILY: $'+'{{ inputs.recover_missed_daily }}')&&
-    promote.includes('OWNER_RELEASE: $'+'{{ inputs.owner_release }}');
+    promote.includes('OWNER_RELEASE: $'+'{{ inputs.owner_release }}')&&
+    promote.includes('EXPECTED_MAIN_SHA: $'+'{{ inputs.expected_main_sha }}');
   if(scheduleHeadings.length!==1||!onlyApprovedSchedules||!ownerRecovery||
      /workflow_call\s*:|\bpush\s*:/.test(promote)||
      !/contents:\s*write/.test(promote)||!/checks:\s*read/.test(promote)||

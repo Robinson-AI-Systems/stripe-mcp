@@ -477,8 +477,9 @@ page. Money is shown in dollars and cents; stored in integer cents.
 Development PRs target `main` and keep all existing exact-head CI and review
 gates. Vercel Production must track **`live`**, not `main`. The
 `.github/workflows/promote-live.yml` job alone automatically fast-forwards
-`live` at most once per America/Denver calendar day after all six main checks
-pass, with an atomic daily marker. Do not merge development PRs into `live`,
+`live` after all six main checks pass, with an atomic daily marker:
+live is promoted automatically once a day as a floor; an agent may promote an exact green main SHA any additional time, with no cap.
+Do not merge development PRs into `live`,
 force-update `live`, remove promotion tags, manually trigger deployments, or
 weaken Vercel deployment protection as part of routine development. A
 Production READY state on `main` is not proof `live` branch tracking works.
