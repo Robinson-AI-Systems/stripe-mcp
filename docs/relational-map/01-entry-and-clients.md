@@ -8,6 +8,10 @@
   standalone Node server that reproduces the Vercel function contract
   route-for-route. The hosted Vercel project and its Neon store were
   retired the same day (see `docs/STATUS.md`, 2026-11-08).
+  Re-checked live 2026-11-18: the rack's route table serves
+  `stripe.robinsonaisystems.com` from a rack instance (route generation 10,
+  production release receipt 65), and the Vercel team's project list has
+  no stripe-mcp project.
 - **Vercel-shaped contract:** `api/**/*.js` default exports are the
   handlers; `vercel.json` carries the rewrites. `rack-server.mjs`
   implements the same binding (filesystem routes, bracket segments as
