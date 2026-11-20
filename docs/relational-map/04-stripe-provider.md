@@ -43,7 +43,7 @@
 ## Capability evidence (source-only, honestly labelled)
 
 - The vendored GA OpenAPI snapshot (`vendor/stripe-openapi/`, pinned
-  `2026-09-30.endive`) records **644 operations (612 v1 + 32 v2)**.
+  `2026-09-30.endive`) records **644 operations: 612 v1 operations + 32 v2 operations**.
   `src/stripe/unified-source.js` / `unified-capability.js` and
   `operation-evidence.js` classify each operation against registered
   handlers and credential contexts; `npm run check:capabilities`

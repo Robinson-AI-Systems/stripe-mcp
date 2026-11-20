@@ -1,15 +1,65 @@
 {
-  "about": "MAP-COUNTS-1: every number the map states about the code, checked in CI by scripts/check-map-counts.mjs.",
   "counts": [
-    { "name": "tool modules", "value": 119, "files": ["README.md", "03-tools-and-gateway.md"],
-      "how": { "files": "src/tools/*.js" } },
-    { "name": "store tables (SCHEMA_TABLES)", "value": 35, "files": ["README.md", "05-storage-and-secrets.md"],
-      "how": { "command": "node -e \"import('./src/db.js').then(m=>console.log('tables='+m.SCHEMA_TABLES.length))\"", "match": "tables=(\\d+)" } },
-    { "name": "pinned Stripe operations", "value": 644, "files": ["04-stripe-provider.md"],
-      "how": { "command": "node scripts/unified-capability-report.mjs --verify", "match": "(\\d+) operations" } },
-    { "name": "pinned v1 operations", "value": 612, "files": ["04-stripe-provider.md"],
-      "how": { "command": "node scripts/unified-capability-report.mjs --verify", "match": "\\((\\d+) v1" } },
-    { "name": "pinned v2 operations", "value": 32, "files": ["04-stripe-provider.md"],
-      "how": { "command": "node scripts/unified-capability-report.mjs --verify", "match": "(\\d+) v2\\)" } }
+    {
+      "name": "tool modules",
+      "value": 119,
+      "label": "modules",
+      "files": [
+        "README.md",
+        "03-tools-and-gateway.md"
+      ],
+      "how": {
+        "files": "src/tools/*.js"
+      }
+    },
+    {
+      "name": "store tables (SCHEMA_TABLES)",
+      "value": 35,
+      "label": "tables",
+      "files": [
+        "README.md",
+        "05-storage-and-secrets.md"
+      ],
+      "how": {
+        "command": "node -e \"import('./src/db.js').then(m=>console.log('tables='+m.SCHEMA_TABLES.length))\"",
+        "match": "tables=(\\d+)"
+      }
+    },
+    {
+      "name": "pinned Stripe operations",
+      "value": 644,
+      "label": "operations",
+      "files": [
+        "04-stripe-provider.md"
+      ],
+      "how": {
+        "command": "node scripts/unified-capability-report.mjs --verify",
+        "match": "(\\d+) operations"
+      }
+    },
+    {
+      "name": "pinned v1 operations",
+      "value": 612,
+      "label": "v1 operations",
+      "files": [
+        "04-stripe-provider.md"
+      ],
+      "how": {
+        "command": "node scripts/unified-capability-report.mjs --verify",
+        "match": "\\((\\d+) v1"
+      }
+    },
+    {
+      "name": "pinned v2 operations",
+      "value": 32,
+      "label": "v2 operations",
+      "files": [
+        "04-stripe-provider.md"
+      ],
+      "how": {
+        "command": "node scripts/unified-capability-report.mjs --verify",
+        "match": "(\\d+) v2\\)"
+      }
+    }
   ]
 }
