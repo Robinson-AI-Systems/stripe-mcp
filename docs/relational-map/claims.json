@@ -1,0 +1,109 @@
+{
+  "claims": [
+    {
+      "file": "01-entry-and-clients.md",
+      "states": "Since 2026-11-08 production serves from the rack",
+      "source": {
+        "in": "docs/STATUS.md",
+        "matches": "^## 2026-11-08 — RACK MOVE COMPLETE: production serves from the Development Rack; hosted copies retired"
+      }
+    },
+    {
+      "file": "01-entry-and-clients.md",
+      "states": "retired the same day (see `docs/STATUS.md`, 2026-11-08)",
+      "source": {
+        "in": "docs/STATUS.md",
+        "matches": "the Vercel\\s+project `stripe-mcp` and the Neon project `stripe-mcp` were both\\s+deleted and read back gone"
+      }
+    },
+    {
+      "file": "01-entry-and-clients.md",
+      "states": "Re-checked live 2026-11-18: the rack's route table serves `stripe.robinsonaisystems.com` from a rack instance (route generation 10, production release receipt 65)",
+      "source": {
+        "in": "docs/STATUS.md",
+        "matches": "^## 2026-11-18 — MAP-COUNTS-1(?:.*\\n)*?.*live re-check \\(rack route generation 10, release receipt 65"
+      }
+    },
+    {
+      "file": "02-auth-keys-and-tenancy.md",
+      "states": "refuses live keys outright on non-production deployments",
+      "source": {
+        "in": "tests/unit/live-guard.test.js",
+        "matches": "rejects live without a production deployment even when other flags are forged"
+      }
+    },
+    {
+      "file": "02-auth-keys-and-tenancy.md",
+      "states": "**$500 / account / Denver-day** guard",
+      "source": {
+        "in": "src/db.js",
+        "matches": "^(?=[\\s\\S]*money_limit_cents INTEGER NOT NULL DEFAULT 50000,)(?=[\\s\\S]*local_day=\\(now\\(\\) AT TIME ZONE 'America/Denver'\\)::date)",
+        "flags": ""
+      }
+    },
+    {
+      "file": "04-stripe-provider.md",
+      "states": "(`stripe` 23.0.0, API version pinned `2026-09-30.endive`)",
+      "source": {
+        "command": "node -e \"const p=require('./package.json');console.log(p.dependencies.stripe)\" && grep -h \"STRIPE_API_VERSION =\" src/stripe/client.js",
+        "match": "^23\\.0\\.0\\n.*'2026-09-30\\.endive'"
+      }
+    },
+    {
+      "file": "04-stripe-provider.md",
+      "states": "(`vendor/stripe-openapi/`, pinned `2026-09-30.endive`)",
+      "source": {
+        "in": "src/stripe/unified-source.js",
+        "matches": "^export const UNIFIED_VERSION = '2026-09-30\\.endive';"
+      }
+    },
+    {
+      "file": "04-stripe-provider.md",
+      "states": "29 provider-acceptance rows remain pending — `docs/COMPLETION.md`",
+      "source": {
+        "in": "docs/COMPLETION.md",
+        "matches": "\\*\\*29 Stripe-owned pending rows\\*\\* are listed below"
+      }
+    },
+    {
+      "file": "05-storage-and-secrets.md",
+      "states": "reconciled at the 2026-11-08 move; the hosted Neon store was retired the same day",
+      "source": {
+        "in": "docs/STATUS.md",
+        "matches": "the Vercel\\s+project `stripe-mcp` and the Neon project `stripe-mcp` were both\\s+deleted and read back gone"
+      }
+    },
+    {
+      "file": "06-release-and-operations.md",
+      "states": "nightly at 20:53 America/Denver",
+      "source": {
+        "in": ".github/workflows/promote-live.yml",
+        "matches": "cron: '53 20 \\* \\* \\*'\\n\\s+timezone: America/Denver"
+      }
+    },
+    {
+      "file": "06-release-and-operations.md",
+      "states": "**Post-rack-move state (2026-11-08):**",
+      "source": {
+        "in": "docs/STATUS.md",
+        "matches": "The daily promotion workflow was\\s+disabled on 2026-11-08"
+      }
+    },
+    {
+      "file": "06-release-and-operations.md",
+      "states": "standing decision (`docs/STATUS.md`, 2026-11-08)",
+      "source": {
+        "in": "docs/STATUS.md",
+        "matches": "the promotion\\s+machinery itself is unchanged and remains the owner's standing\\s+decision"
+      }
+    },
+    {
+      "file": "README.md",
+      "states": "Stripe API (SDK 23, API 2026-09-30.endive)",
+      "source": {
+        "in": "src/stripe/client.js",
+        "matches": "^export const STRIPE_API_VERSION = '2026-09-30\\.endive';"
+      }
+    }
+  ]
+}

@@ -12,7 +12,7 @@
   reconciled at the 2026-11-08 move; the hosted Neon store was retired
   the same day). Tests use disposable Postgres only.
 
-## Tables (`SCHEMA_TABLES` in `src/db.js` — 35, plus gated tenancy)
+## Tables (`SCHEMA_TABLES` in `src/db.js`: 35 tables, plus gated tenancy)
 
 | Group | Tables |
 |---|---|
